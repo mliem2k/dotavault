@@ -1,9 +1,151 @@
 import { type JSX, useState } from 'react'
 import type { HeroStat, ItemConst, Match, MatchPlayer } from 'types'
+import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { ItemIcon } from './item_icon'
 import { PlayerIdentityCell, ROW_H, TEAM_HEADER_H, orderedTeams, rankLabel } from './match_roster'
 
 const IDENTITY_W = 236
+
+type Abilities = Record<string, { dname?: string; img?: string }>
+type AbilityIds = Record<string, string>
+
+// Items counted in the "Support Items" column (wards, consumables, utility).
+const SUPPORT_ITEMS = new Set([
+  'ward_observer', 'ward_sentry', 'ward_dispenser', 'dust', 'smoke_of_deceit', 'tpscroll',
+  'flask', 'clarity', 'tango', 'tango_single', 'enchanted_mango', 'faerie_fire', 'gem',
+  'infused_raindrop', 'bottle', 'blood_grenade', 'cheese',
+])
+
+function abilityImg(name: string, abilities: Abilities): string | null {
+  const img = abilities[name]?.img
+  return img ? `https://cdn.cloudflare.steamstatic.com${img}` : null
+}
+
+/* Enemy heroes this player killed, aligned to the fixed enemy roster order. */
+function HeroKillsGroup({
+  player,
+  enemies,
+}: {
+  player: MatchPlayer
+  enemies: HeroStat[]
+}) {
+  const killCount = (heroName: string) =>
+    (player.kills_log ?? []).filter((e) => e.key === heroName).length
+
+  return (
+    <div className="flex items-center gap-1 px-2 shrink-0">
+      {enemies.map((h) => {
+        const n = killCount(h.name)
+        return (
+          <div key={h.id} className="relative shrink-0" style={{ opacity: n > 0 ? 1 : 0.28 }}>
+            <img
+              src={heroIconUrl(h.name)}
+              alt={h.localized_name}
+              title={`${h.localized_name}: ${n}`}
+              className="rounded"
+              style={{ width: 30, height: 30, filter: n > 0 ? 'none' : 'grayscale(1)' }}
+              onError={(e) => {
+                const img = e.currentTarget
+                img.onerror = null
+                img.src = heroIconFromPath(h.icon)
+              }}
+            />
+            {n > 0 && (
+              <span
+                className="absolute -bottom-1 -right-1 text-[9px] font-bold px-0.5 rounded-sm tabular-nums"
+                style={{ background: '#0a0806', color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
+              >
+                {n}
+              </span>
+            )}
+          </div>
+        )
+      })}
+      <div className="w-9 text-center text-[14px] font-bold tabular-nums" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+        {player.kills}
+      </div>
+    </div>
+  )
+}
+
+/* Support items purchased + total gold spent on them. */
+function SupportItemsGroup({
+  player,
+  itemConst,
+}: {
+  player: MatchPlayer
+  itemConst: Record<string, ItemConst>
+}) {
+  const counts = new Map<string, number>()
+  for (const e of player.purchase_log ?? []) {
+    if (SUPPORT_ITEMS.has(e.key)) counts.set(e.key, (counts.get(e.key) ?? 0) + 1)
+  }
+  const entries = [...counts.entries()]
+  const gold = entries.reduce((s, [name, n]) => s + n * (itemConst[name]?.cost ?? 0), 0)
+
+  return (
+    <div className="flex items-center gap-1.5 px-2 shrink-0" style={{ minWidth: 240 }}>
+      <div className="flex items-center gap-1.5 flex-1">
+        {entries.length === 0 ? (
+          <span className="text-[11px]" style={{ color: '#3a352a', fontFamily: 'var(--font-dota)' }}>—</span>
+        ) : (
+          entries.map(([name, n]) => (
+            <div key={name} className="relative shrink-0">
+              <ItemIcon name={name} meta={itemConst[name]} width={30} height={22} />
+              {n > 1 && (
+                <span
+                  className="absolute -bottom-1 -right-1 text-[9px] font-bold px-0.5 rounded-sm tabular-nums"
+                  style={{ background: '#0a0806', color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
+                >
+                  {n}
+                </span>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+      <span className="w-14 text-right text-[13px] font-semibold tabular-nums" style={{ color: '#c9a94a', fontFamily: 'var(--font-dota)' }}>
+        {gold.toLocaleString()}
+      </span>
+    </div>
+  )
+}
+
+/* Ability upgrade order (skill build). */
+function AbilityBuildGroup({
+  player,
+  abilities,
+  abilityIds,
+}: {
+  player: MatchPlayer
+  abilities: Abilities
+  abilityIds: AbilityIds
+}) {
+  const arr = player.ability_upgrades_arr ?? []
+  return (
+    <div className="flex items-center gap-[3px] px-2 shrink-0">
+      {arr.map((id, i) => {
+        const name = abilityIds[String(id)] ?? ''
+        const isTalent = name.startsWith('special_bonus')
+        const img = isTalent ? null : abilityImg(name, abilities)
+        return (
+          <div
+            key={i}
+            className="shrink-0 rounded-sm overflow-hidden flex items-center justify-center"
+            style={{ width: 26, height: 26, background: isTalent ? '#1a2810' : '#12100c', border: `1px solid ${isTalent ? '#3a5a1a' : '#241f16'}` }}
+            title={`Lvl ${i + 1}: ${abilities[name]?.dname ?? name}`}
+          >
+            {img ? (
+              <img src={img} alt={name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.15' }} />
+            ) : (
+              <span className="text-[11px] font-bold" style={{ color: '#8ec63f' }}>▲</span>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 type SortKey =
   | 'kills' | 'deaths' | 'assists' | 'net_worth' | 'last_hits'
@@ -55,11 +197,15 @@ export function MatchScoreboard({
   heroStats,
   idToName,
   itemConst,
+  abilities,
+  abilityIds,
 }: {
   match: Match
   heroStats: HeroStat[]
   idToName: Map<number, string>
   itemConst: Record<string, ItemConst>
+  abilities: Abilities
+  abilityIds: AbilityIds
 }) {
   const [sortKey, setSortKey] = useState<SortKey>('net_worth')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
@@ -164,15 +310,27 @@ export function MatchScoreboard({
     </div>
   )
 
+  const groupLabel = (label: string | JSX.Element, width?: number) => (
+    <div
+      className="shrink-0 flex items-center px-2 text-[10px] font-bold uppercase tracking-wider"
+      style={{ height: TEAM_HEADER_H, minWidth: width, color: '#77715f', fontFamily: 'var(--font-dota)', borderLeft: '1px solid #1c1810' }}
+    >
+      {label}
+    </div>
+  )
+
   const teamSection = (players: MatchPlayer[], isRadiant: boolean) => {
     const sorted = sortPlayers(players)
     const color = isRadiant ? '#8ec63f' : '#d14a38'
     const kills = players.reduce((s, p) => s + p.kills, 0)
     const isWinner = isRadiant ? match.radiant_win : !match.radiant_win
+    const enemies = isRadiant ? dire : radiant
+    const enemyHeroes = enemies.map((e) => heroMap.get(e.hero_id)).filter((h): h is HeroStat => !!h)
+    const maxAbilities = Math.max(0, ...players.map((p) => p.ability_upgrades_arr?.length ?? 0))
 
     return (
       <div style={{ background: '#100e0b', border: '1px solid #1c1810' }}>
-        {/* Header band: team name (identity width) + column labels (stats width) */}
+        {/* Header band: team name (identity width) + column labels + extra groups */}
         <div className="flex items-stretch" style={{ borderBottom: '1px solid #241f16' }}>
           <div
             className="flex items-center gap-2 shrink-0"
@@ -194,6 +352,21 @@ export function MatchScoreboard({
             )}
           </div>
           <HeaderCells />
+          {groupLabel(`${isRadiant ? 'Dire' : 'Radiant'} Heroes Killed`, 5 * 34 + 36 + 16)}
+          {groupLabel(
+            (<span className="inline-flex items-center gap-1">Support Items<GoldPip /></span>),
+            256,
+          )}
+          {maxAbilities > 0 &&
+            groupLabel(
+              (
+                <span className="flex items-center gap-[3px]">
+                  {Array.from({ length: maxAbilities }, (_, i) => (
+                    <span key={i} className="inline-block text-center tabular-nums" style={{ width: 26 }}>{i + 1}</span>
+                  ))}
+                </span>
+              ),
+            )}
         </div>
 
         {/* Rows */}
@@ -215,6 +388,17 @@ export function MatchScoreboard({
                   </div>
                 ))}
               </div>
+              <div className="flex items-center shrink-0" style={{ height: ROW_H, borderLeft: '1px solid #1c1810' }}>
+                <HeroKillsGroup player={p} enemies={enemyHeroes} />
+              </div>
+              <div className="flex items-center shrink-0" style={{ height: ROW_H, borderLeft: '1px solid #1c1810' }}>
+                <SupportItemsGroup player={p} itemConst={itemConst} />
+              </div>
+              {maxAbilities > 0 && (
+                <div className="flex items-center shrink-0" style={{ height: ROW_H, borderLeft: '1px solid #1c1810' }}>
+                  <AbilityBuildGroup player={p} abilities={abilities} abilityIds={abilityIds} />
+                </div>
+              )}
             </button>
           )
         })}

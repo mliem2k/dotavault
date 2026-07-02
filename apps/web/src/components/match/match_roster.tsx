@@ -48,42 +48,52 @@ export function PlayerIdentityCell({
   hero,
   width,
   active = false,
+  linkless = false,
 }: {
   player: MatchPlayer
   hero: HeroStat | undefined
   width: number
   active?: boolean
+  // When true, render plain text instead of anchors — used inside a clickable
+  // toggle row where nested <a> elements would be invalid / conflict.
+  linkless?: boolean
 }) {
   const playerName = player.personaname ?? player.name ?? 'Anonymous'
   const accountId = player.account_id
   const heroShort = hero?.name.replace('npc_dota_hero_', '') ?? ''
   const rank = rankLabel(player.rank_tier)
 
+  const heroImg = hero ? (
+    <img
+      src={heroIconUrl(hero.name)}
+      alt={hero.localized_name}
+      className="rounded object-cover"
+      style={{ width: 40, height: 40 }}
+      onError={(e) => {
+        const img = e.currentTarget
+        img.onerror = null
+        img.src = heroIconFromPath(hero.icon)
+      }}
+    />
+  ) : (
+    <div className="rounded" style={{ width: 40, height: 40, background: '#161310' }} />
+  )
+
   return (
     <div
       className="flex items-center gap-2.5 shrink-0"
       style={{ width, height: ROW_H, padding: '0 10px', background: active ? '#241f16' : 'transparent' }}
     >
-      {hero ? (
-        <a href={`/hero/${heroShort}`} className="shrink-0">
-          <img
-            src={heroIconUrl(hero.name)}
-            alt={hero.localized_name}
-            className="rounded object-cover hover:ring-1 hover:ring-white/40"
-            style={{ width: 40, height: 40 }}
-            onError={(e) => {
-              const img = e.currentTarget
-            img.onerror = null
-            img.src = heroIconFromPath(hero.icon)
-            }}
-          />
+      {hero && !linkless ? (
+        <a href={`/hero/${heroShort}`} className="shrink-0 hover:ring-1 hover:ring-white/40 rounded">
+          {heroImg}
         </a>
       ) : (
-        <div className="rounded shrink-0" style={{ width: 40, height: 40, background: '#161310' }} />
+        <div className="shrink-0">{heroImg}</div>
       )}
 
-      <div className="min-w-0 flex-1">
-        {accountId ? (
+      <div className="min-w-0 flex-1 text-left">
+        {accountId && !linkless ? (
           <a
             href={`/player/${accountId}`}
             className="block text-[14px] font-semibold truncate hover:underline leading-tight"
@@ -94,7 +104,7 @@ export function PlayerIdentityCell({
         ) : (
           <span
             className="block text-[14px] font-semibold truncate leading-tight"
-            style={{ color: '#a8a08c', fontFamily: 'var(--font-dota)' }}
+            style={{ color: accountId ? '#ece6d8' : '#a8a08c', fontFamily: 'var(--font-dota)' }}
           >
             {playerName}
           </span>
@@ -106,15 +116,23 @@ export function PlayerIdentityCell({
           >
             {player.level}
           </span>
-          {hero && (
-            <a
-              href={`/hero/${heroShort}`}
-              className="text-[10px] uppercase tracking-wider truncate hover:underline"
-              style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
-            >
-              {hero.localized_name}
-            </a>
-          )}
+          {hero &&
+            (linkless ? (
+              <span
+                className="text-[10px] uppercase tracking-wider truncate"
+                style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+              >
+                {hero.localized_name}
+              </span>
+            ) : (
+              <a
+                href={`/hero/${heroShort}`}
+                className="text-[10px] uppercase tracking-wider truncate hover:underline"
+                style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+              >
+                {hero.localized_name}
+              </a>
+            ))}
           {rank && (
             <span className="text-[9px] shrink-0" style={{ color: '#5a5446', fontFamily: 'var(--font-dota)' }}>
               · {rank}
@@ -162,22 +180,73 @@ export function TeamHeader({
   )
 }
 
-/* Standalone roster sidebar for the Graphs tab. */
+/* Standalone roster sidebar for the Graphs tab.
+   When `interactive` is set, each row toggles that player's series on/off and
+   shows a line-color chip so the sidebar doubles as the chart legend. */
 export function MatchRosterSidebar({
   match,
   heroStats,
   width = 232,
   selectedSlot,
+  interactive = false,
+  visibleSlots,
+  onToggle,
+  showColors = false,
 }: {
   match: Match
   heroStats: HeroStat[]
   width?: number
   selectedSlot?: number | null
+  interactive?: boolean
+  visibleSlots?: Set<number>
+  onToggle?: (slot: number) => void
+  showColors?: boolean
 }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const { radiant, dire } = orderedTeams(match)
   const radKills = radiant.reduce((s, p) => s + p.kills, 0)
   const direKills = dire.reduce((s, p) => s + p.kills, 0)
+
+  const row = (p: MatchPlayer) => {
+    const color = PLAYER_COLORS[p.player_slot] ?? '#888'
+    const on = !visibleSlots || visibleSlots.has(p.player_slot)
+    const chip = showColors ? (
+      <span
+        className="shrink-0 rounded-sm"
+        style={{ width: 10, height: 10, marginLeft: 8, background: on ? color : 'transparent', border: `2px solid ${color}` }}
+      />
+    ) : null
+    const identity = (
+      <PlayerIdentityCell
+        player={p}
+        hero={heroMap.get(p.hero_id)}
+        width={width - (showColors ? 18 : 0)}
+        active={selectedSlot === p.player_slot}
+        linkless={interactive}
+      />
+    )
+
+    if (interactive) {
+      return (
+        <button
+          key={p.player_slot}
+          type="button"
+          onClick={() => onToggle?.(p.player_slot)}
+          className="flex items-center w-full transition-opacity hover:bg-white/[0.03]"
+          style={{ borderBottom: '1px solid #1c1810', opacity: on ? 1 : 0.4 }}
+        >
+          {chip}
+          {identity}
+        </button>
+      )
+    }
+    return (
+      <div key={p.player_slot} className="flex items-center" style={{ borderBottom: '1px solid #1c1810' }}>
+        {chip}
+        {identity}
+      </div>
+    )
+  }
 
   const section = (players: MatchPlayer[], isRadiant: boolean) => (
     <div>
@@ -187,16 +256,7 @@ export function MatchRosterSidebar({
         isWinner={isRadiant ? match.radiant_win : !match.radiant_win}
         width={width}
       />
-      {players.map((p) => (
-        <div key={p.player_slot} style={{ borderBottom: '1px solid #1c1810' }}>
-          <PlayerIdentityCell
-            player={p}
-            hero={heroMap.get(p.hero_id)}
-            width={width}
-            active={selectedSlot === p.player_slot}
-          />
-        </div>
-      ))}
+      {players.map(row)}
     </div>
   )
 

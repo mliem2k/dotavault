@@ -142,6 +142,7 @@ export type MatchPlayer = {
   sen_log: WardLog[] | null
   rank_tier: number | null
   benchmarks: PlayerBenchmarks | null
+  ability_upgrades_arr: number[] | null
 }
 
 export type Match = {

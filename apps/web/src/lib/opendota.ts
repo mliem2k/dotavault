@@ -41,6 +41,9 @@ export const opendota = {
   proPlayers: () => get<ProPlayer[]>('/proPlayers'),
   search: (q: string) => get<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`),
   items: () => get<Record<string, ItemConst>>('/constants/items'),
+  abilities: () => get<Record<string, { dname?: string; img?: string }>>('/constants/abilities'),
+  abilityIds: () => get<Record<string, string>>('/constants/ability_ids'),
+  playerTotals: (id: string) => get<{ field: string; n: number; sum: number }[]>(`/players/${id}/totals`),
   requestParse: (matchId: string) => post<{ job: { jobId: number } }>(`/request/${matchId}`),
   team: (id: number) =>
     get<{ team_id: number; name: string; tag: string; logo_url: string | null; wins: number; losses: number; rating: number }>(`/teams/${id}`),

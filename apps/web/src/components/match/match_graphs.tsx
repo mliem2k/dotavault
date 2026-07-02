@@ -133,9 +133,11 @@ function TeamAdvantageChart({ match }: { match: Match }) {
 function PlayerLinesChart({
   match,
   metric,
+  visibleSlots,
 }: {
   match: Match
   metric: 'networth' | 'level'
+  visibleSlots: Set<number>
 }) {
   const players = match.players
   const series = players.map((p) => {
@@ -146,9 +148,14 @@ function PlayerLinesChart({
   const n = Math.max(0, ...series.map((s) => s.data.length))
   if (n < 2) return <Empty />
 
+  // Only draw selected players; rescale the y-axis to what's shown so a single
+  // focused player fills the chart.
+  const shown = series.filter((s) => visibleSlots.has(s.player.player_slot))
+  const active = shown.length > 0 ? shown : series
+
   const vbH = ROSTER_H
   const pad = 10
-  const maxVal = metric === 'level' ? 30 : Math.max(1, ...series.flatMap((s) => s.data))
+  const maxVal = metric === 'level' ? 30 : Math.max(1, ...active.flatMap((s) => s.data))
   const xAt = (i: number) => (i / (n - 1)) * VB_W
   const yAt = (v: number) => vbH - pad - (v / maxVal) * (vbH - 2 * pad)
 
@@ -161,7 +168,7 @@ function PlayerLinesChart({
     <div className="flex-1 min-w-0">
       <svg viewBox={`0 0 ${VB_W} ${vbH}`} preserveAspectRatio="none" className="w-full" style={{ height: vbH }}>
         <GridAndAxis minutes={n} vbH={vbH} yTicks={yTicks} />
-        {series.map((s) => {
+        {shown.map((s) => {
           const color = PLAYER_COLORS[s.player.player_slot] ?? '#888'
           const pts: [number, number][] = s.data.map((v, i) => [xAt(i), yAt(v)])
           return (
@@ -170,7 +177,7 @@ function PlayerLinesChart({
               d={toPath(pts)}
               fill="none"
               stroke={color}
-              strokeWidth={1.75}
+              strokeWidth={shown.length === 1 ? 2.5 : 1.75}
               strokeOpacity={0.9}
               vectorEffect="non-scaling-stroke"
             />
@@ -293,6 +300,23 @@ export function MatchGraphs({
   const [mode, setMode] = useState<Mode>('items')
   const activeMode = available.includes(mode) ? mode : (available[0] ?? 'items')
 
+  // Which players' lines are shown (Player Net Worth / Player Level modes).
+  const [visibleSlots, setVisibleSlots] = useState<Set<number>>(
+    () => new Set(match.players.map((p) => p.player_slot)),
+  )
+  function toggleSlot(slot: number) {
+    setVisibleSlots((prev) => {
+      const next = new Set(prev)
+      if (next.has(slot)) {
+        if (next.size > 1) next.delete(slot) // keep at least one line
+      } else {
+        next.add(slot)
+      }
+      return next
+    })
+  }
+  const perPlayerMode = activeMode === 'networth' || activeMode === 'level'
+
   if (available.length === 0) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -306,35 +330,62 @@ export function MatchGraphs({
   return (
     <div className="overflow-x-auto">
       <div style={{ minWidth: 980 }}>
+        {/* Mode toggle (full width) */}
+        <div className="flex gap-1 mb-2" style={{ marginLeft: SIDEBAR_W + 16 }}>
+          {available.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className="flex-1 px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors rounded-sm"
+              style={{
+                fontFamily: 'var(--font-dota)',
+                color: activeMode === m ? '#ece6d8' : '#8a8474',
+                background: activeMode === m ? '#2a2620' : '#16130f',
+                border: `1px solid ${activeMode === m ? '#3a352a' : '#241f16'}`,
+              }}
+            >
+              {MODE_LABELS[m]}
+            </button>
+          ))}
+        </div>
+
+        {perPlayerMode && (
+          <div
+            className="flex items-center gap-3 mb-2 text-[11px]"
+            style={{ fontFamily: 'var(--font-dota)', color: '#8a8474', marginLeft: SIDEBAR_W + 16 }}
+          >
+            <span>
+              Showing {visibleSlots.size} of {match.players.length} — click a player to toggle
+            </span>
+            <button
+              type="button"
+              onClick={() => setVisibleSlots(new Set(match.players.map((p) => p.player_slot)))}
+              className="uppercase tracking-wider hover:text-[#dcd6c8]"
+              style={{ color: '#5a8fc2' }}
+            >
+              Show all
+            </button>
+          </div>
+        )}
+
         <div className="flex gap-4">
-          {/* Roster sidebar */}
-          <MatchRosterSidebar match={match} heroStats={heroStats} width={SIDEBAR_W} />
+          {/* Roster sidebar — interactive legend in per-player modes */}
+          <MatchRosterSidebar
+            match={match}
+            heroStats={heroStats}
+            width={SIDEBAR_W}
+            interactive={perPlayerMode}
+            visibleSlots={perPlayerMode ? visibleSlots : undefined}
+            onToggle={toggleSlot}
+            showColors={perPlayerMode}
+          />
 
           {/* Chart column */}
           <div className="flex-1 min-w-0">
-            {/* Mode toggle */}
-            <div className="flex gap-1 mb-3">
-              {available.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMode(m)}
-                  className="flex-1 px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors rounded-sm"
-                  style={{
-                    fontFamily: 'var(--font-dota)',
-                    color: activeMode === m ? '#ece6d8' : '#8a8474',
-                    background: activeMode === m ? '#2a2620' : '#16130f',
-                    border: `1px solid ${activeMode === m ? '#3a352a' : '#241f16'}`,
-                  }}
-                >
-                  {MODE_LABELS[m]}
-                </button>
-              ))}
-            </div>
-
             {activeMode === 'team' && <TeamAdvantageChart match={match} />}
-            {activeMode === 'networth' && <PlayerLinesChart match={match} metric="networth" />}
-            {activeMode === 'level' && <PlayerLinesChart match={match} metric="level" />}
+            {activeMode === 'networth' && <PlayerLinesChart match={match} metric="networth" visibleSlots={visibleSlots} />}
+            {activeMode === 'level' && <PlayerLinesChart match={match} metric="level" visibleSlots={visibleSlots} />}
             {activeMode === 'items' && <PlayerItemsTimeline match={match} itemConst={itemConst} />}
           </div>
         </div>

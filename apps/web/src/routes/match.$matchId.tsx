@@ -62,6 +62,18 @@ function MatchPage() {
     staleTime: Number.POSITIVE_INFINITY,
   })
 
+  const abilitiesData = useQuery({
+    queryKey: ['abilities_constants'],
+    queryFn: () => opendota.abilities(),
+    staleTime: Number.POSITIVE_INFINITY,
+  })
+
+  const abilityIdsData = useQuery({
+    queryKey: ['ability_ids_constants'],
+    queryFn: () => opendota.abilityIds(),
+    staleTime: Number.POSITIVE_INFINITY,
+  })
+
   if (match.isPending) {
     return (
       <div className="flex justify-center py-20">
@@ -199,7 +211,14 @@ function MatchPage() {
 
         {activeTab === 'scoreboard' && (
           heroStats.data ? (
-            <MatchScoreboard match={m} heroStats={heroStats.data} idToName={idToName} itemConst={itemConst} />
+            <MatchScoreboard
+              match={m}
+              heroStats={heroStats.data}
+              idToName={idToName}
+              itemConst={itemConst}
+              abilities={abilitiesData.data ?? {}}
+              abilityIds={abilityIdsData.data ?? {}}
+            />
           ) : (
             <div className="flex justify-center py-12"><Spinner /></div>
           )
