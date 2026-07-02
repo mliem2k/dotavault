@@ -9,7 +9,6 @@ import { MatchVision } from '@/components/match/match_vision'
 import { ReplayViewer } from '@/components/match/replay_viewer'
 import { Scoreboard } from '@/components/match/scoreboard'
 import { Timeline } from '@/components/match/timeline'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
@@ -71,28 +70,35 @@ function MatchPage() {
   const radiantScore = m.players.filter((p) => p.player_slot < 128).reduce((s, p) => s + p.kills, 0)
   const direScore = m.players.filter((p) => p.player_slot >= 128).reduce((s, p) => s + p.kills, 0)
 
+
+  const winColor = m.radiant_win ? '#92c93a' : '#c23c2a'
+  const winTeam = m.radiant_win ? 'Radiant' : 'Dire'
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <span className="text-2xl font-bold text-radiant">{radiantScore}</span>
-            <span className="text-sm text-muted">vs</span>
-            <span className="text-2xl font-bold text-dire">{direScore}</span>
+      {/* Match header — Dota results style */}
+      <div
+        className="rounded-lg px-6 py-4"
+        style={{ background: `linear-gradient(135deg, ${winColor}18 0%, #0f1e2e 50%)`, border: `1px solid ${winColor}30` }}
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="text-2xl font-bold tracking-wide mb-1" style={{ color: winColor }}>
+              {winTeam} Victory
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-3xl font-bold" style={{ color: '#92c93a' }}>{radiantScore}</span>
+              <span className="text-lg text-muted">—</span>
+              <span className="text-3xl font-bold" style={{ color: '#c23c2a' }}>{direScore}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted">
-            <span>{GAME_MODES[m.game_mode] ?? `Mode ${m.game_mode}`}</span>
-            <span>·</span>
-            <span>{formatDuration(m.duration)}</span>
-            <span>·</span>
-            <span>{formatTimeAgo(m.start_time)}</span>
-            <span>·</span>
-            <span className="font-mono">{m.match_id}</span>
+          <div className="text-right text-xs text-muted space-y-1">
+            <div className="text-sm text-foreground font-medium">{GAME_MODES[m.game_mode] ?? `Mode ${m.game_mode}`}</div>
+            <div>Duration: <span className="text-foreground font-mono">{formatDuration(m.duration)}</span></div>
+            <div>{formatTimeAgo(m.start_time)}</div>
+            <div className="font-mono text-[10px]">#{m.match_id}</div>
           </div>
         </div>
-        <Badge variant={m.radiant_win ? 'radiant' : 'dire'}>
-          {m.radiant_win ? 'Radiant' : 'Dire'} Victory
-        </Badge>
       </div>
 
       {m.picks_bans && m.picks_bans.length > 0 && (
