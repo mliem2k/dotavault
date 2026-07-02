@@ -157,6 +157,9 @@ function HeroDetailPage() {
       games: d.games_played,
     }))
 
+  const shortName = hero.name.replace('npc_dota_hero_', '')
+  const viewerUrl = `https://pissang.github.io/dota2hero/#/hero/${shortName}`
+
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-6">
@@ -200,6 +203,32 @@ function HeroDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* 3D Model Viewer */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>3D Model</CardTitle>
+            <a
+              href={viewerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted hover:text-accent transition-colors"
+            >
+              Open fullscreen ↗
+            </a>
+          </div>
+        </CardHeader>
+        <div className="relative overflow-hidden rounded-b-lg" style={{ height: '480px' }}>
+          <iframe
+            src={viewerUrl}
+            className="absolute inset-0 w-full h-full border-0"
+            title={`${hero.localized_name} 3D Model`}
+            allow="fullscreen"
+            loading="lazy"
+          />
+        </div>
+      </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
