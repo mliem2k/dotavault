@@ -1,5 +1,6 @@
 import { Pause, Play } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import type { HeroStat, Match, TeamfightPlayer } from 'types'
 import { formatDuration } from '@/lib/utils'
 
@@ -46,7 +47,10 @@ export function ReplayViewer({ match, heroStats }: { match: Match; heroStats: He
   const [time, setTime] = useState(0)
   const [playing, setPlaying] = useState(false)
 
-  const heroMap = new Map(heroStats.map((h) => [h.id, h]))
+  const heroMap = useMemo(
+    () => new Map(heroStats.map((h) => [h.id, h])),
+    [heroStats],
+  )
   const positions = extractPositions(match)
   const duration = match.duration
 
@@ -164,23 +168,27 @@ export function ReplayViewer({ match, heroStats }: { match: Match; heroStats: He
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <button
-          onClick={() => setPlaying((p) => !p)}
-          className="flex h-8 w-8 items-center justify-center rounded border border-border bg-card hover:bg-white/10"
-        >
-          {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-        </button>
-        <input
-          type="range"
-          min={0}
-          max={duration}
-          value={time}
-          onChange={(e) => {
-            setPlaying(false)
-            setTime(Number(e.target.value))
-          }}
-          className="flex-1 accent-accent"
-        />
+        <motion.div whileTap={{ scale: 0.9 }} style={{ display: 'inline-flex' }}>
+          <button
+            onClick={() => setPlaying((p) => !p)}
+            className="flex h-8 w-8 items-center justify-center rounded border border-border bg-card hover:bg-white/10"
+          >
+            {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+          </button>
+        </motion.div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <input
+            type="range"
+            min={0}
+            max={duration}
+            value={time}
+            onChange={(e) => {
+              setPlaying(false)
+              setTime(Number(e.target.value))
+            }}
+            className="flex-1 accent-accent"
+          />
+        </motion.div>
         <span className="w-12 text-right font-mono text-xs text-muted">
           {formatDuration(Math.floor(time))}
         </span>
