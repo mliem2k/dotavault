@@ -30,7 +30,7 @@ export const Route = createFileRoute('/match/$matchId')({
 
 function MatchPage() {
   const { matchId } = Route.useParams()
-  const [activeMinute, setActiveMinute] = useState(0)
+  const [activeMinuteRaw, setActiveMinute] = useState<number | null>(null)
 
   const match = useQuery({
     queryKey: ['match', matchId],
@@ -59,6 +59,8 @@ function MatchPage() {
   if (!match.data) return <div className="text-sm text-muted">Match not found.</div>
 
   const m = match.data
+  const durationMinutes = m ? Math.floor(m.duration / 60) : 0
+  const activeMinute = activeMinuteRaw ?? durationMinutes
   const idToName = new Map<number, string>(
     Object.entries(itemsData.data ?? {}).map(([name, { id }]) => [id, name]),
   )
@@ -124,11 +126,9 @@ function MatchPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Scoreboard</CardTitle>
-            {activeMinute > 0 && (
-              <span className="text-xs font-mono text-accent">
-                At {formatDuration(activeMinute * 60)}
-              </span>
-            )}
+            <span className="text-xs font-mono text-accent">
+              At {formatDuration(activeMinute * 60)}
+            </span>
           </div>
         </CardHeader>
         {heroStats.data ? (
@@ -138,6 +138,7 @@ function MatchPage() {
             radiantWin={m.radiant_win}
             idToName={idToName}
             activeMinute={activeMinute}
+            durationMinutes={durationMinutes}
           />
         ) : (
           <div className="flex justify-center py-8"><Spinner /></div>

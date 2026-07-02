@@ -108,7 +108,7 @@ function PlayerRow({
   idToName: Map<number, string>
   activeMinute: number
 }) {
-  const snapshot = activeMinute > 0
+  const snapshot = (player.gold_t?.length ?? 0) > 0
   const upToSeconds = activeMinute * 60
 
   // Snapshot values (when slider is active)
@@ -254,6 +254,7 @@ function TeamTable({
   sortDir,
   onSort,
   activeMinute,
+  durationMinutes,
 }: {
   players: MatchPlayer[]
   heroMap: Map<number, HeroStat>
@@ -264,8 +265,9 @@ function TeamTable({
   sortDir: 'asc' | 'desc'
   onSort: (col: SortKey) => void
   activeMinute: number
+  durationMinutes: number
 }) {
-  const snapshot = activeMinute > 0
+  const snapshot = activeMinute < durationMinutes
 
   const sorted = [...players].sort((a, b) => {
     if (sortKey === 'default') return a.player_slot - b.player_slot
@@ -325,12 +327,14 @@ export function Scoreboard({
   radiantWin,
   idToName,
   activeMinute = 0,
+  durationMinutes = 0,
 }: {
   players: MatchPlayer[]
   heroStats: HeroStat[]
   radiantWin: boolean
   idToName: Map<number, string>
   activeMinute?: number
+  durationMinutes?: number
 }) {
   const [sortKey, setSortKey] = useState<SortKey>('default')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
@@ -348,7 +352,7 @@ export function Scoreboard({
   const radiant = players.filter((p) => p.player_slot < 128)
   const dire = players.filter((p) => p.player_slot >= 128)
 
-  const sharedProps = { heroMap, idToName, sortKey, sortDir, onSort: handleSort, activeMinute }
+  const sharedProps = { heroMap, idToName, sortKey, sortDir, onSort: handleSort, activeMinute, durationMinutes }
 
   return (
     <div className="space-y-6">
