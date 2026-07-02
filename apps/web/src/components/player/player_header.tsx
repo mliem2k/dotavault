@@ -14,13 +14,17 @@ function rankName(rankTier: number | null): string {
   return `${RANK_NAMES[tier] ?? 'Unknown'} ${stars}★`
 }
 
-function rankBadgeUrl(rankTier: number | null): string | null {
+const RANK_CDN = 'https://www.opendota.com/assets/images/dota2/rank_icons'
+
+function rankBadge(rankTier: number | null): { medal: string; stars: string | null } | null {
   if (!rankTier) return null
   const tier = Math.floor(rankTier / 10)
   const stars = rankTier % 10
-  if (tier === 0 || tier > 8) return null
-  const s = tier === 8 ? 0 : stars
-  return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/ranks/SeasonalRank${tier}-${s}.png`
+  if (tier < 1 || tier > 8) return null
+  return {
+    medal: `${RANK_CDN}/rank_icon_${tier}.png`,
+    stars: tier < 8 && stars > 0 ? `${RANK_CDN}/rank_star_${stars}.png` : null,
+  }
 }
 
 type ProTeamInfo = {
@@ -40,7 +44,7 @@ export function PlayerHeader({
   proTeam?: ProTeamInfo
 }) {
   const total = wl.win + wl.lose
-  const badgeUrl = rankBadgeUrl(player.rank_tier)
+  const badge = rankBadge(player.rank_tier)
 
   return (
     <div className="flex items-start gap-4">
@@ -67,8 +71,13 @@ export function PlayerHeader({
           )}
         </div>
         <div className="mt-1.5 flex items-center gap-2">
-          {badgeUrl && (
-            <img src={badgeUrl} alt={rankName(player.rank_tier)} className="h-8 w-8 object-contain" />
+          {badge && (
+            <div className="relative h-9 w-9 flex-shrink-0">
+              <img src={badge.medal} alt={rankName(player.rank_tier)} className="h-9 w-9 object-contain" />
+              {badge.stars && (
+                <img src={badge.stars} alt="" className="absolute inset-0 h-9 w-9 object-contain" />
+              )}
+            </div>
           )}
           <div>
             <div className="text-sm font-medium">{rankName(player.rank_tier)}</div>
