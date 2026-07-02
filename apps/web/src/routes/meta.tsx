@@ -83,7 +83,7 @@ function LaneCard({ lane, heroes }: { lane: (typeof LANES)[0]; heroes: HeroStat[
           return (
             <a
               key={h.id}
-              href={`/hero/${h.id}`}
+              href={`/hero/${h.name.replace('npc_dota_hero_', '')}`}
               className="flex items-center gap-2 rounded px-1 py-1 hover:bg-white/5"
             >
               <span className="w-4 text-right font-mono text-xs text-muted">{i + 1}</span>
@@ -136,7 +136,7 @@ function TopHeroesTable({ heroes }: { heroes: HeroStat[] }) {
               <tr key={h.id} className="border-b border-border/30 hover:bg-white/[0.02]">
                 <td className="py-1.5 font-mono text-xs text-muted">{i + 1}</td>
                 <td className="py-1.5">
-                  <a href={`/hero/${h.id}`} className="flex items-center gap-2 hover:text-accent">
+                  <a href={`/hero/${h.name.replace('npc_dota_hero_', '')}`} className="flex items-center gap-2 hover:text-accent">
                     <img
                       src={heroIconUrl(h.name)}
                       alt={h.localized_name}

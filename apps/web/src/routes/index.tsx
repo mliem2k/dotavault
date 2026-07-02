@@ -73,7 +73,7 @@ function HomePage() {
                   return (
                     <a
                       key={h.id}
-                      href={`/hero/${h.id}`}
+                      href={`/hero/${h.name.replace('npc_dota_hero_', '')}`}
                       className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-white/5"
                     >
                       <div className="flex items-center gap-2">

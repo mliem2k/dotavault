@@ -34,8 +34,8 @@ export function HeroStatsTable({
             >
               <td className="py-1.5">
                 <Link
-                  to="/hero/$heroId"
-                  params={{ heroId: ph.hero_id }}
+                  to="/hero/$heroName"
+                  params={{ heroName: hero?.name.replace('npc_dota_hero_', '') ?? String(ph.hero_id) }}
                   className="flex items-center gap-2 hover:text-accent"
                 >
                   {hero && (

@@ -7,7 +7,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
 import { heroBracketTotal, heroIconFromPath, heroIconUrl, winRate } from '@/lib/utils'
 
-export const Route = createFileRoute('/hero/$heroId')({
+export const Route = createFileRoute('/hero/$heroName')({
   component: HeroDetailPage,
 })
 
@@ -40,7 +40,7 @@ function MatchupTable({
   sortDir,
 }: {
   matchups: Matchup[]
-  heroMap: Map<number, { name: string; localized_name: string; icon: string }>
+  heroMap: Map<number, { name: string; shortName: string; localized_name: string; icon: string }>
   title: string
   sortDir: 'best' | 'worst'
 }) {
@@ -72,7 +72,7 @@ function MatchupTable({
             return (
               <tr key={m.hero_id} className="border-t border-border/30 text-sm hover:bg-card/40">
                 <td className="py-1.5">
-                  <a href={`/hero/${m.hero_id}`} className="flex items-center gap-2 hover:text-accent">
+                  <a href={`/hero/${heroMap.get(m.hero_id)?.shortName ?? m.hero_id}`} className="flex items-center gap-2 hover:text-accent">
                     <img
                       src={heroIconFromPath(h.icon)}
                       alt={h.localized_name}
@@ -97,7 +97,7 @@ function MatchupTable({
 }
 
 function HeroDetailPage() {
-  const { heroId } = Route.useParams()
+  const { heroName } = Route.useParams()
   const [matchupSort, setMatchupSort] = useState<SortKey>('winrate')
 
   const heroStats = useQuery({
@@ -105,20 +105,22 @@ function HeroDetailPage() {
     queryFn: () => opendota.heroStats(),
   })
 
+  const hero = heroStats.data?.find((h) => h.name === `npc_dota_hero_${heroName}`)
+
   const matchups = useQuery({
-    queryKey: ['hero_matchups', heroId],
+    queryKey: ['hero_matchups', hero?.id],
     queryFn: () =>
-      fetch(`https://api.opendota.com/api/heroes/${heroId}/matchups`)
+      fetch(`https://api.opendota.com/api/heroes/${hero!.id}/matchups`)
         .then((r) => r.json()) as Promise<Matchup[]>,
-    enabled: !!heroId,
+    enabled: !!hero?.id,
   })
 
   const durations = useQuery({
-    queryKey: ['hero_durations', heroId],
+    queryKey: ['hero_durations', hero?.id],
     queryFn: () =>
-      fetch(`https://api.opendota.com/api/heroes/${heroId}/durations`)
+      fetch(`https://api.opendota.com/api/heroes/${hero!.id}/durations`)
         .then((r) => r.json()) as Promise<Duration[]>,
-    enabled: !!heroId,
+    enabled: !!hero?.id,
   })
 
   if (heroStats.isPending) {
@@ -128,8 +130,6 @@ function HeroDetailPage() {
       </div>
     )
   }
-
-  const hero = heroStats.data?.find((h) => String(h.id) === heroId)
   if (!hero) return <div className="text-sm text-muted">Hero not found.</div>
 
   const picks = heroBracketTotal(hero, 'pick')
@@ -138,7 +138,12 @@ function HeroDetailPage() {
   const heroMap = new Map(
     (heroStats.data ?? []).map((h) => [
       h.id,
-      { name: h.name, localized_name: h.localized_name, icon: h.icon },
+      {
+        name: h.name,
+        shortName: h.name.replace('npc_dota_hero_', ''),
+        localized_name: h.localized_name,
+        icon: h.icon,
+      },
     ]),
   )
 

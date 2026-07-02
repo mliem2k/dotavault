@@ -16,7 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as TeamTeamIdRouteImport } from './routes/team.$teamId'
 import { Route as PlayerAccountIdRouteImport } from './routes/player.$accountId'
 import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
-import { Route as HeroHeroIdRouteImport } from './routes/hero.$heroId'
+import { Route as HeroHeroNameRouteImport } from './routes/hero.$heroName'
 
 const ProRoute = ProRouteImport.update({
   id: '/pro',
@@ -53,9 +53,9 @@ const MatchMatchIdRoute = MatchMatchIdRouteImport.update({
   path: '/match/$matchId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const HeroHeroIdRoute = HeroHeroIdRouteImport.update({
-  id: '/hero/$heroId',
-  path: '/hero/$heroId',
+const HeroHeroNameRoute = HeroHeroNameRouteImport.update({
+  id: '/hero/$heroName',
+  path: '/hero/$heroName',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -64,7 +64,7 @@ export interface FileRoutesByFullPath {
   '/heroes': typeof HeroesRoute
   '/meta': typeof MetaRoute
   '/pro': typeof ProRoute
-  '/hero/$heroId': typeof HeroHeroIdRoute
+  '/hero/$heroName': typeof HeroHeroNameRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
   '/team/$teamId': typeof TeamTeamIdRoute
@@ -74,7 +74,7 @@ export interface FileRoutesByTo {
   '/heroes': typeof HeroesRoute
   '/meta': typeof MetaRoute
   '/pro': typeof ProRoute
-  '/hero/$heroId': typeof HeroHeroIdRoute
+  '/hero/$heroName': typeof HeroHeroNameRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
   '/team/$teamId': typeof TeamTeamIdRoute
@@ -85,7 +85,7 @@ export interface FileRoutesById {
   '/heroes': typeof HeroesRoute
   '/meta': typeof MetaRoute
   '/pro': typeof ProRoute
-  '/hero/$heroId': typeof HeroHeroIdRoute
+  '/hero/$heroName': typeof HeroHeroNameRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
   '/team/$teamId': typeof TeamTeamIdRoute
@@ -97,7 +97,7 @@ export interface FileRouteTypes {
     | '/heroes'
     | '/meta'
     | '/pro'
-    | '/hero/$heroId'
+    | '/hero/$heroName'
     | '/match/$matchId'
     | '/player/$accountId'
     | '/team/$teamId'
@@ -107,7 +107,7 @@ export interface FileRouteTypes {
     | '/heroes'
     | '/meta'
     | '/pro'
-    | '/hero/$heroId'
+    | '/hero/$heroName'
     | '/match/$matchId'
     | '/player/$accountId'
     | '/team/$teamId'
@@ -117,7 +117,7 @@ export interface FileRouteTypes {
     | '/heroes'
     | '/meta'
     | '/pro'
-    | '/hero/$heroId'
+    | '/hero/$heroName'
     | '/match/$matchId'
     | '/player/$accountId'
     | '/team/$teamId'
@@ -128,7 +128,7 @@ export interface RootRouteChildren {
   HeroesRoute: typeof HeroesRoute
   MetaRoute: typeof MetaRoute
   ProRoute: typeof ProRoute
-  HeroHeroIdRoute: typeof HeroHeroIdRoute
+  HeroHeroNameRoute: typeof HeroHeroNameRoute
   MatchMatchIdRoute: typeof MatchMatchIdRoute
   PlayerAccountIdRoute: typeof PlayerAccountIdRoute
   TeamTeamIdRoute: typeof TeamTeamIdRoute
@@ -185,11 +185,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatchMatchIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/hero/$heroId': {
-      id: '/hero/$heroId'
-      path: '/hero/$heroId'
-      fullPath: '/hero/$heroId'
-      preLoaderRoute: typeof HeroHeroIdRouteImport
+    '/hero/$heroName': {
+      id: '/hero/$heroName'
+      path: '/hero/$heroName'
+      fullPath: '/hero/$heroName'
+      preLoaderRoute: typeof HeroHeroNameRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -200,7 +200,7 @@ const rootRouteChildren: RootRouteChildren = {
   HeroesRoute: HeroesRoute,
   MetaRoute: MetaRoute,
   ProRoute: ProRoute,
-  HeroHeroIdRoute: HeroHeroIdRoute,
+  HeroHeroNameRoute: HeroHeroNameRoute,
   MatchMatchIdRoute: MatchMatchIdRoute,
   PlayerAccountIdRoute: PlayerAccountIdRoute,
   TeamTeamIdRoute: TeamTeamIdRoute,
