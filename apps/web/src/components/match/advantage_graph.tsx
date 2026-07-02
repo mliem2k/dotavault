@@ -16,9 +16,11 @@ type Tab = 'gold' | 'xp'
 export function AdvantageGraph({
   radiantGoldAdv,
   radiantXpAdv,
+  activeMinute,
 }: {
   radiantGoldAdv: number[] | null
   radiantXpAdv: number[] | null
+  activeMinute?: number
 }) {
   const [activeTab, setActiveTab] = useState<Tab>('gold')
 
@@ -75,6 +77,9 @@ export function AdvantageGraph({
           />
           <YAxis tick={{ fill: '#888', fontSize: 10 }} />
           <ReferenceLine y={0} stroke="#555" />
+          {activeMinute !== undefined && (
+            <ReferenceLine x={activeMinute * 60} stroke="#0070f3" strokeWidth={1.5} strokeDasharray="4 2" />
+          )}
           <Tooltip
             formatter={(v) => [(v as number) > 0 ? `+${v}` : v, label]}
             labelFormatter={(l) => formatDuration(l as number)}

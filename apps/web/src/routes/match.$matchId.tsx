@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { AdvantageGraph } from '@/components/match/advantage_graph'
 import { DraftPanel } from '@/components/match/draft_panel'
 import { ReplayViewer } from '@/components/match/replay_viewer'
 import { Scoreboard } from '@/components/match/scoreboard'
+import { Timeline } from '@/components/match/timeline'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
@@ -28,6 +30,7 @@ export const Route = createFileRoute('/match/$matchId')({
 
 function MatchPage() {
   const { matchId } = Route.useParams()
+  const [activeMinute, setActiveMinute] = useState(0)
 
   const match = useQuery({
     queryKey: ['match', matchId],
@@ -114,9 +117,21 @@ function MatchPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Advantage</CardTitle>
+          <CardTitle>Timeline</CardTitle>
         </CardHeader>
-        <AdvantageGraph radiantGoldAdv={m.radiant_gold_adv} radiantXpAdv={m.radiant_xp_adv} />
+        <AdvantageGraph
+          radiantGoldAdv={m.radiant_gold_adv}
+          radiantXpAdv={m.radiant_xp_adv}
+          activeMinute={activeMinute}
+        />
+        {heroStats.data && (
+          <Timeline
+            match={m}
+            heroStats={heroStats.data}
+            activeMinute={activeMinute}
+            onMinuteChange={setActiveMinute}
+          />
+        )}
       </Card>
 
       <Card>

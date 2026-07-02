@@ -42,14 +42,13 @@ export function SearchBar() {
     }, 300)
   }
 
-  function resolveAccountId(val: string): string {
-    if (/^\d+$/.test(val)) {
-      const n = BigInt(val)
-      const steam64base = BigInt('76561197960265728')
-      if (n > steam64base) return String(n - steam64base)
-      return val
-    }
-    return val
+  function resolveId(val: string): { type: 'match' | 'player'; id: string } {
+    const n = BigInt(val)
+    const steam64base = BigInt('76561197960265728')
+    const maxAccountId = BigInt('4294967295')
+    if (n > steam64base) return { type: 'player', id: String(n - steam64base) }
+    if (n > maxAccountId) return { type: 'match', id: val }
+    return { type: 'player', id: val }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -58,7 +57,12 @@ export function SearchBar() {
     if (!val) return
     if (/^\d+$/.test(val)) {
       setOpen(false)
-      navigate({ to: '/player/$accountId', params: { accountId: resolveAccountId(val) } })
+      const resolved = resolveId(val)
+      if (resolved.type === 'match') {
+        navigate({ to: '/match/$matchId', params: { matchId: resolved.id } })
+      } else {
+        navigate({ to: '/player/$accountId', params: { accountId: resolved.id } })
+      }
     } else if (results.length > 0) {
       select(results[0].account_id)
     }
@@ -78,12 +82,17 @@ export function SearchBar() {
           value={query}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder="Search player name or Steam ID…"
+          placeholder="Search player, Steam ID, or match ID…"
           className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
         />
-        {/^\d+$/.test(query.trim()) && query.trim() && (
-          <span className="text-xs text-muted flex-shrink-0">Press Enter</span>
-        )}
+        {/^\d+$/.test(query.trim()) && query.trim() && (() => {
+          const resolved = resolveId(query.trim())
+          return (
+            <span className="text-xs text-muted flex-shrink-0">
+              {resolved.type === 'match' ? 'Match · Enter' : 'Player · Enter'}
+            </span>
+          )
+        })()}
       </div>
       {open && results.length > 0 && (
         <div className="absolute top-full z-50 mt-1 w-full rounded-lg border border-border bg-card py-1 shadow-lg">
