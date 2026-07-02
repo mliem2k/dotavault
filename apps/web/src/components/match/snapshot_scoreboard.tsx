@@ -17,25 +17,30 @@ const CONSUMABLES = new Set([
 
 function itemsAtTime(player: MatchPlayer, upToSeconds: number): string[] {
   if (!player.purchase_log) return []
-  const bought = player.purchase_log
+  return player.purchase_log
     .filter((e) => e.time <= upToSeconds && !CONSUMABLES.has(e.key))
     .map((e) => e.key)
-  return bought.slice(-6)
+    .slice(-6)
 }
 
 function goldAtMinute(player: MatchPlayer, minute: number): number | null {
-  if (!player.gold_t || player.gold_t.length === 0) return null
+  if (!player.gold_t?.length) return null
   return player.gold_t[Math.min(minute, player.gold_t.length - 1)] ?? null
 }
 
 function lhAtMinute(player: MatchPlayer, minute: number): number | null {
-  if (!player.lh_t || player.lh_t.length === 0) return null
+  if (!player.lh_t?.length) return null
   return player.lh_t[Math.min(minute, player.lh_t.length - 1)] ?? null
 }
 
-function xpAtMinute(player: MatchPlayer, minute: number): number | null {
-  if (!player.xp_t || player.xp_t.length === 0) return null
-  return player.xp_t[Math.min(minute, player.xp_t.length - 1)] ?? null
+function killsAtTime(player: MatchPlayer, upToSeconds: number): number {
+  return (player.kills_log ?? []).filter((e) => e.time <= upToSeconds).length
+}
+
+function gpmAtMinute(player: MatchPlayer, minute: number): number | null {
+  const g = goldAtMinute(player, minute)
+  if (g === null || minute === 0) return null
+  return Math.round(g / minute)
 }
 
 function fmt(n: number): string {
@@ -57,8 +62,8 @@ function PlayerRow({
   const items = itemsAtTime(player, upToSeconds)
   const gold = goldAtMinute(player, activeMinute)
   const lh = lhAtMinute(player, activeMinute)
-  const xp = xpAtMinute(player, activeMinute)
-  const hasTimeData = gold !== null || lh !== null
+  const kills = killsAtTime(player, upToSeconds)
+  const gpm = gpmAtMinute(player, activeMinute)
 
   return (
     <tr className="border-t border-border/20 text-xs hover:bg-white/[0.02]">
@@ -74,16 +79,21 @@ function PlayerRow({
               className="h-6 w-6 rounded flex-shrink-0"
             />
           )}
-          <span className="truncate max-w-[100px]">
+          <span className="truncate max-w-[90px]">
             {player.personaname ?? player.name ?? '—'}
           </span>
         </a>
       </td>
-      <td className={`py-1.5 pr-3 text-right font-mono font-semibold ${isRadiant ? 'text-radiant' : 'text-dire'}`}>
-        {gold !== null ? fmt(gold) : fmt(player.net_worth)}
-        {gold === null && <span className="ml-0.5 text-muted font-normal text-[10px]">nw</span>}
+      <td className="py-1.5 pr-2 text-center font-mono font-semibold text-foreground">
+        {kills}
       </td>
-      <td className="py-1.5 pr-3 text-right font-mono text-muted">
+      <td className={`py-1.5 pr-2 text-right font-mono font-semibold ${isRadiant ? 'text-radiant' : 'text-dire'}`}>
+        {gold !== null ? fmt(gold) : fmt(player.net_worth)}
+      </td>
+      <td className="py-1.5 pr-2 text-right font-mono text-muted">
+        {gpm !== null ? gpm : player.gold_per_min}
+      </td>
+      <td className="py-1.5 pr-2 text-right font-mono text-muted">
         {lh !== null ? lh : player.last_hits}
       </td>
       <td className="py-1.5">
@@ -100,12 +110,9 @@ function PlayerRow({
                   className="h-5 w-8 rounded object-cover"
                 />
               ))
-            : !hasTimeData
-              ? Array.from({ length: 3 }, (_, i) => (
-                  <div key={i} className="h-5 w-8 rounded bg-border/40" />
-                ))
-              : <span className="text-muted italic">no items</span>
-          }
+            : Array.from({ length: 3 }, (_, i) => (
+                <div key={i} className="h-5 w-8 rounded bg-border/40" />
+              ))}
         </div>
       </td>
     </tr>
@@ -128,8 +135,10 @@ function TeamTable({
       <thead>
         <tr className="text-left text-[10px] text-muted">
           <th className="pb-1 font-normal">Player</th>
-          <th className="pb-1 text-right font-normal pr-3">Gold</th>
-          <th className="pb-1 text-right font-normal pr-3">LH</th>
+          <th className="pb-1 text-center font-normal pr-2">K</th>
+          <th className="pb-1 text-right font-normal pr-2">Gold</th>
+          <th className="pb-1 text-right font-normal pr-2">GPM</th>
+          <th className="pb-1 text-right font-normal pr-2">LH</th>
           <th className="pb-1 font-normal">Items</th>
         </tr>
       </thead>
@@ -163,25 +172,19 @@ export function SnapshotScoreboard({
   const radiant = players.filter((p) => p.player_slot < 128)
   const dire = players.filter((p) => p.player_slot >= 128)
 
-  const radiantGold = radiant.reduce((sum, p) => {
-    const g = goldAtMinute(p, activeMinute)
-    return sum + (g ?? p.net_worth)
-  }, 0)
-  const direGold = dire.reduce((sum, p) => {
-    const g = goldAtMinute(p, activeMinute)
-    return sum + (g ?? p.net_worth)
-  }, 0)
+  const radiantGold = radiant.reduce((sum, p) => sum + (goldAtMinute(p, activeMinute) ?? p.net_worth), 0)
+  const direGold = dire.reduce((sum, p) => sum + (goldAtMinute(p, activeMinute) ?? p.net_worth), 0)
 
   return (
-    <div className="space-y-3 px-4 pb-2">
+    <div className="space-y-3 px-4 pb-4">
       <div className="flex items-center justify-between text-xs">
-        <span className="font-semibold text-radiant">{radiantWin ? '★ ' : ''}Radiant</span>
+        <span className={`font-semibold text-radiant ${radiantWin ? 'after:content-["_★"]' : ''}`}>Radiant</span>
         <span className="font-mono text-muted">
           <span className="text-radiant">{fmt(radiantGold)}</span>
-          <span className="mx-1 text-muted">vs</span>
+          <span className="mx-1">vs</span>
           <span className="text-dire">{fmt(direGold)}</span>
         </span>
-        <span className="font-semibold text-dire">{radiantWin ? '' : '★ '}Dire</span>
+        <span className={`font-semibold text-dire ${!radiantWin ? 'after:content-["_★"]' : ''}`}>Dire</span>
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <TeamTable players={radiant} heroMap={heroMap} activeMinute={activeMinute} isRadiant={true} />

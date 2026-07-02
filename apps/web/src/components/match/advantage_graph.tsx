@@ -3,98 +3,316 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
+import type { HeroStat, MatchPlayer } from 'types'
 import { formatDuration } from '@/lib/utils'
 
-type Tab = 'gold' | 'xp'
+type Tab = 'gold' | 'xp' | 'nw' | 'matchup'
+
+// Authentic Dota 2 player colors by player_slot
+const PLAYER_COLORS: Record<number, string> = {
+  0: '#3375FF',
+  1: '#66FFBF',
+  2: '#BF00BF',
+  3: '#F3F00B',
+  4: '#FF6600',
+  128: '#FE87C4',
+  129: '#A1B477',
+  130: '#65D9F7',
+  131: '#007A00',
+  132: '#A46900',
+}
+
+const POS_LABELS = ['Carry', 'Mid', 'Offlane', 'Soft Supp', 'Hard Supp']
+
+function sortByPos(players: MatchPlayer[]): MatchPlayer[] {
+  return [...players].sort((a, b) => {
+    const ar = a.lane_role ?? 99
+    const br = b.lane_role ?? 99
+    return ar !== br ? ar - br : a.player_slot - b.player_slot
+  })
+}
+
+function buildPerPlayerData(players: MatchPlayer[], field: 'gold_t' | 'xp_t') {
+  const maxLen = Math.max(...players.map((p) => p[field]?.length ?? 0), 0)
+  if (maxLen === 0) return null
+  return Array.from({ length: maxLen }, (_, i) => {
+    const pt: Record<string, unknown> = { time: i * 60 }
+    for (const p of players) {
+      pt[`p${p.player_slot}`] = p[field]?.[i] ?? null
+    }
+    return pt
+  })
+}
+
+function fmtGold(v: number) {
+  return v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v)
+}
 
 export function AdvantageGraph({
   radiantGoldAdv,
   radiantXpAdv,
+  players,
+  heroStats,
   activeMinute,
 }: {
   radiantGoldAdv: number[] | null
   radiantXpAdv: number[] | null
+  players?: MatchPlayer[]
+  heroStats?: HeroStat[]
   activeMinute?: number
 }) {
-  const [activeTab, setActiveTab] = useState<Tab>('gold')
+  const [tab, setTab] = useState<Tab>('gold')
+  const [matchupPos, setMatchupPos] = useState(0)
 
-  const series = activeTab === 'gold' ? radiantGoldAdv : radiantXpAdv
+  const heroMap = new Map((heroStats ?? []).map((h) => [h.id, h]))
+  const radiant = (players ?? []).filter((p) => p.player_slot < 128)
+  const dire = (players ?? []).filter((p) => p.player_slot >= 128)
+  const radiantByPos = sortByPos(radiant)
+  const direByPos = sortByPos(dire)
 
-  if (!series || series.length === 0) {
-    return <div className="text-xs text-muted">Advantage data unavailable</div>
+  const TABS: { key: Tab; label: string }[] = [
+    { key: 'gold', label: 'Gold Adv' },
+    { key: 'xp', label: 'XP Adv' },
+    { key: 'nw', label: 'Net Worth' },
+    { key: 'matchup', label: 'Matchup' },
+  ]
+
+  const refLine = activeMinute !== undefined ? (
+    <ReferenceLine x={activeMinute * 60} stroke="#0070f3" strokeWidth={1.5} strokeDasharray="4 2" />
+  ) : null
+
+  const commonXAxis = (
+    <XAxis dataKey="time" tickFormatter={formatDuration} tick={{ fill: '#888', fontSize: 10 }} />
+  )
+
+  const tooltipStyle = { background: '#111', border: '1px solid #333', fontSize: 11 }
+
+  // Advantage chart (gold/xp)
+  if (tab === 'gold' || tab === 'xp') {
+    const series = tab === 'gold' ? radiantGoldAdv : radiantXpAdv
+    const label = tab === 'gold' ? 'Gold Adv' : 'XP Adv'
+
+    const content = (() => {
+      if (!series?.length) {
+        return <div className="flex h-[180px] items-center justify-center text-xs text-muted">Data unavailable</div>
+      }
+      const data = series.map((value, i) => ({ time: i * 60, value }))
+      const max = Math.max(...series, 0)
+      const min = Math.min(...series, 0)
+      const range = max - min
+      const pct = range === 0 ? 1 : max / range
+      return (
+        <ResponsiveContainer width="100%" height={180}>
+          <AreaChart data={data}>
+            <defs>
+              <linearGradient id="advGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset={pct} stopColor="#4ade80" stopOpacity={0.35} />
+                <stop offset={pct} stopColor="#f87171" stopOpacity={0.35} />
+              </linearGradient>
+              <linearGradient id="advStroke" x1="0" y1="0" x2="0" y2="1">
+                <stop offset={pct} stopColor="#4ade80" stopOpacity={1} />
+                <stop offset={pct} stopColor="#f87171" stopOpacity={1} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+            {commonXAxis}
+            <YAxis tick={{ fill: '#888', fontSize: 10 }} width={45} />
+            <ReferenceLine y={0} stroke="#555" />
+            {refLine}
+            <Tooltip
+              formatter={(v) => [(v as number) > 0 ? `+${v}` : v, label]}
+              labelFormatter={(l) => formatDuration(l as number)}
+              contentStyle={tooltipStyle}
+            />
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke="url(#advStroke)"
+              fill="url(#advGradient)"
+              strokeWidth={1.5}
+              dot={false}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      )
+    })()
+
+    return (
+      <div className="space-y-2">
+        <TabBar tabs={TABS} active={tab} onChange={setTab} />
+        {content}
+      </div>
+    )
   }
 
-  const data = series.map((value, i) => ({ time: i * 60, value }))
+  // Net Worth — all 10 players
+  if (tab === 'nw') {
+    const allPlayers = [...radiantByPos, ...direByPos]
+    const data = buildPerPlayerData(allPlayers, 'gold_t')
+    return (
+      <div className="space-y-2">
+        <TabBar tabs={TABS} active={tab} onChange={setTab} />
+        {!data ? (
+          <div className="flex h-[180px] items-center justify-center text-xs text-muted">No net worth data</div>
+        ) : (
+          <>
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={data}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                {commonXAxis}
+                <YAxis tickFormatter={fmtGold} tick={{ fill: '#888', fontSize: 10 }} width={40} />
+                {refLine}
+                <Tooltip
+                  labelFormatter={(l) => formatDuration(l as number)}
+                  formatter={(v, name) => {
+                    const slot = Number(String(name).replace('p', ''))
+                    const p = allPlayers.find((x) => x.player_slot === slot)
+                    const hero = p ? heroMap.get(p.hero_id) : undefined
+                    return [fmtGold(v as number), hero?.localized_name ?? `Slot ${slot}`]
+                  }}
+                  contentStyle={tooltipStyle}
+                />
+                {allPlayers.map((p) => (
+                  <Line
+                    key={p.player_slot}
+                    type="monotone"
+                    dataKey={`p${p.player_slot}`}
+                    stroke={PLAYER_COLORS[p.player_slot] ?? '#888'}
+                    strokeWidth={1.5}
+                    dot={false}
+                    connectNulls
+                    name={`p${p.player_slot}`}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 px-1">
+              {allPlayers.map((p) => {
+                const hero = heroMap.get(p.hero_id)
+                const color = PLAYER_COLORS[p.player_slot] ?? '#888'
+                return (
+                  <span key={p.player_slot} className="flex items-center gap-1 text-[10px]" style={{ color }}>
+                    <span className="inline-block h-2 w-3 rounded-sm" style={{ background: color }} />
+                    {hero?.localized_name ?? `Slot ${p.player_slot}`}
+                  </span>
+                )
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
 
-  // Compute the gradient offset so the color split lands exactly at y=0
-  const max = Math.max(...series, 0)
-  const min = Math.min(...series, 0)
-  const range = max - min
-  const pct = range === 0 ? 1 : max / range
-
-  const label = activeTab === 'gold' ? 'Gold Adv' : 'XP Adv'
+  // Matchup — role vs role
+  const rPlayer = radiantByPos[matchupPos]
+  const dPlayer = direByPos[matchupPos]
+  const matchupPlayers = [rPlayer, dPlayer].filter(Boolean) as MatchPlayer[]
+  const matchupData = buildPerPlayerData(matchupPlayers, 'gold_t')
 
   return (
     <div className="space-y-2">
-      <div className="flex gap-2 px-1">
-        {(['gold', 'xp'] as Tab[]).map((tab) => (
+      <TabBar tabs={TABS} active={tab} onChange={setTab} />
+      <div className="flex gap-1.5 px-1 flex-wrap">
+        {POS_LABELS.map((label, i) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-              activeTab === tab
-                ? 'bg-accent text-accent-foreground'
+            key={i}
+            onClick={() => setMatchupPos(i)}
+            className={`rounded px-2 py-0.5 text-[10px] transition-colors ${
+              matchupPos === i
+                ? 'bg-white/10 text-foreground'
                 : 'text-muted hover:text-foreground'
             }`}
           >
-            {tab === 'gold' ? 'Gold' : 'XP'}
+            {label}
           </button>
         ))}
       </div>
-      <ResponsiveContainer width="100%" height={140}>
-        <AreaChart data={data}>
-          <defs>
-            <linearGradient id="advGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset={pct} stopColor="#4ade80" stopOpacity={0.35} />
-              <stop offset={pct} stopColor="#f87171" stopOpacity={0.35} />
-            </linearGradient>
-            <linearGradient id="advStroke" x1="0" y1="0" x2="0" y2="1">
-              <stop offset={pct} stopColor="#4ade80" stopOpacity={1} />
-              <stop offset={pct} stopColor="#f87171" stopOpacity={1} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-          <XAxis
-            dataKey="time"
-            tickFormatter={formatDuration}
-            tick={{ fill: '#888', fontSize: 10 }}
-          />
-          <YAxis tick={{ fill: '#888', fontSize: 10 }} />
-          <ReferenceLine y={0} stroke="#555" />
-          {activeMinute !== undefined && (
-            <ReferenceLine x={activeMinute * 60} stroke="#0070f3" strokeWidth={1.5} strokeDasharray="4 2" />
-          )}
-          <Tooltip
-            formatter={(v) => [(v as number) > 0 ? `+${v}` : v, label]}
-            labelFormatter={(l) => formatDuration(l as number)}
-            contentStyle={{ background: '#111', border: '1px solid #333', fontSize: 12 }}
-          />
-          <Area
-            type="monotone"
-            dataKey="value"
-            stroke="url(#advStroke)"
-            fill="url(#advGradient)"
-            strokeWidth={1.5}
-            dot={false}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+      {!matchupData || matchupPlayers.length < 2 ? (
+        <div className="flex h-[180px] items-center justify-center text-xs text-muted">
+          No data for this position
+        </div>
+      ) : (
+        <>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={matchupData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+              {commonXAxis}
+              <YAxis tickFormatter={fmtGold} tick={{ fill: '#888', fontSize: 10 }} width={40} />
+              {refLine}
+              <Tooltip
+                labelFormatter={(l) => formatDuration(l as number)}
+                formatter={(v, name) => {
+                  const slot = Number(String(name).replace('p', ''))
+                  const p = matchupPlayers.find((x) => x.player_slot === slot)
+                  const hero = p ? heroMap.get(p.hero_id) : undefined
+                  return [fmtGold(v as number), hero?.localized_name ?? `Slot ${slot}`]
+                }}
+                contentStyle={tooltipStyle}
+              />
+              {matchupPlayers.map((p) => (
+                <Line
+                  key={p.player_slot}
+                  type="monotone"
+                  dataKey={`p${p.player_slot}`}
+                  stroke={PLAYER_COLORS[p.player_slot] ?? '#888'}
+                  strokeWidth={2}
+                  dot={false}
+                  connectNulls
+                  name={`p${p.player_slot}`}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+          <div className="flex justify-center gap-6 text-xs">
+            {matchupPlayers.map((p) => {
+              const hero = heroMap.get(p.hero_id)
+              const color = PLAYER_COLORS[p.player_slot] ?? '#888'
+              const side = p.player_slot < 128 ? 'Radiant' : 'Dire'
+              return (
+                <span key={p.player_slot} className="flex items-center gap-1.5" style={{ color }}>
+                  <span className="inline-block h-2 w-4 rounded-sm" style={{ background: color }} />
+                  {side} · {hero?.localized_name ?? `Slot ${p.player_slot}`}
+                </span>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function TabBar({
+  tabs,
+  active,
+  onChange,
+}: {
+  tabs: { key: Tab; label: string }[]
+  active: Tab
+  onChange: (t: Tab) => void
+}) {
+  return (
+    <div className="flex gap-2 px-1 flex-wrap">
+      {tabs.map((t) => (
+        <button
+          key={t.key}
+          onClick={() => onChange(t.key)}
+          className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+            active === t.key ? 'bg-accent text-white' : 'text-muted hover:text-foreground'
+          }`}
+        >
+          {t.label}
+        </button>
+      ))}
     </div>
   )
 }

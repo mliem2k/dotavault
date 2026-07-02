@@ -82,6 +82,7 @@ export type MatchPlayer = {
   personaname: string | null
   name: string | null
   radiant: boolean
+  lane_role: number | null
   kills_log: KillLog[] | null
   purchase: Record<string, number> | null
   purchase_log: { key: string; time: number }[] | null

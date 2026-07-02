@@ -123,6 +123,8 @@ function MatchPage() {
         <AdvantageGraph
           radiantGoldAdv={m.radiant_gold_adv}
           radiantXpAdv={m.radiant_xp_adv}
+          players={m.players}
+          heroStats={heroStats.data}
           activeMinute={activeMinute}
         />
         {heroStats.data && (
