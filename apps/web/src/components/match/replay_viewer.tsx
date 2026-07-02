@@ -1,7 +1,8 @@
-import { Pause, Play } from 'lucide-react'
+import { Pause, Play, RefreshCw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import type { HeroStat, Match, TeamfightPlayer } from 'types'
+import { opendota } from '@/lib/opendota'
 import { formatDuration } from '@/lib/utils'
 
 // OpenDota heatmap grid: 0–127 on each axis
@@ -36,6 +37,46 @@ function interpolate(slotPositions: HeroPos[], t: number): { x: number; y: numbe
 
 function toCanvas(val: number, size: number): number {
   return ((val - MAP_MIN) / (MAP_MAX - MAP_MIN)) * size
+}
+
+type ParseState = 'idle' | 'requesting' | 'submitted' | 'error'
+
+function ParseRequest({ matchId }: { matchId: number }) {
+  const [state, setState] = useState<ParseState>('idle')
+
+  async function request() {
+    setState('requesting')
+    try {
+      await opendota.requestParse(String(matchId))
+      setState('submitted')
+    } catch {
+      setState('error')
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-6 text-center space-y-3">
+      <p className="text-sm text-muted">
+        This match has not been parsed yet. Request a parse to enable the replay viewer.
+      </p>
+      {state === 'submitted' ? (
+        <p className="text-sm text-radiant">
+          Parse requested — reload the page in a few minutes to check if data is available.
+        </p>
+      ) : state === 'error' ? (
+        <p className="text-sm text-dire">Failed to request parse. Try again later.</p>
+      ) : (
+        <button
+          onClick={request}
+          disabled={state === 'requesting'}
+          className="inline-flex items-center gap-2 rounded border border-border px-4 py-2 text-sm hover:border-accent hover:text-accent disabled:opacity-50 transition-colors"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${state === 'requesting' ? 'animate-spin' : ''}`} />
+          {state === 'requesting' ? 'Requesting…' : 'Request Parse'}
+        </button>
+      )}
+    </div>
+  )
 }
 
 export function ReplayViewer({ match, heroStats }: { match: Match; heroStats: HeroStat[] }) {
@@ -165,11 +206,7 @@ export function ReplayViewer({ match, heroStats }: { match: Match; heroStats: He
   }, [playing, duration])
 
   if (positions.length === 0) {
-    return (
-      <div className="rounded-lg border border-border bg-card p-4 text-center text-xs text-muted">
-        Replay data unavailable — this match may not have been parsed yet.
-      </div>
-    )
+    return <ParseRequest matchId={match.match_id} />
   }
 
   return (
