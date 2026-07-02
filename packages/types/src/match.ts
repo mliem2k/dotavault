@@ -84,6 +84,10 @@ export type MatchPlayer = {
   radiant: boolean
   kills_log: KillLog[] | null
   purchase: Record<string, number> | null
+  purchase_log: { key: string; time: number }[] | null
+  gold_t: number[] | null
+  lh_t: number[] | null
+  xp_t: number[] | null
 }
 
 export type Match = {

@@ -6,6 +6,7 @@ import { DraftPanel } from '@/components/match/draft_panel'
 import { ReplayViewer } from '@/components/match/replay_viewer'
 import { Scoreboard } from '@/components/match/scoreboard'
 import { Timeline } from '@/components/match/timeline'
+import { SnapshotScoreboard } from '@/components/match/snapshot_scoreboard'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
@@ -130,6 +131,14 @@ function MatchPage() {
             heroStats={heroStats.data}
             activeMinute={activeMinute}
             onMinuteChange={setActiveMinute}
+          />
+        )}
+        {heroStats.data && (
+          <SnapshotScoreboard
+            players={m.players}
+            heroStats={heroStats.data}
+            activeMinute={activeMinute}
+            radiantWin={m.radiant_win}
           />
         )}
       </Card>
