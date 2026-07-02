@@ -1,12 +1,8 @@
 import { useState } from 'react'
 import type { HeroStat } from 'types'
-import { heroBracketTotal, winRate } from '@/lib/utils'
+import { heroBracketTotal, heroIconUrl, winRate } from '@/lib/utils'
 
 type SortKey = 'winrate' | 'pickrate' | 'banrate' | 'name'
-
-function heroIconUrl(name: string): string {
-  return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/icons/${name.replace('npc_dota_hero_', '')}.png`
-}
 
 const ROLES = [
   'All',

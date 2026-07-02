@@ -24,11 +24,10 @@ function extractPositions(match: Match): HeroPos[] {
   return positions.sort((a, b) => a.time - b.time)
 }
 
-function interpolate(positions: HeroPos[], slot: number, t: number): { x: number; y: number } | null {
-  const hp = positions.filter((p) => p.slot === slot)
-  if (!hp.length) return null
-  const before = [...hp].reverse().find((p) => p.time <= t)
-  const after = hp.find((p) => p.time > t)
+function interpolate(slotPositions: HeroPos[], t: number): { x: number; y: number } | null {
+  if (!slotPositions.length) return null
+  const before = [...slotPositions].reverse().find((p) => p.time <= t)
+  const after = slotPositions.find((p) => p.time > t)
   if (!before) return after ? { x: after.x, y: after.y } : null
   if (!after) return { x: before.x, y: before.y }
   const f = (t - before.time) / (after.time - before.time)
@@ -51,7 +50,15 @@ export function ReplayViewer({ match, heroStats }: { match: Match; heroStats: He
     () => new Map(heroStats.map((h) => [h.id, h])),
     [heroStats],
   )
-  const positions = extractPositions(match)
+  const positions = useMemo(() => extractPositions(match), [match])
+  const positionsBySlot = useMemo(() => {
+    const map = new Map<number, HeroPos[]>()
+    for (const p of positions) {
+      if (!map.has(p.slot)) map.set(p.slot, [])
+      map.get(p.slot)!.push(p)
+    }
+    return map
+  }, [positions])
   const duration = match.duration
 
   const activeTeamfight = match.teamfights?.find((tf) => time >= tf.start && time <= tf.end)
@@ -102,7 +109,7 @@ export function ReplayViewer({ match, heroStats }: { match: Match; heroStats: He
       }
 
       match.players.forEach((player, slot) => {
-        const pos = interpolate(positions, slot, t)
+        const pos = interpolate(positionsBySlot.get(slot) ?? [], t)
         if (!pos) return
         const cx = toCanvas(pos.x, size)
         const cy = size - toCanvas(pos.y, size)
@@ -124,7 +131,7 @@ export function ReplayViewer({ match, heroStats }: { match: Match; heroStats: He
         }
       })
     },
-    [match, positions, heroMap, activeTeamfight],
+    [match, positionsBySlot, heroMap, activeTeamfight],
   )
 
   useEffect(() => {

@@ -4,9 +4,11 @@ import { cacheGet, cacheSet } from './cache'
 const BASE = 'https://api.opendota.com/api'
 
 async function fetchOpenDota(path: string): Promise<unknown> {
-  const url = env.OPENDOTA_API_KEY
-    ? `${BASE}${path}?api_key=${env.OPENDOTA_API_KEY}`
-    : `${BASE}${path}`
+  let url = `${BASE}${path}`
+  if (env.OPENDOTA_API_KEY) {
+    const sep = url.includes('?') ? '&' : '?'
+    url += `${sep}api_key=${env.OPENDOTA_API_KEY}`
+  }
   const res = await fetch(url)
   if (!res.ok) throw new Error(`OpenDota ${path} → ${res.status}`)
   return res.json()

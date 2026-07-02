@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { HeroTable } from '@/components/heroes/hero-table'
+import { HeroTable } from '@/components/heroes/hero_table'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
 

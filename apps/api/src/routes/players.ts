@@ -19,14 +19,14 @@ export const playersPlugin = new Elysia({ prefix: '/players' })
   .get(
     '/:id/matches',
     async ({ params, query }) => {
-      const limit = query.limit ?? '20'
+      const limit = Math.min(query.limit ?? 20, 100)
       return fetchCached(`/players/${params.id}/matches?limit=${limit}`, TTL) as Promise<
         PlayerMatch[]
       >
     },
     {
       params: t.Object({ id: t.String() }),
-      query: t.Object({ limit: t.Optional(t.String()) }),
+      query: t.Object({ limit: t.Optional(t.Numeric()) }),
     }
   )
   .get(

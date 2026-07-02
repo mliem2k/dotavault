@@ -8,8 +8,12 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
-  const s = seconds % 60
+  const s = Math.floor(seconds) % 60
   return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+export function heroIconUrl(name: string): string {
+  return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/icons/${name.replace('npc_dota_hero_', '')}.png`
 }
 
 export function formatTimeAgo(unixTimestamp: number): string {
@@ -24,6 +28,8 @@ export function winRate(wins: number, total: number): string {
   return `${((wins / total) * 100).toFixed(1)}%`
 }
 
+// The double cast is required because template literal keys like `1_${field}` cannot
+// be statically resolved by TypeScript against the HeroStat type's numeric string keys.
 export function heroBracketTotal(h: HeroStat, field: 'pick' | 'win'): number {
   return (
     ((h as unknown as Record<string, number>)[`1_${field}`] ?? 0) +

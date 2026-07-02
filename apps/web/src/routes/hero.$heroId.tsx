@@ -2,15 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
-import { heroBracketTotal, winRate } from '@/lib/utils'
+import { heroBracketTotal, heroIconUrl, winRate } from '@/lib/utils'
 
 export const Route = createFileRoute('/hero/$heroId')({
   component: HeroDetailPage,
 })
-
-function heroIconUrl(name: string): string {
-  return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/icons/${name.replace('npc_dota_hero_', '')}.png`
-}
 
 function HeroDetailPage() {
   const { heroId } = Route.useParams()

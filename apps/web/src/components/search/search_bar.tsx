@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Search } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { SearchResult } from 'types'
 import { opendota } from '@/lib/opendota'
 
@@ -10,6 +10,12 @@ export function SearchBar() {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (debounce.current) clearTimeout(debounce.current)
+    }
+  }, [])
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value
@@ -21,9 +27,13 @@ export function SearchBar() {
       return
     }
     debounce.current = setTimeout(async () => {
-      const data = await opendota.search(val)
-      setResults(data.slice(0, 6))
-      setOpen(true)
+      try {
+        const results = await opendota.search(val)
+        setResults(results.slice(0, 6))
+        setOpen(true)
+      } catch {
+        setResults([])
+      }
     }, 300)
   }
 
