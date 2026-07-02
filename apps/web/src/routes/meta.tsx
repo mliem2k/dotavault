@@ -18,7 +18,7 @@ function bracketVal(h: HeroStat, key: BracketKey): number {
 function immortalWinRate(h: HeroStat): number {
   const picks = bracketVal(h, '8_pick')
   const wins = bracketVal(h, '8_win')
-  return picks >= 50 ? wins / picks : 0
+  return picks > 0 ? wins / picks : 0
 }
 
 function immortalPicks(h: HeroStat): number {

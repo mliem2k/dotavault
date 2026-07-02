@@ -102,16 +102,17 @@ function PlayerRow({
   hero,
   idToName,
   activeMinute,
+  deathTimes,
 }: {
   player: MatchPlayer
   hero: HeroStat | undefined
   idToName: Map<number, string>
   activeMinute: number
+  deathTimes: number[]
 }) {
   const snapshot = (player.gold_t?.length ?? 0) > 0
   const upToSeconds = activeMinute * 60
 
-  // Snapshot values (when slider is active)
   const snapGold = snapshot && player.gold_t?.length
     ? player.gold_t[Math.min(activeMinute, player.gold_t.length - 1)] ?? null
     : null
@@ -120,6 +121,9 @@ function PlayerRow({
     : null
   const snapKills = snapshot
     ? (player.kills_log ?? []).filter((e) => e.time <= upToSeconds).length
+    : null
+  const snapDeaths = snapshot
+    ? deathTimes.filter((t) => t <= upToSeconds).length
     : null
   const snapGPM = snapGold !== null && activeMinute > 0
     ? Math.round(snapGold / activeMinute)
@@ -134,7 +138,7 @@ function PlayerRow({
   const mainItems = [player.item_0, player.item_1, player.item_2, player.item_3, player.item_4, player.item_5]
   const backpackItems = [player.backpack_0, player.backpack_1, player.backpack_2]
 
-  // Dim columns that aren't time-aware when scrubbing
+  // Dim assists (no per-minute data) when scrubbing
   const dim = snapshot ? 'opacity-40' : ''
 
   return (
@@ -164,9 +168,9 @@ function PlayerRow({
       </td>
       <td className="py-2 px-2 text-center font-mono text-xs whitespace-nowrap">
         <span className="text-radiant">{snapKills ?? player.kills}</span>
-        <span className={`text-muted mx-0.5 ${dim}`}>/</span>
-        <span className={`text-dire ${dim}`}>{player.deaths}</span>
-        <span className={`text-muted mx-0.5 ${dim}`}>/</span>
+        <span className="text-muted mx-0.5">/</span>
+        <span className="text-dire">{snapDeaths ?? player.deaths}</span>
+        <span className="text-muted mx-0.5">/</span>
         <span className={`text-muted ${dim}`}>{player.assists}</span>
       </td>
       <td className="py-2 px-2 text-center font-mono text-xs text-muted whitespace-nowrap">
@@ -246,6 +250,7 @@ function PlayerRow({
 
 function TeamTable({
   players,
+  allPlayers,
   heroMap,
   idToName,
   isWinner,
@@ -257,6 +262,7 @@ function TeamTable({
   durationMinutes,
 }: {
   players: MatchPlayer[]
+  allPlayers: MatchPlayer[]
   heroMap: Map<number, HeroStat>
   idToName: Map<number, string>
   isWinner: boolean
@@ -268,6 +274,24 @@ function TeamTable({
   durationMinutes: number
 }) {
   const snapshot = activeMinute < durationMinutes
+
+  // Build death times for each player by cross-referencing all kills_log entries
+  const heroNameToSlot = new Map<string, number>()
+  for (const p of allPlayers) {
+    const h = heroMap.get(p.hero_id)
+    if (h) heroNameToSlot.set(h.name, p.player_slot)
+  }
+  const deathTimesMap = new Map<number, number[]>()
+  for (const killer of allPlayers) {
+    for (const kill of killer.kills_log ?? []) {
+      const slot = heroNameToSlot.get(kill.key)
+      if (slot !== undefined) {
+        const arr = deathTimesMap.get(slot) ?? []
+        arr.push(kill.time)
+        deathTimesMap.set(slot, arr)
+      }
+    }
+  }
 
   const sorted = [...players].sort((a, b) => {
     if (sortKey === 'default') return a.player_slot - b.player_slot
@@ -312,6 +336,7 @@ function TeamTable({
                 hero={heroMap.get(p.hero_id)}
                 idToName={idToName}
                 activeMinute={activeMinute}
+                deathTimes={deathTimesMap.get(p.player_slot) ?? []}
               />
             ))}
           </tbody>
@@ -352,7 +377,7 @@ export function Scoreboard({
   const radiant = players.filter((p) => p.player_slot < 128)
   const dire = players.filter((p) => p.player_slot >= 128)
 
-  const sharedProps = { heroMap, idToName, sortKey, sortDir, onSort: handleSort, activeMinute, durationMinutes }
+  const sharedProps = { allPlayers: players, heroMap, idToName, sortKey, sortDir, onSort: handleSort, activeMinute, durationMinutes }
 
   return (
     <div className="space-y-6">
