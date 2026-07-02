@@ -32,8 +32,7 @@ export function MatchVision({
 
   useEffect(() => {
     const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/map/minimap.png'
+    img.src = '/minimap.webp'
     img.onload = () => {
       mapImgRef.current = img
       draw()

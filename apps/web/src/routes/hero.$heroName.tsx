@@ -224,10 +224,18 @@ function HeroDetailPage() {
             </a>
           </div>
         </CardHeader>
+        {/* Clip the left sidebar (~260px) by shifting iframe left and hiding overflow */}
         <div className="relative overflow-hidden rounded-b-lg" style={{ height: '480px' }}>
           <iframe
             src={viewerUrl}
-            className="absolute inset-0 w-full h-full border-0"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: '-260px',
+              width: 'calc(100% + 260px)',
+              height: '100%',
+              border: 0,
+            }}
             title={`${hero.localized_name} 3D Model`}
             allow="fullscreen"
             loading="lazy"
