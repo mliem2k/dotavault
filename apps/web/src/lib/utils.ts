@@ -21,6 +21,12 @@ export function heroIconFromPath(iconPath: string): string {
   return `/heroes/${filename.replace('.png', '.webp')}`
 }
 
+export const ITEM_CDN_FALLBACK = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items'
+
+export function itemIconUrl(name: string): string {
+  return `/items/${name}.webp`
+}
+
 export function formatTimeAgo(unixTimestamp: number): string {
   const diff = Date.now() / 1000 - unixTimestamp
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`

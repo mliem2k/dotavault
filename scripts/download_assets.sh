@@ -69,6 +69,30 @@ for stars in 1 2 3 4 5; do
 done
 
 echo ""
+echo ""
+echo "Downloading item icons..."
+ITEM_DIR="apps/web/public/items"
+ITEM_CDN="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items"
+mkdir -p "$ITEM_DIR"
+
+ITEM_NAMES=$(curl -sf "https://api.opendota.com/api/constants/items" | \
+  jq -r 'to_entries[] | select(.value.img != null) | .key')
+
+itotal=$(echo "$ITEM_NAMES" | wc -l | tr -d ' ')
+icount=0
+for item in $ITEM_NAMES; do
+  icount=$((icount + 1))
+  out="$ITEM_DIR/${item}.webp"
+  if [ -f "$out" ]; then continue; fi
+  tmp="/tmp/dv_item_${item}.png"
+  if curl -sf "${ITEM_CDN}/${item}.png" -o "$tmp" 2>/dev/null; then
+    cwebp -q 85 -quiet "$tmp" -o "$out" 2>/dev/null && echo "[$icount/$itotal] $item"
+    rm -f "$tmp"
+  fi
+done
+
+echo ""
 echo "Done."
 echo "Hero icons: $(ls $HERO_DIR/*.webp 2>/dev/null | wc -l | tr -d ' ') files"
 echo "Rank icons: $(ls $RANK_DIR/*.webp 2>/dev/null | wc -l | tr -d ' ') files"
+echo "Item icons: $(ls $ITEM_DIR/*.webp 2>/dev/null | wc -l | tr -d ' ') files"

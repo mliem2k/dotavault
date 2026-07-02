@@ -1,11 +1,17 @@
 import { useState } from 'react'
 import type { HeroStat, MatchPlayer } from 'types'
-import { heroIconFromPath } from '@/lib/utils'
-
-const ITEM_CDN = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items'
+import { heroIconFromPath, itemIconUrl, ITEM_CDN_FALLBACK } from '@/lib/utils'
 
 function itemUrl(name: string) {
-  return `${ITEM_CDN}/${name}.png`
+  return itemIconUrl(name)
+}
+
+function onItemError(e: React.SyntheticEvent<HTMLImageElement>) {
+  const img = e.currentTarget
+  const name = img.dataset.itemName
+  if (name && !img.src.includes('cdn.cloudflare')) {
+    img.src = `${ITEM_CDN_FALLBACK}/${name}.png`
+  }
 }
 
 function fmt(n: number | undefined | null) {
@@ -29,6 +35,8 @@ function ItemSlot({
       src={itemUrl(name)}
       alt={name}
       title={name.replace(/_/g, ' ')}
+      data-item-name={name}
+      onError={onItemError}
       className={`${sizeClass} rounded object-cover flex-shrink-0`}
     />
   )
@@ -163,6 +171,8 @@ function PlayerRow({
             <img
               src={itemUrl('aghanims_scepter')}
               title="Aghanim's Scepter"
+              data-item-name="aghanims_scepter"
+              onError={onItemError}
               className="h-6 w-6 rounded"
             />
           )}
@@ -170,6 +180,8 @@ function PlayerRow({
             <img
               src={itemUrl('aghanims_shard')}
               title="Aghanim's Shard"
+              data-item-name="aghanims_shard"
+              onError={onItemError}
               className="h-6 w-6 rounded"
             />
           )}

@@ -1,7 +1,13 @@
 import type { HeroStat, MatchPlayer } from 'types'
-import { heroIconFromPath } from '@/lib/utils'
+import { heroIconFromPath, itemIconUrl, ITEM_CDN_FALLBACK } from '@/lib/utils'
 
-const ITEM_CDN = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items'
+function onItemError(e: React.SyntheticEvent<HTMLImageElement>) {
+  const img = e.currentTarget
+  const name = img.dataset.itemName
+  if (name && !img.src.includes('cdn.cloudflare')) {
+    img.src = `${ITEM_CDN_FALLBACK}/${name}.png`
+  }
+}
 
 const CONSUMABLES = new Set([
   'clarity', 'tango', 'flask', 'faerie_fire', 'ward_observer', 'ward_sentry',
@@ -86,13 +92,12 @@ function PlayerRow({
             ? items.map((name, i) => (
                 <img
                   key={i}
-                  src={`${ITEM_CDN}/${name}.png`}
+                  src={itemIconUrl(name)}
                   alt={name}
                   title={name.replace(/_/g, ' ')}
+                  data-item-name={name}
+                  onError={onItemError}
                   className="h-5 w-8 rounded object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none'
-                  }}
                 />
               ))
             : !hasTimeData
