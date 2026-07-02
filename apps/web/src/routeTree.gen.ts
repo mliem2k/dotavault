@@ -9,6 +9,9 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as ProRoute } from './routes/pro'
 import { Route as HeroesRoute } from './routes/heroes'
 import { Route as IndexRoute } from './routes/index'
+import { Route as PlayerAccountIdRoute } from './routes/player.$accountId'
+import { Route as MatchMatchIdRoute } from './routes/match.$matchId'
+import { Route as HeroHeroIdRoute } from './routes/hero.$heroId'
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
@@ -33,10 +36,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProRoute
       parentRoute: typeof rootRoute
     }
+    '/player/$accountId': {
+      id: '/player/$accountId'
+      path: '/player/$accountId'
+      fullPath: '/player/$accountId'
+      preLoaderRoute: typeof PlayerAccountIdRoute
+      parentRoute: typeof rootRoute
+    }
+    '/match/$matchId': {
+      id: '/match/$matchId'
+      path: '/match/$matchId'
+      fullPath: '/match/$matchId'
+      preLoaderRoute: typeof MatchMatchIdRoute
+      parentRoute: typeof rootRoute
+    }
+    '/hero/$heroId': {
+      id: '/hero/$heroId'
+      path: '/hero/$heroId'
+      fullPath: '/hero/$heroId'
+      preLoaderRoute: typeof HeroHeroIdRoute
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
-export const routeTree = rootRoute.addChildren({ IndexRoute, HeroesRoute, ProRoute })
+export const routeTree = rootRoute.addChildren({
+  IndexRoute,
+  HeroesRoute,
+  ProRoute,
+  PlayerAccountIdRoute,
+  MatchMatchIdRoute,
+  HeroHeroIdRoute,
+})
 
 /* ROUTE_MANIFEST_START
 {
@@ -54,6 +85,18 @@ export const routeTree = rootRoute.addChildren({ IndexRoute, HeroesRoute, ProRou
     },
     "/pro": {
       "filePath": "pro.tsx",
+      "parent": "__root__"
+    },
+    "/player/$accountId": {
+      "filePath": "player.$accountId.tsx",
+      "parent": "__root__"
+    },
+    "/match/$matchId": {
+      "filePath": "match.$matchId.tsx",
+      "parent": "__root__"
+    },
+    "/hero/$heroId": {
+      "filePath": "hero.$heroId.tsx",
       "parent": "__root__"
     }
   }
