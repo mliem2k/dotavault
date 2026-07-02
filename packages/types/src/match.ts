@@ -42,6 +42,22 @@ export type Teamfight = {
   players: TeamfightPlayer[]
 }
 
+export type ChatMessage = {
+  time: number
+  type: string
+  key: string
+  slot: number
+  player_slot: number
+  unit?: string
+}
+
+export type WardLog = {
+  time: number
+  x: number
+  y: number
+  entityleft?: boolean
+}
+
 export type MatchPlayer = {
   match_id: number
   player_slot: number
@@ -89,6 +105,9 @@ export type MatchPlayer = {
   gold_t: number[] | null
   lh_t: number[] | null
   xp_t: number[] | null
+  obs_log: WardLog[] | null
+  sen_log: WardLog[] | null
+  rank_tier: number | null
 }
 
 export type Match = {
@@ -123,5 +142,6 @@ export type Match = {
   version: number | null
   series_id: number | null
   series_type: number | null
+  chat: ChatMessage[] | null
   players: MatchPlayer[]
 }

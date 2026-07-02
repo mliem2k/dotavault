@@ -141,12 +141,15 @@ function PlayerRow({
   // Dim assists (no per-minute data) when scrubbing
   const dim = snapshot ? 'opacity-40' : ''
 
+  const rankTier = player.rank_tier
+  const rankMedal = rankTier ? `/ranks/rank_icon_${Math.floor(rankTier / 10)}.webp` : null
+
   return (
     <tr className="border-b border-border/30 hover:bg-card/50 transition-colors">
-      <td className="py-2 pr-3">
+      <td className="py-2 pr-3 w-[180px]">
         <a
           href={player.account_id ? `/player/${player.account_id}` : '#'}
-          className="flex items-center gap-2 hover:text-accent min-w-[160px]"
+          className="flex items-center gap-2 hover:text-accent"
         >
           {hero && (
             <img
@@ -155,11 +158,16 @@ function PlayerRow({
               className="h-8 w-8 rounded flex-shrink-0"
             />
           )}
-          <div>
-            <div className="text-sm text-foreground leading-tight">
-              {player.personaname ?? player.name ?? 'Unknown'}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1">
+              {rankMedal && (
+                <img src={rankMedal} alt="" className="h-4 w-4 flex-shrink-0 object-contain" />
+              )}
+              <div className="text-sm text-foreground leading-tight truncate">
+                {player.personaname ?? player.name ?? 'Unknown'}
+              </div>
             </div>
-            {hero && <div className="text-xs text-muted">{hero.localized_name}</div>}
+            {hero && <div className="text-xs text-muted truncate">{hero.localized_name}</div>}
           </div>
         </a>
       </td>

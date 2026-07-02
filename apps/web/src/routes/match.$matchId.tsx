@@ -3,6 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { AdvantageGraph } from '@/components/match/advantage_graph'
 import { DraftPanel } from '@/components/match/draft_panel'
+import { MatchChat } from '@/components/match/match_chat'
+import { MatchPurchases } from '@/components/match/match_purchases'
+import { MatchVision } from '@/components/match/match_vision'
 import { ReplayViewer } from '@/components/match/replay_viewer'
 import { Scoreboard } from '@/components/match/scoreboard'
 import { Timeline } from '@/components/match/timeline'
@@ -151,6 +154,33 @@ function MatchPage() {
         </CardHeader>
         {heroStats.data && <ReplayViewer match={m} heroStats={heroStats.data} />}
       </Card>
+
+      {heroStats.data && (m.players.some((p) => (p.obs_log?.length ?? 0) + (p.sen_log?.length ?? 0) > 0)) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Vision</CardTitle>
+          </CardHeader>
+          <MatchVision players={m.players} heroStats={heroStats.data} />
+        </Card>
+      )}
+
+      {heroStats.data && (m.players.some((p) => (p.purchase_log?.length ?? 0) > 0)) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Purchases</CardTitle>
+          </CardHeader>
+          <MatchPurchases players={m.players} heroStats={heroStats.data} />
+        </Card>
+      )}
+
+      {heroStats.data && m.chat && m.chat.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Chat</CardTitle>
+          </CardHeader>
+          <MatchChat chat={m.chat} players={m.players} heroStats={heroStats.data} />
+        </Card>
+      )}
     </div>
   )
 }

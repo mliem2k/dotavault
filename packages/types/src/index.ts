@@ -7,6 +7,8 @@ export type {
   Objective,
   PickBan,
   KillLog,
+  ChatMessage,
+  WardLog,
 } from './match'
 export type { HeroStat } from './hero'
 export type { ProMatch, ProPlayer } from './pro'
