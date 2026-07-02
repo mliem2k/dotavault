@@ -50,7 +50,7 @@ export function MatchHistory({
               <div className={`h-1.5 w-1.5 rounded-full ${won ? 'bg-radiant' : 'bg-dire'}`} />
               {hero && (
                 <img
-                  src={`https://cdn.opendota.com${hero.icon}`}
+                  src={`https://cdn.cloudflare.steamstatic.com${hero.icon}`}
                   alt={hero.localized_name}
                   className="h-7 w-7 rounded"
                 />

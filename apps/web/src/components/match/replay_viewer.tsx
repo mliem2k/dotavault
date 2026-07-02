@@ -66,7 +66,7 @@ export function ReplayViewer({ match, heroStats }: { match: Match; heroStats: He
   useEffect(() => {
     const img = new Image()
     img.crossOrigin = 'anonymous'
-    img.src = 'https://cdn.opendota.com/apps/dota2/images/dota_react/map/minimap.png'
+    img.src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/map/minimap.png'
     img.onload = () => {
       mapImgRef.current = img
     }

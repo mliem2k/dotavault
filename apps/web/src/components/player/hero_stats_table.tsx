@@ -40,7 +40,7 @@ export function HeroStatsTable({
                 >
                   {hero && (
                     <img
-                      src={`https://cdn.opendota.com${hero.icon}`}
+                      src={`https://cdn.cloudflare.steamstatic.com${hero.icon}`}
                       alt={hero.localized_name}
                       className="h-6 w-6 rounded"
                     />

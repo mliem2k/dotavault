@@ -78,7 +78,7 @@ function HomePage() {
                     >
                       <div className="flex items-center gap-2">
                         <img
-                          src={`https://cdn.opendota.com${h.icon}`}
+                          src={`https://cdn.cloudflare.steamstatic.com${h.icon}`}
                           alt={h.localized_name}
                           className="h-6 w-6 rounded"
                         />
