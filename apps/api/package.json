@@ -23,6 +23,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "bun-types": "latest",
     "drizzle-kit": "^0.31.0",
     "typescript": "^6.0.0"
   }
