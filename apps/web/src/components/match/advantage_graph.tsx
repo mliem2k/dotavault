@@ -37,7 +37,17 @@ function sortByPos(players: MatchPlayer[]): MatchPlayer[] {
   })
 }
 
-function buildPerPlayerData(players: MatchPlayer[], field: 'gold_t' | 'xp_t') {
+type MatchupStat = 'nw' | 'xp' | 'lh' | 'gpm' | 'kills'
+
+const MATCHUP_STAT_LABELS: Record<MatchupStat, string> = {
+  nw: 'Net Worth',
+  xp: 'XP',
+  lh: 'Last Hits',
+  gpm: 'GPM',
+  kills: 'Kills',
+}
+
+function buildPerPlayerData(players: MatchPlayer[], field: 'gold_t' | 'xp_t' | 'lh_t') {
   const maxLen = Math.max(...players.map((p) => p[field]?.length ?? 0), 0)
   if (maxLen === 0) return null
   return Array.from({ length: maxLen }, (_, i) => {
@@ -49,8 +59,45 @@ function buildPerPlayerData(players: MatchPlayer[], field: 'gold_t' | 'xp_t') {
   })
 }
 
+function buildMatchupData(players: MatchPlayer[], stat: MatchupStat) {
+  if (stat === 'nw') return buildPerPlayerData(players, 'gold_t')
+  if (stat === 'xp') return buildPerPlayerData(players, 'xp_t')
+  if (stat === 'lh') return buildPerPlayerData(players, 'lh_t')
+
+  if (stat === 'gpm') {
+    const maxLen = Math.max(...players.map((p) => p.gold_t?.length ?? 0), 0)
+    if (maxLen === 0) return null
+    return Array.from({ length: maxLen }, (_, i) => {
+      const pt: Record<string, unknown> = { time: i * 60 }
+      for (const p of players) {
+        const gold = p.gold_t?.[i] ?? null
+        pt[`p${p.player_slot}`] = gold !== null && i > 0 ? Math.round(gold / i) : null
+      }
+      return pt
+    })
+  }
+
+  if (stat === 'kills') {
+    const maxLen = Math.max(...players.map((p) => p.gold_t?.length ?? 0), 0)
+    if (maxLen === 0) return null
+    return Array.from({ length: maxLen }, (_, i) => {
+      const pt: Record<string, unknown> = { time: i * 60 }
+      for (const p of players) {
+        pt[`p${p.player_slot}`] = (p.kills_log ?? []).filter((e) => e.time <= i * 60).length
+      }
+      return pt
+    })
+  }
+
+  return null
+}
+
 function fmtGold(v: number) {
   return v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v)
+}
+
+function fmtStat(stat: MatchupStat) {
+  return (v: number) => stat === 'nw' || stat === 'gpm' ? fmtGold(v) : String(v)
 }
 
 export function AdvantageGraph({
@@ -67,6 +114,7 @@ export function AdvantageGraph({
   activeMinute?: number
 }) {
   const [tab, setTab] = useState<Tab>('gold')
+  const [matchupStat, setMatchupStat] = useState<MatchupStat>('nw')
   const [selectedSlots, setSelectedSlots] = useState<number[]>(() => {
     // Default: carry vs carry (first radiant vs first dire by position)
     const r = (players ?? []).filter((p) => p.player_slot < 128)
@@ -217,7 +265,8 @@ export function AdvantageGraph({
   // Matchup — free player selection
   const allPlayers = [...radiantByPos, ...direByPos]
   const matchupPlayers = allPlayers.filter((p) => selectedSlots.includes(p.player_slot))
-  const matchupData = buildPerPlayerData(matchupPlayers, 'gold_t')
+  const matchupData = buildMatchupData(matchupPlayers, matchupStat)
+  const fmt = fmtStat(matchupStat)
 
   function toggleSlot(slot: number) {
     setSelectedSlots((prev) =>
@@ -228,6 +277,23 @@ export function AdvantageGraph({
   return (
     <div className="space-y-2">
       <TabBar tabs={TABS} active={tab} onChange={setTab} />
+
+      {/* Stat selector */}
+      <div className="flex gap-1 px-1">
+        {(Object.keys(MATCHUP_STAT_LABELS) as MatchupStat[]).map((s) => (
+          <button
+            key={s}
+            onClick={() => setMatchupStat(s)}
+            className={`rounded px-2 py-0.5 text-[10px] transition-colors ${
+              matchupStat === s
+                ? 'bg-white/10 text-foreground'
+                : 'text-muted hover:text-foreground'
+            }`}
+          >
+            {MATCHUP_STAT_LABELS[s]}
+          </button>
+        ))}
+      </div>
 
       {/* Player picker: two rows, Radiant then Dire */}
       <div className="space-y-1 px-1">
@@ -274,7 +340,7 @@ export function AdvantageGraph({
           <LineChart data={matchupData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#333" />
             {commonXAxis}
-            <YAxis tickFormatter={fmtGold} tick={{ fill: '#888', fontSize: 10 }} width={40} />
+            <YAxis tickFormatter={fmt} tick={{ fill: '#888', fontSize: 10 }} width={40} />
             {refLine}
             <Tooltip
               labelFormatter={(l) => formatDuration(l as number)}
@@ -282,7 +348,7 @@ export function AdvantageGraph({
                 const slot = Number(String(name).replace('p', ''))
                 const p = matchupPlayers.find((x) => x.player_slot === slot)
                 const hero = p ? heroMap.get(p.hero_id) : undefined
-                return [fmtGold(v as number), hero?.localized_name ?? `Slot ${slot}`]
+                return [fmt(v as number), hero?.localized_name ?? `Slot ${slot}`]
               }}
               contentStyle={tooltipStyle}
             />
