@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { AdvantageGraph } from '@/components/match/advantage-graph'
 import { DraftPanel } from '@/components/match/draft-panel'
+import { ReplayViewer } from '@/components/match/replay-viewer'
 import { Scoreboard } from '@/components/match/scoreboard'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
@@ -75,6 +76,13 @@ function MatchPage() {
           <CardTitle>Gold Advantage</CardTitle>
         </CardHeader>
         <AdvantageGraph radiantGoldAdv={m.radiant_gold_adv} radiantXpAdv={m.radiant_xp_adv} />
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Replay Viewer (Phase A — event-based positions)</CardTitle>
+        </CardHeader>
+        {heroStats.data && <ReplayViewer match={m} heroStats={heroStats.data} />}
       </Card>
     </div>
   )
