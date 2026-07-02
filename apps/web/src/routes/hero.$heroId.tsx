@@ -2,11 +2,15 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
-import { winRate } from '@/lib/utils'
+import { heroBracketTotal, winRate } from '@/lib/utils'
 
 export const Route = createFileRoute('/hero/$heroId')({
   component: HeroDetailPage,
 })
+
+function heroIconUrl(name: string): string {
+  return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/icons/${name.replace('npc_dota_hero_', '')}.png`
+}
 
 function HeroDetailPage() {
   const { heroId } = Route.useParams()
@@ -27,20 +31,14 @@ function HeroDetailPage() {
   const hero = heroStats.data?.find((h) => String(h.id) === heroId)
   if (!hero) return <div className="text-sm text-muted">Hero not found.</div>
 
-  const picks = [1, 2, 3, 4, 5, 6, 7, 8].reduce(
-    (s, i) => s + ((hero as unknown as Record<string, number>)[`${i}_pick`] ?? 0),
-    0
-  )
-  const wins = [1, 2, 3, 4, 5, 6, 7, 8].reduce(
-    (s, i) => s + ((hero as unknown as Record<string, number>)[`${i}_win`] ?? 0),
-    0
-  )
+  const picks = heroBracketTotal(hero, 'pick')
+  const wins = heroBracketTotal(hero, 'win')
 
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-4">
         <img
-          src={`https://cdn.opendota.com${hero.img}`}
+          src={heroIconUrl(hero.name)}
           alt={hero.localized_name}
           className="h-24 rounded-lg"
         />

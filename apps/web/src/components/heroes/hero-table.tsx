@@ -1,19 +1,11 @@
 import { useState } from 'react'
 import type { HeroStat } from 'types'
-import { winRate } from '@/lib/utils'
+import { heroBracketTotal, winRate } from '@/lib/utils'
 
 type SortKey = 'winrate' | 'pickrate' | 'banrate' | 'name'
 
-function totals(h: HeroStat) {
-  const picks = [1, 2, 3, 4, 5, 6, 7, 8].reduce(
-    (s, i) => s + ((h as unknown as Record<string, number>)[`${i}_pick`] ?? 0),
-    0
-  )
-  const wins = [1, 2, 3, 4, 5, 6, 7, 8].reduce(
-    (s, i) => s + ((h as unknown as Record<string, number>)[`${i}_win`] ?? 0),
-    0
-  )
-  return { picks, wins }
+function heroIconUrl(name: string): string {
+  return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/icons/${name.replace('npc_dota_hero_', '')}.png`
 }
 
 const ROLES = [
@@ -37,11 +29,13 @@ export function HeroTable({ heroes }: { heroes: HeroStat[] }) {
   const sorted = [...filtered].sort((a, b) => {
     if (sort === 'name') return a.localized_name.localeCompare(b.localized_name)
     if (sort === 'winrate') {
-      const { picks: ap, wins: aw } = totals(a)
-      const { picks: bp, wins: bw } = totals(b)
+      const ap = heroBracketTotal(a, 'pick')
+      const aw = heroBracketTotal(a, 'win')
+      const bp = heroBracketTotal(b, 'pick')
+      const bw = heroBracketTotal(b, 'win')
       return bw / (bp || 1) - aw / (ap || 1)
     }
-    if (sort === 'pickrate') return totals(b).picks - totals(a).picks
+    if (sort === 'pickrate') return heroBracketTotal(b, 'pick') - heroBracketTotal(a, 'pick')
     if (sort === 'banrate') return b.pro_ban - a.pro_ban
     return 0
   })
@@ -66,7 +60,9 @@ export function HeroTable({ heroes }: { heroes: HeroStat[] }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs text-muted">
+            <th className="pb-2 font-normal">Rank</th>
             <th className="pb-2 font-normal">Hero</th>
+            <th className="pb-2 font-normal">Role</th>
             {(['winrate', 'pickrate', 'banrate'] as SortKey[]).map((key) => (
               <th
                 key={key}
@@ -81,17 +77,19 @@ export function HeroTable({ heroes }: { heroes: HeroStat[] }) {
           </tr>
         </thead>
         <tbody>
-          {sorted.map((h, i) => {
-            const { picks, wins } = totals(h)
+          {sorted.map((h, idx) => {
+            const picks = heroBracketTotal(h, 'pick')
+            const wins = heroBracketTotal(h, 'win')
             return (
               <tr
                 key={h.id}
-                className={`border-b border-border/50 ${i % 2 === 1 ? 'bg-white/[0.02]' : ''}`}
+                className={`border-b border-border/50 ${idx % 2 === 1 ? 'bg-white/[0.02]' : ''}`}
               >
+                <td className="py-1.5 font-mono text-muted">{idx + 1}</td>
                 <td className="py-1.5">
                   <a href={`/hero/${h.id}`} className="flex items-center gap-2 hover:text-accent">
                     <img
-                      src={`https://cdn.opendota.com${h.icon}`}
+                      src={heroIconUrl(h.name)}
                       alt={h.localized_name}
                       className="h-6 w-6 rounded"
                     />
@@ -99,6 +97,7 @@ export function HeroTable({ heroes }: { heroes: HeroStat[] }) {
                     <span className="text-xs text-muted">{h.primary_attr}</span>
                   </a>
                 </td>
+                <td className="py-1.5 text-muted">{h.roles?.[0] ?? '—'}</td>
                 <td className="py-1.5 text-right font-mono text-foreground">
                   {winRate(wins, picks)}
                 </td>
