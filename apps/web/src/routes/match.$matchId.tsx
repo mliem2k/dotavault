@@ -74,7 +74,7 @@ function MatchPage() {
         <CardHeader>
           <CardTitle>Gold Advantage</CardTitle>
         </CardHeader>
-        <AdvantageGraph radiantGoldAdv={m.radiant_gold_adv} />
+        <AdvantageGraph radiantGoldAdv={m.radiant_gold_adv} radiantXpAdv={m.radiant_xp_adv} />
       </Card>
     </div>
   )

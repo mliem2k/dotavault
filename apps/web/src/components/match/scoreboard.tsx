@@ -18,16 +18,14 @@ function PlayerRow({ player, hero }: { player: MatchPlayer; hero: HeroStat | und
           <span className="text-foreground">{player.personaname ?? player.name ?? 'Unknown'}</span>
         </a>
       </td>
-      <td className="py-1.5 text-right font-mono">
-        {player.kills}/{player.deaths}/{player.assists}
+      <td className="py-1.5 text-right font-mono text-muted">{player.kills}</td>
+      <td className="py-1.5 text-right font-mono text-muted">{player.deaths}</td>
+      <td className="py-1.5 text-right font-mono text-muted">{player.assists}</td>
+      <td className="py-1.5 text-right font-mono text-muted">
+        {player.net_worth?.toLocaleString() ?? '—'}
       </td>
-      <td className="py-1.5 text-right font-mono text-muted">{player.last_hits}</td>
       <td className="py-1.5 text-right font-mono text-muted">{player.gold_per_min}</td>
       <td className="py-1.5 text-right font-mono text-muted">{player.xp_per_min}</td>
-      <td className="py-1.5 text-right font-mono text-muted">
-        {(player.hero_damage / 1000).toFixed(1)}k
-      </td>
-      <td className="py-1.5 text-right font-mono text-muted">{player.level}</td>
     </tr>
   )
 }
@@ -35,12 +33,12 @@ function PlayerRow({ player, hero }: { player: MatchPlayer; hero: HeroStat | und
 const tableHeaders = (
   <tr className="text-left text-xs text-muted">
     <th className="pb-2 font-normal">Player</th>
-    <th className="pb-2 font-normal text-right">KDA</th>
-    <th className="pb-2 font-normal text-right">LH</th>
+    <th className="pb-2 font-normal text-right">K</th>
+    <th className="pb-2 font-normal text-right">D</th>
+    <th className="pb-2 font-normal text-right">A</th>
+    <th className="pb-2 font-normal text-right">Net Worth</th>
     <th className="pb-2 font-normal text-right">GPM</th>
     <th className="pb-2 font-normal text-right">XPM</th>
-    <th className="pb-2 font-normal text-right">DMG</th>
-    <th className="pb-2 font-normal text-right">LVL</th>
   </tr>
 )
 
