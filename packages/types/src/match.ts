@@ -64,6 +64,9 @@ export type MatchPlayer = {
   item_3: number
   item_4: number
   item_5: number
+  item_neutral: number
+  aghanims_scepter: number
+  aghanims_shard: number
   kills: number
   last_hits: number
   leaver_status: number

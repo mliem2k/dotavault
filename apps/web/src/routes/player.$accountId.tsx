@@ -26,12 +26,12 @@ function PlayerPage() {
   })
 
   const matches = useQuery({
-    queryKey: ['player-matches', accountId],
+    queryKey: ['player_matches', accountId],
     queryFn: () => opendota.playerMatches(accountId, 50),
   })
 
   const playerHeroes = useQuery({
-    queryKey: ['player-heroes', accountId],
+    queryKey: ['player_heroes', accountId],
     queryFn: () => opendota.playerHeroes(accountId),
   })
 
@@ -39,6 +39,31 @@ function PlayerPage() {
     queryKey: ['heroes'],
     queryFn: () => opendota.heroStats(),
   })
+
+  const proPlayers = useQuery({
+    queryKey: ['pro_players'],
+    queryFn: () => opendota.proPlayers(),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const proPlayer = proPlayers.data?.find((p) => String(p.account_id) === accountId)
+
+  const teamQuery = useQuery({
+    queryKey: ['team', proPlayer?.team_id],
+    queryFn: () => opendota.team(proPlayer!.team_id!),
+    enabled: !!proPlayer?.team_id,
+    staleTime: 60 * 60 * 1000,
+  })
+
+  const proTeam =
+    proPlayer?.team_id && teamQuery.data
+      ? {
+          team_id: proPlayer.team_id,
+          team_name: proPlayer.team_name ?? teamQuery.data.name,
+          team_tag: proPlayer.team_tag ?? teamQuery.data.tag,
+          team_logo: teamQuery.data.logo_url ?? null,
+        }
+      : undefined
 
   if (player.isPending) {
     return (
@@ -53,7 +78,7 @@ function PlayerPage() {
   return (
     <div className="space-y-6">
       <Card>
-        <PlayerHeader player={player.data.player} wl={player.data.wl} />
+        <PlayerHeader player={player.data.player} wl={player.data.wl} proTeam={proTeam} />
       </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -31,4 +31,7 @@ export const opendota = {
   proMatches: () => get<ProMatch[]>('/proMatches'),
   proPlayers: () => get<ProPlayer[]>('/proPlayers'),
   search: (q: string) => get<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`),
+  items: () => get<Record<string, { id: number; img: string }>>('/constants/items'),
+  team: (id: number) =>
+    get<{ team_id: number; name: string; tag: string; logo_url: string | null; wins: number; losses: number; rating: number }>(`/teams/${id}`),
 }

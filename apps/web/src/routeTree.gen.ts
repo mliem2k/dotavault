@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProRouteImport } from './routes/pro'
 import { Route as HeroesRouteImport } from './routes/heroes'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TeamTeamIdRouteImport } from './routes/team.$teamId'
 import { Route as PlayerAccountIdRouteImport } from './routes/player.$accountId'
 import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
 import { Route as HeroHeroIdRouteImport } from './routes/hero.$heroId'
@@ -29,6 +30,11 @@ const HeroesRoute = HeroesRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TeamTeamIdRoute = TeamTeamIdRouteImport.update({
+  id: '/team/$teamId',
+  path: '/team/$teamId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlayerAccountIdRoute = PlayerAccountIdRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/heroes': typeof HeroesRoute
   '/pro': typeof ProRoute
+  '/team/$teamId': typeof TeamTeamIdRoute
   '/hero/$heroId': typeof HeroHeroIdRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/heroes': typeof HeroesRoute
   '/pro': typeof ProRoute
+  '/team/$teamId': typeof TeamTeamIdRoute
   '/hero/$heroId': typeof HeroHeroIdRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/heroes': typeof HeroesRoute
   '/pro': typeof ProRoute
+  '/team/$teamId': typeof TeamTeamIdRoute
   '/hero/$heroId': typeof HeroHeroIdRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/heroes'
     | '/pro'
+    | '/team/$teamId'
     | '/hero/$heroId'
     | '/match/$matchId'
     | '/player/$accountId'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/heroes'
     | '/pro'
+    | '/team/$teamId'
     | '/hero/$heroId'
     | '/match/$matchId'
     | '/player/$accountId'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/heroes'
     | '/pro'
+    | '/team/$teamId'
     | '/hero/$heroId'
     | '/match/$matchId'
     | '/player/$accountId'
@@ -103,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HeroesRoute: typeof HeroesRoute
   ProRoute: typeof ProRoute
+  TeamTeamIdRoute: typeof TeamTeamIdRoute
   HeroHeroIdRoute: typeof HeroHeroIdRoute
   MatchMatchIdRoute: typeof MatchMatchIdRoute
   PlayerAccountIdRoute: typeof PlayerAccountIdRoute
@@ -129,6 +142,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/team/$teamId': {
+      id: '/team/$teamId'
+      path: '/team/$teamId'
+      fullPath: '/team/$teamId'
+      preLoaderRoute: typeof TeamTeamIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/player/$accountId': {
@@ -159,6 +179,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HeroesRoute: HeroesRoute,
   ProRoute: ProRoute,
+  TeamTeamIdRoute: TeamTeamIdRoute,
   HeroHeroIdRoute: HeroHeroIdRoute,
   MatchMatchIdRoute: MatchMatchIdRoute,
   PlayerAccountIdRoute: PlayerAccountIdRoute,
