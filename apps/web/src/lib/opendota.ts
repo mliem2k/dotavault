@@ -26,6 +26,8 @@ export const opendota = {
   playerHeroes: (id: string) => get<PlayerHero[]>(`/players/${id}/heroes`),
   match: (id: string) => get<Match>(`/matches/${id}`),
   heroStats: () => get<HeroStat[]>('/heroStats'),
+  heroDurations: (id: string) => get<unknown[]>(`/heroes/${id}/durations`),
+  heroItemTimings: (id: string) => get<unknown[]>(`/heroes/${id}/itemTimings`),
   proMatches: () => get<ProMatch[]>('/proMatches'),
   proPlayers: () => get<ProPlayer[]>('/proPlayers'),
   search: (q: string) => get<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`),
