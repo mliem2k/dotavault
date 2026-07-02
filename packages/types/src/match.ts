@@ -91,6 +91,20 @@ export type ItemConst = {
   lore?: string
 }
 
+export type AbilityAttrib = { key: string; header?: string; value: string | string[]; generated?: boolean }
+
+export type AbilityConst = {
+  dname?: string
+  img?: string
+  desc?: string
+  behavior?: string | string[]
+  dmg_type?: string
+  attrib?: AbilityAttrib[]
+  lore?: string
+  mc?: number | number[] | string | boolean
+  cd?: number | number[] | string
+}
+
 export type MatchPlayer = {
   match_id: number
   player_slot: number

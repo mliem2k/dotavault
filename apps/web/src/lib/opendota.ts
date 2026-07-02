@@ -1,4 +1,5 @@
 import type {
+  AbilityConst,
   HeroBenchmarks,
   HeroStat,
   ItemConst,
@@ -41,7 +42,7 @@ export const opendota = {
   proPlayers: () => get<ProPlayer[]>('/proPlayers'),
   search: (q: string) => get<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`),
   items: () => get<Record<string, ItemConst>>('/constants/items'),
-  abilities: () => get<Record<string, { dname?: string; img?: string }>>('/constants/abilities'),
+  abilities: () => get<Record<string, AbilityConst>>('/constants/abilities'),
   abilityIds: () => get<Record<string, string>>('/constants/ability_ids'),
   playerTotals: (id: string) => get<{ field: string; n: number; sum: number }[]>(`/players/${id}/totals`),
   requestParse: (matchId: string) => post<{ job: { jobId: number } }>(`/request/${matchId}`),

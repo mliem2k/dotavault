@@ -14,6 +14,8 @@ export type {
   HeroBenchmarks,
   ItemAttrib,
   ItemConst,
+  AbilityAttrib,
+  AbilityConst,
 } from './match'
 export type { HeroStat } from './hero'
 export type { ProMatch, ProPlayer } from './pro'

@@ -1,5 +1,6 @@
-import { type JSX, useState } from 'react'
+import { type JSX, useRef, useState } from 'react'
 import type { HeroStat, ItemConst, Match, MatchPlayer } from 'types'
+import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { ItemIcon } from './item_icon'
 import {
   MatchRosterSidebar,
@@ -103,23 +104,75 @@ function TeamAdvantageChart({ match }: { match: Match }) {
   // Area fill for gold advantage (green above midline, red below)
   const goldArea = `${toPath(goldPts)} L${xAt(n - 1)} ${mid} L0 ${mid} Z`
 
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+  const onMove = (e: React.MouseEvent) => {
+    const el = wrapRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width))
+    setHoverIdx(Math.round(f * (n - 1)))
+  }
+  const hoverPct = hoverIdx != null ? (hoverIdx / (n - 1)) * 100 : 0
+  const gv = hoverIdx != null ? (gold[hoverIdx] ?? 0) : 0
+  const xv = hoverIdx != null ? (xp[hoverIdx] ?? 0) : 0
+  const advLabel = (v: number) => `${v >= 0 ? 'Radiant' : 'Dire'} +${Math.abs(v).toLocaleString()}`
+
   return (
     <div className="flex-1 min-w-0">
-      <svg viewBox={`0 0 ${VB_W} ${vbH}`} preserveAspectRatio="none" className="w-full" style={{ height: vbH }}>
-        <defs>
-          <linearGradient id="advGreen" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#8ec63f" stopOpacity="0.35" />
-            <stop offset={`${(mid / vbH) * 100}%`} stopColor="#8ec63f" stopOpacity="0.05" />
-            <stop offset={`${(mid / vbH) * 100}%`} stopColor="#d14a38" stopOpacity="0.05" />
-            <stop offset="100%" stopColor="#d14a38" stopOpacity="0.35" />
-          </linearGradient>
-        </defs>
-        <GridAndAxis minutes={n} vbH={vbH} />
-        <line x1={0} y1={mid} x2={VB_W} y2={mid} stroke="#3a352a" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-        <path d={goldArea} fill="url(#advGreen)" />
-        <path d={toPath(goldPts)} fill="none" stroke="#c9a94a" strokeWidth={2} vectorEffect="non-scaling-stroke" />
-        <path d={toPath(xpPts)} fill="none" stroke="#5a8fc2" strokeWidth={1.5} vectorEffect="non-scaling-stroke" strokeDasharray="4 3" />
-      </svg>
+      <div ref={wrapRef} className="relative" style={{ height: vbH }} onMouseMove={onMove} onMouseLeave={() => setHoverIdx(null)}>
+        <svg viewBox={`0 0 ${VB_W} ${vbH}`} preserveAspectRatio="none" className="w-full" style={{ height: vbH }}>
+          <defs>
+            <linearGradient id="advGreen" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#8ec63f" stopOpacity="0.35" />
+              <stop offset={`${(mid / vbH) * 100}%`} stopColor="#8ec63f" stopOpacity="0.05" />
+              <stop offset={`${(mid / vbH) * 100}%`} stopColor="#d14a38" stopOpacity="0.05" />
+              <stop offset="100%" stopColor="#d14a38" stopOpacity="0.35" />
+            </linearGradient>
+          </defs>
+          <GridAndAxis minutes={n} vbH={vbH} />
+          <line x1={0} y1={mid} x2={VB_W} y2={mid} stroke="#3a352a" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+          <path d={goldArea} fill="url(#advGreen)" />
+          <path d={toPath(goldPts)} fill="none" stroke="#c9a94a" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+          <path d={toPath(xpPts)} fill="none" stroke="#5a8fc2" strokeWidth={1.5} vectorEffect="non-scaling-stroke" strokeDasharray="4 3" />
+          {hoverIdx != null && (
+            <>
+              <circle cx={xAt(hoverIdx)} cy={yAt(gv)} r={3} fill="#c9a94a" vectorEffect="non-scaling-stroke" />
+              <circle cx={xAt(hoverIdx)} cy={yAt(xv)} r={3} fill="#5a8fc2" vectorEffect="non-scaling-stroke" />
+            </>
+          )}
+        </svg>
+        {hoverIdx != null && (
+          <>
+            <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: `${hoverPct}%`, width: 1, background: '#5a544688' }} />
+            <div
+              className="absolute pointer-events-none rounded"
+              style={{
+                left: hoverPct > 55 ? undefined : `calc(${hoverPct}% + 10px)`,
+                right: hoverPct > 55 ? `calc(${100 - hoverPct}% + 10px)` : undefined,
+                top: 6,
+                background: '#0b0a08',
+                border: '1px solid #3a352a',
+                padding: '6px 8px',
+                fontFamily: 'var(--font-dota)',
+                zIndex: 5,
+              }}
+            >
+              <div className="text-[10px] uppercase tracking-wider mb-1 tabular-nums" style={{ color: '#77715f' }}>{hoverIdx}:00</div>
+              <div className="flex items-center gap-1.5 text-[11px] leading-tight">
+                <span className="rounded-sm" style={{ width: 8, height: 8, background: '#c9a94a' }} />
+                <span style={{ color: '#b8b2a4' }}>Net Worth</span>
+                <span className="ml-auto tabular-nums font-semibold" style={{ color: gv >= 0 ? '#8ec63f' : '#d14a38' }}>{advLabel(gv)}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] leading-tight mt-0.5">
+                <span className="rounded-sm" style={{ width: 8, height: 8, background: '#5a8fc2' }} />
+                <span style={{ color: '#b8b2a4' }}>XP</span>
+                <span className="ml-auto tabular-nums font-semibold" style={{ color: xv >= 0 ? '#8ec63f' : '#d14a38' }}>{advLabel(xv)}</span>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
       <TimeLabels minutes={n} />
       <div className="flex items-center gap-4 mt-1 text-[11px]" style={{ fontFamily: 'var(--font-dota)' }}>
         <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-[2px]" style={{ background: '#c9a94a' }} /><span style={{ color: '#8a8474' }}>Net Worth adv.</span></span>
@@ -132,13 +185,16 @@ function TeamAdvantageChart({ match }: { match: Match }) {
 
 function PlayerLinesChart({
   match,
+  heroStats,
   metric,
   visibleSlots,
 }: {
   match: Match
+  heroStats: HeroStat[]
   metric: 'networth' | 'level'
   visibleSlots: Set<number>
 }) {
+  const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const players = match.players
   const series = players.map((p) => {
     const raw = metric === 'networth' ? (p.gold_t ?? []) : (p.xp_t ?? [])
@@ -164,26 +220,111 @@ function PlayerLinesChart({
       ? [5, 10, 15, 20, 25, 30].map((lv) => ({ y: yAt(lv), label: String(lv) }))
       : [0.25, 0.5, 0.75, 1].map((f) => ({ y: yAt(maxVal * f), label: fmtGold(Math.round(maxVal * f)) }))
 
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+  const onMove = (e: React.MouseEvent) => {
+    const el = wrapRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width))
+    setHoverIdx(Math.round(f * (n - 1)))
+  }
+  const hoverPct = hoverIdx != null ? (hoverIdx / (n - 1)) * 100 : 0
+  const hoverRows =
+    hoverIdx != null
+      ? shown
+          .map((s) => {
+            const hero = heroMap.get(s.player.hero_id)
+            return {
+              color: PLAYER_COLORS[s.player.player_slot] ?? '#888',
+              hero,
+              name: hero?.localized_name ?? s.player.personaname ?? s.player.name ?? 'Anon',
+              v: s.data[Math.min(hoverIdx, s.data.length - 1)] ?? 0,
+            }
+          })
+          .sort((a, b) => b.v - a.v)
+      : []
+
   return (
     <div className="flex-1 min-w-0">
-      <svg viewBox={`0 0 ${VB_W} ${vbH}`} preserveAspectRatio="none" className="w-full" style={{ height: vbH }}>
-        <GridAndAxis minutes={n} vbH={vbH} yTicks={yTicks} />
-        {shown.map((s) => {
-          const color = PLAYER_COLORS[s.player.player_slot] ?? '#888'
-          const pts: [number, number][] = s.data.map((v, i) => [xAt(i), yAt(v)])
-          return (
-            <path
-              key={s.player.player_slot}
-              d={toPath(pts)}
-              fill="none"
-              stroke={color}
-              strokeWidth={shown.length === 1 ? 2.5 : 1.75}
-              strokeOpacity={0.9}
-              vectorEffect="non-scaling-stroke"
-            />
-          )
-        })}
-      </svg>
+      <div
+        ref={wrapRef}
+        className="relative"
+        style={{ height: vbH }}
+        onMouseMove={onMove}
+        onMouseLeave={() => setHoverIdx(null)}
+      >
+        <svg viewBox={`0 0 ${VB_W} ${vbH}`} preserveAspectRatio="none" className="w-full" style={{ height: vbH }}>
+          <GridAndAxis minutes={n} vbH={vbH} yTicks={yTicks} />
+          {shown.map((s) => {
+            const color = PLAYER_COLORS[s.player.player_slot] ?? '#888'
+            const pts: [number, number][] = s.data.map((v, i) => [xAt(i), yAt(v)])
+            return (
+              <path
+                key={s.player.player_slot}
+                d={toPath(pts)}
+                fill="none"
+                stroke={color}
+                strokeWidth={shown.length === 1 ? 2.5 : 1.75}
+                strokeOpacity={0.9}
+                vectorEffect="non-scaling-stroke"
+              />
+            )
+          })}
+          {hoverIdx != null &&
+            shown.map((s) => {
+              const color = PLAYER_COLORS[s.player.player_slot] ?? '#888'
+              const v = s.data[Math.min(hoverIdx, s.data.length - 1)] ?? 0
+              return <circle key={s.player.player_slot} cx={xAt(hoverIdx)} cy={yAt(v)} r={3} fill={color} vectorEffect="non-scaling-stroke" />
+            })}
+        </svg>
+
+        {hoverIdx != null && (
+          <>
+            <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: `${hoverPct}%`, width: 1, background: '#5a544688' }} />
+            <div
+              className="absolute pointer-events-none rounded"
+              style={{
+                left: hoverPct > 55 ? undefined : `calc(${hoverPct}% + 10px)`,
+                right: hoverPct > 55 ? `calc(${100 - hoverPct}% + 10px)` : undefined,
+                top: 6,
+                background: '#0b0a08',
+                border: '1px solid #3a352a',
+                padding: '6px 8px',
+                minWidth: 130,
+                fontFamily: 'var(--font-dota)',
+                zIndex: 5,
+              }}
+            >
+              <div className="text-[10px] uppercase tracking-wider mb-1 tabular-nums" style={{ color: '#77715f' }}>
+                {hoverIdx}:00
+              </div>
+              {hoverRows.map((r) => (
+                <div key={r.name} className="flex items-center gap-1.5 text-[11px] leading-tight py-0.5">
+                  <span className="shrink-0 rounded-sm" style={{ width: 3, height: 16, background: r.color }} />
+                  {r.hero && (
+                    <img
+                      src={heroIconUrl(r.hero.name)}
+                      alt=""
+                      className="shrink-0 rounded-sm"
+                      style={{ width: 18, height: 18 }}
+                      onError={(e) => {
+                        const img = e.currentTarget
+                        img.onerror = null
+                        img.src = heroIconFromPath(r.hero!.icon)
+                      }}
+                    />
+                  )}
+                  <span className="flex-1 min-w-0 truncate" style={{ color: '#b8b2a4' }}>{r.name}</span>
+                  <span className="tabular-nums font-semibold ml-2" style={{ color: '#dcd6c8' }}>
+                    {metric === 'networth' ? r.v.toLocaleString() : r.v}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
       <TimeLabels minutes={n} />
     </div>
   )
@@ -317,6 +458,43 @@ export function MatchGraphs({
   }
   const perPlayerMode = activeMode === 'networth' || activeMode === 'level'
 
+  // Position presets derived from lane role + farm priority, index 0..4 = pos 1..5.
+  const { radiant: radTeam, dire: direTeam } = orderedTeams(match)
+  const derivePositions = (team: MatchPlayer[]): (MatchPlayer | undefined)[] => {
+    const used = new Set<number>()
+    const pick = (role: number) => {
+      const c = team
+        .filter((p) => !used.has(p.player_slot) && p.lane_role === role)
+        .sort((a, b) => b.net_worth - a.net_worth)[0]
+      if (c) used.add(c.player_slot)
+      return c
+    }
+    const pos1 = pick(1) // safelane core
+    const pos2 = pick(2) // mid
+    const pos3 = pick(3) // offlane core
+    const pos5 = pick(1) // remaining safelane → hard support
+    const pos4 = pick(3) // remaining offlane → soft support
+    const out: (MatchPlayer | undefined)[] = [pos1, pos2, pos3, pos4, pos5]
+    // Fill any gaps (missing lane data) with leftover players by net worth.
+    const leftover = team.filter((p) => !used.has(p.player_slot)).sort((a, b) => b.net_worth - a.net_worth)
+    for (let i = 0; i < 5; i++) if (!out[i]) out[i] = leftover.shift()
+    return out
+  }
+  const radPos = derivePositions(radTeam)
+  const direPos = derivePositions(direTeam)
+  const POSITIONS = ['Safelane', 'Midlane', 'Offlane', 'Soft Support', 'Hard Support']
+  const positionSlots = (i: number) => {
+    const slots = new Set<number>()
+    if (radPos[i]) slots.add(radPos[i]!.player_slot)
+    if (direPos[i]) slots.add(direPos[i]!.player_slot)
+    return slots
+  }
+  const selectPosition = (i: number) => {
+    const slots = positionSlots(i)
+    if (slots.size) setVisibleSlots(slots)
+  }
+  const allSlots = () => setVisibleSlots(new Set(match.players.map((p) => p.player_slot)))
+
   if (available.length === 0) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -352,20 +530,46 @@ export function MatchGraphs({
 
         {perPlayerMode && (
           <div
-            className="flex items-center gap-3 mb-2 text-[11px]"
-            style={{ fontFamily: 'var(--font-dota)', color: '#8a8474', marginLeft: SIDEBAR_W + 16 }}
+            className="flex items-center gap-1.5 mb-2 flex-wrap"
+            style={{ fontFamily: 'var(--font-dota)', marginLeft: SIDEBAR_W + 16 }}
           >
-            <span>
-              Showing {visibleSlots.size} of {match.players.length} — click a player to toggle
+            <span className="text-[11px] mr-1" style={{ color: '#5a5446' }}>
+              Showing {visibleSlots.size}/{match.players.length}:
             </span>
             <button
               type="button"
-              onClick={() => setVisibleSlots(new Set(match.players.map((p) => p.player_slot)))}
-              className="uppercase tracking-wider hover:text-[#dcd6c8]"
-              style={{ color: '#5a8fc2' }}
+              onClick={allSlots}
+              className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-sm"
+              style={{
+                color: visibleSlots.size === match.players.length ? '#ece6d8' : '#8a8474',
+                background: visibleSlots.size === match.players.length ? '#2a2620' : '#16130f',
+                border: '1px solid #241f16',
+              }}
             >
-              Show all
+              All
             </button>
+            {POSITIONS.map((label, i) => {
+              const slots = positionSlots(i)
+              const isActive =
+                slots.size > 0 &&
+                visibleSlots.size === slots.size &&
+                [...slots].every((s) => visibleSlots.has(s))
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => selectPosition(i)}
+                  className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-sm"
+                  style={{
+                    color: isActive ? '#ece6d8' : '#8a8474',
+                    background: isActive ? '#2a2620' : '#16130f',
+                    border: '1px solid #241f16',
+                  }}
+                >
+                  {label}
+                </button>
+              )
+            })}
           </div>
         )}
 
@@ -384,8 +588,8 @@ export function MatchGraphs({
           {/* Chart column */}
           <div className="flex-1 min-w-0">
             {activeMode === 'team' && <TeamAdvantageChart match={match} />}
-            {activeMode === 'networth' && <PlayerLinesChart match={match} metric="networth" visibleSlots={visibleSlots} />}
-            {activeMode === 'level' && <PlayerLinesChart match={match} metric="level" visibleSlots={visibleSlots} />}
+            {activeMode === 'networth' && <PlayerLinesChart match={match} heroStats={heroStats} metric="networth" visibleSlots={visibleSlots} />}
+            {activeMode === 'level' && <PlayerLinesChart match={match} heroStats={heroStats} metric="level" visibleSlots={visibleSlots} />}
             {activeMode === 'items' && <PlayerItemsTimeline match={match} itemConst={itemConst} />}
           </div>
         </div>

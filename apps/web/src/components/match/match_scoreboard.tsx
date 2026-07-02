@@ -1,12 +1,13 @@
 import { type JSX, useState } from 'react'
-import type { HeroStat, ItemConst, Match, MatchPlayer } from 'types'
+import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { AbilityIcon } from './ability_icon'
 import { ItemIcon } from './item_icon'
 import { PlayerIdentityCell, ROW_H, TEAM_HEADER_H, orderedTeams, rankLabel } from './match_roster'
 
 const IDENTITY_W = 236
 
-type Abilities = Record<string, { dname?: string; img?: string }>
+type Abilities = Record<string, AbilityConst>
 type AbilityIds = Record<string, string>
 
 // Items counted in the "Support Items" column (wards, consumables, utility).
@@ -15,11 +16,6 @@ const SUPPORT_ITEMS = new Set([
   'flask', 'clarity', 'tango', 'tango_single', 'enchanted_mango', 'faerie_fire', 'gem',
   'infused_raindrop', 'bottle', 'blood_grenade', 'cheese',
 ])
-
-function abilityImg(name: string, abilities: Abilities): string | null {
-  const img = abilities[name]?.img
-  return img ? `https://cdn.cloudflare.steamstatic.com${img}` : null
-}
 
 /* Enemy heroes this player killed, aligned to the fixed enemy roster order. */
 function HeroKillsGroup({
@@ -127,20 +123,8 @@ function AbilityBuildGroup({
       {arr.map((id, i) => {
         const name = abilityIds[String(id)] ?? ''
         const isTalent = name.startsWith('special_bonus')
-        const img = isTalent ? null : abilityImg(name, abilities)
         return (
-          <div
-            key={i}
-            className="shrink-0 rounded-sm overflow-hidden flex items-center justify-center"
-            style={{ width: 26, height: 26, background: isTalent ? '#1a2810' : '#12100c', border: `1px solid ${isTalent ? '#3a5a1a' : '#241f16'}` }}
-            title={`Lvl ${i + 1}: ${abilities[name]?.dname ?? name}`}
-          >
-            {img ? (
-              <img src={img} alt={name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.15' }} />
-            ) : (
-              <span className="text-[11px] font-bold" style={{ color: '#8ec63f' }}>▲</span>
-            )}
-          </div>
+          <AbilityIcon key={i} name={name} meta={abilities[name]} isTalent={isTalent} level={i + 1} />
         )
       })}
     </div>
