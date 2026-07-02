@@ -25,7 +25,7 @@ function PlayerPage() {
   const matches = useQuery({
     queryKey: ['player-matches', accountId],
     queryFn: async () => {
-      const { data } = await api.players({ id: accountId }).matches.get()
+      const { data } = await api.players({ id: accountId }).matches.get({ query: { limit: '50' } })
       return data
     },
   })
