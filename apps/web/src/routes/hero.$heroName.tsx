@@ -1,37 +1,37 @@
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { Card, CardHeader, CardTitle } from '@/components/ui/card'
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import type { HeroStat } from 'types'
+import { AbilityIcon } from '@/components/match/ability_icon'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
-import { heroBracketTotal, heroIconFromPath, heroIconUrl, winRate } from '@/lib/utils'
+import { heroBracketTotal, heroIconFromPath, winRate } from '@/lib/utils'
 
 export const Route = createFileRoute('/hero/$heroName')({
   component: HeroDetailPage,
 })
 
-const BRACKET_LABELS = [
-  '', 'Herald', 'Guardian', 'Crusader', 'Archon', 'Legend', 'Ancient', 'Divine', 'Immortal',
-]
+const BRACKET_LABELS = ['', 'Herald', 'Guardian', 'Crusader', 'Archon', 'Legend', 'Ancient', 'Divine', 'Immortal']
 
-const ATTR_COLOR: Record<string, string> = {
-  str: 'text-red-400',
-  agi: 'text-green-400',
-  int: 'text-blue-400',
-  all: 'text-yellow-400',
+const ATTR: Record<string, { label: string; color: string }> = {
+  str: { label: 'Strength', color: '#e24b3a' },
+  agi: { label: 'Agility', color: '#a2d240' },
+  int: { label: 'Intelligence', color: '#4fb0e0' },
+  all: { label: 'Universal', color: '#c47adf' },
 }
-const ATTR_LABEL: Record<string, string> = {
-  str: 'Strength',
-  agi: 'Agility',
-  int: 'Intelligence',
-  all: 'Universal',
+
+function heroLandscape(name: string): string {
+  const short = name.replace('npc_dota_hero_', '')
+  return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${short}.png`
+}
+
+function cleanTalent(s: string): string {
+  return s.replace(/\{[^}]*\}/g, '').replace(/\s+/g, ' ').trim()
 }
 
 type Matchup = { hero_id: number; games_played: number; wins: number }
 type Duration = { duration_bin: number; games_played: number; wins: number }
-
-type SortKey = 'games' | 'winrate'
+type HeroMapVal = { name: string; shortName: string; localized_name: string; icon: string }
 
 function MatchupTable({
   matchups,
@@ -40,371 +40,278 @@ function MatchupTable({
   sortDir,
 }: {
   matchups: Matchup[]
-  heroMap: Map<number, { name: string; shortName: string; localized_name: string; icon: string }>
+  heroMap: Map<number, HeroMapVal>
   title: string
   sortDir: 'best' | 'worst'
 }) {
-  const withWr = matchups
-    .filter((m) => m.games_played >= 20)
-    .map((m) => ({ ...m, wr: m.wins / m.games_played }))
-  const sorted = [...withWr].sort((a, b) =>
-    sortDir === 'best' ? b.wr - a.wr : a.wr - b.wr,
-  )
-  const top = sorted.slice(0, 10)
-
+  const withWr = matchups.filter((m) => m.games_played >= 20).map((m) => ({ ...m, wr: m.wins / m.games_played }))
+  const top = [...withWr].sort((a, b) => (sortDir === 'best' ? b.wr - a.wr : a.wr - b.wr)).slice(0, 10)
   return (
     <div>
-      <div className="text-xs font-semibold uppercase tracking-wide text-muted mb-2">{title}</div>
-      <table className="w-full">
-        <thead>
-          <tr className="text-left text-xs text-muted">
-            <th className="pb-1.5 font-normal">Hero</th>
-            <th className="pb-1.5 font-normal text-right">Games</th>
-            <th className="pb-1.5 font-normal text-right">Win%</th>
-          </tr>
-        </thead>
-        <tbody>
-          {top.map((m) => {
-            const h = heroMap.get(m.hero_id)
-            if (!h) return null
-            const wr = (m.wr * 100).toFixed(1)
-            const isGood = sortDir === 'best'
-            return (
-              <tr key={m.hero_id} className="border-t border-border/30 text-sm hover:bg-card/40">
-                <td className="py-1.5">
-                  <a href={`/hero/${heroMap.get(m.hero_id)?.shortName ?? m.hero_id}`} className="flex items-center gap-2 hover:text-accent">
-                    <img
-                      src={heroIconFromPath(h.icon)}
-                      alt={h.localized_name}
-                      className="h-6 w-6 rounded"
-                    />
-                    <span>{h.localized_name}</span>
-                  </a>
-                </td>
-                <td className="py-1.5 text-right font-mono text-xs text-muted">
-                  {m.games_played.toLocaleString()}
-                </td>
-                <td className={`py-1.5 text-right font-mono text-xs font-medium ${isGood ? 'text-radiant' : 'text-dire'}`}>
-                  {wr}%
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+      <div className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}>
+        {title}
+      </div>
+      {top.map((m) => {
+        const h = heroMap.get(m.hero_id)
+        if (!h) return null
+        const wr = (m.wr * 100).toFixed(1)
+        return (
+          <a
+            key={m.hero_id}
+            href={`/hero/${h.shortName}`}
+            className="flex items-center gap-2 py-1.5 hover:bg-white/[0.03]"
+            style={{ borderTop: '1px solid #1c1810' }}
+          >
+            <img src={heroIconFromPath(h.icon)} alt="" className="h-6 w-6 rounded" />
+            <span className="flex-1 text-[13px] truncate" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>{h.localized_name}</span>
+            <span className="text-[11px] tabular-nums" style={{ color: '#77715f' }}>{m.games_played.toLocaleString()}</span>
+            <span className="w-12 text-right text-[12px] font-semibold tabular-nums" style={{ color: sortDir === 'best' ? '#8ec63f' : '#d14a38', fontFamily: 'var(--font-dota)' }}>{wr}%</span>
+          </a>
+        )
+      })}
+    </div>
+  )
+}
+
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+      {title && (
+        <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-widest" style={{ color: '#77715f', fontFamily: 'var(--font-dota)', borderBottom: '1px solid #24222a' }}>
+          {title}
+        </div>
+      )}
+      <div className="p-4">{children}</div>
+    </div>
+  )
+}
+
+function StatBox({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-[10px] uppercase tracking-widest" style={{ color: '#6a675e', fontFamily: 'var(--font-dota)' }}>{label}</span>
+      <span className="text-[17px] font-bold tabular-nums leading-tight" style={{ color: color ?? '#ece6d8', fontFamily: 'var(--font-dota)' }}>{value}</span>
     </div>
   )
 }
 
 function HeroDetailPage() {
   const { heroName } = Route.useParams()
-  const [matchupSort, setMatchupSort] = useState<SortKey>('winrate')
-
-  const heroStats = useQuery({
-    queryKey: ['heroes'],
-    queryFn: () => opendota.heroStats(),
-  })
+  const heroStats = useQuery({ queryKey: ['heroes'], queryFn: () => opendota.heroStats() })
+  const heroAbilities = useQuery({ queryKey: ['hero_abilities'], queryFn: () => opendota.heroAbilities(), staleTime: Number.POSITIVE_INFINITY })
+  const abilities = useQuery({ queryKey: ['abilities_constants'], queryFn: () => opendota.abilities(), staleTime: Number.POSITIVE_INFINITY })
 
   const hero = heroStats.data?.find((h) => h.name === `npc_dota_hero_${heroName}`)
 
   const matchups = useQuery({
     queryKey: ['hero_matchups', hero?.id],
-    queryFn: () =>
-      fetch(`https://api.opendota.com/api/heroes/${hero!.id}/matchups`)
-        .then((r) => r.json()) as Promise<Matchup[]>,
+    queryFn: () => fetch(`https://api.opendota.com/api/heroes/${hero!.id}/matchups`).then((r) => r.json()) as Promise<Matchup[]>,
     enabled: !!hero?.id,
   })
-
   const durations = useQuery({
     queryKey: ['hero_durations', hero?.id],
-    queryFn: () =>
-      fetch(`https://api.opendota.com/api/heroes/${hero!.id}/durations`)
-        .then((r) => r.json()) as Promise<Duration[]>,
+    queryFn: () => fetch(`https://api.opendota.com/api/heroes/${hero!.id}/durations`).then((r) => r.json()) as Promise<Duration[]>,
     enabled: !!hero?.id,
   })
 
   if (heroStats.isPending) {
-    return (
-      <div className="flex justify-center py-20">
-        <Spinner className="h-8 w-8" />
-      </div>
-    )
+    return <div className="flex justify-center py-20"><Spinner className="h-8 w-8" /></div>
   }
   if (!hero) return <div className="text-sm text-muted">Hero not found.</div>
 
+  const short = hero.name.replace('npc_dota_hero_', '')
+  const attr = ATTR[hero.primary_attr] ?? { label: hero.primary_attr, color: '#888' }
   const picks = heroBracketTotal(hero, 'pick')
   const wins = heroBracketTotal(hero, 'win')
+  const viewerUrl = `https://pissang.github.io/dota2hero/#/hero/${short}`
 
-  const heroMap = new Map(
-    (heroStats.data ?? []).map((h) => [
-      h.id,
-      {
-        name: h.name,
-        shortName: h.name.replace('npc_dota_hero_', ''),
-        localized_name: h.localized_name,
-        icon: h.icon,
-      },
-    ]),
+  const heroMap = new Map<number, HeroMapVal>(
+    (heroStats.data ?? []).map((h) => [h.id, { name: h.name, shortName: h.name.replace('npc_dota_hero_', ''), localized_name: h.localized_name, icon: h.icon }]),
   )
 
   const brackets = [1, 2, 3, 4, 5, 6, 7, 8].map((i) => ({
     label: BRACKET_LABELS[i],
-    picks: hero[`${i}_pick` as keyof typeof hero] as number,
-    wins: hero[`${i}_win` as keyof typeof hero] as number,
+    picks: hero[`${i}_pick` as keyof HeroStat] as number,
+    wins: hero[`${i}_win` as keyof HeroStat] as number,
   }))
 
   const durationData = (durations.data ?? [])
     .filter((d) => d.games_played >= 10)
     .sort((a, b) => a.duration_bin - b.duration_bin)
-    .map((d) => ({
-      min: Math.round(d.duration_bin / 60),
-      wr: +((d.wins / d.games_played) * 100).toFixed(1),
-      games: d.games_played,
-    }))
+    .map((d) => ({ min: Math.round(d.duration_bin / 60), wr: +((d.wins / d.games_played) * 100).toFixed(1), games: d.games_played }))
 
-  const shortName = hero.name.replace('npc_dota_hero_', '')
-  const viewerUrl = `https://pissang.github.io/dota2hero/#/hero/${shortName}`
+  // Abilities & talents
+  const ha = heroAbilities.data?.[hero.name]
+  const abilityList = (ha?.abilities ?? []).filter((a) => a && a !== 'generic_hidden' && !a.startsWith('special_'))
+  const talents = ha?.talents ?? []
+  const talentTiers = [4, 3, 2, 1].map((lvl) => ({
+    lvl: [0, 10, 15, 20, 25][lvl],
+    pair: talents.filter((t) => t.level === lvl),
+  }))
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start gap-6">
-        <img
-          src={heroIconUrl(hero.name)}
-          alt={hero.localized_name}
-          className="h-20 w-20 rounded-lg object-cover"
-        />
-        <div className="flex-1">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-semibold">{hero.localized_name}</h1>
-            <span className={`text-sm font-medium ${ATTR_COLOR[hero.primary_attr] ?? ''}`}>
-              {ATTR_LABEL[hero.primary_attr] ?? hero.primary_attr}
-            </span>
-            <span className="text-xs text-muted border border-border rounded px-1.5 py-0.5">
-              {hero.attack_type}
-            </span>
+    <div className="max-w-6xl mx-auto px-4 py-6 space-y-4">
+      {/* Hero banner */}
+      <div className="relative overflow-hidden rounded" style={{ height: 300, border: '1px solid #24222a' }}>
+        <img src={heroLandscape(hero.name)} alt={hero.localized_name} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: 'center 30%' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(6,6,8,0.95) 0%, rgba(6,6,8,0.6) 40%, transparent 75%)' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(6,6,8,0.95) 0%, transparent 45%)' }} />
+        <div className="absolute top-0 left-0 right-0 h-1" style={{ background: attr.color }} />
+
+        <div className="absolute left-6 bottom-5 right-6">
+          <div className="text-[13px] font-bold uppercase tracking-[0.2em] mb-1" style={{ color: attr.color, fontFamily: 'var(--font-dota)' }}>
+            {attr.label} · {hero.attack_type}
           </div>
-          <div className="mt-1 text-sm text-muted">{hero.roles.join(' · ')}</div>
-          <div className="mt-4 flex flex-wrap gap-6 text-sm">
-            <div>
-              <div className="font-mono text-xl font-medium">{winRate(wins, picks)}</div>
-              <div className="text-xs text-muted">Win Rate</div>
-            </div>
-            <div>
-              <div className="font-mono text-xl font-medium">{picks.toLocaleString()}</div>
-              <div className="text-xs text-muted">Picks</div>
-            </div>
-            <div>
-              <div className="font-mono text-xl font-medium">{hero.pro_ban}</div>
-              <div className="text-xs text-muted">Pro Bans</div>
-            </div>
-            <div>
-              <div className="font-mono text-xl font-medium">{hero.pro_pick}</div>
-              <div className="text-xs text-muted">Pro Picks</div>
-            </div>
-            <div>
-              <div className="font-mono text-xl font-medium">{winRate(hero.pro_win, hero.pro_pick)}</div>
-              <div className="text-xs text-muted">Pro Win%</div>
-            </div>
+          <h1 className="text-[56px] leading-none font-bold uppercase" style={{ fontFamily: 'var(--font-display)', color: '#fff', letterSpacing: '1px', textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>
+            {hero.localized_name}
+          </h1>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {hero.roles.map((r) => (
+              <span key={r} className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid #3a3630', color: '#b8b2a4', fontFamily: 'var(--font-dota)' }}>
+                {r}
+              </span>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* 3D Model Viewer */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>3D Model</CardTitle>
-            <a
-              href={viewerUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-muted hover:text-accent transition-colors"
-            >
-              Open fullscreen ↗
-            </a>
+      {/* Base stats */}
+      <Panel title="Base Attributes">
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+          <StatBox label="Strength" value={`${hero.base_str} +${hero.str_gain.toFixed(1)}`} color="#e24b3a" />
+          <StatBox label="Agility" value={`${hero.base_agi} +${hero.agi_gain.toFixed(1)}`} color="#a2d240" />
+          <StatBox label="Intelligence" value={`${hero.base_int} +${hero.int_gain.toFixed(1)}`} color="#4fb0e0" />
+          <StatBox label="Attack" value={`${hero.base_attack_min}-${hero.base_attack_max}`} />
+          <StatBox label="Armor" value={hero.base_armor.toFixed(1)} />
+          <StatBox label="Move Speed" value={String(hero.move_speed)} />
+          <StatBox label="Atk Range" value={String(hero.attack_range)} />
+          <StatBox label="Health" value={String(hero.base_health + hero.base_str * 22)} />
+        </div>
+      </Panel>
+
+      {/* Abilities */}
+      {abilityList.length > 0 && (
+        <Panel title="Abilities">
+          <div className="flex flex-wrap gap-3">
+            {abilityList.map((a, i) => (
+              <div key={a} className="flex flex-col items-center gap-1.5" style={{ width: 64 }}>
+                <AbilityIcon name={a} meta={abilities.data?.[a]} isTalent={false} level={i + 1} size={56} />
+                <span className="text-[10px] text-center leading-tight truncate w-full" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }} title={abilities.data?.[a]?.dname}>
+                  {abilities.data?.[a]?.dname ?? ''}
+                </span>
+              </div>
+            ))}
           </div>
-        </CardHeader>
-        {/* Clip the left sidebar (~260px) by shifting iframe left and hiding overflow */}
-        <div className="relative overflow-hidden rounded-b-lg" style={{ height: '480px' }}>
+        </Panel>
+      )}
+
+      {/* Talents */}
+      {talents.length > 0 && (
+        <Panel title="Talents">
+          <div className="space-y-1.5 max-w-2xl mx-auto">
+            {talentTiers.map(
+              ({ lvl, pair }) =>
+                pair.length > 0 && (
+                  <div key={lvl} className="flex items-center gap-2">
+                    <div className="flex-1 text-right text-[11px] px-2 py-1.5 rounded-sm" style={{ background: '#14130f', border: '1px solid #2a2620', color: '#c8c2b4', fontFamily: 'var(--font-dota)' }}>
+                      {cleanTalent(abilities.data?.[pair[0]?.name ?? '']?.dname ?? '')}
+                    </div>
+                    <span className="w-8 text-center text-[13px] font-bold shrink-0" style={{ color: '#c9a94a', fontFamily: 'var(--font-dota)' }}>{lvl}</span>
+                    <div className="flex-1 text-left text-[11px] px-2 py-1.5 rounded-sm" style={{ background: '#14130f', border: '1px solid #2a2620', color: '#c8c2b4', fontFamily: 'var(--font-dota)' }}>
+                      {cleanTalent(abilities.data?.[pair[1]?.name ?? '']?.dname ?? '')}
+                    </div>
+                  </div>
+                ),
+            )}
+          </div>
+        </Panel>
+      )}
+
+      {/* Meta stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+        {(
+          [
+            [winRate(wins, picks), 'Win Rate'],
+            [picks.toLocaleString(), 'Picks'],
+            [hero.pro_pick.toLocaleString(), 'Pro Picks'],
+            [hero.pro_ban.toLocaleString(), 'Pro Bans'],
+            [winRate(hero.pro_win, hero.pro_pick), 'Pro Win%'],
+          ] as [string, string][]
+        ).map(([v, l]) => (
+          <div key={l} className="px-3 py-3 rounded" style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+            <div className="text-[22px] font-bold leading-tight tabular-nums" style={{ color: '#ece6d8', fontFamily: 'var(--font-dota)' }}>{v}</div>
+            <div className="text-[10px] uppercase tracking-widest mt-0.5" style={{ color: '#6a675e', fontFamily: 'var(--font-dota)' }}>{l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 3D viewer */}
+      <Panel title="3D Model">
+        <div className="relative overflow-hidden rounded" style={{ height: 460 }}>
           <iframe
             src={viewerUrl}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: '-260px',
-              width: 'calc(100% + 260px)',
-              height: '100%',
-              border: 0,
-            }}
+            style={{ position: 'absolute', top: 0, left: '-260px', width: 'calc(100% + 260px)', height: '100%', border: 0 }}
             title={`${hero.localized_name} 3D Model`}
             allow="fullscreen"
             loading="lazy"
           />
         </div>
-      </Card>
+      </Panel>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Win Rate by Bracket</CardTitle>
-          </CardHeader>
-          <div className="px-4 pb-4">
-            <table className="w-full">
-              <thead>
-                <tr className="text-xs text-muted text-left">
-                  <th className="pb-2 font-normal">Bracket</th>
-                  <th className="pb-2 font-normal text-right">Picks</th>
-                  <th className="pb-2 font-normal text-right">Win%</th>
-                  <th className="pb-2 font-normal pl-3">Bar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {brackets.map(({ label, picks: p, wins: w }) => {
-                  const wr = p > 0 ? (w / p) * 100 : 0
-                  return (
-                    <tr key={label} className="border-t border-border/30 text-sm">
-                      <td className="py-1.5 text-muted">{label}</td>
-                      <td className="py-1.5 text-right font-mono text-xs text-muted">
-                        {p.toLocaleString()}
-                      </td>
-                      <td className="py-1.5 text-right font-mono text-xs font-medium">
-                        {p > 0 ? `${wr.toFixed(1)}%` : '—'}
-                      </td>
-                      <td className="py-1.5 pl-3 w-24">
-                        <div className="h-1.5 bg-card rounded overflow-hidden">
-                          <div
-                            className="h-full rounded"
-                            style={{
-                              width: `${Math.min(wr, 100)}%`,
-                              backgroundColor: wr >= 50 ? 'var(--color-radiant)' : 'var(--color-dire)',
-                            }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Win Rate by Duration</CardTitle>
-          </CardHeader>
-          <div className="px-4 pb-4">
-            {durationData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={180}>
-                <AreaChart data={durationData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="wrGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-accent)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="var(--color-accent)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="min"
-                    tick={{ fill: 'var(--color-muted)', fontSize: 10 }}
-                    tickFormatter={(v) => `${v}m`}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    domain={[30, 70]}
-                    tick={{ fill: 'var(--color-muted)', fontSize: 10 }}
-                    tickFormatter={(v) => `${v}%`}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{ background: '#111', border: '1px solid #333', fontSize: 12 }}
-                    formatter={(v) => [`${v}%`, 'Win Rate']}
-                    labelFormatter={(v) => `${v} min`}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="wr"
-                    stroke="var(--color-accent)"
-                    strokeWidth={2}
-                    fill="url(#wrGrad)"
-                    dot={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex justify-center py-8 text-sm text-muted">
-                {durations.isPending ? <Spinner /> : 'No duration data'}
+      {/* Win rate + matchups */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Panel title="Win Rate by Bracket">
+          {brackets.map(({ label, picks: p, wins: w }) => {
+            const wr = p > 0 ? (w / p) * 100 : 0
+            return (
+              <div key={label} className="flex items-center gap-3 py-1.5" style={{ borderTop: '1px solid #1c1810' }}>
+                <span className="w-20 text-[12px]" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>{label}</span>
+                <div className="flex-1 h-1.5 rounded overflow-hidden" style={{ background: '#14130f' }}>
+                  <div className="h-full rounded" style={{ width: `${Math.min(wr, 100)}%`, background: wr >= 50 ? '#8ec63f' : '#d14a38' }} />
+                </div>
+                <span className="w-12 text-right text-[12px] tabular-nums font-semibold" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>{p > 0 ? `${wr.toFixed(1)}%` : '—'}</span>
               </div>
-            )}
-          </div>
-        </Card>
+            )
+          })}
+        </Panel>
+
+        <Panel title="Win Rate by Duration">
+          {durationData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={durationData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="wrGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#c9a94a" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#c9a94a" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="min" tick={{ fill: '#77715f', fontSize: 10 }} tickFormatter={(v) => `${v}m`} axisLine={false} tickLine={false} />
+                <YAxis domain={[30, 70]} tick={{ fill: '#77715f', fontSize: 10 }} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} />
+                <Tooltip
+                  contentStyle={{ background: '#0b0a08', border: '1px solid #3a352a', fontFamily: 'var(--font-dota)', fontSize: 12 }}
+                  labelStyle={{ color: '#8a8474' }}
+                  formatter={(v) => [`${v}%`, 'Win Rate']}
+                  labelFormatter={(v) => `${v} min`}
+                />
+                <Area type="monotone" dataKey="wr" stroke="#c9a94a" strokeWidth={2} fill="url(#wrGrad)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-sm" style={{ color: '#6a675e' }}>No duration data.</p>
+          )}
+        </Panel>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Matchups</CardTitle>
-            <div className="flex gap-1">
-              {(['winrate', 'games'] as SortKey[]).map((k) => (
-                <button
-                  key={k}
-                  onClick={() => setMatchupSort(k)}
-                  className={`rounded border px-2 py-0.5 text-xs ${matchupSort === k ? 'border-accent text-accent' : 'border-border text-muted hover:text-foreground'}`}
-                >
-                  {k === 'winrate' ? 'By Win%' : 'By Games'}
-                </button>
-              ))}
-            </div>
-          </div>
-        </CardHeader>
-        <div className="px-4 pb-4">
-          {matchups.isPending ? (
-            <div className="flex justify-center py-6"><Spinner /></div>
-          ) : (
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-              <MatchupTable
-                matchups={matchups.data ?? []}
-                heroMap={heroMap}
-                title="Best against (highest win rate)"
-                sortDir="best"
-              />
-              <MatchupTable
-                matchups={matchups.data ?? []}
-                heroMap={heroMap}
-                title="Worst against (lowest win rate)"
-                sortDir="worst"
-              />
-            </div>
-          )}
+      {matchups.data && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Panel title="">
+            <MatchupTable matchups={matchups.data} heroMap={heroMap} title="Strong Against" sortDir="best" />
+          </Panel>
+          <Panel title="">
+            <MatchupTable matchups={matchups.data} heroMap={heroMap} title="Weak Against" sortDir="worst" />
+          </Panel>
         </div>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Base Stats</CardTitle>
-        </CardHeader>
-        <div className="px-4 pb-4">
-          <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm sm:grid-cols-3">
-            {[
-              ['Move Speed', hero.move_speed],
-              ['Attack Range', hero.attack_range],
-              ['Base Armor', hero.base_armor],
-              ['Base Damage', `${hero.base_attack_min}–${hero.base_attack_max}`],
-              ['Base STR', `${hero.base_str} +${hero.str_gain}`],
-              ['Base AGI', `${hero.base_agi} +${hero.agi_gain}`],
-              ['Base INT', `${hero.base_int} +${hero.int_gain}`],
-              ['Base HP', hero.base_health],
-              ['Base Mana', hero.base_mana],
-            ].map(([label, val]) => (
-              <div key={label as string} className="flex justify-between py-1 border-b border-border/20">
-                <span className="text-muted">{label}</span>
-                <span className="font-mono text-xs">{val}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
+      )}
     </div>
   )
 }

@@ -94,11 +94,13 @@ export function AbilityIcon({
   meta,
   isTalent,
   level,
+  size = 26,
 }: {
   name: string
   meta: AbilityConst | undefined
   isTalent: boolean
   level: number
+  size?: number
 }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
   const img = !isTalent && meta?.img ? `${CDN}${meta.img}` : null
@@ -108,8 +110,8 @@ export function AbilityIcon({
       <div
         className="shrink-0 rounded-sm overflow-hidden flex items-center justify-center"
         style={{
-          width: 26,
-          height: 26,
+          width: size,
+          height: size,
           background: isTalent ? '#1a2810' : '#12100c',
           border: `1px solid ${isTalent ? '#3a5a1a' : '#241f16'}`,
         }}

@@ -1,16 +1,54 @@
 @import '@fontsource-variable/geist';
 @import '@fontsource-variable/geist-mono';
-@import '@fontsource/fira-sans/400.css';
-@import '@fontsource/fira-sans/500.css';
-@import '@fontsource/fira-sans/600.css';
-@import '@fontsource/fira-sans/700.css';
 @import 'tailwindcss';
 
-/* Warm charcoal/cream palette approximating the Dota 2 Reborn client.
-   --font-dota uses Fira Sans, the closest free stand-in for Valve's
-   proprietary Radiance UI font. */
+/* Valve's actual Dota 2 web fonts, self-hosted from public/fonts.
+   Radiance = UI text (--font-dota), Reaver = display serif (--font-display). */
+@font-face {
+  font-family: 'Radiance';
+  src: url('/fonts/radiance.woff') format('woff');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Radiance';
+  src: url('/fonts/radiance-semibold.woff') format('woff');
+  font-weight: 600 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Radiance';
+  src: url('/fonts/radiance-bold.woff') format('woff');
+  font-weight: 800 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Reaver';
+  src: url('/fonts/Reaver-Regular.woff') format('woff');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Reaver';
+  src: url('/fonts/Reaver-SemiBold.woff') format('woff');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Reaver';
+  src: url('/fonts/Reaver-Bold.woff') format('woff');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Reaver';
+  src: url('/fonts/Reaver-Black.woff') format('woff');
+  font-weight: 800 900;
+  font-display: swap;
+}
+
 @theme inline {
-  --color-background: #0c0b0a;
+  --color-background: #0b0b0d;
   --color-card: #16130f;
   --color-border: #2a2620;
   --color-muted: #8a8474;
@@ -19,9 +57,15 @@
   --color-radiant: #8ec63f;
   --color-dire: #d14a38;
   --color-gold: #c9a94a;
+  /* Dota attribute colours (from the dota2.com hero pages) */
+  --color-str: #e24b3a;
+  --color-agi: #a2d240;
+  --color-int: #4fb0e0;
+  --color-uni: #c47adf;
   --font-sans: 'Geist Variable', sans-serif;
   --font-mono: 'Geist Mono Variable', monospace;
-  --font-dota: 'Fira Sans', sans-serif;
+  --font-dota: 'Radiance', 'Geist Variable', sans-serif;
+  --font-display: 'Reaver', serif;
 }
 
 * {
@@ -29,7 +73,12 @@
 }
 
 body {
-  background-color: var(--color-background);
+  background-color: #08080a;
+  background-image: url('/backgrounds/greyfade.jpg');
+  background-size: cover;
+  background-position: top center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   color: var(--color-foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

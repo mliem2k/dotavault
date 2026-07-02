@@ -44,6 +44,10 @@ export const opendota = {
   items: () => get<Record<string, ItemConst>>('/constants/items'),
   abilities: () => get<Record<string, AbilityConst>>('/constants/abilities'),
   abilityIds: () => get<Record<string, string>>('/constants/ability_ids'),
+  heroAbilities: () =>
+    get<Record<string, { abilities: string[]; talents: { name: string; level: number }[] }>>(
+      '/constants/hero_abilities',
+    ),
   playerTotals: (id: string) => get<{ field: string; n: number; sum: number }[]>(`/players/${id}/totals`),
   requestParse: (matchId: string) => post<{ job: { jobId: number } }>(`/request/${matchId}`),
   team: (id: number) =>
