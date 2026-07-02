@@ -2,10 +2,6 @@ import { useState } from 'react'
 import type { HeroStat, MatchPlayer } from 'types'
 import { heroIconFromPath, itemIconUrl, ITEM_CDN_FALLBACK } from '@/lib/utils'
 
-function itemUrl(name: string) {
-  return itemIconUrl(name)
-}
-
 function onItemError(e: React.SyntheticEvent<HTMLImageElement>) {
   const img = e.currentTarget
   const name = img.dataset.itemName
@@ -14,8 +10,14 @@ function onItemError(e: React.SyntheticEvent<HTMLImageElement>) {
   }
 }
 
+const CONSUMABLES = new Set([
+  'clarity', 'tango', 'flask', 'faerie_fire', 'ward_observer', 'ward_sentry',
+  'smoke_of_deceit', 'dust', 'tome_of_knowledge', 'cheese', 'enchanted_mango',
+  'magic_stick', 'blood_grenade',
+])
+
 function fmt(n: number | undefined | null) {
-  if (!n) return '—'
+  if (n == null) return '—'
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n)
 }
 
@@ -25,14 +27,26 @@ function ItemSlot({
   size = 'md',
 }: { itemId: number; idToName: Map<number, string>; size?: 'sm' | 'md' }) {
   const sizeClass = size === 'md' ? 'h-7 w-12' : 'h-5 w-8'
-  if (!itemId) {
-    return <div className={`${sizeClass} rounded bg-card border border-border/40 flex-shrink-0`} />
-  }
+  if (!itemId) return <div className={`${sizeClass} rounded bg-card border border-border/40 flex-shrink-0`} />
   const name = idToName.get(itemId)
   if (!name) return <div className={`${sizeClass} rounded bg-card border border-border/40 flex-shrink-0`} />
   return (
     <img
-      src={itemUrl(name)}
+      src={itemIconUrl(name)}
+      alt={name}
+      title={name.replace(/_/g, ' ')}
+      data-item-name={name}
+      onError={onItemError}
+      className={`${sizeClass} rounded object-cover flex-shrink-0`}
+    />
+  )
+}
+
+function SnapshotItemSlot({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
+  const sizeClass = size === 'md' ? 'h-7 w-12' : 'h-5 w-8'
+  return (
+    <img
+      src={itemIconUrl(name)}
       alt={name}
       title={name.replace(/_/g, ' ')}
       data-item-name={name}
@@ -87,22 +101,41 @@ function PlayerRow({
   player,
   hero,
   idToName,
-  isWinner,
+  activeMinute,
 }: {
   player: MatchPlayer
   hero: HeroStat | undefined
   idToName: Map<number, string>
-  isWinner: boolean
+  activeMinute: number
 }) {
-  const mainItems = [
-    player.item_0,
-    player.item_1,
-    player.item_2,
-    player.item_3,
-    player.item_4,
-    player.item_5,
-  ]
+  const snapshot = activeMinute > 0
+  const upToSeconds = activeMinute * 60
+
+  // Snapshot values (when slider is active)
+  const snapGold = snapshot && player.gold_t?.length
+    ? player.gold_t[Math.min(activeMinute, player.gold_t.length - 1)] ?? null
+    : null
+  const snapLH = snapshot && player.lh_t?.length
+    ? player.lh_t[Math.min(activeMinute, player.lh_t.length - 1)] ?? null
+    : null
+  const snapKills = snapshot
+    ? (player.kills_log ?? []).filter((e) => e.time <= upToSeconds).length
+    : null
+  const snapGPM = snapGold !== null && activeMinute > 0
+    ? Math.round(snapGold / activeMinute)
+    : null
+  const snapItems = snapshot && player.purchase_log
+    ? player.purchase_log
+        .filter((e) => e.time <= upToSeconds && !CONSUMABLES.has(e.key))
+        .map((e) => e.key)
+        .slice(-6)
+    : null
+
+  const mainItems = [player.item_0, player.item_1, player.item_2, player.item_3, player.item_4, player.item_5]
   const backpackItems = [player.backpack_0, player.backpack_1, player.backpack_2]
+
+  // Dim columns that aren't time-aware when scrubbing
+  const dim = snapshot ? 'opacity-40' : ''
 
   return (
     <tr className="border-b border-border/30 hover:bg-card/50 transition-colors">
@@ -126,67 +159,87 @@ function PlayerRow({
           </div>
         </a>
       </td>
-      <td className="py-2 px-2 text-center font-mono text-xs text-foreground">{player.level}</td>
+      <td className={`py-2 px-2 text-center font-mono text-xs text-foreground ${dim}`}>
+        {player.level}
+      </td>
       <td className="py-2 px-2 text-center font-mono text-xs whitespace-nowrap">
-        <span className="text-radiant">{player.kills}</span>
-        <span className="text-muted mx-0.5">/</span>
-        <span className="text-dire">{player.deaths}</span>
-        <span className="text-muted mx-0.5">/</span>
-        <span className="text-muted">{player.assists}</span>
+        <span className="text-radiant">{snapKills ?? player.kills}</span>
+        <span className={`text-muted mx-0.5 ${dim}`}>/</span>
+        <span className={`text-dire ${dim}`}>{player.deaths}</span>
+        <span className={`text-muted mx-0.5 ${dim}`}>/</span>
+        <span className={`text-muted ${dim}`}>{player.assists}</span>
       </td>
       <td className="py-2 px-2 text-center font-mono text-xs text-muted whitespace-nowrap">
-        {player.last_hits} / {player.denies}
+        <span>{snapLH ?? player.last_hits}</span>
+        <span className={dim}> / {player.denies}</span>
       </td>
       <td className="py-2 px-2 text-right font-mono text-xs text-accent font-medium">
-        {fmt(player.net_worth)}
+        {fmt(snapGold ?? player.net_worth)}
       </td>
       <td className="py-2 px-2 text-center font-mono text-xs text-muted whitespace-nowrap">
-        {player.gold_per_min} / {player.xp_per_min}
+        <span>{snapGPM ?? player.gold_per_min}</span>
+        <span className={dim}> / {player.xp_per_min}</span>
       </td>
-      <td className="py-2 px-2 text-right font-mono text-xs text-muted">{fmt(player.hero_damage)}</td>
-      <td className="py-2 px-2 text-right font-mono text-xs text-muted">{fmt(player.tower_damage) ?? '—'}</td>
-      <td className="py-2 px-2 text-right font-mono text-xs text-muted">{fmt(player.hero_healing) ?? '—'}</td>
+      <td className={`py-2 px-2 text-right font-mono text-xs text-muted ${dim}`}>{fmt(player.hero_damage)}</td>
+      <td className={`py-2 px-2 text-right font-mono text-xs text-muted ${dim}`}>{fmt(player.tower_damage)}</td>
+      <td className={`py-2 px-2 text-right font-mono text-xs text-muted ${dim}`}>{fmt(player.hero_healing)}</td>
       <td className="py-2 px-2">
-        <div className="flex flex-col gap-0.5">
-          <div className="flex gap-0.5">
-            {mainItems.map((id, i) => (
-              <ItemSlot key={i} itemId={id} idToName={idToName} size="md" />
-            ))}
+        {snapItems ? (
+          <div className="flex flex-col gap-0.5">
+            <div className="flex gap-0.5">
+              {Array.from({ length: 6 }, (_, i) =>
+                snapItems[i] ? (
+                  <SnapshotItemSlot key={i} name={snapItems[i]} size="md" />
+                ) : (
+                  <div key={i} className="h-7 w-12 rounded bg-card border border-border/40 flex-shrink-0" />
+                ),
+              )}
+            </div>
           </div>
-          <div className="flex gap-0.5 items-center">
-            {backpackItems.map((id, i) => (
-              <ItemSlot key={i} itemId={id} idToName={idToName} size="sm" />
-            ))}
-            {player.item_neutral ? (
-              <div className="ml-1">
-                <ItemSlot itemId={player.item_neutral} idToName={idToName} size="sm" />
-              </div>
-            ) : null}
+        ) : (
+          <div className="flex flex-col gap-0.5">
+            <div className="flex gap-0.5">
+              {mainItems.map((id, i) => (
+                <ItemSlot key={i} itemId={id} idToName={idToName} size="md" />
+              ))}
+            </div>
+            <div className="flex gap-0.5 items-center">
+              {backpackItems.map((id, i) => (
+                <ItemSlot key={i} itemId={id} idToName={idToName} size="sm" />
+              ))}
+              {player.item_neutral ? (
+                <div className="ml-1">
+                  <ItemSlot itemId={player.item_neutral} idToName={idToName} size="sm" />
+                </div>
+              ) : null}
+            </div>
           </div>
-        </div>
+        )}
       </td>
-      <td className="py-2 px-2">
-        <div className="flex gap-1 items-center">
-          {player.aghanims_scepter === 1 && (
-            <img
-              src={itemUrl('aghanims_scepter')}
-              title="Aghanim's Scepter"
-              data-item-name="aghanims_scepter"
-              onError={onItemError}
-              className="h-6 w-6 rounded"
-            />
-          )}
-          {player.aghanims_shard === 1 && (
-            <img
-              src={itemUrl('aghanims_shard')}
-              title="Aghanim's Shard"
-              data-item-name="aghanims_shard"
-              onError={onItemError}
-              className="h-6 w-6 rounded"
-            />
-          )}
-        </div>
-      </td>
+      {!snapshot && (
+        <td className="py-2 px-2">
+          <div className="flex gap-1 items-center">
+            {player.aghanims_scepter === 1 && (
+              <img
+                src={itemIconUrl('aghanims_scepter')}
+                title="Aghanim's Scepter"
+                data-item-name="aghanims_scepter"
+                onError={onItemError}
+                className="h-6 w-6 rounded"
+              />
+            )}
+            {player.aghanims_shard === 1 && (
+              <img
+                src={itemIconUrl('aghanims_shard')}
+                title="Aghanim's Shard"
+                data-item-name="aghanims_shard"
+                onError={onItemError}
+                className="h-6 w-6 rounded"
+              />
+            )}
+          </div>
+        </td>
+      )}
     </tr>
   )
 }
@@ -200,6 +253,7 @@ function TeamTable({
   sortKey,
   sortDir,
   onSort,
+  activeMinute,
 }: {
   players: MatchPlayer[]
   heroMap: Map<number, HeroStat>
@@ -209,7 +263,10 @@ function TeamTable({
   sortKey: SortKey
   sortDir: 'asc' | 'desc'
   onSort: (col: SortKey) => void
+  activeMinute: number
 }) {
+  const snapshot = activeMinute > 0
+
   const sorted = [...players].sort((a, b) => {
     if (sortKey === 'default') return a.player_slot - b.player_slot
     const av = a[sortKey] ?? 0
@@ -242,7 +299,7 @@ function TeamTable({
               <SortHeader label="TD" col="tower_damage" current={sortKey} dir={sortDir} onSort={onSort} className="px-2 text-right" />
               <SortHeader label="HH" col="hero_healing" current={sortKey} dir={sortDir} onSort={onSort} className="px-2 text-right" />
               <th className="pb-2 font-normal text-xs text-muted px-2">Items</th>
-              <th className="pb-2 font-normal text-xs text-muted px-2">Buffs</th>
+              {!snapshot && <th className="pb-2 font-normal text-xs text-muted px-2">Buffs</th>}
             </tr>
           </thead>
           <tbody>
@@ -252,7 +309,7 @@ function TeamTable({
                 player={p}
                 hero={heroMap.get(p.hero_id)}
                 idToName={idToName}
-                isWinner={isWinner}
+                activeMinute={activeMinute}
               />
             ))}
           </tbody>
@@ -267,11 +324,13 @@ export function Scoreboard({
   heroStats,
   radiantWin,
   idToName,
+  activeMinute = 0,
 }: {
   players: MatchPlayer[]
   heroStats: HeroStat[]
   radiantWin: boolean
   idToName: Map<number, string>
+  activeMinute?: number
 }) {
   const [sortKey, setSortKey] = useState<SortKey>('default')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
@@ -289,7 +348,7 @@ export function Scoreboard({
   const radiant = players.filter((p) => p.player_slot < 128)
   const dire = players.filter((p) => p.player_slot >= 128)
 
-  const sharedProps = { heroMap, idToName, sortKey, sortDir, onSort: handleSort }
+  const sharedProps = { heroMap, idToName, sortKey, sortDir, onSort: handleSort, activeMinute }
 
   return (
     <div className="space-y-6">

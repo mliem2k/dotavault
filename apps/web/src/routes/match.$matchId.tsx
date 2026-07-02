@@ -6,7 +6,6 @@ import { DraftPanel } from '@/components/match/draft_panel'
 import { ReplayViewer } from '@/components/match/replay_viewer'
 import { Scoreboard } from '@/components/match/scoreboard'
 import { Timeline } from '@/components/match/timeline'
-import { SnapshotScoreboard } from '@/components/match/snapshot_scoreboard'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
@@ -102,22 +101,6 @@ function MatchPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Scoreboard</CardTitle>
-        </CardHeader>
-        {heroStats.data ? (
-          <Scoreboard
-            players={m.players}
-            heroStats={heroStats.data}
-            radiantWin={m.radiant_win}
-            idToName={idToName}
-          />
-        ) : (
-          <div className="flex justify-center py-8"><Spinner /></div>
-        )}
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Timeline</CardTitle>
         </CardHeader>
         <AdvantageGraph
@@ -135,13 +118,29 @@ function MatchPage() {
             onMinuteChange={setActiveMinute}
           />
         )}
-        {heroStats.data && (
-          <SnapshotScoreboard
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Scoreboard</CardTitle>
+            {activeMinute > 0 && (
+              <span className="text-xs font-mono text-accent">
+                At {formatDuration(activeMinute * 60)}
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        {heroStats.data ? (
+          <Scoreboard
             players={m.players}
             heroStats={heroStats.data}
-            activeMinute={activeMinute}
             radiantWin={m.radiant_win}
+            idToName={idToName}
+            activeMinute={activeMinute}
           />
+        ) : (
+          <div className="flex justify-center py-8"><Spinner /></div>
         )}
       </Card>
 
