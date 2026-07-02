@@ -4,7 +4,7 @@ import type { HeroStat } from 'types'
 import { SearchBar } from '@/components/search/search-bar'
 import { Card } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
-import { api } from '@/lib/eden'
+import { opendota } from '@/lib/opendota'
 import { formatTimeAgo, winRate } from '@/lib/utils'
 
 export const Route = createFileRoute('/')({
@@ -24,18 +24,12 @@ function heroTotals(h: HeroStat) {
 function HomePage() {
   const heroes = useQuery({
     queryKey: ['heroes'],
-    queryFn: async () => {
-      const { data } = await api.heroes.get()
-      return data
-    },
+    queryFn: () => opendota.heroStats(),
   })
 
   const proMatches = useQuery({
     queryKey: ['pro-matches'],
-    queryFn: async () => {
-      const { data } = await api.pro.matches.get()
-      return data
-    },
+    queryFn: () => opendota.proMatches(),
   })
 
   return (

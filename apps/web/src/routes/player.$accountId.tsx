@@ -5,7 +5,7 @@ import { MatchHistory } from '@/components/player/match-history'
 import { PlayerHeader } from '@/components/player/player-header'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
-import { api } from '@/lib/eden'
+import { opendota } from '@/lib/opendota'
 
 export const Route = createFileRoute('/player/$accountId')({
   component: PlayerPage,
@@ -17,33 +17,27 @@ function PlayerPage() {
   const player = useQuery({
     queryKey: ['player', accountId],
     queryFn: async () => {
-      const { data } = await api.players({ id: accountId }).get()
-      return data
+      const [player, wl] = await Promise.all([
+        opendota.player(accountId),
+        opendota.playerWL(accountId),
+      ])
+      return { player, wl }
     },
   })
 
   const matches = useQuery({
     queryKey: ['player-matches', accountId],
-    queryFn: async () => {
-      const { data } = await api.players({ id: accountId }).matches.get({ query: { limit: '50' } })
-      return data
-    },
+    queryFn: () => opendota.playerMatches(accountId, 50),
   })
 
   const playerHeroes = useQuery({
     queryKey: ['player-heroes', accountId],
-    queryFn: async () => {
-      const { data } = await api.players({ id: accountId }).heroes.get()
-      return data
-    },
+    queryFn: () => opendota.playerHeroes(accountId),
   })
 
   const heroStats = useQuery({
     queryKey: ['heroes'],
-    queryFn: async () => {
-      const { data } = await api.heroes.get()
-      return data
-    },
+    queryFn: () => opendota.heroStats(),
   })
 
   if (player.isPending) {

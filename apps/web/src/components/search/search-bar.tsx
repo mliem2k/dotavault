@@ -2,7 +2,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { Search } from 'lucide-react'
 import { useRef, useState } from 'react'
 import type { SearchResult } from 'types'
-import { api } from '@/lib/eden'
+import { opendota } from '@/lib/opendota'
 
 export function SearchBar() {
   const [query, setQuery] = useState('')
@@ -21,11 +21,9 @@ export function SearchBar() {
       return
     }
     debounce.current = setTimeout(async () => {
-      const { data } = await api.search.get({ query: { q: val } })
-      if (data) {
-        setResults(data.slice(0, 6))
-        setOpen(true)
-      }
+      const data = await opendota.search(val)
+      setResults(data.slice(0, 6))
+      setOpen(true)
     }, 300)
   }
 
