@@ -14,16 +14,14 @@ function rankName(rankTier: number | null): string {
   return `${RANK_NAMES[tier] ?? 'Unknown'} ${stars}★`
 }
 
-const RANK_CDN = 'https://www.opendota.com/assets/images/dota2/rank_icons'
-
 function rankBadge(rankTier: number | null): { medal: string; stars: string | null } | null {
   if (!rankTier) return null
   const tier = Math.floor(rankTier / 10)
   const stars = rankTier % 10
   if (tier < 1 || tier > 8) return null
   return {
-    medal: `${RANK_CDN}/rank_icon_${tier}.png`,
-    stars: tier < 8 && stars > 0 ? `${RANK_CDN}/rank_star_${stars}.png` : null,
+    medal: `/ranks/rank_icon_${tier}.webp`,
+    stars: tier < 8 && stars > 0 ? `/ranks/rank_star_${stars}.webp` : null,
   }
 }
 

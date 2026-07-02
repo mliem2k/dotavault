@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { HeroStat, PlayerMatch } from 'types'
-import { formatDuration, formatTimeAgo } from '@/lib/utils'
+import { formatDuration, formatTimeAgo, heroIconFromPath } from '@/lib/utils'
 
 function isWin(match: PlayerMatch): boolean {
   return match.player_slot < 128 ? match.radiant_win : !match.radiant_win
@@ -50,7 +50,7 @@ export function MatchHistory({
               <div className={`h-1.5 w-1.5 rounded-full ${won ? 'bg-radiant' : 'bg-dire'}`} />
               {hero && (
                 <img
-                  src={`https://cdn.cloudflare.steamstatic.com${hero.icon}`}
+                  src={heroIconFromPath(hero.icon)}
                   alt={hero.localized_name}
                   className="h-7 w-7 rounded"
                 />

@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import type { HeroStat, PlayerHero } from 'types'
-import { winRate } from '@/lib/utils'
+import { heroIconFromPath, winRate } from '@/lib/utils'
 
 export function HeroStatsTable({
   playerHeroes,
@@ -40,7 +40,7 @@ export function HeroStatsTable({
                 >
                   {hero && (
                     <img
-                      src={`https://cdn.cloudflare.steamstatic.com${hero.icon}`}
+                      src={heroIconFromPath(hero.icon)}
                       alt={hero.localized_name}
                       className="h-6 w-6 rounded"
                     />

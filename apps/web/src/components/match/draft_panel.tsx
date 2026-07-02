@@ -1,4 +1,5 @@
 import type { HeroStat, PickBan } from 'types'
+import { heroIconFromPath } from '@/lib/utils'
 
 function HeroIcon({
   heroId,
@@ -13,7 +14,7 @@ function HeroIcon({
   if (!h) return <div className="h-8 w-8 rounded bg-card" />
   return (
     <img
-      src={`https://cdn.cloudflare.steamstatic.com${h.icon}`}
+      src={heroIconFromPath(h.icon)}
       alt={h.localized_name}
       title={h.localized_name}
       className={`h-8 w-8 rounded ${dim ? 'opacity-30 grayscale' : ''}`}

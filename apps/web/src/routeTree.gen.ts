@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProRouteImport } from './routes/pro'
+import { Route as MetaRouteImport } from './routes/meta'
 import { Route as HeroesRouteImport } from './routes/heroes'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TeamTeamIdRouteImport } from './routes/team.$teamId'
@@ -20,6 +21,11 @@ import { Route as HeroHeroIdRouteImport } from './routes/hero.$heroId'
 const ProRoute = ProRouteImport.update({
   id: '/pro',
   path: '/pro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MetaRoute = MetaRouteImport.update({
+  id: '/meta',
+  path: '/meta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HeroesRoute = HeroesRouteImport.update({
@@ -56,69 +62,76 @@ const HeroHeroIdRoute = HeroHeroIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/heroes': typeof HeroesRoute
+  '/meta': typeof MetaRoute
   '/pro': typeof ProRoute
-  '/team/$teamId': typeof TeamTeamIdRoute
   '/hero/$heroId': typeof HeroHeroIdRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
+  '/team/$teamId': typeof TeamTeamIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/heroes': typeof HeroesRoute
+  '/meta': typeof MetaRoute
   '/pro': typeof ProRoute
-  '/team/$teamId': typeof TeamTeamIdRoute
   '/hero/$heroId': typeof HeroHeroIdRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
+  '/team/$teamId': typeof TeamTeamIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/heroes': typeof HeroesRoute
+  '/meta': typeof MetaRoute
   '/pro': typeof ProRoute
-  '/team/$teamId': typeof TeamTeamIdRoute
   '/hero/$heroId': typeof HeroHeroIdRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
+  '/team/$teamId': typeof TeamTeamIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/heroes'
+    | '/meta'
     | '/pro'
-    | '/team/$teamId'
     | '/hero/$heroId'
     | '/match/$matchId'
     | '/player/$accountId'
+    | '/team/$teamId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/heroes'
+    | '/meta'
     | '/pro'
-    | '/team/$teamId'
     | '/hero/$heroId'
     | '/match/$matchId'
     | '/player/$accountId'
+    | '/team/$teamId'
   id:
     | '__root__'
     | '/'
     | '/heroes'
+    | '/meta'
     | '/pro'
-    | '/team/$teamId'
     | '/hero/$heroId'
     | '/match/$matchId'
     | '/player/$accountId'
+    | '/team/$teamId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HeroesRoute: typeof HeroesRoute
+  MetaRoute: typeof MetaRoute
   ProRoute: typeof ProRoute
-  TeamTeamIdRoute: typeof TeamTeamIdRoute
   HeroHeroIdRoute: typeof HeroHeroIdRoute
   MatchMatchIdRoute: typeof MatchMatchIdRoute
   PlayerAccountIdRoute: typeof PlayerAccountIdRoute
+  TeamTeamIdRoute: typeof TeamTeamIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -128,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/pro'
       fullPath: '/pro'
       preLoaderRoute: typeof ProRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meta': {
+      id: '/meta'
+      path: '/meta'
+      fullPath: '/meta'
+      preLoaderRoute: typeof MetaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/heroes': {
@@ -178,11 +198,12 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HeroesRoute: HeroesRoute,
+  MetaRoute: MetaRoute,
   ProRoute: ProRoute,
-  TeamTeamIdRoute: TeamTeamIdRoute,
   HeroHeroIdRoute: HeroHeroIdRoute,
   MatchMatchIdRoute: MatchMatchIdRoute,
   PlayerAccountIdRoute: PlayerAccountIdRoute,
+  TeamTeamIdRoute: TeamTeamIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

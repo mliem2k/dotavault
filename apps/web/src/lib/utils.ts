@@ -13,7 +13,12 @@ export function formatDuration(seconds: number): string {
 }
 
 export function heroIconUrl(name: string): string {
-  return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/icons/${name.replace('npc_dota_hero_', '')}.png`
+  return `/heroes/${name.replace('npc_dota_hero_', '')}.webp`
+}
+
+export function heroIconFromPath(iconPath: string): string {
+  const filename = iconPath.split('/').pop() ?? ''
+  return `/heroes/${filename.replace('.png', '.webp')}`
 }
 
 export function formatTimeAgo(unixTimestamp: number): string {

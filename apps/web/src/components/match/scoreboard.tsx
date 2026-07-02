@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { HeroStat, MatchPlayer } from 'types'
+import { heroIconFromPath } from '@/lib/utils'
 
 const ITEM_CDN = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items'
 
@@ -104,7 +105,7 @@ function PlayerRow({
         >
           {hero && (
             <img
-              src={`https://cdn.cloudflare.steamstatic.com${hero.icon}`}
+              src={heroIconFromPath(hero.icon)}
               alt={hero.localized_name}
               className="h-8 w-8 rounded flex-shrink-0"
             />

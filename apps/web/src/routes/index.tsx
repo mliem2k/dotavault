@@ -4,7 +4,7 @@ import { SearchBar } from '@/components/search/search_bar'
 import { Card } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
-import { formatTimeAgo, heroBracketTotal, winRate } from '@/lib/utils'
+import { formatTimeAgo, heroBracketTotal, heroIconFromPath, winRate } from '@/lib/utils'
 
 export const Route = createFileRoute('/')({
   component: HomePage,
@@ -78,7 +78,7 @@ function HomePage() {
                     >
                       <div className="flex items-center gap-2">
                         <img
-                          src={`https://cdn.cloudflare.steamstatic.com${h.icon}`}
+                          src={heroIconFromPath(h.icon)}
                           alt={h.localized_name}
                           className="h-6 w-6 rounded"
                         />

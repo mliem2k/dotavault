@@ -11,6 +11,9 @@ export function Navbar() {
           <Link to="/heroes" className="transition-colors hover:text-foreground">
             Heroes
           </Link>
+          <Link to="/meta" className="transition-colors hover:text-foreground">
+            Meta
+          </Link>
           <Link to="/pro" className="transition-colors hover:text-foreground">
             Pro
           </Link>

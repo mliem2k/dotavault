@@ -5,7 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
-import { heroBracketTotal, heroIconUrl, winRate } from '@/lib/utils'
+import { heroBracketTotal, heroIconFromPath, heroIconUrl, winRate } from '@/lib/utils'
 
 export const Route = createFileRoute('/hero/$heroId')({
   component: HeroDetailPage,
@@ -74,7 +74,7 @@ function MatchupTable({
                 <td className="py-1.5">
                   <a href={`/hero/${m.hero_id}`} className="flex items-center gap-2 hover:text-accent">
                     <img
-                      src={`https://cdn.cloudflare.steamstatic.com${h.icon}`}
+                      src={heroIconFromPath(h.icon)}
                       alt={h.localized_name}
                       className="h-6 w-6 rounded"
                     />
