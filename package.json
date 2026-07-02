@@ -14,5 +14,8 @@
     "@biomejs/biome": "^2.5.2",
     "turbo": "^2.10.2",
     "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@fontsource/rajdhani": "^5.2.7"
   }
 }

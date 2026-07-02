@@ -1,19 +1,23 @@
 @import '@fontsource-variable/geist';
 @import '@fontsource-variable/geist-mono';
+@import '@fontsource/rajdhani/400.css';
+@import '@fontsource/rajdhani/600.css';
+@import '@fontsource/rajdhani/700.css';
 @import 'tailwindcss';
 
 @theme inline {
-  --color-background: #09111a;
-  --color-card: #0f1e2e;
-  --color-border: #1e3040;
-  --color-muted: #5a7a94;
+  --color-background: #080f1a;
+  --color-card: #0d1828;
+  --color-border: #1a2e45;
+  --color-muted: #4a6a84;
   --color-foreground: #c8d6e5;
   --color-accent: #4a9fc4;
   --color-radiant: #92c93a;
   --color-dire: #c23c2a;
-  --color-gold: #d4a843;
+  --color-gold: #e8a832;
   --font-sans: 'Geist Variable', sans-serif;
   --font-mono: 'Geist Mono Variable', monospace;
+  --font-dota: 'Rajdhani', sans-serif;
 }
 
 * {
