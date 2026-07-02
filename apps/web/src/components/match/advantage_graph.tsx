@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Area,
   AreaChart,
@@ -12,11 +12,10 @@ import {
   YAxis,
 } from 'recharts'
 import type { HeroStat, MatchPlayer } from 'types'
-import { formatDuration } from '@/lib/utils'
+import { formatDuration, heroIconUrl } from '@/lib/utils'
 
 type Tab = 'gold' | 'xp' | 'nw' | 'matchup'
 
-// Authentic Dota 2 player colors by player_slot
 const PLAYER_COLORS: Record<number, string> = {
   0: '#3375FF',
   1: '#66FFBF',
@@ -29,8 +28,6 @@ const PLAYER_COLORS: Record<number, string> = {
   131: '#007A00',
   132: '#A46900',
 }
-
-const POS_LABELS = ['Carry', 'Mid', 'Offlane', 'Soft Supp', 'Hard Supp']
 
 function sortByPos(players: MatchPlayer[]): MatchPlayer[] {
   return [...players].sort((a, b) => {
@@ -70,7 +67,14 @@ export function AdvantageGraph({
   activeMinute?: number
 }) {
   const [tab, setTab] = useState<Tab>('gold')
-  const [matchupPos, setMatchupPos] = useState(0)
+  const [selectedSlots, setSelectedSlots] = useState<number[]>(() => {
+    // Default: carry vs carry (first radiant vs first dire by position)
+    const r = (players ?? []).filter((p) => p.player_slot < 128)
+    const d = (players ?? []).filter((p) => p.player_slot >= 128)
+    const rb = sortByPos(r)[0]
+    const db = sortByPos(d)[0]
+    return [rb?.player_slot, db?.player_slot].filter((s) => s !== undefined) as number[]
+  })
 
   const heroMap = new Map((heroStats ?? []).map((h) => [h.id, h]))
   const radiant = (players ?? []).filter((p) => p.player_slot < 128)
@@ -95,7 +99,6 @@ export function AdvantageGraph({
 
   const tooltipStyle = { background: '#111', border: '1px solid #333', fontSize: 11 }
 
-  // Advantage chart (gold/xp)
   if (tab === 'gold' || tab === 'xp') {
     const series = tab === 'gold' ? radiantGoldAdv : radiantXpAdv
     const label = tab === 'gold' ? 'Gold Adv' : 'XP Adv'
@@ -153,7 +156,6 @@ export function AdvantageGraph({
     )
   }
 
-  // Net Worth — all 10 players
   if (tab === 'nw') {
     const allPlayers = [...radiantByPos, ...direByPos]
     const data = buildPerPlayerData(allPlayers, 'gold_t')
@@ -212,80 +214,92 @@ export function AdvantageGraph({
     )
   }
 
-  // Matchup — role vs role
-  const rPlayer = radiantByPos[matchupPos]
-  const dPlayer = direByPos[matchupPos]
-  const matchupPlayers = [rPlayer, dPlayer].filter(Boolean) as MatchPlayer[]
+  // Matchup — free player selection
+  const allPlayers = [...radiantByPos, ...direByPos]
+  const matchupPlayers = allPlayers.filter((p) => selectedSlots.includes(p.player_slot))
   const matchupData = buildPerPlayerData(matchupPlayers, 'gold_t')
+
+  function toggleSlot(slot: number) {
+    setSelectedSlots((prev) =>
+      prev.includes(slot) ? prev.filter((s) => s !== slot) : [...prev, slot]
+    )
+  }
 
   return (
     <div className="space-y-2">
       <TabBar tabs={TABS} active={tab} onChange={setTab} />
-      <div className="flex gap-1.5 px-1 flex-wrap">
-        {POS_LABELS.map((label, i) => (
-          <button
-            key={i}
-            onClick={() => setMatchupPos(i)}
-            className={`rounded px-2 py-0.5 text-[10px] transition-colors ${
-              matchupPos === i
-                ? 'bg-white/10 text-foreground'
-                : 'text-muted hover:text-foreground'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      {!matchupData || matchupPlayers.length < 2 ? (
-        <div className="flex h-[180px] items-center justify-center text-xs text-muted">
-          No data for this position
-        </div>
-      ) : (
-        <>
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={matchupData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-              {commonXAxis}
-              <YAxis tickFormatter={fmtGold} tick={{ fill: '#888', fontSize: 10 }} width={40} />
-              {refLine}
-              <Tooltip
-                labelFormatter={(l) => formatDuration(l as number)}
-                formatter={(v, name) => {
-                  const slot = Number(String(name).replace('p', ''))
-                  const p = matchupPlayers.find((x) => x.player_slot === slot)
-                  const hero = p ? heroMap.get(p.hero_id) : undefined
-                  return [fmtGold(v as number), hero?.localized_name ?? `Slot ${slot}`]
-                }}
-                contentStyle={tooltipStyle}
-              />
-              {matchupPlayers.map((p) => (
-                <Line
-                  key={p.player_slot}
-                  type="monotone"
-                  dataKey={`p${p.player_slot}`}
-                  stroke={PLAYER_COLORS[p.player_slot] ?? '#888'}
-                  strokeWidth={2}
-                  dot={false}
-                  connectNulls
-                  name={`p${p.player_slot}`}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-          <div className="flex justify-center gap-6 text-xs">
-            {matchupPlayers.map((p) => {
+
+      {/* Player picker: two rows, Radiant then Dire */}
+      <div className="space-y-1 px-1">
+        {[radiantByPos, direByPos].map((team, ti) => (
+          <div key={ti} className="flex gap-1 flex-wrap">
+            {team.map((p) => {
               const hero = heroMap.get(p.hero_id)
               const color = PLAYER_COLORS[p.player_slot] ?? '#888'
-              const side = p.player_slot < 128 ? 'Radiant' : 'Dire'
+              const selected = selectedSlots.includes(p.player_slot)
               return (
-                <span key={p.player_slot} className="flex items-center gap-1.5" style={{ color }}>
-                  <span className="inline-block h-2 w-4 rounded-sm" style={{ background: color }} />
-                  {side} · {hero?.localized_name ?? `Slot ${p.player_slot}`}
-                </span>
+                <button
+                  key={p.player_slot}
+                  onClick={() => toggleSlot(p.player_slot)}
+                  className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] transition-all"
+                  style={{
+                    border: `1px solid ${selected ? color : 'transparent'}`,
+                    background: selected ? `${color}22` : 'transparent',
+                    color: selected ? color : '#666',
+                    opacity: selected ? 1 : 0.6,
+                  }}
+                >
+                  {hero && (
+                    <img
+                      src={heroIconUrl(hero.name)}
+                      alt=""
+                      className="h-4 w-4 rounded-sm"
+                      style={{ filter: selected ? 'none' : 'grayscale(1)' }}
+                    />
+                  )}
+                  {hero?.localized_name ?? `Slot ${p.player_slot}`}
+                </button>
               )
             })}
           </div>
-        </>
+        ))}
+      </div>
+
+      {!matchupData || matchupPlayers.length === 0 ? (
+        <div className="flex h-[160px] items-center justify-center text-xs text-muted">
+          Select players above to compare
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={180}>
+          <LineChart data={matchupData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+            {commonXAxis}
+            <YAxis tickFormatter={fmtGold} tick={{ fill: '#888', fontSize: 10 }} width={40} />
+            {refLine}
+            <Tooltip
+              labelFormatter={(l) => formatDuration(l as number)}
+              formatter={(v, name) => {
+                const slot = Number(String(name).replace('p', ''))
+                const p = matchupPlayers.find((x) => x.player_slot === slot)
+                const hero = p ? heroMap.get(p.hero_id) : undefined
+                return [fmtGold(v as number), hero?.localized_name ?? `Slot ${slot}`]
+              }}
+              contentStyle={tooltipStyle}
+            />
+            {matchupPlayers.map((p) => (
+              <Line
+                key={p.player_slot}
+                type="monotone"
+                dataKey={`p${p.player_slot}`}
+                stroke={PLAYER_COLORS[p.player_slot] ?? '#888'}
+                strokeWidth={2}
+                dot={false}
+                connectNulls
+                name={`p${p.player_slot}`}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
       )}
     </div>
   )
