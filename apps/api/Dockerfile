@@ -3,9 +3,10 @@ WORKDIR /app
 
 COPY package.json bun.lock ./
 COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
 COPY packages/types/package.json ./packages/types/
 
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --production
 
 COPY apps/api/src ./apps/api/src
 COPY apps/api/tsconfig.json ./apps/api/
