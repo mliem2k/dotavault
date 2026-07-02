@@ -6,6 +6,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as ProRoute } from './routes/pro'
+import { Route as HeroesRoute } from './routes/heroes'
 import { Route as IndexRoute } from './routes/index'
 
 declare module '@tanstack/react-router' {
@@ -17,10 +19,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRoute
       parentRoute: typeof rootRoute
     }
+    '/heroes': {
+      id: '/heroes'
+      path: '/heroes'
+      fullPath: '/heroes'
+      preLoaderRoute: typeof HeroesRoute
+      parentRoute: typeof rootRoute
+    }
+    '/pro': {
+      id: '/pro'
+      path: '/pro'
+      fullPath: '/pro'
+      preLoaderRoute: typeof ProRoute
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
-export const routeTree = rootRoute.addChildren({ IndexRoute })
+export const routeTree = rootRoute.addChildren({ IndexRoute, HeroesRoute, ProRoute })
 
 /* ROUTE_MANIFEST_START
 {
@@ -30,6 +46,14 @@ export const routeTree = rootRoute.addChildren({ IndexRoute })
     },
     "/": {
       "filePath": "index.tsx",
+      "parent": "__root__"
+    },
+    "/heroes": {
+      "filePath": "heroes.tsx",
+      "parent": "__root__"
+    },
+    "/pro": {
+      "filePath": "pro.tsx",
       "parent": "__root__"
     }
   }
