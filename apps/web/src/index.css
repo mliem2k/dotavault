@@ -1,23 +1,27 @@
 @import '@fontsource-variable/geist';
 @import '@fontsource-variable/geist-mono';
-@import '@fontsource/rajdhani/400.css';
-@import '@fontsource/rajdhani/600.css';
-@import '@fontsource/rajdhani/700.css';
+@import '@fontsource/fira-sans/400.css';
+@import '@fontsource/fira-sans/500.css';
+@import '@fontsource/fira-sans/600.css';
+@import '@fontsource/fira-sans/700.css';
 @import 'tailwindcss';
 
+/* Warm charcoal/cream palette approximating the Dota 2 Reborn client.
+   --font-dota uses Fira Sans, the closest free stand-in for Valve's
+   proprietary Radiance UI font. */
 @theme inline {
-  --color-background: #080f1a;
-  --color-card: #0d1828;
-  --color-border: #1a2e45;
-  --color-muted: #4a6a84;
-  --color-foreground: #c8d6e5;
-  --color-accent: #4a9fc4;
-  --color-radiant: #92c93a;
-  --color-dire: #c23c2a;
-  --color-gold: #e8a832;
+  --color-background: #0c0b0a;
+  --color-card: #16130f;
+  --color-border: #2a2620;
+  --color-muted: #8a8474;
+  --color-foreground: #dcd6c8;
+  --color-accent: #5a8fc2;
+  --color-radiant: #8ec63f;
+  --color-dire: #d14a38;
+  --color-gold: #c9a94a;
   --font-sans: 'Geist Variable', sans-serif;
   --font-mono: 'Geist Mono Variable', monospace;
-  --font-dota: 'Rajdhani', sans-serif;
+  --font-dota: 'Fira Sans', sans-serif;
 }
 
 * {

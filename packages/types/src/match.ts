@@ -58,6 +58,39 @@ export type WardLog = {
   entityleft?: boolean
 }
 
+export type Benchmark = { raw: number; pct: number }
+
+export type PlayerBenchmarks = {
+  gold_per_min?: Benchmark
+  xp_per_min?: Benchmark
+  kills_per_min?: Benchmark
+  last_hits_per_min?: Benchmark
+  hero_damage_per_min?: Benchmark
+  hero_healing_per_min?: Benchmark
+  tower_damage?: Benchmark
+}
+
+export type HeroBenchmarks = {
+  hero_id: number
+  result: Record<string, { percentile: number; value: number }[]>
+}
+
+export type ItemAttrib = { key: string; value: string | number; display?: string }
+
+export type ItemConst = {
+  id: number
+  img: string
+  dname?: string
+  cost?: number | null
+  qual?: string
+  notes?: string
+  hint?: string[]
+  attrib?: ItemAttrib[]
+  mc?: number | boolean
+  cd?: number | boolean
+  lore?: string
+}
+
 export type MatchPlayer = {
   match_id: number
   player_slot: number
@@ -108,6 +141,7 @@ export type MatchPlayer = {
   obs_log: WardLog[] | null
   sen_log: WardLog[] | null
   rank_tier: number | null
+  benchmarks: PlayerBenchmarks | null
 }
 
 export type Match = {

@@ -1,5 +1,7 @@
 import type {
+  HeroBenchmarks,
   HeroStat,
+  ItemConst,
   Match,
   PlayerHero,
   PlayerMatch,
@@ -32,12 +34,13 @@ export const opendota = {
   playerHeroes: (id: string) => get<PlayerHero[]>(`/players/${id}/heroes`),
   match: (id: string) => get<Match>(`/matches/${id}`),
   heroStats: () => get<HeroStat[]>('/heroStats'),
+  heroBenchmarks: (heroId: number) => get<HeroBenchmarks>(`/benchmarks?hero_id=${heroId}`),
   heroDurations: (id: string) => get<unknown[]>(`/heroes/${id}/durations`),
   heroItemTimings: (id: string) => get<unknown[]>(`/heroes/${id}/itemTimings`),
   proMatches: () => get<ProMatch[]>('/proMatches'),
   proPlayers: () => get<ProPlayer[]>('/proPlayers'),
   search: (q: string) => get<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`),
-  items: () => get<Record<string, { id: number; img: string }>>('/constants/items'),
+  items: () => get<Record<string, ItemConst>>('/constants/items'),
   requestParse: (matchId: string) => post<{ job: { jobId: number } }>(`/request/${matchId}`),
   team: (id: number) =>
     get<{ team_id: number; name: string; tag: string; logo_url: string | null; wins: number; losses: number; rating: number }>(`/teams/${id}`),

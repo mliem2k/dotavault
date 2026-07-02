@@ -16,6 +16,7 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@fontsource/fira-sans": "^5.2.7",
     "@fontsource/rajdhani": "^5.2.7"
   }
 }

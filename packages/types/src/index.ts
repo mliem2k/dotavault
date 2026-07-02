@@ -9,6 +9,11 @@ export type {
   KillLog,
   ChatMessage,
   WardLog,
+  Benchmark,
+  PlayerBenchmarks,
+  HeroBenchmarks,
+  ItemAttrib,
+  ItemConst,
 } from './match'
 export type { HeroStat } from './hero'
 export type { ProMatch, ProPlayer } from './pro'
