@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import type { AbilityConst } from 'types'
 
 const CDN = 'https://cdn.cloudflare.steamstatic.com'
+// Innate abilities don't ship a per-ability icon — fall back to the generic one.
+const INNATE_ICON = 'https://cdn.steamstatic.com/apps/dota2/images/dota_react/icons/innate_icon.png'
 
 function cleanTalent(name: string): string {
   // Talent dnames embed unresolved templates like "{s:bonus_X}" — strip them.
@@ -95,12 +97,14 @@ export function AbilityIcon({
   isTalent,
   level,
   size = 26,
+  onLoadError,
 }: {
   name: string
   meta: AbilityConst | undefined
   isTalent: boolean
   level: number
   size?: number
+  onLoadError?: () => void
 }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
   const img = !isTalent && meta?.img ? `${CDN}${meta.img}` : null
@@ -124,7 +128,16 @@ export function AbilityIcon({
             src={img}
             alt={name}
             className="w-full h-full object-cover"
-            onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.15' }}
+            onError={(e) => {
+              const el = e.currentTarget
+              if (el.dataset.fb !== '1') {
+                el.dataset.fb = '1'
+                el.src = INNATE_ICON
+                onLoadError?.()
+              } else {
+                el.style.opacity = '0.2'
+              }
+            }}
           />
         ) : (
           <span className="text-[11px] font-bold" style={{ color: '#8ec63f' }}>▲</span>
