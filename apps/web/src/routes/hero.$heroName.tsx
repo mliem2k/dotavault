@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import type { HeroMeta, HeroStat } from 'types'
+import type { HeroStat } from 'types'
 import { AbilityDetails } from '@/components/heroes/ability_details'
 import { Spinner } from '@/components/ui/spinner'
+import { datafeed } from '@/lib/datafeed'
 import { opendota } from '@/lib/opendota'
 import { cdnFallback, heroBracketTotal, heroIconFromPath, heroLandscapeCdn, heroLandscapeUrl, winRate } from '@/lib/utils'
 
@@ -103,11 +104,6 @@ function HeroDetailPage() {
   const abilities = useQuery({ queryKey: ['abilities_constants'], queryFn: () => opendota.abilities(), staleTime: Number.POSITIVE_INFINITY })
   const heroLore = useQuery({ queryKey: ['hero_lore'], queryFn: () => opendota.heroLore(), staleTime: Number.POSITIVE_INFINITY })
   const aghsDesc = useQuery({ queryKey: ['aghs_desc'], queryFn: () => opendota.aghsDesc(), staleTime: Number.POSITIVE_INFINITY })
-  const heroMeta = useQuery<Record<string, HeroMeta>>({
-    queryKey: ['hero_meta'],
-    queryFn: () => fetch('/hero_meta.json').then((r) => r.json()),
-    staleTime: Number.POSITIVE_INFINITY,
-  })
 
   const hero = heroStats.data?.find((h) => h.name === `npc_dota_hero_${heroName}`)
 
@@ -120,6 +116,13 @@ function HeroDetailPage() {
     queryKey: ['hero_durations', hero?.id],
     queryFn: () => fetch(`https://api.opendota.com/api/heroes/${hero!.id}/durations`).then((r) => r.json()) as Promise<Duration[]>,
     enabled: !!hero?.id,
+  })
+  // Live tagline / complexity / exact stats from Valve's datafeed (via /df proxy).
+  const heroData = useQuery({
+    queryKey: ['hero_datafeed', hero?.id],
+    queryFn: () => datafeed.heroData(hero!.id),
+    enabled: !!hero?.id,
+    staleTime: Number.POSITIVE_INFINITY,
   })
 
   if (heroStats.isPending) {
@@ -154,7 +157,7 @@ function HeroDetailPage() {
   )
   const lore = heroLore.data?.[short]
   const aghs = aghsDesc.data?.find((x) => x.hero_name === hero.name)
-  const meta = heroMeta.data?.[String(hero.id)]
+  const meta = heroData.data
   const talents = ha?.talents ?? []
   const talentTiers = [4, 3, 2, 1].map((lvl) => ({
     lvl: [0, 10, 15, 20, 25][lvl],
@@ -162,7 +165,7 @@ function HeroDetailPage() {
   }))
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-4">
+    <div className="space-y-4">
       {/* Hero banner — immersive, matching dota2.com: animated render right, text left */}
       <div className="relative overflow-hidden rounded" style={{ height: 560, border: '1px solid #24222a', background: '#08080a' }}>
         {/* faint scene fill */}

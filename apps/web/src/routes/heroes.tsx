@@ -67,7 +67,7 @@ function HeroesPage() {
     .sort((a, b) => a.localized_name.localeCompare(b.localized_name))
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10">
+    <div className="py-4">
       {/* Title */}
       <div className="text-center mb-8">
         <h1
@@ -136,7 +136,7 @@ function HeroesPage() {
         <div className="flex justify-center py-16"><Spinner className="h-8 w-8" /></div>
       )}
 
-      <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-9">
         {filtered.map((h) => (
           <HeroCard key={h.id} hero={h} />
         ))}

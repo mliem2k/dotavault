@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router'
 export function Navbar() {
   return (
     <nav className="border-b border-border">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
+      <div className="mx-auto flex h-14 w-full max-w-[1800px] items-center justify-between px-6">
         <Link to="/" className="font-mono text-sm font-semibold tracking-tight text-foreground">
           dotavault
         </Link>
