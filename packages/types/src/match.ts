@@ -157,6 +157,9 @@ export type MatchPlayer = {
   rank_tier: number | null
   benchmarks: PlayerBenchmarks | null
   ability_upgrades_arr: number[] | null
+  damage: Record<string, number> | null
+  damage_taken: Record<string, number> | null
+  damage_inflictor: Record<string, number> | null
 }
 
 export type Match = {

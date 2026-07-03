@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { DraftPanel } from '@/components/match/draft_panel'
 import { MatchChat } from '@/components/match/match_chat'
+import { MatchDamage } from '@/components/match/match_damage'
 import { MatchGraphs } from '@/components/match/match_graphs'
 import { MatchOverview } from '@/components/match/match_overview'
 import { MatchScoreboard } from '@/components/match/match_scoreboard'
@@ -25,12 +26,13 @@ const GAME_MODES: Record<number, string> = {
   23: 'Turbo',
 }
 
-type Tab = 'overview' | 'scoreboard' | 'graphs' | 'draft' | 'chat' | 'vision' | 'purchases' | 'replay'
+type Tab = 'overview' | 'scoreboard' | 'graphs' | 'damage' | 'draft' | 'chat' | 'vision' | 'purchases' | 'replay'
 
 const TAB_LABELS: Record<Tab, string> = {
   overview: 'Overview',
   scoreboard: 'Scoreboard',
   graphs: 'Graphs',
+  damage: 'Damage',
   draft: 'Draft',
   chat: 'Chat',
   vision: 'Vision',
@@ -100,11 +102,13 @@ function MatchPage() {
   const hasChat = (m.chat?.length ?? 0) > 0
   const hasPurchases = m.players.some((p) => (p.purchase_log?.length ?? 0) > 0)
   const hasDraft = (m.picks_bans?.length ?? 0) > 0
+  const hasDamage = m.players.some((p) => p.damage != null || p.damage_inflictor != null)
 
   const availableTabs: Tab[] = [
     'overview',
     'scoreboard',
     'graphs',
+    ...(hasDamage ? ['damage' as Tab] : []),
     ...(hasDraft ? ['draft' as Tab] : []),
     ...(hasChat ? ['chat' as Tab] : []),
     ...(hasVision ? ['vision' as Tab] : []),
@@ -227,6 +231,14 @@ function MatchPage() {
         {activeTab === 'graphs' && (
           heroStats.data ? (
             <MatchGraphs match={m} heroStats={heroStats.data} idToName={idToName} itemConst={itemConst} />
+          ) : (
+            <div className="flex justify-center py-12"><Spinner /></div>
+          )
+        )}
+
+        {activeTab === 'damage' && (
+          heroStats.data ? (
+            <MatchDamage match={m} heroStats={heroStats.data} abilities={abilitiesData.data ?? {}} itemConst={itemConst} />
           ) : (
             <div className="flex justify-center py-12"><Spinner /></div>
           )

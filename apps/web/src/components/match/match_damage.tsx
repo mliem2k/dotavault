@@ -1,0 +1,229 @@
+import { useState } from 'react'
+import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
+import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { AbilityIcon } from './ability_icon'
+import { ItemIcon } from './item_icon'
+import { PlayerIdentityCell, ROW_H, TEAM_HEADER_H, orderedTeams } from './match_roster'
+
+const IDENTITY_W = 236
+const HERO_COL_W = 76
+const TOTAL_W = 84
+
+type Mode = 'dealt' | 'taken' | 'sources'
+const MODE_LABELS: Record<Mode, string> = {
+  dealt: 'Damage Dealt',
+  taken: 'Damage Taken',
+  sources: 'Damage Sources',
+}
+
+function fmtK(v: number): string {
+  return v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(Math.round(v))
+}
+
+/* ---- Hero-vs-hero matrix cell with heatmap intensity ---- */
+function MatrixCell({ value, max }: { value: number; max: number }) {
+  const intensity = max > 0 ? value / max : 0
+  return (
+    <div
+      className="shrink-0 flex items-center justify-center"
+      style={{ width: HERO_COL_W, height: ROW_H, background: value > 0 ? `rgba(226,75,58,${(0.06 + intensity * 0.5).toFixed(2)})` : 'transparent' }}
+    >
+      <span
+        className="text-[13px] tabular-nums"
+        style={{ color: value > 0 ? (intensity > 0.55 ? '#fff' : '#e8c0a0') : '#3a352a', fontFamily: 'var(--font-dota)', fontWeight: intensity > 0.55 ? 700 : 400 }}
+      >
+        {value > 0 ? fmtK(value) : '—'}
+      </span>
+    </div>
+  )
+}
+
+/* ---- Damage sources for one player ---- */
+function SourcesRow({
+  player,
+  abilities,
+  itemConst,
+}: {
+  player: MatchPlayer
+  abilities: Record<string, AbilityConst>
+  itemConst: Record<string, ItemConst>
+}) {
+  const inflictors = Object.entries(player.damage_inflictor ?? {})
+    .filter(([k]) => k !== 'null' && k !== '')
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+  const attacks = player.damage_inflictor?.null ?? 0
+  const total = Object.values(player.damage_inflictor ?? {}).reduce((s, v) => s + v, 0) || 1
+
+  const chip = (icon: React.ReactNode, value: number, key: string) => (
+    <div key={key} className="flex items-center gap-1 shrink-0">
+      {icon}
+      <span className="text-[12px] tabular-nums" style={{ color: '#e8c0a0', fontFamily: 'var(--font-dota)' }}>{fmtK(value)}</span>
+      <span className="text-[10px] tabular-nums" style={{ color: '#5a5446', fontFamily: 'var(--font-dota)' }}>{Math.round((value / total) * 100)}%</span>
+    </div>
+  )
+
+  return (
+    <div className="flex items-center gap-3 px-3" style={{ height: ROW_H, minWidth: 640 }}>
+      {attacks > 0 &&
+        chip(
+          <div className="shrink-0 rounded-sm flex items-center justify-center" style={{ width: 26, height: 26, background: '#12100c', border: '1px solid #241f16', color: '#a89060', fontSize: 13 }} title="Attacks">⚔</div>,
+          attacks,
+          'attacks',
+        )}
+      {inflictors.map(([key, value]) => {
+        if (abilities[key]) return chip(<AbilityIcon name={key} meta={abilities[key]} isTalent={false} level={0} />, value, key)
+        if (itemConst[key]) return chip(<ItemIcon name={key} meta={itemConst[key]} width={26} height={26} />, value, key)
+        return chip(
+          <div className="shrink-0 rounded-sm" style={{ width: 26, height: 26, background: '#12100c', border: '1px solid #241f16' }} title={key} />,
+          value,
+          key,
+        )
+      })}
+    </div>
+  )
+}
+
+export function MatchDamage({
+  match,
+  heroStats,
+  abilities,
+  itemConst,
+}: {
+  match: Match
+  heroStats: HeroStat[]
+  abilities: Record<string, AbilityConst>
+  itemConst: Record<string, ItemConst>
+}) {
+  const [mode, setMode] = useState<Mode>('dealt')
+  const heroMap = new Map(heroStats.map((h) => [h.id, h]))
+  const { radiant, dire } = orderedTeams(match)
+
+  const isParsed = match.players.some((p) => p.damage != null || p.damage_inflictor != null)
+  if (!isParsed) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <span className="text-sm" style={{ color: '#5a5446', fontFamily: 'var(--font-dota)' }}>
+          This match is unparsed — damage data unavailable.
+        </span>
+      </div>
+    )
+  }
+
+  // Global max for heatmap scaling across both matrices.
+  const matrixMax = Math.max(
+    1,
+    ...match.players.flatMap((p) => {
+      const src = mode === 'taken' ? p.damage_taken : p.damage
+      return Object.entries(src ?? {})
+        .filter(([k]) => k.startsWith('npc_dota_hero_'))
+        .map(([, v]) => v)
+    }),
+  )
+
+  const teamSection = (players: MatchPlayer[], isRadiant: boolean) => {
+    const color = isRadiant ? '#8ec63f' : '#d14a38'
+    const enemies = (isRadiant ? dire : radiant).map((e) => heroMap.get(e.hero_id)).filter((h): h is HeroStat => !!h)
+    const kills = players.reduce((s, p) => s + p.kills, 0)
+    const isWinner = isRadiant ? match.radiant_win : !match.radiant_win
+
+    return (
+      <div style={{ background: '#100e0b', border: '1px solid #1c1810' }}>
+        {/* Header band */}
+        <div className="flex items-stretch" style={{ borderBottom: '1px solid #241f16' }}>
+          <div
+            className="flex items-center gap-2 shrink-0"
+            style={{ width: IDENTITY_W, height: TEAM_HEADER_H, padding: '0 10px', borderLeft: `3px solid ${color}`, background: `${color}12` }}
+          >
+            <span className="text-[14px] font-bold" style={{ color, fontFamily: 'var(--font-dota)' }}>{isRadiant ? 'The Radiant' : 'The Dire'}</span>
+            <span className="text-[11px] uppercase tracking-wide" style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}>
+              Score: <span style={{ color }}>{kills}</span>
+            </span>
+            {isWinner && (
+              <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ml-auto" style={{ background: '#123010', color: '#8ec63f', border: '1px solid #8ec63f44' }}>Winner</span>
+            )}
+          </div>
+
+          {mode === 'sources' ? (
+            <div className="flex items-center px-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}>
+              Top damage sources (share of total)
+            </div>
+          ) : (
+            <>
+              {enemies.map((h) => (
+                <div key={h.id} className="shrink-0 flex items-center justify-center" style={{ width: HERO_COL_W, height: TEAM_HEADER_H }}>
+                  <img
+                    src={heroIconUrl(h.name)}
+                    alt={h.localized_name}
+                    title={h.localized_name}
+                    className="rounded"
+                    style={{ width: 28, height: 28 }}
+                    onError={(e) => { const img = e.currentTarget; img.onerror = null; img.src = heroIconFromPath(h.icon) }}
+                  />
+                </div>
+              ))}
+              <div className="shrink-0 flex items-center justify-center text-[10px] font-bold uppercase tracking-wider" style={{ width: TOTAL_W, height: TEAM_HEADER_H, color: '#77715f', fontFamily: 'var(--font-dota)' }}>
+                Total
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Rows */}
+        {players.map((p) => {
+          const src = mode === 'taken' ? p.damage_taken : p.damage
+          const cells = enemies.map((h) => src?.[h.name] ?? 0)
+          const total = cells.reduce((s, v) => s + v, 0)
+          return (
+            <div key={p.player_slot} className="flex items-stretch" style={{ borderBottom: '1px solid #1c1810' }}>
+              <PlayerIdentityCell player={p} hero={heroMap.get(p.hero_id)} width={IDENTITY_W} />
+              {mode === 'sources' ? (
+                <SourcesRow player={p} abilities={abilities} itemConst={itemConst} />
+              ) : (
+                <>
+                  {cells.map((v, i) => (
+                    <MatrixCell key={i} value={v} max={matrixMax} />
+                  ))}
+                  <div className="shrink-0 flex items-center justify-center" style={{ width: TOTAL_W, height: ROW_H }}>
+                    <span className="text-[14px] font-bold tabular-nums" style={{ color: '#e8a070', fontFamily: 'var(--font-dota)' }}>{fmtK(total)}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <div style={{ minWidth: IDENTITY_W + 5 * HERO_COL_W + TOTAL_W }}>
+        {/* Mode toggle */}
+        <div className="flex gap-1 mb-3" style={{ maxWidth: 460 }}>
+          {(Object.keys(MODE_LABELS) as Mode[]).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className="flex-1 px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-sm"
+              style={{
+                fontFamily: 'var(--font-dota)',
+                color: mode === m ? '#ece6d8' : '#8a8474',
+                background: mode === m ? '#2a2620' : '#16130f',
+                border: `1px solid ${mode === m ? '#3a352a' : '#241f16'}`,
+              }}
+            >
+              {MODE_LABELS[m]}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-2">
+          {teamSection(radiant, true)}
+          {teamSection(dire, false)}
+        </div>
+      </div>
+    </div>
+  )
+}

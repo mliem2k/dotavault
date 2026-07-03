@@ -62,7 +62,8 @@
   --color-agi: #a2d240;
   --color-int: #4fb0e0;
   --color-uni: #c47adf;
-  --font-sans: 'Geist Variable', sans-serif;
+  /* Radiance (Dota 2's UI font) is the global default everywhere. */
+  --font-sans: 'Radiance', 'Geist Variable', sans-serif;
   --font-mono: 'Geist Mono Variable', monospace;
   --font-dota: 'Radiance', 'Geist Variable', sans-serif;
   --font-display: 'Reaver', serif;
