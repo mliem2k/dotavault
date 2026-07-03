@@ -12,18 +12,38 @@ async function get<T>(path: string): Promise<T> {
 type RawHero = Record<string, number | string> & { npe_desc_loc?: string }
 
 const NUM_FIELDS: (keyof HeroMeta)[] = [
-  'complexity', 'str_base', 'str_gain', 'agi_base', 'agi_gain', 'int_base', 'int_gain',
-  'damage_min', 'damage_max', 'attack_rate', 'attack_range', 'armor', 'magic_resistance',
-  'movement_speed', 'turn_rate', 'sight_range_day', 'sight_range_night', 'max_health',
-  'health_regen', 'max_mana', 'mana_regen',
+  'complexity',
+  'str_base',
+  'str_gain',
+  'agi_base',
+  'agi_gain',
+  'int_base',
+  'int_gain',
+  'damage_min',
+  'damage_max',
+  'attack_rate',
+  'attack_range',
+  'armor',
+  'magic_resistance',
+  'movement_speed',
+  'turn_rate',
+  'sight_range_day',
+  'sight_range_night',
+  'max_health',
+  'health_regen',
+  'max_mana',
+  'mana_regen',
 ]
 
 function toMeta(h: RawHero): HeroMeta {
   const m = { tagline: h.npe_desc_loc ?? '' } as HeroMeta
   for (const f of NUM_FIELDS) {
     const v = h[f as keyof RawHero]
-    ;(m as unknown as Record<string, number>)[f] = typeof v === 'number' ? Math.round(v * 100) / 100 : 0
+    ;(m as unknown as Record<string, number>)[f] =
+      typeof v === 'number' ? Math.round(v * 100) / 100 : 0
   }
+  const rl = (h as { role_levels?: unknown }).role_levels
+  m.role_levels = Array.isArray(rl) ? (rl as number[]) : []
   return m
 }
 

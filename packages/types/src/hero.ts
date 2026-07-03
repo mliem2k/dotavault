@@ -22,6 +22,8 @@ export type HeroMeta = {
   health_regen: number
   max_mana: number
   mana_regen: number
+  // Role emphasis 0..3, ordered Carry, Support, Nuker, Disabler, Jungler, Durable, Escape, Pusher, Initiator.
+  role_levels: number[]
 }
 
 export type HeroStat = {
