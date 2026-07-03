@@ -24,8 +24,8 @@ type Entry = { base: string; aghs?: 'scepter' | 'shard'; aghsDesc?: string }
 function InfoPair({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[10px] uppercase tracking-wide" style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}>{label}</span>
-      <span className="text-[12px] font-semibold tabular-nums" style={{ color: valueColor ?? '#dcd6c8', fontFamily: 'var(--font-dota)' }}>{value}</span>
+      <span className="text-[12px] uppercase tracking-wide" style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}>{label}</span>
+      <span className="text-[14px] font-semibold tabular-nums" style={{ color: valueColor ?? '#dcd6c8', fontFamily: 'var(--font-dota)' }}>{value}</span>
     </div>
   )
 }
@@ -146,7 +146,7 @@ export function AbilityDetails({
                 </span>
               )}
             </div>
-            <div className="text-[12px] leading-snug mt-0.5" style={{ color: '#a09a8a', fontFamily: 'var(--font-dota)' }}>
+            <div className="text-[14px] leading-snug mt-0.5" style={{ color: '#a09a8a', fontFamily: 'var(--font-dota)' }}>
               {entry.aghs ? entry.aghsDesc : a?.desc}
             </div>
           </div>
@@ -166,7 +166,7 @@ export function AbilityDetails({
             {attribs.map((x, i) => (
               <div key={i} className="flex items-center justify-between gap-3">
                 <span className="text-[11px] uppercase tracking-wide" style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}>{(x.header ?? '').replace(/:$/, '')}</span>
-                <span className="text-[12px] font-semibold tabular-nums" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>{joinLv(x.value)}</span>
+                <span className="text-[14px] font-semibold tabular-nums" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>{joinLv(x.value)}</span>
               </div>
             ))}
           </div>
@@ -177,13 +177,13 @@ export function AbilityDetails({
           {a?.cd != null && joinLv(a.cd) !== '' && joinLv(a.cd) !== '0' && (
             <div className="flex items-center gap-1.5">
               <span className="inline-flex items-center justify-center rounded-full text-[10px] font-bold" style={{ width: 18, height: 18, background: '#2a2312', color: '#c9a94a' }}>⏱</span>
-              <span className="text-[13px] font-semibold tabular-nums" style={{ color: '#c9a94a', fontFamily: 'var(--font-dota)' }}>{joinLv(a.cd)}</span>
+              <span className="text-[14px] font-semibold tabular-nums" style={{ color: '#c9a94a', fontFamily: 'var(--font-dota)' }}>{joinLv(a.cd)}</span>
             </div>
           )}
           {a?.mc != null && joinLv(a.mc as string | string[]) !== '' && joinLv(a.mc as string | string[]) !== '0' && (
             <div className="flex items-center gap-1.5">
               <span className="inline-flex items-center justify-center rounded-full text-[10px] font-bold" style={{ width: 18, height: 18, background: '#12233a', color: '#5a8fc2' }}>◆</span>
-              <span className="text-[13px] font-semibold tabular-nums" style={{ color: '#5a8fc2', fontFamily: 'var(--font-dota)' }}>{joinLv(a.mc as string | string[])}</span>
+              <span className="text-[14px] font-semibold tabular-nums" style={{ color: '#5a8fc2', fontFamily: 'var(--font-dota)' }}>{joinLv(a.mc as string | string[])}</span>
             </div>
           )}
         </div>

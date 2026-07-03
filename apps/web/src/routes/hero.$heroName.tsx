@@ -79,7 +79,10 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
   return (
     <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
       {title && (
-        <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-widest" style={{ color: '#77715f', fontFamily: 'var(--font-dota)', borderBottom: '1px solid #24222a' }}>
+        <div
+          className="px-4 py-2.5 uppercase"
+          style={{ color: '#c8c2b4', fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, letterSpacing: '3px', borderBottom: '1px solid #24222a' }}
+        >
           {title}
         </div>
       )}
@@ -91,7 +94,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 function StatBox({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[10px] uppercase tracking-widest" style={{ color: '#6a675e', fontFamily: 'var(--font-dota)' }}>{label}</span>
+      <span className="text-[12px] uppercase tracking-wide" style={{ color: '#8a8578', fontFamily: 'var(--font-dota)' }}>{label}</span>
       <span className="text-[15px] font-extrabold tabular-nums leading-tight" style={{ color: color ?? '#ece6d8', fontFamily: 'var(--font-dota)' }}>{value}</span>
     </div>
   )
@@ -199,15 +202,15 @@ function HeroDetailPage() {
 
         <div className="absolute left-8 bottom-8 right-6">
           <div className="flex items-center gap-3 mb-1">
-            <div className="text-[14px] font-bold uppercase tracking-[0.3em]" style={{ color: attr.color, fontFamily: 'var(--font-dota)' }}>
+            <div className="text-[16px] font-bold uppercase tracking-[0.25em]" style={{ color: attr.color, fontFamily: 'var(--font-dota)' }}>
               {attr.label} · {hero.attack_type}
             </div>
             {meta && (
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] uppercase tracking-widest" style={{ color: '#8a8578', fontFamily: 'var(--font-dota)' }}>Complexity</span>
+                <span className="text-[13px] font-bold uppercase tracking-widest" style={{ color: '#8a8578', fontFamily: 'var(--font-dota)' }}>Complexity</span>
                 <span className="flex gap-0.5">
                   {[1, 2, 3].map((n) => (
-                    <span key={n} style={{ color: n <= meta.complexity ? attr.color : '#3a3630', fontSize: 11 }}>◆</span>
+                    <span key={n} style={{ color: n <= meta.complexity ? attr.color : '#3a3630', fontSize: 13 }}>◆</span>
                   ))}
                 </span>
               </div>
@@ -223,7 +226,7 @@ function HeroDetailPage() {
           )}
           <div className="mt-3 flex flex-wrap gap-1.5">
             {hero.roles.map((r) => (
-              <span key={r} className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid #3a3630', color: '#b8b2a4', fontFamily: 'var(--font-dota)' }}>
+              <span key={r} className="text-[12px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-sm" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid #3a3630', color: '#c4beb0', fontFamily: 'var(--font-dota)' }}>
                 {r}
               </span>
             ))}
@@ -234,7 +237,7 @@ function HeroDetailPage() {
       {/* Lore (right after the header, like dota2.com) */}
       {lore && (
         <Panel title="Lore">
-          <p className="text-[14px] leading-relaxed max-w-4xl" style={{ color: '#b0aa9c', fontFamily: 'var(--font-dota)' }}>
+          <p className="text-[16px] leading-relaxed max-w-4xl" style={{ color: '#b8b2a4', fontFamily: 'var(--font-dota)', fontWeight: 300 }}>
             {lore}
           </p>
         </Panel>
