@@ -1,6 +1,9 @@
 // Compact per-hero data from Valve's datafeed, baked into public/hero_meta.json.
 export type HeroMeta = {
   tagline: string
+  // hype = the short header blurb dota2.com shows; bio = the full history behind "Read Full History".
+  hype: string
+  bio: string
   complexity: number
   str_base: number
   str_gain: number

@@ -49,6 +49,37 @@ const ATTR_ICON_NAME: Record<string, string> = {
 const attrIconUrl = (a: string) => `${REACT_CDN}/icons/hero_${ATTR_ICON_NAME[a] ?? 'strength'}.png`
 const statIconUrl = (name: string) => `${REACT_CDN}/heroes/stats/icon_${name}.png`
 
+// Valve's hype/bio text uses <b> for emphasis; render that as bold and drop any other tags.
+function HistoryText({ text }: { text: string }) {
+  const cleaned = text.replace(/<(?!\/?b>)[^>]*>/gi, '')
+  const parts = cleaned.split(/(<\/?b>)/i)
+  let bold = false
+  return (
+    <>
+      {parts.map((p, i) => {
+        if (/^<b>$/i.test(p)) {
+          bold = true
+          return null
+        }
+        if (/^<\/b>$/i.test(p)) {
+          bold = false
+          return null
+        }
+        if (!p) return null
+        return bold ? (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static split of a fixed string
+          <strong key={i} style={{ fontWeight: 700, color: '#e8e2d4' }}>
+            {p}
+          </strong>
+        ) : (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static split of a fixed string
+          <span key={i}>{p}</span>
+        )
+      })}
+    </>
+  )
+}
+
 function cleanTalent(s: string): string {
   return s
     .replace(/\{[^}]*\}/g, '')
@@ -331,6 +362,10 @@ function HeroDetailPage() {
   const lore = heroLore.data?.[short]
   const aghs = aghsDesc.data?.find((x) => x.hero_name === hero.name)
   const meta = heroData.data
+  // dota2.com shows the short hype blurb by default and the full bio behind "Read Full History".
+  const shortHistory = meta?.hype || meta?.bio || lore || ''
+  const fullHistory = meta?.bio || lore || ''
+  const history = loreOpen ? fullHistory : shortHistory
   const talents = ha?.talents ?? []
   const talentTiers = [4, 3, 2, 1].map((lvl) => ({
     lvl: [0, 10, 15, 20, 25][lvl],
@@ -434,7 +469,7 @@ function HeroDetailPage() {
               {meta.tagline}
             </div>
           )}
-          {lore && (
+          {history && (
             <>
               <p
                 className="mt-4 text-[15px] leading-relaxed"
@@ -443,26 +478,20 @@ function HeroDetailPage() {
                   fontFamily: 'var(--font-dota)',
                   fontWeight: 300,
                   textShadow: '0 1px 4px rgba(0,0,0,0.9)',
-                  ...(loreOpen
-                    ? {}
-                    : {
-                        display: '-webkit-box',
-                        WebkitLineClamp: 4,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }),
                 }}
               >
-                {lore}
+                <HistoryText text={history} />
               </p>
-              <button
-                type="button"
-                onClick={() => setLoreOpen((v) => !v)}
-                className="inline-block mt-1.5 text-[18px] cursor-pointer hover:text-white"
-                style={{ color: '#8a8a8a', fontWeight: 200, fontFamily: 'var(--font-dota)' }}
-              >
-                {loreOpen ? 'Close History' : 'Read Full History'}
-              </button>
+              {fullHistory && fullHistory !== shortHistory && (
+                <button
+                  type="button"
+                  onClick={() => setLoreOpen((v) => !v)}
+                  className="inline-block mt-1.5 text-[18px] cursor-pointer hover:text-white"
+                  style={{ color: '#8a8a8a', fontWeight: 200, fontFamily: 'var(--font-dota)' }}
+                >
+                  {loreOpen ? 'Close History' : 'Read Full History'}
+                </button>
+              )}
             </>
           )}
           <div className="mt-6 flex items-start gap-12">

@@ -9,7 +9,11 @@ async function get<T>(path: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
-type RawHero = Record<string, number | string> & { npe_desc_loc?: string }
+type RawHero = Record<string, number | string> & {
+  npe_desc_loc?: string
+  hype_loc?: string
+  bio_loc?: string
+}
 
 const NUM_FIELDS: (keyof HeroMeta)[] = [
   'complexity',
@@ -37,7 +41,11 @@ const NUM_FIELDS: (keyof HeroMeta)[] = [
 ]
 
 function toMeta(h: RawHero): HeroMeta {
-  const m = { tagline: h.npe_desc_loc ?? '' } as HeroMeta
+  const m = {
+    tagline: h.npe_desc_loc ?? '',
+    hype: h.hype_loc ?? '',
+    bio: h.bio_loc ?? '',
+  } as HeroMeta
   for (const f of NUM_FIELDS) {
     const v = h[f as keyof RawHero]
     ;(m as unknown as Record<string, number>)[f] =
