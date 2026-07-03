@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
 import { formatDuration, formatTimeAgo } from '@/lib/utils'
@@ -8,6 +7,27 @@ import { formatDuration, formatTimeAgo } from '@/lib/utils'
 export const Route = createFileRoute('/pro')({
   component: ProPage,
 })
+
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+      <div
+        className="px-4 py-3 uppercase"
+        style={{
+          color: '#c8c2b4',
+          fontFamily: 'var(--font-display)',
+          fontSize: 20,
+          fontWeight: 500,
+          letterSpacing: '3px',
+          borderBottom: '1px solid #24222a',
+        }}
+      >
+        {title}
+      </div>
+      <div className="px-4 py-2">{children}</div>
+    </div>
+  )
+}
 
 function ProPage() {
   const matches = useQuery({
@@ -21,86 +41,125 @@ function ProPage() {
   })
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-lg font-semibold">Pro Scene</h1>
+    <div className="space-y-6 py-4">
+      <div className="text-center mb-6">
+        <h1
+          className="text-[44px] leading-none font-bold uppercase"
+          style={{ fontFamily: 'var(--font-display)', color: '#fff', letterSpacing: '2px' }}
+        >
+          Pro Scene
+        </h1>
+        <p
+          className="mt-2 text-[13px] uppercase tracking-[0.2em]"
+          style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+        >
+          Recent professional matches and players
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Pro Matches</CardTitle>
-          </CardHeader>
-          {matches.isPending && <Spinner />}
-          {matches.data && (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs text-muted">
-                  <th className="pb-2 font-normal">Match</th>
-                  <th className="pb-2 font-normal text-right">Duration</th>
-                  <th className="pb-2 font-normal text-right">When</th>
-                </tr>
-              </thead>
-              <tbody>
-                {matches.data.slice(0, 20).map((m, i) => (
-                  <tr
-                    key={m.match_id}
-                    className={`border-b border-border/50 ${i % 2 === 1 ? 'bg-white/[0.02]' : ''}`}
-                  >
-                    <td className="py-1.5">
-                      <a href={`/match/${m.match_id}`} className="hover:text-accent">
-                        <div className="text-foreground">
-                          {m.radiant_name ?? 'Radiant'} vs {m.dire_name ?? 'Dire'}
-                        </div>
-                        {m.league_name && (
-                          <div className="text-xs text-muted">{m.league_name}</div>
-                        )}
-                      </a>
-                    </td>
-                    <td className="py-1.5 text-right font-mono text-muted">
-                      {formatDuration(m.duration)}
-                    </td>
-                    <td className="py-1.5 text-right font-mono text-muted">
-                      {formatTimeAgo(m.start_time)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <Panel title="Recent Pro Matches">
+          {matches.isPending && (
+            <div className="flex justify-center py-8">
+              <Spinner />
+            </div>
           )}
-        </Card>
+          {matches.data && (
+            <div>
+              {matches.data.slice(0, 20).map((m, i) => (
+                <a
+                  key={m.match_id}
+                  href={`/match/${m.match_id}`}
+                  className="flex items-start justify-between gap-4 py-2.5 hover:bg-white/[0.03]"
+                  style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
+                >
+                  <div className="min-w-0">
+                    <div
+                      className="text-[15px] truncate"
+                      style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
+                    >
+                      {m.radiant_name ?? 'Radiant'} vs {m.dire_name ?? 'Dire'}
+                    </div>
+                    {m.league_name && (
+                      <div
+                        className="text-[12px] mt-0.5 truncate"
+                        style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}
+                      >
+                        {m.league_name}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div
+                      className="text-[13px] tabular-nums"
+                      style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                    >
+                      {formatTimeAgo(m.start_time)}
+                    </div>
+                    <div
+                      className="text-[12px] tabular-nums mt-0.5"
+                      style={{ color: '#4a4436', fontFamily: 'var(--font-dota)' }}
+                    >
+                      {formatDuration(m.duration)}
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+        </Panel>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Pro Players</CardTitle>
-          </CardHeader>
-          {players.isPending && <Spinner />}
+        <Panel title="Pro Players">
+          {players.isPending && (
+            <div className="flex justify-center py-8">
+              <Spinner />
+            </div>
+          )}
           {players.data && (
-            <div className="space-y-1">
+            <div>
               {players.data
                 .filter((p) => p.is_pro && p.team_name)
                 .slice(0, 20)
-                .map((p) => (
+                .map((p, i) => (
                   <a
                     key={p.account_id}
                     href={`/player/${p.account_id}`}
-                    className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-white/5"
+                    className="flex items-center gap-3 py-2 hover:bg-white/[0.03]"
+                    style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
                   >
                     <img
                       src={p.avatarmedium}
                       alt={p.personaname}
-                      className="h-7 w-7 rounded-full"
+                      className="h-7 w-7 rounded-full shrink-0"
+                      style={{ border: '1px solid #2c2820' }}
                     />
-                    <div className="flex-1">
-                      <div className="text-sm text-foreground">{p.name ?? p.personaname}</div>
-                      <div className="text-xs text-muted">{p.team_name}</div>
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className="text-[15px] truncate"
+                        style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
+                      >
+                        {p.name ?? p.personaname}
+                      </div>
+                      <div
+                        className="text-[12px] truncate"
+                        style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                      >
+                        {p.team_name}
+                      </div>
                     </div>
                     {p.loccountrycode && (
-                      <span className="font-mono text-xs text-muted">{p.loccountrycode}</span>
+                      <span
+                        className="text-[12px] tabular-nums shrink-0"
+                        style={{ color: '#4a4436', fontFamily: 'var(--font-dota)' }}
+                      >
+                        {p.loccountrycode}
+                      </span>
                     )}
                   </a>
                 ))}
             </div>
           )}
-        </Card>
+        </Panel>
       </div>
     </div>
   )

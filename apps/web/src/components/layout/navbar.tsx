@@ -2,14 +2,23 @@ import { Link } from '@tanstack/react-router'
 
 export function Navbar() {
   return (
-    <nav className="border-b border-border">
+    <nav style={{ borderBottom: '1px solid #24222a' }}>
       <div className="mx-auto flex h-20 w-full max-w-[1800px] items-center justify-between px-6">
-        <Link to="/" className="text-2xl font-bold tracking-wide text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
+        <Link
+          to="/"
+          className="text-2xl font-bold tracking-wide text-foreground"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
           dotavault
         </Link>
         <div
           className="flex items-center gap-8 uppercase text-white"
-          style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, letterSpacing: '3px' }}
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 18,
+            fontWeight: 600,
+            letterSpacing: '3px',
+          }}
         >
           <Link to="/heroes" className="text-white transition-colors hover:text-[#c9a94a]">
             Heroes
@@ -20,6 +29,7 @@ export function Navbar() {
           <Link to="/pro" className="text-white transition-colors hover:text-[#c9a94a]">
             Pro
           </Link>
+          {/* biome-ignore lint/a11y/useAnchorContent: aria-label provides the accessible label */}
           <a
             href="https://github.com/mliem2k/dotavault"
             target="_blank"
