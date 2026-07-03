@@ -14,7 +14,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
   return (
     <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
       <div
-        className="px-4 py-3 uppercase"
+        className="px-4 py-3 uppercase text-center"
         style={{
           color: '#c8c2b4',
           fontFamily: 'var(--font-display)',
@@ -49,13 +49,13 @@ function HomePage() {
           dotavault
         </h1>
         <div className="h-px w-20 bg-[#d14a38]" />
-        <p className="text-xs uppercase tracking-[0.3em] text-muted">
+        <p className="text-base uppercase tracking-[0.3em] text-white">
           Dota 2 stats, match analysis, and replay viewer
         </p>
         <SearchBar />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 max-w-4xl mx-auto w-full">
         <Panel title="Recent Pro Matches">
           {proMatches.isPending && <Spinner />}
           {proMatches.data && (
@@ -68,13 +68,13 @@ function HomePage() {
                   style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
                 >
                   <span
-                    className="text-[15px]"
-                    style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
+                    className="text-[17px]"
+                    style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}
                   >
                     {m.radiant_name ?? 'Radiant'} vs {m.dire_name ?? 'Dire'}
                   </span>
                   <span
-                    className="text-[13px] tabular-nums"
+                    className="text-[14px] tabular-nums"
                     style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
                   >
                     {formatTimeAgo(m.start_time)}
@@ -116,8 +116,8 @@ function HomePage() {
                           className="h-7 w-7 rounded"
                         />
                         <span
-                          className="text-[15px]"
-                          style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
+                          className="text-[17px]"
+                          style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}
                         >
                           {h.localized_name}
                         </span>

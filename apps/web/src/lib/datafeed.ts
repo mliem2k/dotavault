@@ -1,4 +1,4 @@
-import type { HeroMeta } from 'types'
+import type { HeroListItem, HeroMeta } from 'types'
 
 // Live access to Valve's Dota 2 datafeed via our same-origin /df proxy
 // (Cloudflare Pages Function in prod, Vite proxy in dev).
@@ -57,6 +57,13 @@ function toMeta(h: RawHero): HeroMeta {
 }
 
 export const datafeed = {
+  async heroList(): Promise<HeroListItem[]> {
+    const d = await get<{ result: { data: { heroes: HeroListItem[] } } }>(
+      'herolist?language=english',
+    )
+    return d.result?.data?.heroes ?? []
+  },
+
   async heroData(heroId: number): Promise<HeroMeta> {
     const d = await get<{ result: { data: { heroes: RawHero[] } } }>(
       `herodata?language=english&hero_id=${heroId}`,

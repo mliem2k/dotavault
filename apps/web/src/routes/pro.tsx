@@ -75,14 +75,14 @@ function ProPage() {
                 >
                   <div className="min-w-0">
                     <div
-                      className="text-[15px] truncate"
+                      className="text-[17px] truncate"
                       style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
                     >
                       {m.radiant_name ?? 'Radiant'} vs {m.dire_name ?? 'Dire'}
                     </div>
                     {m.league_name && (
                       <div
-                        className="text-[12px] mt-0.5 truncate"
+                        className="text-[14px] mt-0.5 truncate"
                         style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}
                       >
                         {m.league_name}
@@ -91,13 +91,13 @@ function ProPage() {
                   </div>
                   <div className="text-right shrink-0">
                     <div
-                      className="text-[13px] tabular-nums"
+                      className="text-[15px] tabular-nums"
                       style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
                     >
                       {formatTimeAgo(m.start_time)}
                     </div>
                     <div
-                      className="text-[12px] tabular-nums mt-0.5"
+                      className="text-[14px] tabular-nums mt-0.5"
                       style={{ color: '#4a4436', fontFamily: 'var(--font-dota)' }}
                     >
                       {formatDuration(m.duration)}
@@ -135,13 +135,13 @@ function ProPage() {
                     />
                     <div className="flex-1 min-w-0">
                       <div
-                        className="text-[15px] truncate"
+                        className="text-[17px] truncate"
                         style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
                       >
                         {p.name ?? p.personaname}
                       </div>
                       <div
-                        className="text-[12px] truncate"
+                        className="text-[14px] truncate"
                         style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
                       >
                         {p.team_name}
@@ -149,7 +149,7 @@ function ProPage() {
                     </div>
                     {p.loccountrycode && (
                       <span
-                        className="text-[12px] tabular-nums shrink-0"
+                        className="text-[14px] tabular-nums shrink-0"
                         style={{ color: '#4a4436', fontFamily: 'var(--font-dota)' }}
                       >
                         {p.loccountrycode}

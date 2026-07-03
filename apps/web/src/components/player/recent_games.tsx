@@ -1,5 +1,5 @@
 import type { HeroStat, PlayerMatch } from 'types'
-import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl } from '@/lib/utils'
 
 const GAME_MODES: Record<number, string> = {
   1: 'All Pick', 2: 'Captains Mode', 3: 'Random Draft', 4: 'Single Draft',
@@ -38,81 +38,66 @@ export function RecentGames({
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
 
   return (
-    <div style={{ background: '#100e0b', border: '1px solid #1c1810' }}>
+    <div style={{ background: 'rgba(16,19,22,0.72)', fontFamily: 'var(--font-dota)' }}>
       {/* header */}
       <div
-        className="flex items-center px-3 py-2 text-[10px] font-bold uppercase tracking-wider"
-        style={{ color: '#77715f', fontFamily: 'var(--font-dota)', borderBottom: '1px solid #241f16' }}
+        className="flex items-center px-3 py-2.5 text-[12px] uppercase"
+        style={{ color: '#8a97a0', letterSpacing: '1px', background: 'rgba(8,10,12,0.7)' }}
       >
-        <span className="w-[120px] shrink-0">Date / Time</span>
-        <span className="flex-1 min-w-0">Hero</span>
-        <span className="w-[90px] shrink-0 text-center">Result</span>
-        <span className="w-[90px] shrink-0 text-center">K / D / A</span>
-        <span className="w-[70px] shrink-0 text-right">Duration</span>
-        <span className="w-[90px] shrink-0 text-right">Type</span>
+        <span className="w-[150px] shrink-0">Date / Time</span>
+        <span className="flex-1 min-w-0">Hero Played</span>
+        <span className="w-[110px] shrink-0 text-center">Result</span>
+        <span className="w-[80px] shrink-0 text-right">Duration</span>
+        <span className="w-[90px] shrink-0 text-right pr-2">Type</span>
+        <span className="w-[24px] shrink-0 text-right" style={{ color: '#67757f' }}>⚙</span>
       </div>
 
       {matches.map((m, i) => {
         const hero = heroMap.get(m.hero_id)
         const won = isWin(m)
         const { d, t } = fmtDate(m.start_time)
-        const heroShort = hero?.name.replace('npc_dota_hero_', '') ?? String(m.hero_id)
         const type = LOBBY_TYPES[m.lobby_type] ?? GAME_MODES[m.game_mode] ?? '—'
 
         return (
           <a
             key={m.match_id}
             href={`/match/${m.match_id}`}
-            className="flex items-center px-3 hover:bg-white/[0.03] transition-colors"
-            style={{ height: 44, borderBottom: '1px solid #17140f', background: i % 2 ? '#0e0c0a' : 'transparent' }}
+            className="flex items-center px-3 hover:bg-white/[0.05] transition-colors"
+            style={{ height: 46, background: i % 2 ? 'rgba(255,255,255,0.02)' : 'transparent' }}
           >
-            <div className="w-[120px] shrink-0" style={{ fontFamily: 'var(--font-dota)' }}>
-              <div className="text-[12px]" style={{ color: '#c8c2b4' }}>{d}</div>
-              <div className="text-[10px]" style={{ color: '#5a5446' }}>{t}</div>
+            <div className="w-[150px] shrink-0 text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
+              {d} <span style={{ color: '#8a97a0' }}>{t}</span>
             </div>
 
-            <div className="flex-1 min-w-0 flex items-center gap-2">
+            <div className="flex-1 min-w-0 flex items-center gap-2.5">
               {hero && (
                 <img
-                  src={heroIconUrl(hero.name)}
+                  src={heroLandscapeUrl(hero.name)}
                   alt=""
-                  className="w-8 h-8 rounded shrink-0"
-                  onError={(e) => {
-                    const img = e.currentTarget
-                    img.onerror = null
-                    img.src = heroIconFromPath(hero.icon)
-                  }}
+                  className="shrink-0 object-cover"
+                  style={{ width: 58, height: 33 }}
+                  onError={cdnFallback(heroLandscapeCdn(hero.name))}
                 />
               )}
-              <span className="text-[13px] truncate" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+              <span className="text-[14px] truncate" style={{ color: '#e8ecef' }}>
                 {hero?.localized_name ?? `Hero ${m.hero_id}`}
               </span>
             </div>
 
-            <div className="w-[90px] shrink-0 text-center">
-              <span
-                className="text-[13px] font-bold uppercase tracking-wide"
-                style={{ color: won ? '#8ec63f' : '#d14a38', fontFamily: 'var(--font-dota)' }}
-              >
+            <div className="w-[110px] shrink-0 text-center">
+              <span className="text-[14px] uppercase" style={{ color: won ? '#8fbf3f' : '#c94a38', letterSpacing: '1px' }}>
                 {won ? 'Won' : 'Lost'}
               </span>
             </div>
 
-            <div className="w-[90px] shrink-0 text-center text-[13px] tabular-nums" style={{ fontFamily: 'var(--font-dota)' }}>
-              <span style={{ color: '#57c262' }}>{m.kills}</span>
-              <span style={{ color: '#5a5446' }}> / </span>
-              <span style={{ color: '#e07a5a' }}>{m.deaths}</span>
-              <span style={{ color: '#5a5446' }}> / </span>
-              <span style={{ color: '#c9b88a' }}>{m.assists}</span>
-            </div>
-
-            <div className="w-[70px] shrink-0 text-right text-[12px] tabular-nums" style={{ color: '#a8a08c', fontFamily: 'var(--font-dota)' }}>
+            <div className="w-[80px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
               {fmtDur(m.duration)}
             </div>
 
-            <div className="w-[90px] shrink-0 text-right text-[11px]" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+            <div className="w-[90px] shrink-0 text-right text-[13px] pr-2" style={{ color: '#cfd4d8' }}>
               {type}
             </div>
+            <div className="w-[24px] shrink-0" />
           </a>
         )
       })}

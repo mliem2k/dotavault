@@ -1,13 +1,13 @@
 import type { HeroStat, Match, MatchPlayer } from 'types'
-import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { cdnFallback, heroIconFromPath, heroLandscapeCdn, heroLandscapeUrl } from '@/lib/utils'
 
 export const PLAYER_COLORS: Record<number, string> = {
   0: '#3375FF', 1: '#66FFBF', 2: '#BF00BF', 3: '#F3F00B', 4: '#FF6600',
   128: '#FE87C4', 129: '#A1B477', 130: '#65D9F7', 131: '#007A00', 132: '#A46900',
 }
 
-export const ROW_H = 54
-export const TEAM_HEADER_H = 34
+export const ROW_H = 62
+export const TEAM_HEADER_H = 58
 
 // Cumulative XP required to reach each level (index = level - 1).
 export const XP_TABLE = [
@@ -41,7 +41,7 @@ export function orderedTeams(match: Match): { radiant: MatchPlayer[]; dire: Matc
   }
 }
 
-/* Player identity block — hero portrait + name + level + hero name.
+/* Player identity block — avatar placeholder + hero portrait + name + level + hero name.
    Shared by the scoreboard rows and the graphs roster sidebar so both align. */
 export function PlayerIdentityCell({
   player,
@@ -61,81 +61,81 @@ export function PlayerIdentityCell({
   const playerName = player.personaname ?? player.name ?? 'Anonymous'
   const accountId = player.account_id
   const heroShort = hero?.name.replace('npc_dota_hero_', '') ?? ''
-  const rank = rankLabel(player.rank_tier)
 
   const heroImg = hero ? (
     <img
-      src={heroIconUrl(hero.name)}
+      src={heroLandscapeUrl(hero.name)}
       alt={hero.localized_name}
-      className="rounded object-cover"
-      style={{ width: 40, height: 40 }}
-      onError={(e) => {
-        const img = e.currentTarget
-        img.onerror = null
-        img.src = heroIconFromPath(hero.icon)
-      }}
+      className="object-cover"
+      style={{ width: 82, height: 46 }}
+      onError={cdnFallback(heroLandscapeCdn(hero.name))}
     />
   ) : (
-    <div className="rounded" style={{ width: 40, height: 40, background: '#161310' }} />
+    <div style={{ width: 82, height: 46, background: '#14181b' }} />
   )
 
   return (
     <div
-      className="flex items-center gap-2.5 shrink-0"
-      style={{ width, height: ROW_H, padding: '0 10px', background: active ? '#241f16' : 'transparent' }}
+      className="flex items-center gap-2 shrink-0"
+      style={{
+        width,
+        height: ROW_H,
+        padding: '0 8px',
+        background: active ? 'rgba(216,222,227,0.92)' : 'transparent',
+        boxShadow: active ? 'inset 3px 0 0 #ffffff' : undefined,
+      }}
     >
+      {/* Steam avatar placeholder (match payloads carry no avatar URL) */}
+      <div
+        className="shrink-0 flex items-center justify-center"
+        style={{ width: 44, height: 44, background: active ? '#2c3236' : '#20262a', border: '1px solid #2c3236' }}
+      >
+        <span className="text-[20px]" style={{ color: '#67757f', fontFamily: 'var(--font-dota)' }}>?</span>
+      </div>
+
       {hero && !linkless ? (
-        <a href={`/hero/${heroShort}`} className="shrink-0 hover:ring-1 hover:ring-white/40 rounded">
+        <a href={`/hero/${heroShort}`} className="shrink-0 hover:brightness-125">
           {heroImg}
         </a>
       ) : (
         <div className="shrink-0">{heroImg}</div>
       )}
 
-      <div className="min-w-0 flex-1 text-left">
+      <div className="min-w-0 flex-1 text-left" style={{ fontFamily: 'var(--font-dota)' }}>
         {accountId && !linkless ? (
           <a
             href={`/player/${accountId}`}
-            className="block text-[14px] font-semibold truncate hover:underline leading-tight"
-            style={{ color: '#ece6d8', fontFamily: 'var(--font-dota)' }}
+            className="block text-[15px] truncate hover:underline leading-tight"
+            style={{ color: active ? '#14181b' : '#ffffff' }}
           >
             {playerName}
           </a>
         ) : (
           <span
-            className="block text-[14px] font-semibold truncate leading-tight"
-            style={{ color: accountId ? '#ece6d8' : '#a8a08c', fontFamily: 'var(--font-dota)' }}
+            className="block text-[15px] truncate leading-tight"
+            style={{ color: active ? '#14181b' : accountId ? '#ffffff' : '#c3cbd1' }}
           >
             {playerName}
           </span>
         )}
         <div className="flex items-center gap-1.5 mt-0.5">
           <span
-            className="inline-flex items-center justify-center text-[9px] font-bold rounded-full shrink-0"
-            style={{ width: 15, height: 15, background: '#2a2620', color: '#c9a94a', fontFamily: 'var(--font-dota)' }}
+            className="inline-flex items-center justify-center text-[10px] rounded-full shrink-0 tabular-nums"
+            style={{
+              width: 17,
+              height: 17,
+              border: `1px solid ${active ? '#4a5258' : '#4a5258'}`,
+              color: active ? '#3c444a' : '#8a97a0',
+            }}
           >
             {player.level}
           </span>
-          {hero &&
-            (linkless ? (
-              <span
-                className="text-[10px] uppercase tracking-wider truncate"
-                style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
-              >
-                {hero.localized_name}
-              </span>
-            ) : (
-              <a
-                href={`/hero/${heroShort}`}
-                className="text-[10px] uppercase tracking-wider truncate hover:underline"
-                style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
-              >
-                {hero.localized_name}
-              </a>
-            ))}
-          {rank && (
-            <span className="text-[9px] shrink-0" style={{ color: '#5a5446', fontFamily: 'var(--font-dota)' }}>
-              · {rank}
+          {hero && (
+            <span
+              className="text-[11px] uppercase truncate"
+              style={{ color: active ? '#3c444a' : '#8a97a0', letterSpacing: '1px' }}
+            >
+              {hero.localized_name}
             </span>
           )}
         </div>
@@ -155,23 +155,25 @@ export function TeamHeader({
   isWinner: boolean
   width: number
 }) {
-  const color = isRadiant ? '#8ec63f' : '#d14a38'
+  const color = isRadiant ? '#9fbf3f' : '#c94a38'
   const name = isRadiant ? 'The Radiant' : 'The Dire'
   return (
     <div
-      className="flex items-center gap-2 shrink-0"
-      style={{ width, height: TEAM_HEADER_H, padding: '0 10px', borderLeft: `3px solid ${color}`, background: `${color}12` }}
+      className="flex items-center gap-3 shrink-0"
+      style={{ width, height: TEAM_HEADER_H, padding: '0 10px', background: 'rgba(10,12,14,0.75)', fontFamily: 'var(--font-dota)' }}
     >
-      <span className="text-[14px] font-bold" style={{ color, fontFamily: 'var(--font-dota)' }}>
-        {name}
-      </span>
-      <span className="text-[11px] uppercase tracking-wide" style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}>
-        Score: <span style={{ color }}>{score}</span>
-      </span>
+      <div className="min-w-0">
+        <div className="text-[20px] leading-tight truncate" style={{ color, textShadow: `0 0 10px ${color}44` }}>
+          {name}
+        </div>
+        <div className="text-[11px] uppercase leading-tight" style={{ color: '#67757f', letterSpacing: '1px' }}>
+          Score: <span className="text-[13px]" style={{ color: '#ffffff' }}>{score}</span>
+        </div>
+      </div>
       {isWinner && (
         <span
-          className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ml-auto"
-          style={{ background: '#123010', color: '#8ec63f', border: '1px solid #8ec63f44' }}
+          className="text-[10px] uppercase px-2 py-0.5 ml-auto shrink-0"
+          style={{ background: '#d8dee3', color: '#14181b', letterSpacing: '2px', transform: 'skewX(-12deg)' }}
         >
           Winner
         </span>
@@ -180,13 +182,13 @@ export function TeamHeader({
   )
 }
 
-/* Standalone roster sidebar for the Graphs tab.
+/* Standalone roster sidebar for the Scoreboard / Graphs tabs.
    When `interactive` is set, each row toggles that player's series on/off and
    shows a line-color chip so the sidebar doubles as the chart legend. */
 export function MatchRosterSidebar({
   match,
   heroStats,
-  width = 232,
+  width = 264,
   selectedSlot,
   interactive = false,
   visibleSlots,
@@ -204,8 +206,8 @@ export function MatchRosterSidebar({
 }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const { radiant, dire } = orderedTeams(match)
-  const radKills = radiant.reduce((s, p) => s + p.kills, 0)
-  const direKills = dire.reduce((s, p) => s + p.kills, 0)
+  const radKills = match.radiant_score ?? radiant.reduce((s, p) => s + p.kills, 0)
+  const direKills = match.dire_score ?? dire.reduce((s, p) => s + p.kills, 0)
 
   const row = (p: MatchPlayer) => {
     const color = PLAYER_COLORS[p.player_slot] ?? '#888'
@@ -233,7 +235,7 @@ export function MatchRosterSidebar({
           type="button"
           onClick={() => onToggle?.(p.player_slot)}
           className="flex items-center w-full transition-opacity hover:bg-white/[0.03]"
-          style={{ borderBottom: '1px solid #1c1810', opacity: on ? 1 : 0.4 }}
+          style={{ boxShadow: 'inset 0 -1px 0 #1b2023', opacity: on ? 1 : 0.4 }}
         >
           {chip}
           {identity}
@@ -241,7 +243,7 @@ export function MatchRosterSidebar({
       )
     }
     return (
-      <div key={p.player_slot} className="flex items-center" style={{ borderBottom: '1px solid #1c1810' }}>
+      <div key={p.player_slot} className="flex items-center" style={{ boxShadow: 'inset 0 -1px 0 #1b2023' }}>
         {chip}
         {identity}
       </div>
@@ -261,9 +263,8 @@ export function MatchRosterSidebar({
   )
 
   return (
-    <div className="shrink-0" style={{ width }}>
+    <div className="shrink-0" style={{ width, background: 'rgba(16,19,22,0.72)' }}>
       {section(radiant, true)}
-      <div style={{ height: 8 }} />
       {section(dire, false)}
     </div>
   )

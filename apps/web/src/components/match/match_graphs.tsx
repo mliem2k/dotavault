@@ -11,8 +11,8 @@ import {
   orderedTeams,
 } from './match_roster'
 
-const SIDEBAR_W = 232
-const TEAM_GAP = 8
+const SIDEBAR_W = 272
+const TEAM_GAP = 0
 // Total height of the roster (radiant header + 5 rows + gap + dire header + 5 rows)
 const ROSTER_H = 2 * TEAM_HEADER_H + 10 * ROW_H + TEAM_GAP
 
@@ -426,20 +426,12 @@ export function MatchGraphs({
   idToName: Map<number, string>
   itemConst: Record<string, ItemConst>
 }) {
-  const hasAdv = (match.radiant_gold_adv?.length ?? 0) > 1
-  const hasNet = match.players.some((p) => (p.gold_t?.length ?? 0) > 1)
-  const hasXp = match.players.some((p) => (p.xp_t?.length ?? 0) > 1)
-  const hasItems = match.players.some((p) => (p.purchase_log?.length ?? 0) > 0)
+  // All four client modes are always offered; modes without parsed data render
+  // the "unparsed" placeholder in the chart area.
+  const available: Mode[] = ['team', 'networth', 'level', 'items']
 
-  const available: Mode[] = [
-    ...(hasAdv ? (['team'] as Mode[]) : []),
-    ...(hasNet ? (['networth'] as Mode[]) : []),
-    ...(hasXp ? (['level'] as Mode[]) : []),
-    ...(hasItems ? (['items'] as Mode[]) : []),
-  ]
-
-  const [mode, setMode] = useState<Mode>('items')
-  const activeMode = available.includes(mode) ? mode : (available[0] ?? 'items')
+  const [mode, setMode] = useState<Mode>('team')
+  const activeMode = mode
 
   // Which players' lines are shown (Player Net Worth / Player Level modes).
   const [visibleSlots, setVisibleSlots] = useState<Set<number>>(
@@ -495,32 +487,23 @@ export function MatchGraphs({
   }
   const allSlots = () => setVisibleSlots(new Set(match.players.map((p) => p.player_slot)))
 
-  if (available.length === 0) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <span className="text-sm" style={{ color: '#5a5446', fontFamily: 'var(--font-dota)' }}>
-          This match is unparsed — request a parse to see graphs.
-        </span>
-      </div>
-    )
-  }
-
   return (
     <div className="overflow-x-auto">
       <div style={{ minWidth: 980 }}>
         {/* Mode toggle (full width) */}
-        <div className="flex gap-1 mb-2" style={{ marginLeft: SIDEBAR_W + 16 }}>
+        <div className="flex gap-2 mb-3" style={{ marginLeft: SIDEBAR_W + 16 }}>
           {available.map((m) => (
             <button
               key={m}
               type="button"
               onClick={() => setMode(m)}
-              className="flex-1 px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors rounded-sm"
+              className="flex-1 px-3 py-2.5 text-[13px] uppercase transition-colors cursor-pointer"
               style={{
                 fontFamily: 'var(--font-dota)',
-                color: activeMode === m ? '#ece6d8' : '#8a8474',
-                background: activeMode === m ? '#2a2620' : '#16130f',
-                border: `1px solid ${activeMode === m ? '#3a352a' : '#241f16'}`,
+                letterSpacing: '1px',
+                color: activeMode === m ? '#ffffff' : '#8a97a0',
+                background: activeMode === m ? '#5c666c' : 'rgba(22,26,29,0.85)',
+                border: `1px solid ${activeMode === m ? '#6e787e' : '#242a2e'}`,
               }}
             >
               {MODE_LABELS[m]}

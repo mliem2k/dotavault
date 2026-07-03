@@ -2,17 +2,47 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { HeroBenchmarks, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { opendota } from '@/lib/opendota'
-import { cdnFallback, heroIconFromPath, heroIconUrl, heroVertCdn, heroVertUrl } from '@/lib/utils'
+import {
+  cdnFallback,
+  formatDuration,
+  heroIconFromPath,
+  heroIconUrl,
+  heroLandscapeCdn,
+  heroLandscapeUrl,
+  heroVertCdn,
+  heroVertUrl,
+} from '@/lib/utils'
 import { ItemIcon } from './item_icon'
 import { levelFromXp } from './match_roster'
 
-const PLAYER_COLORS: Record<number, string> = {
-  0: '#3375FF', 1: '#66FFBF', 2: '#BF00BF', 3: '#F3F00B', 4: '#FF6600',
-  128: '#FE87C4', 129: '#A1B477', 130: '#65D9F7', 131: '#007A00', 132: '#A46900',
+const GAME_MODES: Record<number, string> = {
+  1: 'All Pick',
+  2: 'Captains Mode',
+  3: 'Random Draft',
+  4: 'Single Draft',
+  5: 'All Random',
+  12: 'Least Played',
+  16: 'Captains Draft',
+  22: 'All Pick',
+  23: 'Turbo',
 }
 
 // Animated hero renders (kept on Valve's CDN — the webm clips are ~1.3MB each).
 const RENDER = 'https://cdn.steamstatic.com/apps/dota2/videos/dota_react/heroes/renders'
+const AGHS_SCEPTER = 'https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/stats/aghs_scepter.png'
+
+// Client palette (post-game screens).
+const C = {
+  label: '#67757f',
+  labelBright: '#8a97a0',
+  white: '#ffffff',
+  text: '#cfd4d8',
+  gold: '#f2c94c',
+  green: '#9fbf3f',
+  red: '#c94a38',
+  panel: 'rgba(16,19,22,0.85)',
+  panelBorder: '#22282c',
+}
 
 // Animated hero render, falling back to the self-hosted static portrait if the
 // clip is unavailable.
@@ -75,10 +105,6 @@ function HeroRender({
   )
 }
 
-function fmtK(v: number): string {
-  return v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v)
-}
-
 function formatClock(seconds: number): string {
   const neg = seconds < 0
   const abs = Math.abs(Math.floor(seconds))
@@ -87,10 +113,10 @@ function formatClock(seconds: number): string {
   return `${neg ? '-' : ''}${m}:${String(s).padStart(2, '0')}`
 }
 
-const GoldIcon = ({ size = 11 }: { size?: number }) => (
+const GoldIcon = ({ size = 12 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 10 10" fill="none" className="inline-block shrink-0">
-    <circle cx="5" cy="5" r="4.5" fill="#c8961e" />
-    <text x="5" y="7.5" textAnchor="middle" fontSize="6" fill="#fff" fontWeight="bold">$</text>
+    <circle cx="5" cy="5" r="4.5" fill="#e5b12c" />
+    <text x="5" y="7.5" textAnchor="middle" fontSize="6" fill="#5a4106" fontWeight="bold">$</text>
   </svg>
 )
 
@@ -173,14 +199,17 @@ function statsAtTime(
 type PlayStyle = { support: number; pushing: number; fighting: number; farming: number }
 
 // Relative play style within THIS match (top performer per axis ≈ 10).
+// Null-safe for unparsed matches where damage/healing fields are missing.
 function playStyle(player: MatchPlayer, all: MatchPlayer[]): PlayStyle {
   const maxOf = (f: (p: MatchPlayer) => number) => Math.max(1, ...all.map(f))
-  const supportRaw = (p: MatchPlayer) => p.hero_healing + (p.obs_placed ?? 0) * 200 + (p.sen_placed ?? 0) * 120
-  const fightRaw = (p: MatchPlayer) => p.kills + p.assists + p.hero_damage / 1000
+  const supportRaw = (p: MatchPlayer) =>
+    (p.hero_healing ?? 0) + (p.obs_placed ?? 0) * 200 + (p.sen_placed ?? 0) * 120 + p.assists * 40
+  const fightRaw = (p: MatchPlayer) => p.kills + p.assists + (p.hero_damage ?? 0) / 1000
+  const pushRaw = (p: MatchPlayer) => (p.tower_damage ?? 0) + (p.gold_per_min ?? 0)
   const scale = (v: number) => Math.min(10, Math.max(0, v * 10))
   return {
     support: scale(supportRaw(player) / maxOf(supportRaw)),
-    pushing: scale(player.tower_damage / maxOf((p) => p.tower_damage)),
+    pushing: scale(pushRaw(player) / maxOf(pushRaw)),
     fighting: scale(fightRaw(player) / maxOf(fightRaw)),
     farming: scale(player.last_hits / maxOf((p) => p.last_hits)),
   }
@@ -210,71 +239,82 @@ function overallPercentile(player: MatchPlayer): number {
 function HeroPortraitCard({
   player,
   hero,
-  isRadiant,
   onClick,
 }: {
   player: MatchPlayer
   hero: HeroStat | undefined
-  isRadiant: boolean
   onClick: () => void
 }) {
-  const teamColor = isRadiant ? '#8ec63f' : '#d14a38'
-  const slotColor = PLAYER_COLORS[player.player_slot] ?? '#888'
   const playerName = player.personaname ?? player.name ?? 'Anonymous'
+  const hasAghs = (player.aghanims_scepter ?? 0) > 0
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group relative overflow-hidden shrink-0 flex flex-col text-left cursor-pointer"
-      style={{ width: '118px', height: '300px', background: '#100e0b' }}
-    >
-      <div className="absolute top-0 left-0 right-0 z-20 h-[3px]" style={{ background: teamColor }} />
-      <div className="absolute top-[3px] left-0 bottom-0 z-20 w-[2px]" style={{ background: slotColor }} />
-
-      {hero ? (
-        <HeroRender
-          hero={hero}
-          className="absolute inset-0 w-full h-full object-cover"
-          objectPosition="center top"
-          scale={1.25}
-        />
-      ) : (
-        <div className="absolute inset-0 bg-[#161310]" />
-      )}
-
-      <div
-        className="absolute inset-0 z-10"
-        style={{ background: 'linear-gradient(180deg, rgba(4,10,18,0.85) 0%, transparent 22%, transparent 55%, rgba(4,10,18,0.9) 100%)' }}
-      />
-
-      {/* Player name */}
-      <div className="absolute top-1.5 left-1.5 right-1.5 z-20">
-        <span
-          className="block text-[12px] font-semibold leading-tight line-clamp-2 group-hover:text-white"
-          style={{ color: '#e8e2d4', fontFamily: 'var(--font-dota)', letterSpacing: '0.02em', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}
+    <div className="flex flex-col items-center shrink-0" style={{ width: 118 }}>
+      <button
+        type="button"
+        onClick={onClick}
+        className="group relative overflow-hidden flex flex-col w-full text-left cursor-pointer"
+        style={{ height: 360, background: 'rgba(13,16,18,0.9)', boxShadow: '0 2px 10px rgba(0,0,0,0.5)' }}
+      >
+        {/* Player name strip above the portrait */}
+        <div
+          className="shrink-0 flex items-center justify-center px-1.5 text-center"
+          style={{ minHeight: 42, background: 'rgba(10,12,14,0.85)' }}
         >
-          {playerName}
-        </span>
-      </div>
-
-      {/* Net worth + KDA */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 px-1.5 pb-1.5">
-        <div className="flex items-center gap-1 mb-0.5">
-          <GoldIcon size={11} />
-          <span className="text-[13px] font-bold leading-none tabular-nums" style={{ color: '#d8bf6a', fontFamily: 'var(--font-dota)' }}>
-            {player.net_worth.toLocaleString()}
+          <span
+            className="block text-[13px] leading-tight line-clamp-2 group-hover:text-white"
+            style={{ color: '#e8ecef', fontFamily: 'var(--font-dota)' }}
+          >
+            {playerName}
           </span>
         </div>
-        <div className="text-[13px] font-bold tabular-nums leading-none" style={{ fontFamily: 'var(--font-dota)' }}>
-          <span style={{ color: '#57c262' }}>{player.kills}</span>
-          <span style={{ color: '#5a5446' }}> / </span>
-          <span style={{ color: '#e84747' }}>{player.deaths}</span>
-          <span style={{ color: '#5a5446' }}> / </span>
-          <span style={{ color: '#dcd6c8' }}>{player.assists}</span>
+
+        {/* Portrait */}
+        <div className="relative flex-1 overflow-hidden">
+          {hero ? (
+            <HeroRender
+              hero={hero}
+              className="absolute inset-0 w-full h-full object-cover"
+              objectPosition="center top"
+              scale={1.15}
+            />
+          ) : (
+            <div className="absolute inset-0" style={{ background: '#14181b' }} />
+          )}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(180deg, transparent 70%, rgba(6,8,10,0.9) 100%)' }}
+          />
         </div>
-      </div>
-    </button>
+
+        {/* Net worth + KDA below the artwork */}
+        <div className="shrink-0 px-2 py-1.5" style={{ background: 'rgba(10,12,14,0.85)' }}>
+          <div className="flex items-center gap-1 mb-0.5">
+            <GoldIcon size={12} />
+            <span className="text-[14px] leading-none tabular-nums" style={{ color: C.gold, fontFamily: 'var(--font-dota)' }}>
+              {player.net_worth.toLocaleString()}
+            </span>
+          </div>
+          <div className="text-[14px] tabular-nums leading-none" style={{ fontFamily: 'var(--font-dota)' }}>
+            <span style={{ color: '#fff', fontWeight: 700 }}>{player.kills}</span>
+            <span style={{ color: '#5a6066' }}> / </span>
+            <span style={{ color: C.text }}>{player.deaths}</span>
+            <span style={{ color: '#5a6066' }}> / </span>
+            <span style={{ color: C.text }}>{player.assists}</span>
+          </div>
+        </div>
+      </button>
+
+      {/* Aghanim's Scepter badge under the card, like the client */}
+      {hasAghs && (
+        <div
+          className="mt-1.5 flex items-center justify-center"
+          style={{ width: 32, height: 32, background: 'rgba(13,16,18,0.9)', border: `1px solid ${C.panelBorder}` }}
+        >
+          <img src={AGHS_SCEPTER} alt="Aghanim's Scepter" style={{ width: 24, height: 24 }} />
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -294,7 +334,7 @@ function ThumbStrip({
   onSelect: (slot: number) => void
 }) {
   return (
-    <div className="flex gap-1.5">
+    <div className="flex gap-2">
       {players.map((p) => {
         const hero = heroMap.get(p.hero_id)
         const active = p.player_slot === selectedSlot
@@ -303,26 +343,21 @@ function ThumbStrip({
             key={p.player_slot}
             type="button"
             onClick={() => onSelect(p.player_slot)}
-            className="relative shrink-0 overflow-hidden rounded transition-all"
+            className="relative shrink-0 overflow-hidden transition-all cursor-pointer"
             style={{
-              width: 52,
-              height: 52,
-              border: active ? '2px solid #c9a94a' : '2px solid transparent',
-              opacity: active ? 1 : 0.55,
-              filter: active ? 'none' : 'grayscale(0.3)',
+              width: 104,
+              height: 59,
+              border: active ? '1px solid rgba(255,255,255,0.9)' : '1px solid transparent',
+              filter: active ? 'none' : 'brightness(0.45)',
             }}
             title={p.personaname ?? p.name ?? ''}
           >
             {hero && (
               <img
-                src={heroIconUrl(hero.name)}
+                src={heroLandscapeUrl(hero.name)}
                 alt={hero.localized_name}
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  const img = e.currentTarget
-            img.onerror = null
-            img.src = heroIconFromPath(hero.icon)
-                }}
+                onError={cdnFallback(heroLandscapeCdn(hero.name))}
               />
             )}
           </button>
@@ -346,30 +381,24 @@ function PlayStyleBars({ style }: { style: PlayStyle }) {
   return (
     <div>
       <div
-        className="text-center text-[11px] font-bold uppercase tracking-widest mb-2"
-        style={{ color: '#948e7c', fontFamily: 'var(--font-dota)' }}
+        className="text-center text-[12px] uppercase mb-2"
+        style={{ color: '#b8c4cc', fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}
       >
         Play Style in This Match
       </div>
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {rows.map(([label, val]) => (
           <div key={label} className="flex items-center gap-2">
             <span
-              className="w-16 shrink-0 text-[11px] uppercase tracking-wide text-right"
-              style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+              className="w-16 shrink-0 text-[11px] uppercase text-right"
+              style={{ color: C.labelBright, fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}
             >
               {label}
             </span>
-            <div className="flex-1 h-[7px] rounded-full overflow-hidden" style={{ background: '#161310' }}>
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${(val / 10) * 100}%`,
-                  background: 'linear-gradient(90deg, #4a7a2a, #8ec63f)',
-                }}
-              />
+            <div className="flex-1 h-[5px] overflow-hidden" style={{ background: '#3a4147' }}>
+              <div className="h-full" style={{ width: `${(val / 10) * 100}%`, background: '#a9c53d' }} />
             </div>
-            <span className="w-7 shrink-0 text-[11px] tabular-nums" style={{ color: '#9ab84a', fontFamily: 'var(--font-dota)' }}>
+            <span className="w-7 shrink-0 text-[11px] tabular-nums" style={{ color: '#e8ecef', fontFamily: 'var(--font-dota)' }}>
               {val.toFixed(1)}
             </span>
           </div>
@@ -384,12 +413,12 @@ function PlayStyleBars({ style }: { style: PlayStyle }) {
 /* ------------------------------------------------------------------ */
 
 function DeltaValue({ value, delta }: { value: number; delta: number | null }) {
-  const color = delta == null ? '#dcd6c8' : delta >= 0 ? '#7ac74f' : '#e07a5a'
+  const color = delta == null ? '#e8ecef' : delta >= 0 ? '#7ac74f' : '#d95f4a'
   return (
     <span className="text-[13px] font-semibold tabular-nums" style={{ color, fontFamily: 'var(--font-dota)' }}>
       {value.toLocaleString()}
       {delta != null && (
-        <span className="text-[11px] ml-1 opacity-90">
+        <span className="text-[12px] ml-1">
           ({delta >= 0 ? '+' : ''}{delta})
         </span>
       )}
@@ -420,52 +449,49 @@ function VsAveragesBox({
 
   const pct = overallPercentile(player)
 
+  const row = (label: string, value: number, delta: number | null) => (
+    <div className="flex items-baseline gap-1.5">
+      <span className="text-[11px] uppercase" style={{ color: C.labelBright, fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}>
+        {label}:
+      </span>
+      <DeltaValue value={value} delta={delta} />
+    </div>
+  )
+
   return (
-    <div className="rounded" style={{ background: '#12100c', border: '1px solid #26221a' }}>
+    <div style={{ background: 'rgba(24,30,33,0.85)', border: `1px solid ${C.panelBorder}` }}>
       <div
-        className="text-center text-[11px] font-bold uppercase tracking-widest py-1.5"
-        style={{ color: '#948e7c', fontFamily: 'var(--font-dota)', borderBottom: '1px solid #26221a' }}
+        className="text-[11px] uppercase px-3 pt-2"
+        style={{ color: '#b8c4cc', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}
       >
         vs Their Averages for This Hero
       </div>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] uppercase tracking-wide" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>GPM</span>
-          <DeltaValue value={stats.gpm} delta={gpmDelta} />
+      <div className="grid grid-cols-2 gap-x-6 gap-y-1 px-3 py-2">
+        <div className="space-y-1">
+          {row('GPM', stats.gpm, gpmDelta)}
+          {row('XPM', stats.xpm, xpmDelta)}
+          {row('Kills', stats.kills, killsDelta)}
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] uppercase tracking-wide" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>Deaths</span>
-          <DeltaValue value={stats.deaths} delta={null} />
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] uppercase tracking-wide" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>XPM</span>
-          <DeltaValue value={stats.xpm} delta={xpmDelta} />
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] uppercase tracking-wide" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>Assists</span>
-          <DeltaValue value={stats.assists} delta={null} />
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] uppercase tracking-wide" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>Kills</span>
-          <DeltaValue value={stats.kills} delta={killsDelta} />
+        <div className="space-y-1">
+          {row('Deaths', stats.deaths, null)}
+          {row('Assists', stats.assists, null)}
         </div>
       </div>
       {/* Percentile bar */}
-      <div className="px-4 pb-3">
+      <div className="px-3 pb-3">
         <div
-          className="relative h-[10px] rounded-full"
-          style={{ background: 'linear-gradient(90deg, #a23a2a 0%, #b0902a 50%, #4a9a3a 100%)' }}
+          className="relative h-[6px]"
+          style={{ background: 'linear-gradient(90deg, #a63426 0%, #2c3236 50%, #4a9a3a 100%)' }}
         >
+          <div className="absolute top-[-3px] bottom-[-3px]" style={{ left: '50%', width: 1, background: '#8a97a0' }} />
           <div
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full overflow-hidden"
-            style={{ left: `${pct * 100}%`, width: 18, height: 18, border: '2px solid #e8e2d4', background: '#161310' }}
+            className="absolute -translate-x-1/2 overflow-hidden"
+            style={{ left: `${pct * 100}%`, bottom: 2, width: 26, height: 26, filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.8))' }}
           >
-            {hero && (
-              <img src={heroIconUrl(hero.name)} alt="" className="w-full h-full object-cover" />
-            )}
+            {hero && <img src={heroIconUrl(hero.name)} alt="" className="w-full h-full object-cover" />}
           </div>
         </div>
-        <div className="text-center text-[9px] uppercase tracking-widest mt-1" style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}>
+        <div className="text-center text-[10px] uppercase mt-1" style={{ color: C.labelBright, fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}>
           Average
         </div>
       </div>
@@ -485,7 +511,6 @@ function DetailPanel({
   itemConst,
   timeSec,
   durationSec,
-  isRadiant,
 }: {
   player: MatchPlayer
   hero: HeroStat | undefined
@@ -494,9 +519,7 @@ function DetailPanel({
   itemConst: Record<string, ItemConst>
   timeSec: number
   durationSec: number
-  isRadiant: boolean
 }) {
-  const teamColor = isRadiant ? '#8ec63f' : '#d14a38'
   const playerName = player.personaname ?? player.name ?? 'Anonymous'
   const items = itemsAtTime(player, idToName, timeSec)
   const style = playStyle(player, allPlayers)
@@ -511,52 +534,50 @@ function DetailPanel({
   })
 
   return (
-    <div className="flex gap-4 min-w-0">
+    <div className="flex gap-5 min-w-0">
       {/* Info column */}
-      <div className="flex-1 min-w-0 space-y-3">
-        {/* Header box */}
-        <div
-          className="flex items-center gap-3 rounded px-3 py-2.5"
-          style={{ background: `linear-gradient(90deg, ${teamColor}18, #12100c)`, border: `1px solid ${teamColor}30` }}
-        >
+      <div className="flex-1 min-w-0 space-y-3" style={{ maxWidth: 360 }}>
+        {/* Name panel */}
+        <div className="flex items-center gap-3 px-3 py-2.5" style={{ background: 'rgba(8,10,12,0.9)' }}>
           {hero && (
             <img
               src={heroIconUrl(hero.name)}
               alt=""
-              className="w-11 h-11 rounded shrink-0"
+              className="w-12 h-12 shrink-0"
               onError={(e) => {
                 const img = e.currentTarget
-            img.onerror = null
-            img.src = heroIconFromPath(hero.icon)
+                img.onerror = null
+                img.src = heroIconFromPath(hero.icon)
               }}
             />
           )}
           <div className="min-w-0">
             <div
-              className="text-[20px] font-bold leading-tight truncate"
-              style={{ color: '#f0eae0', fontFamily: 'var(--font-dota)' }}
+              className="text-[24px] leading-tight truncate"
+              style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}
             >
               {playerName}
             </div>
-            <div className="text-[11px] uppercase tracking-wider" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
-              Lvl {stats.level} · {hero?.localized_name ?? ''}
+            <div className="text-[12px] uppercase" style={{ color: '#86a34c', fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}>
+              Lvl {stats.level} {hero?.localized_name ?? ''}
             </div>
           </div>
         </div>
 
         {/* Item grid 2×3 */}
-        <div className="grid grid-cols-3 gap-1.5" style={{ maxWidth: 200 }}>
+        <div className="grid grid-cols-3 gap-2" style={{ maxWidth: 300 }}>
           {items.map((id, i) => {
             const name = id ? (idToName.get(id) ?? null) : null
             return (
-              <ItemIcon
-                key={i}
-                name={name}
-                meta={name ? itemConst[name] : undefined}
-                width={62}
-                height={46}
-                className="w-full"
-              />
+              <div key={i} style={{ background: 'rgba(10,13,15,0.9)', border: `1px solid ${C.panelBorder}` }}>
+                <ItemIcon
+                  name={name}
+                  meta={name ? itemConst[name] : undefined}
+                  width={88}
+                  height={64}
+                  className="w-full"
+                />
+              </div>
             )
           })}
         </div>
@@ -573,28 +594,24 @@ function DetailPanel({
       </div>
 
       {/* Hero render column */}
-      <div className="shrink-0 flex flex-col items-center" style={{ width: 150 }}>
-        <div className="relative overflow-hidden rounded w-full" style={{ height: 320, background: '#100e0b' }}>
+      <div className="shrink-0 flex flex-col" style={{ width: 230 }}>
+        <div className="relative overflow-hidden w-full" style={{ height: 400 }}>
           {hero ? (
             <HeroRender hero={hero} className="absolute inset-0 w-full h-full object-cover" objectPosition="center top" />
           ) : null}
-          <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(180deg, transparent 60%, rgba(4,10,18,0.92) 100%)' }}
-          />
         </div>
-        <div className="flex items-center gap-1 mt-2">
-          <GoldIcon size={13} />
-          <span className="text-[16px] font-bold tabular-nums" style={{ color: '#d8bf6a', fontFamily: 'var(--font-dota)' }}>
+        <div className="flex items-center gap-1.5 mt-2">
+          <GoldIcon size={15} />
+          <span className="text-[19px] tabular-nums" style={{ color: C.gold, fontFamily: 'var(--font-dota)' }}>
             {stats.netWorth.toLocaleString()}
           </span>
         </div>
-        <div className="text-[16px] font-bold tabular-nums mt-0.5" style={{ fontFamily: 'var(--font-dota)' }}>
-          <span style={{ color: '#57c262' }}>{stats.kills}</span>
-          <span style={{ color: '#5a5446' }}> / </span>
-          <span style={{ color: '#e84747' }}>{stats.deaths}</span>
-          <span style={{ color: '#5a5446' }}> / </span>
-          <span style={{ color: '#dcd6c8' }}>{stats.assists}</span>
+        <div className="text-[21px] tabular-nums mt-0.5" style={{ fontFamily: 'var(--font-dota)' }}>
+          <span style={{ color: '#fff', fontWeight: 700 }}>{stats.kills}</span>
+          <span style={{ color: '#5a6066' }}> / </span>
+          <span style={{ color: C.text }}>{stats.deaths}</span>
+          <span style={{ color: '#5a6066' }}> / </span>
+          <span style={{ color: C.text }}>{stats.assists}</span>
         </div>
       </div>
     </div>
@@ -627,19 +644,10 @@ function GameTimeSlider({
   }
 
   return (
-    <div className="flex items-center gap-3 select-none">
-      <button
-        type="button"
-        onClick={() => onChange(duration)}
-        className="text-[10px] uppercase tracking-widest shrink-0"
-        style={{ color: pct >= 1 ? '#c9a94a' : '#77715f', fontFamily: 'var(--font-dota)' }}
-        title="Jump to end"
-      >
-        Live
-      </button>
+    <div className="mx-auto select-none" style={{ width: '46%', minWidth: 320 }}>
       <div
         ref={trackRef}
-        className="relative flex-1 h-6 flex items-center cursor-pointer"
+        className="relative h-7 flex items-center cursor-pointer"
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId)
           dragging.current = true
@@ -653,20 +661,23 @@ function GameTimeSlider({
           e.currentTarget.releasePointerCapture(e.pointerId)
         }}
       >
-        <div className="absolute left-0 right-0 h-[4px] rounded-full" style={{ background: '#26221a' }} />
-        <div className="absolute left-0 h-[4px] rounded-full" style={{ width: `${pct * 100}%`, background: '#5a6a72' }} />
         <div
-          className="absolute -translate-x-1/2 flex items-center justify-center rounded"
+          className="absolute left-0 right-0 h-[12px]"
+          style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.35)' }}
+        />
+        <div className="absolute left-0 h-[12px]" style={{ width: `${pct * 100}%`, background: 'rgba(255,255,255,0.18)' }} />
+        <div
+          className="absolute -translate-x-1/2 flex items-center justify-center"
           style={{
             left: `${pct * 100}%`,
-            minWidth: 52,
-            height: 22,
-            background: '#1a160f',
-            border: '1px solid #5a6a72',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.6)',
+            minWidth: 62,
+            height: 26,
+            background: '#15181b',
+            border: '1px solid rgba(255,255,255,0.7)',
+            boxShadow: '0 1px 6px rgba(0,0,0,0.7)',
           }}
         >
-          <span className="text-[12px] font-bold tabular-nums px-1" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+          <span className="text-[14px] tabular-nums px-1.5" style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}>
             {formatClock(timeSec)}
           </span>
         </div>
@@ -684,8 +695,8 @@ function BackButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="shrink-0 rounded px-3 py-2 text-[10px] font-bold uppercase tracking-widest leading-tight text-center transition-colors"
-      style={{ background: '#1a160f', border: '1px solid #332e20', color: '#a09a86', fontFamily: 'var(--font-dota)' }}
+      className="shrink-0 px-4 py-2 text-[11px] uppercase leading-snug text-center transition-colors cursor-pointer hover:brightness-125"
+      style={{ background: '#22282c', color: '#cfd4d8', fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}
     >
       Back to
       <br />
@@ -729,41 +740,113 @@ export function MatchOverview({
   const selRadiantPlayer = radiant.find((p) => p.player_slot === selRadiant)
   const selDirePlayer = dire.find((p) => p.player_slot === selDire)
 
+  const winnerLabel = match.radiant_win ? 'Radiant Victory' : 'Dire Victory'
+  const winnerColor = match.radiant_win ? C.green : C.red
+  const startDate = new Date(match.start_time * 1000)
+  const dateStr = `${startDate.getMonth() + 1}/${startDate.getDate()}/${startDate.getFullYear()} ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`
+
+  /* Score header (team view only, like the client) */
+  const scoreHeader = (
+    <div className="relative flex items-center justify-center py-4">
+      <div className="flex items-center gap-5">
+        <span
+          className="tabular-nums"
+          style={{ fontSize: 64, lineHeight: 1, color: C.green, fontFamily: 'var(--font-dota)', textShadow: '0 0 12px rgba(159,191,63,0.35)' }}
+        >
+          {match.radiant_score}
+        </span>
+        <div className="text-center" style={{ fontFamily: 'var(--font-dota)' }}>
+          <div className="text-[13px] uppercase" style={{ color: C.labelBright, letterSpacing: '2px' }}>
+            {GAME_MODES[match.game_mode] ?? `Mode ${match.game_mode}`}
+          </div>
+          <div className="text-[13px] uppercase" style={{ color: C.label, letterSpacing: '2px' }}>
+            Duration <span className="ml-1 text-[17px]" style={{ color: '#e8ecef' }}>{formatDuration(match.duration)}</span>
+          </div>
+        </div>
+        <span
+          className="tabular-nums"
+          style={{ fontSize: 64, lineHeight: 1, color: C.red, fontFamily: 'var(--font-dota)', textShadow: '0 0 12px rgba(201,74,56,0.35)' }}
+        >
+          {match.dire_score}
+        </span>
+      </div>
+      <div
+        className="absolute right-0 top-1/2 -translate-y-1/2 hidden xl:block"
+        style={{
+          fontSize: 44,
+          color: winnerColor,
+          fontFamily: 'var(--font-dota)',
+          textShadow: `0 0 24px ${winnerColor}66`,
+        }}
+      >
+        {winnerLabel}
+      </div>
+    </div>
+  )
+
+  /* Footer: replay button + match id / date (team view only) */
+  const footer = (
+    <div className="flex flex-col items-center gap-5 pt-10 pb-6" style={{ fontFamily: 'var(--font-dota)' }}>
+      {match.replay_url ? (
+        <a
+          href={match.replay_url}
+          className="px-6 py-2 text-[15px] uppercase hover:brightness-125"
+          style={{ background: '#0e2233', border: '1px solid #24455f', color: '#4faee3', letterSpacing: '2px' }}
+        >
+          Download Replay
+        </a>
+      ) : (
+        <span
+          className="px-6 py-2 text-[15px] uppercase"
+          style={{ background: '#0e2233', border: '1px solid #24455f', color: '#4faee3', letterSpacing: '2px', opacity: 0.45 }}
+          title="Replay unavailable"
+        >
+          Download Replay
+        </span>
+      )}
+      <div className="flex items-center gap-10">
+        <div className="flex items-baseline gap-3">
+          <span className="text-[13px] uppercase" style={{ color: '#4d6f85', letterSpacing: '2px' }}>Match ID</span>
+          <span className="text-[15px] tabular-nums" style={{ color: '#7fa8c4' }}>{match.match_id}</span>
+        </div>
+        <div className="flex items-baseline gap-3">
+          <span className="text-[13px] uppercase" style={{ color: '#4d6f85', letterSpacing: '2px' }}>Match Date / Time</span>
+          <span className="text-[15px] tabular-nums" style={{ color: '#7fa8c4' }}>{dateStr}</span>
+        </div>
+      </div>
+    </div>
+  )
+
   /* ---- Team view (nothing selected) ---- */
   if (!anySelected) {
     return (
       <div className="overflow-x-auto">
-        <div className="inline-flex flex-col gap-2 min-w-full">
-          <div className="flex items-stretch gap-1">
+        <div style={{ minWidth: 1080 }}>
+          {scoreHeader}
+          <div className="flex items-start justify-center gap-1 mt-2">
             <div className="flex gap-1 shrink-0">
               {radiant.map((p) => (
                 <HeroPortraitCard
                   key={p.player_slot}
                   player={p}
                   hero={heroMap.get(p.hero_id)}
-                  isRadiant
                   onClick={() => selectHero(p)}
                 />
               ))}
             </div>
-            <div className="w-6 shrink-0" />
+            <div className="w-16 shrink-0" />
             <div className="flex gap-1 shrink-0">
               {dire.map((p) => (
                 <HeroPortraitCard
                   key={p.player_slot}
                   player={p}
                   hero={heroMap.get(p.hero_id)}
-                  isRadiant={false}
                   onClick={() => selectHero(p)}
                 />
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-1 text-[11px] uppercase tracking-widest font-semibold" style={{ fontFamily: 'var(--font-dota)' }}>
-            <div style={{ width: `${5 * 118 + 4 * 4}px`, color: '#8ec63f' }}>Radiant</div>
-            <div className="w-6" />
-            <div style={{ color: '#d14a38' }}>Dire</div>
-          </div>
+          {footer}
         </div>
       </div>
     )
@@ -781,8 +864,8 @@ export function MatchOverview({
     // Collapsed → thumbnail strip + detail panel
     if (selectedSlot != null && selectedPlayer) {
       return (
-        <div className="flex-1 min-w-0 space-y-3">
-          <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0 space-y-4">
+          <div className="flex items-center justify-between gap-3">
             <ThumbStrip
               players={players}
               heroMap={heroMap}
@@ -799,7 +882,6 @@ export function MatchOverview({
             itemConst={itemConst}
             timeSec={timeSec}
             durationSec={match.duration}
-            isRadiant={isRadiant}
           />
         </div>
       )
@@ -807,32 +889,23 @@ export function MatchOverview({
 
     // Expanded → full portrait cards
     return (
-      <div className="shrink-0 space-y-2">
-        <div className="flex gap-1">
-          {players.map((p) => (
-            <HeroPortraitCard
-              key={p.player_slot}
-              player={p}
-              hero={heroMap.get(p.hero_id)}
-              isRadiant={isRadiant}
-              onClick={() => selectHero(p)}
-            />
-          ))}
-        </div>
-        <div
-          className="text-[11px] uppercase tracking-widest font-semibold"
-          style={{ color: isRadiant ? '#8ec63f' : '#d14a38', fontFamily: 'var(--font-dota)' }}
-        >
-          {isRadiant ? 'Radiant' : 'Dire'}
-        </div>
+      <div className="shrink-0 flex gap-1">
+        {players.map((p) => (
+          <HeroPortraitCard
+            key={p.player_slot}
+            player={p}
+            hero={heroMap.get(p.hero_id)}
+            onClick={() => selectHero(p)}
+          />
+        ))}
       </div>
     )
   }
 
   return (
     <div className="overflow-x-auto">
-      <div className="space-y-5" style={{ minWidth: 1080 }}>
-        <div className="flex items-start gap-6">
+      <div className="space-y-6" style={{ minWidth: 1080 }}>
+        <div className="flex items-start gap-8">
           {renderTeamSide(true, radiant, selRadiant, selRadiantPlayer)}
           {renderTeamSide(false, dire, selDire, selDirePlayer)}
         </div>

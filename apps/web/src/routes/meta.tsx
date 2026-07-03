@@ -278,21 +278,6 @@ function MetaPage() {
 
   return (
     <div className="space-y-6 py-4">
-      <div className="text-center mb-6">
-        <h1
-          className="text-[44px] leading-none font-bold uppercase"
-          style={{ fontFamily: 'var(--font-display)', color: '#fff', letterSpacing: '2px' }}
-        >
-          Meta
-        </h1>
-        <p
-          className="mt-2 text-[13px] uppercase tracking-[0.2em]"
-          style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
-        >
-          Immortal bracket win rates · current patch
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
         {LANES.map((lane) => (
           <LaneCard key={lane.pos} lane={lane} heroes={data} />

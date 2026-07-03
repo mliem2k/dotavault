@@ -208,6 +208,7 @@ export type Match = {
   tower_status_dire: number
   tower_status_radiant: number
   version: number | null
+  replay_url?: string | null
   series_id: number | null
   series_type: number | null
   chat: ChatMessage[] | null

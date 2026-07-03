@@ -184,35 +184,55 @@ export function SearchBar() {
   }
 
   return (
-    <div className="relative w-full max-w-xl">
-      <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2.5">
-        <Search className="h-4 w-4 text-muted flex-shrink-0" />
+    <div className="relative w-full max-w-3xl">
+      <div
+        className="flex items-center gap-3 px-5"
+        style={{
+          background: 'rgba(8,8,12,0.9)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.6)',
+          height: 64,
+        }}
+      >
+        <Search className="h-5 w-5 flex-shrink-0" style={{ color: '#5a6070' }} />
         <input
           value={query}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder="Name, Steam ID, match ID, profile URL…"
-          className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
+          placeholder="Search by name, Steam ID, match ID, or profile URL"
+          className="w-full bg-transparent outline-none"
+          style={{
+            fontFamily: 'Radiance, "Noto Sans", sans-serif',
+            fontSize: 17,
+            color: '#e8e4d8',
+            letterSpacing: '0.01em',
+          }}
         />
-        {resolving && <Loader2 className="h-3.5 w-3.5 text-muted animate-spin flex-shrink-0" />}
+        {resolving
+          ? <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" style={{ color: '#5a6070' }} />
+          : <kbd style={{ fontFamily: 'inherit', fontSize: 11, color: '#4a4a50', border: '1px solid #2a2a30', padding: '2px 6px', borderRadius: 3, flexShrink: 0 }}>Enter</kbd>
+        }
       </div>
 
       {open && (
-        <div className="absolute top-full z-50 mt-1 w-full rounded-lg border border-border bg-card py-1 shadow-lg">
+        <div
+          className="absolute top-full z-50 mt-1 w-full py-1"
+          style={{ background: '#08080c', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 48px rgba(0,0,0,0.8)' }}
+        >
           {/* Deterministic resolved entry */}
           {parsed?.type === 'resolved' && (
             <button
               onClick={() => go(parsed.dest)}
-              className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-white/5"
+              className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-white/[0.04]"
             >
               {parsed.dest.kind === 'match'
-                ? <Swords className="h-4 w-4 text-accent flex-shrink-0" />
-                : <User className="h-4 w-4 text-accent flex-shrink-0" />}
+                ? <Swords className="h-4 w-4 flex-shrink-0" style={{ color: '#c9a94a' }} />
+                : <User className="h-4 w-4 flex-shrink-0" style={{ color: '#c9a94a' }} />}
               <div>
-                <div className="text-sm font-medium">
+                <div style={{ fontSize: 14, color: '#e8e4d8', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>
                   {parsed.dest.kind === 'match' ? 'View Match' : 'View Player'}
                 </div>
-                <div className="font-mono text-xs text-muted">#{parsed.dest.id}</div>
+                <div className="font-mono" style={{ fontSize: 12, color: '#5a6070', marginTop: 1 }}>#{parsed.dest.id}</div>
               </div>
             </button>
           )}
@@ -221,12 +241,13 @@ export function SearchBar() {
           {parsed?.type === 'vanity' && vanityResult && (
             <button
               onClick={() => go({ kind: 'player', id: vanityResult })}
-              className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-white/5 border-b border-border/30"
+              className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-white/[0.04]"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
             >
-              <User className="h-4 w-4 text-accent flex-shrink-0" />
+              <User className="h-4 w-4 flex-shrink-0" style={{ color: '#c9a94a' }} />
               <div>
-                <div className="text-sm font-medium">Steam Profile</div>
-                <div className="font-mono text-xs text-muted">#{vanityResult} · {parsed.url}</div>
+                <div style={{ fontSize: 14, color: '#e8e4d8', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>Steam Profile</div>
+                <div className="font-mono" style={{ fontSize: 12, color: '#5a6070', marginTop: 1 }}>#{vanityResult} · {parsed.url}</div>
               </div>
             </button>
           )}
@@ -236,20 +257,20 @@ export function SearchBar() {
             <button
               key={r.account_id}
               onClick={() => go({ kind: 'player', id: String(r.account_id) })}
-              className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-white/5"
+              className="flex w-full items-center gap-3 px-5 py-2.5 text-left hover:bg-white/[0.04]"
             >
               <img
                 src={r.avatarfull}
                 alt=""
-                className="h-7 w-7 rounded-full object-cover flex-shrink-0"
+                className="h-8 w-8 rounded-full object-cover flex-shrink-0"
               />
-              <span className="text-sm text-foreground">{r.personaname}</span>
+              <span style={{ fontSize: 15, color: '#e8e4d8', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>{r.personaname}</span>
             </button>
           ))}
 
           {/* Vanity resolving state with no results yet */}
           {parsed?.type === 'vanity' && resolving && !vanityResult && results.length === 0 && (
-            <div className="px-3 py-2.5 text-xs text-muted">Resolving Steam ID…</div>
+            <div className="px-5 py-3" style={{ fontSize: 13, color: '#5a6070', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>Resolving Steam ID…</div>
           )}
         </div>
       )}

@@ -50,6 +50,7 @@ export const dotaIconUrl = (name: string) => `/dota_icons/${name}.webp`
 export const AGHS_SCEPTER_CDN = `${IMG_CDN2}/dota_react/heroes/stats/aghs_scepter.png`
 export const AGHS_SHARD_CDN = `${IMG_CDN2}/dota_react/heroes/stats/aghs_shard.png`
 export const INNATE_ICON_CDN = `${IMG_CDN2}/dota_react/icons/innate_icon.png`
+export const TALENTS_ICON_CDN = `${IMG_CDN2}/dota_react/icons/talents.svg`
 
 // Reusable <img onError> that swaps to a CDN url exactly once.
 export function cdnFallback(cdnUrl: string) {

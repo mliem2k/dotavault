@@ -30,6 +30,16 @@ export type HeroMeta = {
   role_levels: number[]
 }
 
+// One entry from Valve's /datafeed/herolist — what dota2.com/heroes itself renders.
+export type HeroListItem = {
+  id: number
+  name: string
+  name_loc: string
+  name_english_loc: string
+  primary_attr: number // 0 = str, 1 = agi, 2 = int, 3 = universal
+  complexity: number // 1..3
+}
+
 export type HeroStat = {
   id: number
   name: string

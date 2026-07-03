@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { AbilityConst, AghsDesc } from 'types'
 import {
   AGHS_SCEPTER_CDN,
@@ -26,34 +26,67 @@ export function AbilityDetails({
   abilityList,
   abilities,
   aghs,
+  innateNames,
+  hasTalents,
+  aghsNewSkillNames,
+  selectedIdx,
+  onSelectIdx,
 }: {
   heroShort: string
   abilityList: string[]
   abilities: Record<string, AbilityConst>
   aghs?: AghsDesc
+  innateNames?: string[]
+  hasTalents?: boolean
+  aghsNewSkillNames?: string[]
+  selectedIdx?: number
+  onSelectIdx?: (i: number) => void
 }) {
   const entries: Entry[] = abilityList.map((base) => ({ base }))
   if (aghs?.has_scepter) {
     const base =
-      abilityList.find((n) => abilities[n]?.dname === aghs.scepter_skill_name) ?? abilityList[0]
+      abilityList.find((n) => abilities[n]?.dname === aghs.scepter_skill_name) ??
+      (aghsNewSkillNames ?? []).find((n) => abilities[n]?.dname === aghs.scepter_skill_name) ??
+      abilityList[0]
     if (base) entries.push({ base, aghs: 'scepter', aghsDesc: aghs.scepter_desc })
   }
   if (aghs?.has_shard) {
     const base =
-      abilityList.find((n) => abilities[n]?.dname === aghs.shard_skill_name) ?? abilityList[0]
+      abilityList.find((n) => abilities[n]?.dname === aghs.shard_skill_name) ??
+      (aghsNewSkillNames ?? []).find((n) => abilities[n]?.dname === aghs.shard_skill_name) ??
+      abilityList[0]
     if (base) entries.push({ base, aghs: 'shard', aghsDesc: aghs.shard_desc })
   }
 
-  const [sel, setSel] = useState(0)
+  const leftColRef = useRef<HTMLDivElement>(null)
+  const [rightMaxH, setRightMaxH] = useState<number | undefined>(undefined)
+  useLayoutEffect(() => {
+    const el = leftColRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setRightMaxH(el.offsetHeight))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const [internalSel, setInternalSel] = useState(0)
+  const sel = selectedIdx ?? internalSel
+  const setSel = (i: number) => {
+    setInternalSel(i)
+    onSelectIdx?.(i)
+  }
   const entry = entries[sel] ?? entries[0]
   if (!entry) return null
   const name = entry.base
   const a: AbilityConst | undefined = abilities[name]
-  const videoBase = `${VID}/${heroShort}/${name}`
+  const videoName =
+    entry.aghs === 'scepter' && !abilityList.includes(name)
+      ? `${heroShort}_aghanims_scepter`
+      : entry.aghs === 'shard' && !abilityList.includes(name)
+      ? `${heroShort}_aghanims_shard`
+      : name
+  const videoBase = `${VID}/${heroShort}/${videoName}`
   const attribs = (a?.attrib ?? []).filter((x) => {
     if (!x.header || x.value === '' || x.value == null) return false
-    const header = (x.header ?? '').toLowerCase()
-    if (header.includes('cast time') || header.includes('cast_time')) return false
+    if (x.generated) return false
     const v = joinLv(x.value)
     return v !== '' && v !== '0' && !v.split(' / ').every((s) => s === '0')
   })
@@ -85,13 +118,14 @@ export function AbilityDetails({
   }
 
   return (
-    // Two-column: video+selector on left, dark details panel on right
-    <div className="flex flex-col lg:flex-row gap-0">
+    // Two-column: video+selector on left, dark details panel on right — centered, not edge-to-edge
+    <div style={{ maxWidth: 1320, margin: '0 auto' }}>
+    <div className="flex flex-col lg:flex-row gap-4">
       {/* Left: video with selector row below */}
-      <div className="shrink-0 flex flex-col" style={{ width: '100%', maxWidth: 700 }}>
+      <div ref={leftColRef} className="shrink-0 flex flex-col" style={{ width: '100%', maxWidth: 640 }}>
         <div
           className="relative overflow-hidden"
-          style={{ aspectRatio: '16 / 9', background: '#08080a' }}
+          style={{ aspectRatio: '16 / 9', background: '#08080a', boxShadow: '0 0 32px 8px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)' }}
         >
           <video
             key={name}
@@ -108,31 +142,31 @@ export function AbilityDetails({
           </video>
         </div>
 
-        {/* Ability selector: horizontal row below video */}
-        <div className="flex items-center gap-1 px-2 py-2" style={{ background: '#0c0b0f' }}>
+        {/* Ability selector: horizontal row below video, scrollable on mobile */}
+        <div className="flex items-center justify-center gap-1 px-2 py-2 overflow-x-auto relative z-10" style={{ marginTop: -32 }}>
           {entries.map((e, i) => (
             <button
               key={`${e.base}-${e.aghs ?? 'base'}`}
               type="button"
               onClick={() => setSel(i)}
-              className="relative shrink-0 overflow-hidden transition-opacity"
+              className="relative shrink-0 overflow-hidden transition-[filter]"
               style={{
-                width: 80,
-                height: 80,
-                border: i === sel ? '2px solid #c9a94a' : '2px solid rgba(255,255,255,0.08)',
-                opacity: i === sel ? 1 : 0.5,
+                width: 64,
+                height: 64,
+                border: i === sel ? '2px solid rgba(255,255,255,0.7)' : '2px solid rgba(255,255,255,0.1)',
+                filter: i === sel ? 'none' : 'grayscale(1) brightness(0.7)',
               }}
               title={abilities[e.base]?.dname ?? e.base}
             >
-              <AbilityIcon entry={e} size={80} />
+              <AbilityIcon entry={e} size={64} />
               {e.aghs && (
                 <img
                   src={e.aghs === 'scepter' ? SCEPTER_BADGE : SHARD_BADGE}
                   alt={e.aghs}
                   className="absolute bottom-0 right-0"
                   style={{
-                    width: 64,
-                    height: 64,
+                    width: 40,
+                    height: 40,
                     filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.9))',
                   }}
                   onError={cdnFallback(e.aghs === 'scepter' ? AGHS_SCEPTER_CDN : AGHS_SHARD_CDN)}
@@ -143,10 +177,10 @@ export function AbilityDetails({
         </div>
       </div>
 
-      {/* Right: dark details panel */}
-      <div className="flex-1 min-w-0 flex flex-col" style={{ background: '#0c0b0f' }}>
+      {/* Right: details panel */}
+      <div className="flex-1 min-w-0 flex flex-col" style={{ background: 'rgb(0,0,0)', minHeight: 0, padding: '20px 20px 15px', maxHeight: rightMaxH ?? undefined, overflowY: rightMaxH ? 'auto' : undefined }}>
         {/* Name + icon + description */}
-        <div className="flex items-start gap-4 p-5" style={{ borderBottom: '1px solid #1c1810' }}>
+        <div className="flex items-start gap-4 pb-4" style={{ borderBottom: '1px solid #1c1810' }}>
           <div className="shrink-0" style={{ border: '1px solid #2a2620' }}>
             <AbilityIcon entry={entry} size={84} />
             {entry.aghs && (
@@ -172,7 +206,7 @@ export function AbilityDetails({
               style={{
                 color: '#fff',
                 fontFamily: 'var(--font-display)',
-                fontSize: 26,
+                fontSize: 22,
                 fontWeight: 700,
                 letterSpacing: '1px',
               }}
@@ -180,7 +214,7 @@ export function AbilityDetails({
               {a?.dname ?? name}
             </div>
             <div
-              className="text-[16px] leading-snug"
+              className="text-[15px] leading-snug"
               style={{ color: '#c8c2b4', fontFamily: 'var(--font-dota)' }}
             >
               {entry.aghs ? entry.aghsDesc : a?.desc}
@@ -188,77 +222,89 @@ export function AbilityDetails({
           </div>
         </div>
 
-        {/* Behavior / type row */}
+        {/* Behavior / type row: left col = Ability + Damage, right col = Pierces + Dispellable stacked */}
         {(a?.behavior || a?.dmg_type || a?.bkbpierce != null || a?.dispellable != null) && (
           <div
-            className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-4"
+            className="flex gap-x-4 py-4"
             style={{ borderBottom: '1px solid #1c1810' }}
           >
-            {a?.behavior && (
-              <div className="flex items-baseline gap-1.5">
-                <span
-                  className="text-[11px] uppercase tracking-wider shrink-0"
-                  style={{ color: '#6a675e', fontFamily: 'var(--font-dota)' }}
-                >
-                  Ability:
-                </span>
-                <span
-                  className="text-[14px] font-bold"
-                  style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
-                >
-                  {joinLv(a.behavior)}
-                </span>
-              </div>
-            )}
-            {a?.dmg_type && (
-              <div className="flex items-baseline gap-1.5">
-                <span
-                  className="text-[11px] uppercase tracking-wider shrink-0"
-                  style={{ color: '#6a675e', fontFamily: 'var(--font-dota)' }}
-                >
-                  Damage:
-                </span>
-                <span
-                  className="text-[14px] font-bold"
-                  style={{ color: '#e8a070', fontFamily: 'var(--font-dota)' }}
-                >
-                  {String(a.dmg_type)}
-                </span>
-              </div>
-            )}
-            {a?.bkbpierce != null && (
-              <div className="flex items-baseline gap-1.5">
-                <span
-                  className="text-[11px] uppercase tracking-wider shrink-0"
-                  style={{ color: '#6a675e', fontFamily: 'var(--font-dota)' }}
-                >
-                  Pierces Spell Immunity:
-                </span>
-                <span
-                  className="text-[14px] font-bold"
-                  style={{
-                    color: String(a.bkbpierce) === 'Yes' ? '#8ec63f' : '#a09a8a',
-                    fontFamily: 'var(--font-dota)',
-                  }}
-                >
-                  {String(a.bkbpierce)}
-                </span>
-              </div>
-            )}
-            {a?.dispellable != null && (
-              <div className="flex items-baseline gap-1.5">
-                <span
-                  className="text-[11px] uppercase tracking-wider shrink-0"
-                  style={{ color: '#6a675e', fontFamily: 'var(--font-dota)' }}
-                >
-                  Dispellable:
-                </span>
-                <span
-                  className="text-[14px] font-bold"
-                  style={{ color: '#a09a8a', fontFamily: 'var(--font-dota)' }}
-                >
-                  {String(a.dispellable)}
-                </span>
+            {/* Left: targeting type and damage type */}
+            <div className="flex-1 flex flex-col gap-y-1">
+              {a?.behavior && (
+                <div className="flex items-baseline gap-1.5">
+                  <span
+                    className="text-[13px] uppercase font-bold tracking-wider shrink-0"
+                    style={{ color: '#7a8a99', fontFamily: 'var(--font-dota)' }}
+                  >
+                    Ability:
+                  </span>
+                  <span
+                    className="text-[14px] font-bold"
+                    style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}
+                  >
+                    {(Array.isArray(a.behavior)
+                      ? a.behavior.filter((b) =>
+                          ['No Target','Unit Target','Point Target','Toggle','Passive','Aura','Channeled','Instant Attack'].includes(b)
+                        ).join(' / ') || a.behavior[0]
+                      : String(a.behavior))}
+                  </span>
+                </div>
+              )}
+              {a?.dmg_type && (
+                <div className="flex items-baseline gap-1.5">
+                  <span
+                    className="text-[13px] uppercase font-bold tracking-wider shrink-0"
+                    style={{ color: '#7a8a99', fontFamily: 'var(--font-dota)' }}
+                  >
+                    Damage:
+                  </span>
+                  <span
+                    className="text-[14px] font-bold"
+                    style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}
+                  >
+                    {String(a.dmg_type)}
+                  </span>
+                </div>
+              )}
+            </div>
+            {/* Right: spell immunity pierce and dispellable stacked */}
+            {(a?.bkbpierce != null || a?.dispellable != null) && (
+              <div className="flex flex-col gap-y-1">
+                {a?.bkbpierce != null && (
+                  <div className="flex items-baseline gap-1.5">
+                    <span
+                      className="text-[13px] uppercase font-bold tracking-wider shrink-0"
+                      style={{ color: '#7a8a99', fontFamily: 'var(--font-dota)' }}
+                    >
+                      Pierces Spell Immunity:
+                    </span>
+                    <span
+                      className="text-[14px] font-bold"
+                      style={{
+                        color: String(a.bkbpierce) === 'Yes' ? '#8ec63f' : '#ffffff',
+                        fontFamily: 'var(--font-dota)',
+                      }}
+                    >
+                      {String(a.bkbpierce)}
+                    </span>
+                  </div>
+                )}
+                {a?.dispellable != null && (
+                  <div className="flex items-baseline gap-1.5">
+                    <span
+                      className="text-[13px] uppercase font-bold tracking-wider shrink-0"
+                      style={{ color: '#7a8a99', fontFamily: 'var(--font-dota)' }}
+                    >
+                      Dispellable:
+                    </span>
+                    <span
+                      className="text-[14px] font-bold"
+                      style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}
+                    >
+                      {String(a.dispellable)}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -266,19 +312,19 @@ export function AbilityDetails({
 
         {/* Attributes: stacked "LABEL: value" lines */}
         {attribs.length > 0 && (
-          <div className="px-5 py-4" style={{ borderBottom: '1px solid #1c1810' }}>
+          <div className="py-4" style={{ borderBottom: '1px solid #1c1810' }}>
             {attribs.map((x, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: static attrib list
               <div key={i} className="flex items-baseline gap-2 py-0.5">
                 <span
-                  className="text-[12px] uppercase tracking-wide shrink-0"
-                  style={{ color: '#6a675e', fontFamily: 'var(--font-dota)' }}
+                  className="text-[12px] uppercase font-bold tracking-wider shrink-0"
+                  style={{ color: '#7a8a99', fontFamily: 'var(--font-dota)' }}
                 >
                   {(x.header ?? '').replace(/:$/, '')}:
                 </span>
                 <span
                   className="text-[15px] font-bold tabular-nums"
-                  style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
+                  style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}
                 >
                   {joinLv(x.value)}
                 </span>
@@ -290,7 +336,7 @@ export function AbilityDetails({
         {/* Cooldown + mana */}
         {(hasCd || hasMc) && (
           <div
-            className="flex items-center justify-between px-5 py-4"
+            className="flex items-center justify-between py-4"
             style={{ borderBottom: a?.lore && !entry.aghs ? '1px solid #1c1810' : undefined }}
           >
             {hasCd && (
@@ -305,7 +351,7 @@ export function AbilityDetails({
                 />
                 <span
                   className="text-[16px] font-bold tabular-nums"
-                  style={{ color: '#c9a94a', fontFamily: 'var(--font-dota)' }}
+                  style={{ color: '#8b9bc8', fontFamily: 'var(--font-dota)' }}
                 >
                   {joinLv(a?.cd)}
                 </span>
@@ -323,7 +369,7 @@ export function AbilityDetails({
                 />
                 <span
                   className="text-[16px] font-bold tabular-nums"
-                  style={{ color: '#5a8fc2', fontFamily: 'var(--font-dota)' }}
+                  style={{ color: '#00a4db', fontFamily: 'var(--font-dota)' }}
                 >
                   {joinLv(a?.mc as string | string[])}
                 </span>
@@ -334,7 +380,7 @@ export function AbilityDetails({
 
         {/* Lore in its own box */}
         {a?.lore && !entry.aghs && (
-          <div className="px-5 py-4">
+          <div className="py-4">
             <div
               className="text-[13px] italic leading-relaxed px-3 py-2"
               style={{
@@ -349,6 +395,7 @@ export function AbilityDetails({
           </div>
         )}
       </div>
+    </div>
     </div>
   )
 }
