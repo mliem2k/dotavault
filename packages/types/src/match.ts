@@ -101,10 +101,24 @@ export type AbilityConst = {
   dmg_type?: string
   bkbpierce?: string
   dispellable?: string
+  is_innate?: boolean
   attrib?: AbilityAttrib[]
   lore?: string
   mc?: number | number[] | string | boolean
   cd?: number | number[] | string
+}
+
+export type AghsDesc = {
+  hero_name: string
+  hero_id: number
+  has_scepter: boolean
+  scepter_desc: string
+  scepter_skill_name: string
+  scepter_new_skill: boolean
+  has_shard: boolean
+  shard_desc: string
+  shard_skill_name: string
+  shard_new_skill: boolean
 }
 
 export type MatchPlayer = {

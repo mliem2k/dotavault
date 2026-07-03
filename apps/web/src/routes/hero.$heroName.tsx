@@ -106,6 +106,7 @@ function HeroDetailPage() {
   const heroAbilities = useQuery({ queryKey: ['hero_abilities'], queryFn: () => opendota.heroAbilities(), staleTime: Number.POSITIVE_INFINITY })
   const abilities = useQuery({ queryKey: ['abilities_constants'], queryFn: () => opendota.abilities(), staleTime: Number.POSITIVE_INFINITY })
   const heroLore = useQuery({ queryKey: ['hero_lore'], queryFn: () => opendota.heroLore(), staleTime: Number.POSITIVE_INFINITY })
+  const aghsDesc = useQuery({ queryKey: ['aghs_desc'], queryFn: () => opendota.aghsDesc(), staleTime: Number.POSITIVE_INFINITY })
 
   const hero = heroStats.data?.find((h) => h.name === `npc_dota_hero_${heroName}`)
 
@@ -148,8 +149,11 @@ function HeroDetailPage() {
 
   // Abilities & talents
   const ha = heroAbilities.data?.[hero.name]
-  const abilityList = (ha?.abilities ?? []).filter((a) => a && a !== 'generic_hidden' && !a.startsWith('special_'))
+  const abilityList = (ha?.abilities ?? []).filter(
+    (a) => a && a !== 'generic_hidden' && !a.startsWith('special_') && !abilities.data?.[a]?.is_innate,
+  )
   const lore = heroLore.data?.[short]
+  const aghs = aghsDesc.data?.find((x) => x.hero_name === hero.name)
   const talents = ha?.talents ?? []
   const talentTiers = [4, 3, 2, 1].map((lvl) => ({
     lvl: [0, 10, 15, 20, 25][lvl],
@@ -207,7 +211,7 @@ function HeroDetailPage() {
       {/* Ability Details */}
       {abilityList.length > 0 && abilities.data && (
         <Panel title="Ability Details">
-          <AbilityDetails heroShort={short} abilityList={abilityList} abilities={abilities.data} />
+          <AbilityDetails heroShort={short} abilityList={abilityList} abilities={abilities.data} aghs={aghs} />
         </Panel>
       )}
 

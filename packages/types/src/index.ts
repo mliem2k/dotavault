@@ -16,6 +16,7 @@ export type {
   ItemConst,
   AbilityAttrib,
   AbilityConst,
+  AghsDesc,
 } from './match'
 export type { HeroStat } from './hero'
 export type { ProMatch, ProPlayer } from './pro'

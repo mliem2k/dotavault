@@ -49,6 +49,7 @@ export const opendota = {
       '/constants/hero_abilities',
     ),
   heroLore: () => get<Record<string, string>>('/constants/hero_lore'),
+  aghsDesc: () => get<import('types').AghsDesc[]>('/constants/aghs_desc'),
   playerTotals: (id: string) => get<{ field: string; n: number; sum: number }[]>(`/players/${id}/totals`),
   requestParse: (matchId: string) => post<{ job: { jobId: number } }>(`/request/${matchId}`),
   team: (id: number) =>
