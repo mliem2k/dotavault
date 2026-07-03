@@ -92,7 +92,7 @@ function StatBox({ label, value, color }: { label: string; value: string; color?
   return (
     <div className="flex flex-col">
       <span className="text-[10px] uppercase tracking-widest" style={{ color: '#6a675e', fontFamily: 'var(--font-dota)' }}>{label}</span>
-      <span className="text-[17px] font-bold tabular-nums leading-tight" style={{ color: color ?? '#ece6d8', fontFamily: 'var(--font-dota)' }}>{value}</span>
+      <span className="text-[15px] font-extrabold tabular-nums leading-tight" style={{ color: color ?? '#ece6d8', fontFamily: 'var(--font-dota)' }}>{value}</span>
     </div>
   )
 }
@@ -167,10 +167,10 @@ function HeroDetailPage() {
   return (
     <div className="space-y-4">
       {/* Hero banner — immersive, matching dota2.com: animated render right, text left */}
-      <div className="relative overflow-hidden rounded" style={{ height: 560, border: '1px solid #24222a', background: '#08080a' }}>
+      <div className="relative overflow-hidden rounded" style={{ height: 700, border: '1px solid #24222a', background: '#08080a' }}>
         {/* faint scene fill */}
         <img src={heroLandscapeUrl(hero.name)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20" style={{ objectPosition: 'center 25%' }} onError={cdnFallback(heroLandscapeCdn(hero.name))} />
-        {/* the actual animated, transparent hero render on the right */}
+        {/* the actual animated, transparent hero render — large & bleeding, like dota2.com */}
         <video
           key={short}
           autoPlay
@@ -178,8 +178,8 @@ function HeroDetailPage() {
           muted
           playsInline
           poster={heroRenderPoster(short)}
-          className="absolute top-0 bottom-0 h-full"
-          style={{ right: '-4%', objectFit: 'contain', objectPosition: 'right center', width: '62%' }}
+          className="absolute"
+          style={{ height: '136%', aspectRatio: '1 / 1', top: '-18%', right: '-7%', objectFit: 'contain', objectPosition: 'center' }}
         >
           <source type="video/webm" src={`${RENDER}/${short}.webm`} />
           <source type='video/mp4; codecs="hvc1"' src={`${RENDER}/${short}.mov`} />
@@ -204,11 +204,11 @@ function HeroDetailPage() {
               </div>
             )}
           </div>
-          <h1 className="text-[84px] leading-[0.9] font-bold uppercase" style={{ fontFamily: 'var(--font-display)', color: '#fff', letterSpacing: '1px', textShadow: '0 2px 20px rgba(0,0,0,0.95)' }}>
+          <h1 className="text-[80px] leading-[0.9] font-bold uppercase" style={{ fontFamily: 'var(--font-display)', color: '#fff', letterSpacing: '2px', textShadow: '0 2px 20px rgba(0,0,0,0.95)' }}>
             {hero.localized_name}
           </h1>
           {meta?.tagline && (
-            <div className="mt-2 text-[15px] max-w-lg" style={{ color: '#d0cabe', fontFamily: 'var(--font-dota)', textShadow: '0 1px 6px rgba(0,0,0,0.9)' }}>
+            <div className="mt-2 text-[18px] font-bold max-w-xl" style={{ color: '#a5e0f3', fontFamily: 'var(--font-dota)', letterSpacing: '1px', textShadow: '0 1px 6px rgba(0,0,0,0.9)' }}>
               {meta.tagline}
             </div>
           )}

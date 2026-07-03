@@ -135,7 +135,7 @@ export function AbilityDetails({
           />
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[18px] font-bold leading-tight" style={{ color: '#f0eae0', fontFamily: 'var(--font-dota)' }}>{a?.dname ?? name}</span>
+              <span className="leading-tight" style={{ color: '#fff', fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, letterSpacing: '1px' }}>{a?.dname ?? name}</span>
               {entry.aghs && (
                 <span
                   className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm"
