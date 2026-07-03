@@ -1,15 +1,18 @@
 import { useState } from 'react'
 import type { AbilityConst, AghsDesc } from 'types'
+import {
+  AGHS_SCEPTER_CDN,
+  AGHS_SHARD_CDN,
+  abilityIconCdn,
+  abilityIconUrl,
+  cdnFallback,
+  dotaIconUrl,
+} from '@/lib/utils'
 
-const CDN = 'https://cdn.cloudflare.steamstatic.com'
 const VID = 'https://cdn.steamstatic.com/apps/dota2/videos/dota_react/abilities'
-const INNATE_ICON = 'https://cdn.steamstatic.com/apps/dota2/images/dota_react/icons/innate_icon.png'
-const SCEPTER_BADGE = 'https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/stats/aghs_scepter.png'
-const SHARD_BADGE = 'https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/stats/aghs_shard.png'
-
-function iconUrl(meta: AbilityConst | undefined): string {
-  return meta?.img ? `${CDN}${meta.img}` : INNATE_ICON
-}
+const INNATE_ICON = dotaIconUrl('innate_icon')
+const SCEPTER_BADGE = dotaIconUrl('aghs_scepter')
+const SHARD_BADGE = dotaIconUrl('aghs_shard')
 
 function joinLv(v: string | string[] | number | number[] | boolean | undefined): string {
   if (v == null || v === '') return ''
@@ -90,10 +93,15 @@ export function AbilityDetails({
                 title={abilities[e.base]?.dname ?? e.base}
               >
                 <img
-                  src={iconUrl(abilities[e.base])}
+                  src={abilityIconUrl(e.base)}
                   alt=""
                   className="w-full h-full object-cover"
-                  onError={(ev) => { const el = ev.currentTarget; if (el.dataset.fb !== '1') { el.dataset.fb = '1'; el.src = INNATE_ICON } }}
+                  onError={(ev) => {
+                    const el = ev.currentTarget
+                    const s = el.dataset.step ?? '0'
+                    if (s === '0') { el.dataset.step = '1'; el.src = abilityIconCdn(e.base, abilities[e.base]?.img) }
+                    else if (s === '1') { el.dataset.step = '2'; el.src = INNATE_ICON }
+                  }}
                 />
                 {e.aghs && (
                   <img
@@ -101,6 +109,7 @@ export function AbilityDetails({
                     alt={e.aghs}
                     className="absolute bottom-0 right-0"
                     style={{ width: 20, height: 20, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.9))' }}
+                    onError={cdnFallback(e.aghs === 'scepter' ? AGHS_SCEPTER_CDN : AGHS_SHARD_CDN)}
                   />
                 )}
               </button>
@@ -112,7 +121,18 @@ export function AbilityDetails({
       {/* Right: details */}
       <div className="flex-1 min-w-0">
         <div className="flex items-start gap-3 mb-3">
-          <img src={iconUrl(a)} alt="" className="w-12 h-12 rounded shrink-0" style={{ border: '1px solid #2a2620' }} />
+          <img
+            src={abilityIconUrl(name)}
+            alt=""
+            className="w-12 h-12 rounded shrink-0"
+            style={{ border: '1px solid #2a2620' }}
+            onError={(ev) => {
+              const el = ev.currentTarget
+              const s = el.dataset.step ?? '0'
+              if (s === '0') { el.dataset.step = '1'; el.src = abilityIconCdn(name, a?.img) }
+              else if (s === '1') { el.dataset.step = '2'; el.src = INNATE_ICON }
+            }}
+          />
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[18px] font-bold leading-tight" style={{ color: '#f0eae0', fontFamily: 'var(--font-dota)' }}>{a?.dname ?? name}</span>

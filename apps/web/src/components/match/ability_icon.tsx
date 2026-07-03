@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { AbilityConst } from 'types'
+import { INNATE_ICON_CDN, abilityIconCdn, abilityIconUrl, dotaIconUrl } from '@/lib/utils'
 
-const CDN = 'https://cdn.cloudflare.steamstatic.com'
 // Innate abilities don't ship a per-ability icon — fall back to the generic one.
-const INNATE_ICON = 'https://cdn.steamstatic.com/apps/dota2/images/dota_react/icons/innate_icon.png'
+const INNATE_ICON = dotaIconUrl('innate_icon')
 
 function cleanTalent(name: string): string {
   // Talent dnames embed unresolved templates like "{s:bonus_X}" — strip them.
@@ -107,7 +107,7 @@ export function AbilityIcon({
   onLoadError?: () => void
 }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
-  const img = !isTalent && meta?.img ? `${CDN}${meta.img}` : null
+  const img = !isTalent ? abilityIconUrl(name) : null
 
   return (
     <>
@@ -130,13 +130,11 @@ export function AbilityIcon({
             className="w-full h-full object-cover"
             onError={(e) => {
               const el = e.currentTarget
-              if (el.dataset.fb !== '1') {
-                el.dataset.fb = '1'
-                el.src = INNATE_ICON
-                onLoadError?.()
-              } else {
-                el.style.opacity = '0.2'
-              }
+              const step = el.dataset.step ?? '0'
+              if (step === '0') { el.dataset.step = '1'; el.src = abilityIconCdn(name, meta?.img) }
+              else if (step === '1') { el.dataset.step = '2'; el.src = INNATE_ICON; onLoadError?.() }
+              else if (step === '2') { el.dataset.step = '3'; el.src = INNATE_ICON_CDN }
+              else { el.style.opacity = '0.2' }
             }}
           />
         ) : (

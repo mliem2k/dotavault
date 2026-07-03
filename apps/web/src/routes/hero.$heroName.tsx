@@ -5,7 +5,7 @@ import type { HeroStat } from 'types'
 import { AbilityDetails } from '@/components/heroes/ability_details'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
-import { heroBracketTotal, heroIconFromPath, winRate } from '@/lib/utils'
+import { cdnFallback, heroBracketTotal, heroIconFromPath, heroLandscapeCdn, heroLandscapeUrl, winRate } from '@/lib/utils'
 
 export const Route = createFileRoute('/hero/$heroName')({
   component: HeroDetailPage,
@@ -18,11 +18,6 @@ const ATTR: Record<string, { label: string; color: string }> = {
   agi: { label: 'Agility', color: '#a2d240' },
   int: { label: 'Intelligence', color: '#4fb0e0' },
   all: { label: 'Universal', color: '#c47adf' },
-}
-
-function heroLandscape(name: string): string {
-  const short = name.replace('npc_dota_hero_', '')
-  return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${short}.png`
 }
 
 // The same animated, transparent hero render dota2.com uses on its hero pages.
@@ -165,7 +160,7 @@ function HeroDetailPage() {
       {/* Hero banner — immersive, matching dota2.com: animated render right, text left */}
       <div className="relative overflow-hidden rounded" style={{ height: 560, border: '1px solid #24222a', background: '#08080a' }}>
         {/* faint scene fill */}
-        <img src={heroLandscape(hero.name)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20" style={{ objectPosition: 'center 25%' }} />
+        <img src={heroLandscapeUrl(hero.name)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20" style={{ objectPosition: 'center 25%' }} onError={cdnFallback(heroLandscapeCdn(hero.name))} />
         {/* the actual animated, transparent hero render on the right */}
         <video
           key={short}

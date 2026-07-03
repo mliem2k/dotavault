@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { HeroBenchmarks, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { opendota } from '@/lib/opendota'
-import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { cdnFallback, heroIconFromPath, heroIconUrl, heroVertCdn, heroVertUrl } from '@/lib/utils'
 import { ItemIcon } from './item_icon'
 import { levelFromXp } from './match_roster'
 
@@ -11,9 +11,65 @@ const PLAYER_COLORS: Record<number, string> = {
   128: '#FE87C4', 129: '#A1B477', 130: '#65D9F7', 131: '#007A00', 132: '#A46900',
 }
 
-function heroVertUrl(heroName: string): string {
-  const short = heroName.replace('npc_dota_hero_', '')
-  return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/heroes/${short}_vert.jpg`
+// Animated hero renders (kept on Valve's CDN — the webm clips are ~1.3MB each).
+const RENDER = 'https://cdn.steamstatic.com/apps/dota2/videos/dota_react/heroes/renders'
+
+// Animated hero render, falling back to the self-hosted static portrait if the
+// clip is unavailable.
+function HeroRender({
+  hero,
+  className,
+  objectPosition = 'center top',
+}: {
+  hero: HeroStat
+  className?: string
+  objectPosition?: string
+}) {
+  const [failed, setFailed] = useState(false)
+  const playedRef = useRef(false)
+  const shortName = hero.name.replace('npc_dota_hero_', '')
+
+  // Fall back to the static portrait if the clip isn't playable in time.
+  useEffect(() => {
+    if (failed) return
+    const t = setTimeout(() => {
+      if (!playedRef.current) setFailed(true)
+    }, 2500)
+    return () => clearTimeout(t)
+  }, [failed])
+
+  if (failed) {
+    return (
+      <img
+        src={heroVertUrl(hero.name)}
+        alt={hero.localized_name}
+        className={className}
+        style={{ objectPosition }}
+        onError={(e) => {
+          const img = e.currentTarget
+          if (img.dataset.fb !== '1') { img.dataset.fb = '1'; img.src = heroVertCdn(hero.name) }
+          else { img.onerror = null; img.src = heroIconFromPath(hero.icon) }
+        }}
+      />
+    )
+  }
+  return (
+    <video
+      key={shortName}
+      autoPlay
+      loop
+      muted
+      playsInline
+      poster={`${RENDER}/${shortName}.png`}
+      className={className}
+      style={{ objectPosition }}
+      onCanPlay={() => { playedRef.current = true }}
+      onError={() => setFailed(true)}
+    >
+      <source type="video/webm" src={`${RENDER}/${shortName}.webm`} />
+      <source type='video/mp4; codecs="hvc1"' src={`${RENDER}/${shortName}.mov`} />
+    </video>
+  )
 }
 
 function fmtK(v: number): string {
@@ -174,16 +230,10 @@ function HeroPortraitCard({
       <div className="absolute top-[3px] left-0 bottom-0 z-20 w-[2px]" style={{ background: slotColor }} />
 
       {hero ? (
-        <img
-          src={heroVertUrl(hero.name)}
-          alt={hero.localized_name}
+        <HeroRender
+          hero={hero}
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-          style={{ objectPosition: 'center top' }}
-          onError={(e) => {
-            const img = e.currentTarget
-            img.onerror = null
-            img.src = heroIconFromPath(hero.icon)
-          }}
+          objectPosition="center top"
         />
       ) : (
         <div className="absolute inset-0 bg-[#161310]" />
@@ -522,17 +572,7 @@ function DetailPanel({
       <div className="shrink-0 flex flex-col items-center" style={{ width: 150 }}>
         <div className="relative overflow-hidden rounded w-full" style={{ height: 320, background: '#100e0b' }}>
           {hero ? (
-            <img
-              src={heroVertUrl(hero.name)}
-              alt={hero.localized_name}
-              className="absolute inset-0 w-full h-full object-cover"
-              style={{ objectPosition: 'center top' }}
-              onError={(e) => {
-                const img = e.currentTarget
-            img.onerror = null
-            img.src = heroIconFromPath(hero.icon)
-              }}
-            />
+            <HeroRender hero={hero} className="absolute inset-0 w-full h-full object-cover" objectPosition="center top" />
           ) : null}
           <div
             className="absolute inset-0"

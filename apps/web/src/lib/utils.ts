@@ -27,6 +27,41 @@ export function itemIconUrl(name: string): string {
   return `/items/${name}.webp`
 }
 
+/* ---- Self-hosted Dota assets (local-first, CDN fallback on error) ---- */
+
+const IMG_CDN = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images'
+const IMG_CDN2 = 'https://cdn.steamstatic.com/apps/dota2/images'
+
+function short(name: string): string {
+  return name.replace('npc_dota_hero_', '')
+}
+
+export const heroLandscapeUrl = (name: string) => `/landscape/${short(name)}.webp`
+export const heroLandscapeCdn = (name: string) => `${IMG_CDN}/dota_react/heroes/${short(name)}.png`
+export const heroSbUrl = (name: string) => `/portraits/${short(name)}_sb.webp`
+export const heroSbCdn = (name: string) => `${IMG_CDN}/heroes/${short(name)}_sb.png`
+export const heroVertUrl = (name: string) => `/portraits/${short(name)}_vert.webp`
+export const heroVertCdn = (name: string) => `${IMG_CDN}/heroes/${short(name)}_vert.jpg`
+export const abilityIconUrl = (name: string) => `/abilities/${name}.webp`
+export const abilityIconCdn = (name: string, imgPath?: string) =>
+  imgPath ? `https://cdn.cloudflare.steamstatic.com${imgPath}` : `${IMG_CDN}/dota_react/abilities/${name}.png`
+export const dotaIconUrl = (name: string) => `/dota_icons/${name}.webp`
+
+export const AGHS_SCEPTER_CDN = `${IMG_CDN2}/dota_react/heroes/stats/aghs_scepter.png`
+export const AGHS_SHARD_CDN = `${IMG_CDN2}/dota_react/heroes/stats/aghs_shard.png`
+export const INNATE_ICON_CDN = `${IMG_CDN2}/dota_react/icons/innate_icon.png`
+
+// Reusable <img onError> that swaps to a CDN url exactly once.
+export function cdnFallback(cdnUrl: string) {
+  return (e: { currentTarget: HTMLImageElement }) => {
+    const el = e.currentTarget
+    if (el.dataset.fb !== '1') {
+      el.dataset.fb = '1'
+      el.src = cdnUrl
+    }
+  }
+}
+
 export function formatTimeAgo(unixTimestamp: number): string {
   const diff = Date.now() / 1000 - unixTimestamp
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`

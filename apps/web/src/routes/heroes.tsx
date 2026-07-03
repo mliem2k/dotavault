@@ -4,15 +4,11 @@ import { createFileRoute } from '@tanstack/react-router'
 import type { HeroStat } from 'types'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
+import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl } from '@/lib/utils'
 
 export const Route = createFileRoute('/heroes')({
   component: HeroesPage,
 })
-
-function heroLandscape(name: string): string {
-  const short = name.replace('npc_dota_hero_', '')
-  return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${short}.png`
-}
 
 const ATTRS = [
   { key: 'str', label: 'Strength', color: 'var(--color-str)' },
@@ -31,10 +27,11 @@ function HeroCard({ hero }: { hero: HeroStat }) {
       style={{ aspectRatio: '16 / 9', background: '#0d0d10' }}
     >
       <img
-        src={heroLandscape(hero.name)}
+        src={heroLandscapeUrl(hero.name)}
         alt={hero.localized_name}
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
         loading="lazy"
+        onError={cdnFallback(heroLandscapeCdn(hero.name))}
       />
       <div
         className="absolute inset-0"
