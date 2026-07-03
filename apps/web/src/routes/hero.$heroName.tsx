@@ -424,8 +424,9 @@ function HeroDetailPage() {
         />
         <div className="absolute top-0 left-0 right-0 h-1" style={{ background: attr.color }} />
 
-        {/* text column, in normal flow so the banner grows when the lore expands */}
-        <div className="relative z-10 pl-8 pr-6 pt-7 pb-8 max-w-[600px]">
+        {/* text column, in normal flow so the banner grows when the lore expands.
+            Left inset (~9% of the banner) matches dota2.com's content gutter. */}
+        <div className="relative z-10 pl-[8.3%] pr-6 pt-7 pb-8 max-w-[720px]">
           <div className="flex items-center gap-2 mb-0.5">
             <img
               src={attrIconUrl(hero.primary_attr)}
@@ -533,9 +534,10 @@ function HeroDetailPage() {
         </div>
       </div>
 
-      {/* Header stat bar — portrait, attributes, roles and Attack/Defense/Mobility (dota2.com layout) */}
+      {/* Header stat bar — portrait, attributes, roles and Attack/Defense/Mobility (dota2.com layout).
+          Slightly less inset than the header text, matching dota2.com's content gutter. */}
       <div
-        className="rounded-b px-6 py-5 flex flex-wrap items-start gap-x-9 gap-y-6"
+        className="rounded-b pl-[4.3%] pr-[4.3%] py-5 flex flex-wrap items-start gap-x-9 gap-y-6"
         style={{
           background: 'rgba(8,8,10,0.85)',
           borderLeft: '1px solid #24222a',
