@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { HeroStat } from 'types'
-import { AbilityIcon } from '@/components/match/ability_icon'
+import { AbilityDetails } from '@/components/heroes/ability_details'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
 import { heroBracketTotal, heroIconFromPath, winRate } from '@/lib/utils'
@@ -204,19 +204,10 @@ function HeroDetailPage() {
         </div>
       </Panel>
 
-      {/* Abilities */}
-      {abilityList.length > 0 && (
-        <Panel title="Abilities">
-          <div className="flex flex-wrap gap-3">
-            {abilityList.map((a, i) => (
-              <div key={a} className="flex flex-col items-center gap-1.5" style={{ width: 64 }}>
-                <AbilityIcon name={a} meta={abilities.data?.[a]} isTalent={false} level={i + 1} size={56} />
-                <span className="text-[10px] text-center leading-tight truncate w-full" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }} title={abilities.data?.[a]?.dname}>
-                  {abilities.data?.[a]?.dname ?? ''}
-                </span>
-              </div>
-            ))}
-          </div>
+      {/* Ability Details */}
+      {abilityList.length > 0 && abilities.data && (
+        <Panel title="Ability Details">
+          <AbilityDetails heroShort={short} abilityList={abilityList} abilities={abilities.data} />
         </Panel>
       )}
 

@@ -99,6 +99,8 @@ export type AbilityConst = {
   desc?: string
   behavior?: string | string[]
   dmg_type?: string
+  bkbpierce?: string
+  dispellable?: string
   attrib?: AbilityAttrib[]
   lore?: string
   mc?: number | number[] | string | boolean
