@@ -23,6 +23,7 @@ const NUM_FIELDS: (keyof HeroMeta)[] = [
   'damage_max',
   'attack_rate',
   'attack_range',
+  'projectile_speed',
   'armor',
   'magic_resistance',
   'movement_speed',

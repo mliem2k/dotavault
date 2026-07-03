@@ -7,7 +7,7 @@ import { AbilityDetails } from '@/components/heroes/ability_details'
 import { Spinner } from '@/components/ui/spinner'
 import { datafeed } from '@/lib/datafeed'
 import { opendota } from '@/lib/opendota'
-import { heroBracketTotal, heroIconFromPath, winRate } from '@/lib/utils'
+import { heroBracketTotal, heroIconFromPath, heroLandscapeCdn, winRate } from '@/lib/utils'
 
 export const Route = createFileRoute('/hero/$heroName')({
   component: HeroDetailPage,
@@ -37,6 +37,17 @@ const RENDER = 'https://cdn.steamstatic.com/apps/dota2/videos/dota_react/heroes/
 function heroRenderPoster(short: string): string {
   return `${RENDER}/${short}.png`
 }
+
+// dota2.com's own attribute and per-stat icons (used in the header and stat bar).
+const REACT_CDN = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react'
+const ATTR_ICON_NAME: Record<string, string> = {
+  str: 'strength',
+  agi: 'agility',
+  int: 'intelligence',
+  all: 'universal',
+}
+const attrIconUrl = (a: string) => `${REACT_CDN}/icons/hero_${ATTR_ICON_NAME[a] ?? 'strength'}.png`
+const statIconUrl = (name: string) => `${REACT_CDN}/heroes/stats/icon_${name}.png`
 
 function cleanTalent(s: string): string {
   return s
@@ -147,27 +158,14 @@ const ALL_ROLES = [
   'Initiator',
 ]
 
-// One labelled line inside an Attack / Defense / Mobility group of the header stat bar.
-function StatLine({
-  label,
-  value,
-  color,
-}: {
-  label: string
-  value: React.ReactNode
-  color?: string
-}) {
+// One icon + value row inside an Attack / Defense / Mobility group (dota2.com sizing: 14px/600).
+function IconStat({ icon, value }: { icon: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 py-[3px]">
+    <div className="flex items-center gap-2.5 py-[3px]">
+      <img src={statIconUrl(icon)} alt="" className="h-[22px] w-[22px] shrink-0 opacity-90" />
       <span
-        className="text-[13px] uppercase tracking-wide"
-        style={{ color: '#8a8578', fontFamily: 'var(--font-dota)' }}
-      >
-        {label}
-      </span>
-      <span
-        className="text-[15px] font-bold tabular-nums"
-        style={{ color: color ?? '#ece6d8', fontFamily: 'var(--font-dota)' }}
+        className="text-[14px] tabular-nums"
+        style={{ color: '#fff', fontWeight: 600, fontFamily: 'var(--font-dota)' }}
       >
         {value}
       </span>
@@ -175,17 +173,13 @@ function StatLine({
   )
 }
 
-// A titled column (Attack / Defense / Mobility / Attributes) in the header stat bar.
+// A titled column (Attack / Defense / Mobility) in the stat bar. Matches dota2.com: 16px/700 grey.
 function StatGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col">
       <div
-        className="text-[15px] font-bold uppercase tracking-[0.15em] mb-2 pb-1.5"
-        style={{
-          color: '#c8c2b4',
-          fontFamily: 'var(--font-dota)',
-          borderBottom: '1px solid #24222a',
-        }}
+        className="text-[16px] font-bold uppercase mb-2"
+        style={{ color: '#969696', letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
       >
         {title}
       </div>
@@ -194,35 +188,42 @@ function StatGroup({ title, children }: { title: string; children: React.ReactNo
   )
 }
 
-// One attribute row (base value + growth) in the header stat bar.
-function AttrLine({
-  color,
-  label,
-  base,
-  gain,
-}: {
-  color: string
-  label: string
-  base: number
-  gain: number
-}) {
+// One attribute row: attribute icon + base value (Reaver 20px/600) + growth. Matches dota2.com.
+function AttrRow({ attrKey, base, gain }: { attrKey: string; base: number; gain: number }) {
   return (
-    <div className="flex items-center gap-2 py-[3px]">
-      <span className="inline-block h-3 w-3 rounded-full shrink-0" style={{ background: color }} />
+    <div className="flex items-center gap-2.5 py-0.5">
+      <img src={attrIconUrl(attrKey)} alt="" className="h-7 w-7 shrink-0" />
       <span
-        className="text-[20px] font-bold tabular-nums leading-none"
-        style={{ color: '#ece6d8', fontFamily: 'var(--font-dota)' }}
+        className="text-[20px] tabular-nums leading-none"
+        style={{ color: '#fff', fontWeight: 600, fontFamily: 'var(--font-display)' }}
       >
         {base}
       </span>
-      <span className="text-[15px] tabular-nums" style={{ color: '#8a8578' }}>
+      <span className="text-[15px] tabular-nums" style={{ color: '#999999' }}>
         +{gain.toFixed(1)}
       </span>
+    </div>
+  )
+}
+
+// A hero-total bar (health green / mana blue) with the value and growth, as under dota2.com's portrait.
+function TotalBar({ fill, value, gain }: { fill: string; value: number; gain: number }) {
+  return (
+    <div
+      className="relative flex items-center justify-between px-2 rounded-[2px] overflow-hidden"
+      style={{ height: 20, background: fill }}
+    >
       <span
-        className="text-[13px] uppercase tracking-wide ml-auto"
-        style={{ color: '#6a675e', fontFamily: 'var(--font-dota)' }}
+        className="text-[13px] tabular-nums"
+        style={{ color: '#fff', fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
       >
-        {label}
+        {value}
+      </span>
+      <span
+        className="text-[12px] tabular-nums"
+        style={{ color: 'rgba(255,255,255,0.85)', textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+      >
+        +{gain.toFixed(1)}
       </span>
     </div>
   )
@@ -390,23 +391,30 @@ function HeroDetailPage() {
 
         {/* text column, in normal flow so the banner grows when the lore expands */}
         <div className="relative z-10 pl-8 pr-6 pt-7 pb-8 max-w-[600px]">
-          <div className="flex items-center gap-2 mb-1">
-            <span
-              className="inline-block h-3.5 w-3.5 rounded-full shrink-0"
-              style={{ background: attr.color }}
+          <div className="flex items-center gap-2 mb-0.5">
+            <img
+              src={attrIconUrl(hero.primary_attr)}
+              alt=""
+              className="h-[22px] w-[22px] shrink-0"
             />
             <span
-              className="text-[22px] uppercase tracking-[0.22em]"
-              style={{ color: '#fff', fontWeight: 300, fontFamily: 'var(--font-dota)' }}
+              className="text-[24px] uppercase"
+              style={{
+                color: '#fff',
+                fontWeight: 100,
+                letterSpacing: '2px',
+                fontFamily: 'var(--font-dota)',
+              }}
             >
               {attr.label}
             </span>
           </div>
           <h1
-            className="text-[80px] leading-[1.02] font-bold uppercase"
+            className="text-[80px] font-bold uppercase"
             style={{
               fontFamily: 'var(--font-display)',
               color: '#fff',
+              lineHeight: '88px',
               letterSpacing: '2px',
               textShadow: '0 2px 20px rgba(0,0,0,0.95)',
             }}
@@ -415,7 +423,7 @@ function HeroDetailPage() {
           </h1>
           {meta?.tagline && (
             <div
-              className="mt-2 text-[17px] font-bold uppercase"
+              className="mt-2 text-[18px] font-bold uppercase"
               style={{
                 color: '#a5e0f3',
                 fontFamily: 'var(--font-dota)',
@@ -450,8 +458,8 @@ function HeroDetailPage() {
               <button
                 type="button"
                 onClick={() => setLoreOpen((v) => !v)}
-                className="inline-block mt-2 text-[13px] uppercase tracking-wider underline underline-offset-2 cursor-pointer"
-                style={{ color: '#8a8578', fontFamily: 'var(--font-dota)' }}
+                className="inline-block mt-1.5 text-[18px] cursor-pointer hover:text-white"
+                style={{ color: '#8a8a8a', fontWeight: 200, fontFamily: 'var(--font-dota)' }}
               >
                 {loreOpen ? 'Close History' : 'Read Full History'}
               </button>
@@ -460,14 +468,14 @@ function HeroDetailPage() {
           <div className="mt-6 flex items-start gap-12">
             <div>
               <div
-                className="text-[12px] font-bold uppercase tracking-widest mb-1"
-                style={{ color: '#8a8578', fontFamily: 'var(--font-dota)' }}
+                className="text-[17px] font-bold uppercase mb-1"
+                style={{ color: '#959595', fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}
               >
                 Attack Type
               </div>
               <div
-                className="text-[16px] font-bold uppercase"
-                style={{ color: '#fff', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}
+                className="text-[15px] font-bold uppercase"
+                style={{ color: '#fff', fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}
               >
                 {hero.attack_type}
               </div>
@@ -475,8 +483,8 @@ function HeroDetailPage() {
             {meta && (
               <div>
                 <div
-                  className="text-[12px] font-bold uppercase tracking-widest mb-1"
-                  style={{ color: '#8a8578', fontFamily: 'var(--font-dota)' }}
+                  className="text-[17px] font-bold uppercase mb-1"
+                  style={{ color: '#959595', fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}
                 >
                   Complexity
                 </div>
@@ -496,9 +504,9 @@ function HeroDetailPage() {
         </div>
       </div>
 
-      {/* Header stat bar — attributes, roles and Attack/Defense/Mobility, docked under the render (dota2.com) */}
+      {/* Header stat bar — portrait, attributes, roles and Attack/Defense/Mobility (dota2.com layout) */}
       <div
-        className="rounded-b px-6 py-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-x-10 gap-y-6"
+        className="rounded-b px-6 py-5 flex flex-wrap items-start gap-x-9 gap-y-6"
         style={{
           background: 'rgba(8,8,10,0.85)',
           borderLeft: '1px solid #24222a',
@@ -507,53 +515,44 @@ function HeroDetailPage() {
           borderTop: '1px solid #14130f',
         }}
       >
-        <StatGroup title="Attributes">
-          <AttrLine
-            color="#e24b3a"
-            label="Str"
+        {/* Portrait with health (green) and mana (blue) total bars, as on dota2.com */}
+        <div className="flex flex-col gap-1.5" style={{ width: 150 }}>
+          <img
+            src={heroLandscapeCdn(hero.name)}
+            alt={hero.localized_name}
+            className="w-full rounded-sm"
+            style={{ aspectRatio: '16 / 9', objectFit: 'cover' }}
+          />
+          {meta && (
+            <>
+              <TotalBar fill="#5c8a2c" value={meta.max_health} gain={meta.health_regen} />
+              <TotalBar fill="#2f74c0" value={meta.max_mana} gain={meta.mana_regen} />
+            </>
+          )}
+        </div>
+
+        {/* Attributes: icon + value + growth */}
+        <div className="flex flex-col justify-center gap-0.5 self-center">
+          <AttrRow
+            attrKey="str"
             base={meta?.str_base ?? hero.base_str}
             gain={meta?.str_gain ?? hero.str_gain}
           />
-          <AttrLine
-            color="#a2d240"
-            label="Agi"
+          <AttrRow
+            attrKey="agi"
             base={meta?.agi_base ?? hero.base_agi}
             gain={meta?.agi_gain ?? hero.agi_gain}
           />
-          <AttrLine
-            color="#4fb0e0"
-            label="Int"
+          <AttrRow
+            attrKey="int"
             base={meta?.int_base ?? hero.base_int}
             gain={meta?.int_gain ?? hero.int_gain}
           />
-          {meta && (
-            <div className="mt-1.5 space-y-1">
-              <StatLine
-                label="Health"
-                value={`${meta.max_health} +${meta.health_regen.toFixed(1)}`}
-                color="#8ec63f"
-              />
-              <StatLine
-                label="Mana"
-                value={`${meta.max_mana} +${meta.mana_regen.toFixed(1)}`}
-                color="#4fb0e0"
-              />
-            </div>
-          )}
-        </StatGroup>
+        </div>
 
-        <div className="lg:col-span-2">
-          <div
-            className="text-[15px] font-bold uppercase tracking-[0.15em] mb-2 pb-1.5"
-            style={{
-              color: '#c8c2b4',
-              fontFamily: 'var(--font-dota)',
-              borderBottom: '1px solid #24222a',
-            }}
-          >
-            Roles
-          </div>
-          <div className="grid grid-cols-3 gap-x-4 gap-y-2.5">
+        {/* Roles: white, level-scaled bars over a grey track (no header, like dota2.com) */}
+        <div className="self-center" style={{ width: 540 }}>
+          <div className="grid grid-cols-3 gap-x-6 gap-y-2.5">
             {ALL_ROLES.map((r, i) => {
               // Prefer Valve's 0..3 role emphasis; fall back to a full bar for any listed role.
               const level = meta?.role_levels?.[i] ?? (hero.roles.includes(r) ? 3 : 0)
@@ -561,15 +560,15 @@ function HeroDetailPage() {
               return (
                 <div key={r} className="flex flex-col gap-1.5">
                   <span
-                    className="text-[15px] font-bold uppercase tracking-wide"
+                    className="text-[15px] font-bold"
                     style={{
-                      color: active ? '#e8e2d4' : '#5c584e',
+                      color: active ? '#ffffff' : '#5c584e',
+                      letterSpacing: '1px',
                       fontFamily: 'var(--font-dota)',
                     }}
                   >
                     {r}
                   </span>
-                  {/* empty grey track with a white, blue-glowing fill scaled to the role level (dota2.com) */}
                   <span className="relative h-[3px] rounded-full" style={{ background: '#3a3a3e' }}>
                     {active && (
                       <span
@@ -588,31 +587,39 @@ function HeroDetailPage() {
           </div>
         </div>
 
-        <StatGroup title="Attack">
-          <StatLine
-            label="Damage"
-            value={
-              meta
-                ? `${meta.damage_min}-${meta.damage_max}`
-                : `${hero.base_attack_min}-${hero.base_attack_max}`
-            }
-          />
-          <StatLine label="Attack Time" value={meta ? meta.attack_rate.toFixed(2) : '1.70'} />
-          <StatLine label="Attack Range" value={String(meta?.attack_range ?? hero.attack_range)} />
-        </StatGroup>
-
-        <div className="flex flex-col gap-6">
-          <StatGroup title="Defense">
-            <StatLine label="Armor" value={(meta?.armor ?? hero.base_armor).toFixed(1)} />
-            <StatLine label="Magic Resist" value={meta ? `${meta.magic_resistance}%` : '25%'} />
-          </StatGroup>
-          <StatGroup title="Mobility">
-            <StatLine label="Move Speed" value={String(meta?.movement_speed ?? hero.move_speed)} />
-            <StatLine label="Turn Rate" value={meta ? meta.turn_rate.toFixed(1) : '0.6'} />
-            <StatLine
-              label="Vision"
-              value={meta ? `${meta.sight_range_day} / ${meta.sight_range_night}` : '1800 / 800'}
+        {/* Attack / Defense / Mobility pushed to the far right, as on dota2.com */}
+        <div className="ml-auto flex items-start gap-x-10">
+          <StatGroup title="Attack">
+            <IconStat
+              icon="damage"
+              value={
+                meta
+                  ? `${meta.damage_min}-${meta.damage_max}`
+                  : `${hero.base_attack_min}-${hero.base_attack_max}`
+              }
             />
+            <IconStat icon="attack_time" value={meta ? meta.attack_rate.toFixed(2) : '1.70'} />
+            <IconStat icon="attack_range" value={String(meta?.attack_range ?? hero.attack_range)} />
+            {meta && <IconStat icon="projectile_speed" value={meta.projectile_speed} />}
+          </StatGroup>
+
+          <StatGroup title="Defense">
+            <IconStat icon="armor" value={(meta?.armor ?? hero.base_armor).toFixed(1)} />
+            {meta && <IconStat icon="magic_resist" value={`${meta.magic_resistance}%`} />}
+          </StatGroup>
+
+          <StatGroup title="Mobility">
+            <IconStat
+              icon="movement_speed"
+              value={String(meta?.movement_speed ?? hero.move_speed)}
+            />
+            {meta && <IconStat icon="turn_rate" value={meta.turn_rate.toFixed(1)} />}
+            {meta && (
+              <IconStat
+                icon="vision"
+                value={`${meta.sight_range_day} / ${meta.sight_range_night}`}
+              />
+            )}
           </StatGroup>
         </div>
       </div>

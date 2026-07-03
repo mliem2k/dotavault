@@ -12,6 +12,7 @@ export type HeroMeta = {
   damage_max: number
   attack_rate: number
   attack_range: number
+  projectile_speed: number
   armor: number
   magic_resistance: number
   movement_speed: number
