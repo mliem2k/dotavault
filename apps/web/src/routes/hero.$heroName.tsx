@@ -6,7 +6,7 @@ import { AbilityDetails } from '@/components/heroes/ability_details'
 import { Spinner } from '@/components/ui/spinner'
 import { datafeed } from '@/lib/datafeed'
 import { opendota } from '@/lib/opendota'
-import { cdnFallback, heroBracketTotal, heroIconFromPath, heroLandscapeCdn, heroLandscapeUrl, winRate } from '@/lib/utils'
+import { heroBracketTotal, heroIconFromPath, winRate } from '@/lib/utils'
 
 export const Route = createFileRoute('/hero/$heroName')({
   component: HeroDetailPage,
@@ -166,10 +166,18 @@ function HeroDetailPage() {
 
   return (
     <div className="space-y-4">
-      {/* Hero banner — immersive, matching dota2.com: animated render right, text left */}
-      <div className="relative overflow-hidden rounded" style={{ height: 700, border: '1px solid #24222a', background: '#08080a' }}>
-        {/* faint scene fill */}
-        <img src={heroLandscapeUrl(hero.name)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20" style={{ objectPosition: 'center 25%' }} onError={cdnFallback(heroLandscapeCdn(hero.name))} />
+      {/* Hero banner — matching dota2.com: greyfade texture on black + animated render, text left */}
+      <div
+        className="relative overflow-hidden rounded"
+        style={{
+          height: 700,
+          border: '1px solid #24222a',
+          background: '#000',
+          backgroundImage: 'url(/backgrounds/greyfade.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'top center',
+        }}
+      >
         {/* the actual animated, transparent hero render — large & bleeding, like dota2.com */}
         <video
           key={short}
@@ -184,8 +192,9 @@ function HeroDetailPage() {
           <source type="video/webm" src={`${RENDER}/${short}.webm`} />
           <source type='video/mp4; codecs="hvc1"' src={`${RENDER}/${short}.mov`} />
         </video>
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(8,8,10,0.96) 0%, rgba(8,8,10,0.7) 38%, transparent 70%)' }} />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(8,8,10,0.92) 0%, transparent 42%)' }} />
+        {/* subtle left + bottom darkening for text legibility (as dota2.com does) */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 40%, transparent 62%)' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 40%)' }} />
         <div className="absolute top-0 left-0 right-0 h-1" style={{ background: attr.color }} />
 
         <div className="absolute left-8 bottom-8 right-6">
