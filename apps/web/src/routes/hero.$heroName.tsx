@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import type { HeroStat } from 'types'
+import type { HeroMeta, HeroStat } from 'types'
 import { AbilityDetails } from '@/components/heroes/ability_details'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
@@ -103,6 +103,11 @@ function HeroDetailPage() {
   const abilities = useQuery({ queryKey: ['abilities_constants'], queryFn: () => opendota.abilities(), staleTime: Number.POSITIVE_INFINITY })
   const heroLore = useQuery({ queryKey: ['hero_lore'], queryFn: () => opendota.heroLore(), staleTime: Number.POSITIVE_INFINITY })
   const aghsDesc = useQuery({ queryKey: ['aghs_desc'], queryFn: () => opendota.aghsDesc(), staleTime: Number.POSITIVE_INFINITY })
+  const heroMeta = useQuery<Record<string, HeroMeta>>({
+    queryKey: ['hero_meta'],
+    queryFn: () => fetch('/hero_meta.json').then((r) => r.json()),
+    staleTime: Number.POSITIVE_INFINITY,
+  })
 
   const hero = heroStats.data?.find((h) => h.name === `npc_dota_hero_${heroName}`)
 
@@ -149,6 +154,7 @@ function HeroDetailPage() {
   )
   const lore = heroLore.data?.[short]
   const aghs = aghsDesc.data?.find((x) => x.hero_name === hero.name)
+  const meta = heroMeta.data?.[String(hero.id)]
   const talents = ha?.talents ?? []
   const talentTiers = [4, 3, 2, 1].map((lvl) => ({
     lvl: [0, 10, 15, 20, 25][lvl],
@@ -180,13 +186,30 @@ function HeroDetailPage() {
         <div className="absolute top-0 left-0 right-0 h-1" style={{ background: attr.color }} />
 
         <div className="absolute left-8 bottom-8 right-6">
-          <div className="text-[14px] font-bold uppercase tracking-[0.3em] mb-1" style={{ color: attr.color, fontFamily: 'var(--font-dota)' }}>
-            {attr.label} · {hero.attack_type}
+          <div className="flex items-center gap-3 mb-1">
+            <div className="text-[14px] font-bold uppercase tracking-[0.3em]" style={{ color: attr.color, fontFamily: 'var(--font-dota)' }}>
+              {attr.label} · {hero.attack_type}
+            </div>
+            {meta && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-widest" style={{ color: '#8a8578', fontFamily: 'var(--font-dota)' }}>Complexity</span>
+                <span className="flex gap-0.5">
+                  {[1, 2, 3].map((n) => (
+                    <span key={n} style={{ color: n <= meta.complexity ? attr.color : '#3a3630', fontSize: 11 }}>◆</span>
+                  ))}
+                </span>
+              </div>
+            )}
           </div>
           <h1 className="text-[84px] leading-[0.9] font-bold uppercase" style={{ fontFamily: 'var(--font-display)', color: '#fff', letterSpacing: '1px', textShadow: '0 2px 20px rgba(0,0,0,0.95)' }}>
             {hero.localized_name}
           </h1>
-          <div className="mt-4 flex flex-wrap gap-1.5">
+          {meta?.tagline && (
+            <div className="mt-2 text-[15px] max-w-lg" style={{ color: '#d0cabe', fontFamily: 'var(--font-dota)', textShadow: '0 1px 6px rgba(0,0,0,0.9)' }}>
+              {meta.tagline}
+            </div>
+          )}
+          <div className="mt-3 flex flex-wrap gap-1.5">
             {hero.roles.map((r) => (
               <span key={r} className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid #3a3630', color: '#b8b2a4', fontFamily: 'var(--font-dota)' }}>
                 {r}
@@ -196,17 +219,30 @@ function HeroDetailPage() {
         </div>
       </div>
 
-      {/* Base stats */}
+      {/* Lore (right after the header, like dota2.com) */}
+      {lore && (
+        <Panel title="Lore">
+          <p className="text-[14px] leading-relaxed max-w-4xl" style={{ color: '#b0aa9c', fontFamily: 'var(--font-dota)' }}>
+            {lore}
+          </p>
+        </Panel>
+      )}
+
+      {/* Base attributes — exact displayed values from the datafeed */}
       <Panel title="Base Attributes">
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-4">
-          <StatBox label="Strength" value={`${hero.base_str} +${hero.str_gain.toFixed(1)}`} color="#e24b3a" />
-          <StatBox label="Agility" value={`${hero.base_agi} +${hero.agi_gain.toFixed(1)}`} color="#a2d240" />
-          <StatBox label="Intelligence" value={`${hero.base_int} +${hero.int_gain.toFixed(1)}`} color="#4fb0e0" />
-          <StatBox label="Attack" value={`${hero.base_attack_min}-${hero.base_attack_max}`} />
-          <StatBox label="Armor" value={hero.base_armor.toFixed(1)} />
-          <StatBox label="Move Speed" value={String(hero.move_speed)} />
-          <StatBox label="Atk Range" value={String(hero.attack_range)} />
-          <StatBox label="Health" value={String(hero.base_health + hero.base_str * 22)} />
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+          <StatBox label="Strength" value={`${meta?.str_base ?? hero.base_str} +${(meta?.str_gain ?? hero.str_gain).toFixed(1)}`} color="#e24b3a" />
+          <StatBox label="Agility" value={`${meta?.agi_base ?? hero.base_agi} +${(meta?.agi_gain ?? hero.agi_gain).toFixed(1)}`} color="#a2d240" />
+          <StatBox label="Intelligence" value={`${meta?.int_base ?? hero.base_int} +${(meta?.int_gain ?? hero.int_gain).toFixed(1)}`} color="#4fb0e0" />
+          <StatBox label="Health" value={meta ? `${meta.max_health} +${meta.health_regen.toFixed(1)}` : String(hero.base_health + hero.base_str * 22)} />
+          <StatBox label="Mana" value={meta ? `${meta.max_mana} +${meta.mana_regen.toFixed(1)}` : String(hero.base_mana + hero.base_int * 12)} color="#4fb0e0" />
+          <StatBox label="Damage" value={meta ? `${meta.damage_min}-${meta.damage_max}` : `${hero.base_attack_min}-${hero.base_attack_max}`} />
+          <StatBox label="Armor" value={(meta?.armor ?? hero.base_armor).toFixed(1)} />
+          <StatBox label="Magic Resist" value={meta ? `${meta.magic_resistance}%` : '—'} />
+          <StatBox label="Attack Time" value={meta ? meta.attack_rate.toFixed(2) : '—'} />
+          <StatBox label="Atk Range" value={String(meta?.attack_range ?? hero.attack_range)} />
+          <StatBox label="Move Speed" value={String(meta?.movement_speed ?? hero.move_speed)} />
+          <StatBox label="Vision" value={meta ? `${meta.sight_range_day} / ${meta.sight_range_night}` : '—'} />
         </div>
       </Panel>
 
@@ -214,15 +250,6 @@ function HeroDetailPage() {
       {abilityList.length > 0 && abilities.data && (
         <Panel title="Ability Details">
           <AbilityDetails heroShort={short} abilityList={abilityList} abilities={abilities.data} aghs={aghs} />
-        </Panel>
-      )}
-
-      {/* Lore */}
-      {lore && (
-        <Panel title="Lore">
-          <p className="text-[14px] leading-relaxed max-w-4xl" style={{ color: '#b0aa9c', fontFamily: 'var(--font-dota)' }}>
-            {lore}
-          </p>
         </Panel>
       )}
 

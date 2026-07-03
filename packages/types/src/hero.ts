@@ -1,3 +1,29 @@
+// Compact per-hero data from Valve's datafeed, baked into public/hero_meta.json.
+export type HeroMeta = {
+  tagline: string
+  complexity: number
+  str_base: number
+  str_gain: number
+  agi_base: number
+  agi_gain: number
+  int_base: number
+  int_gain: number
+  damage_min: number
+  damage_max: number
+  attack_rate: number
+  attack_range: number
+  armor: number
+  magic_resistance: number
+  movement_speed: number
+  turn_rate: number
+  sight_range_day: number
+  sight_range_night: number
+  max_health: number
+  health_regen: number
+  max_mana: number
+  mana_regen: number
+}
+
 export type HeroStat = {
   id: number
   name: string
