@@ -20,21 +20,24 @@ function HeroRender({
   hero,
   className,
   objectPosition = 'center top',
+  scale = 1,
 }: {
   hero: HeroStat
   className?: string
   objectPosition?: string
+  scale?: number
 }) {
   const [failed, setFailed] = useState(false)
   const playedRef = useRef(false)
   const shortName = hero.name.replace('npc_dota_hero_', '')
+  const style = { objectPosition, transform: scale !== 1 ? `scale(${scale})` : undefined, transformOrigin: 'center top' }
 
   // Fall back to the static portrait if the clip isn't playable in time.
   useEffect(() => {
     if (failed) return
     const t = setTimeout(() => {
       if (!playedRef.current) setFailed(true)
-    }, 2500)
+    }, 5000)
     return () => clearTimeout(t)
   }, [failed])
 
@@ -44,7 +47,7 @@ function HeroRender({
         src={heroVertUrl(hero.name)}
         alt={hero.localized_name}
         className={className}
-        style={{ objectPosition }}
+        style={style}
         onError={(e) => {
           const img = e.currentTarget
           if (img.dataset.fb !== '1') { img.dataset.fb = '1'; img.src = heroVertCdn(hero.name) }
@@ -62,7 +65,7 @@ function HeroRender({
       playsInline
       poster={`${RENDER}/${shortName}.png`}
       className={className}
-      style={{ objectPosition }}
+      style={style}
       onCanPlay={() => { playedRef.current = true }}
       onError={() => setFailed(true)}
     >
@@ -232,8 +235,9 @@ function HeroPortraitCard({
       {hero ? (
         <HeroRender
           hero={hero}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+          className="absolute inset-0 w-full h-full object-cover"
           objectPosition="center top"
+          scale={1.25}
         />
       ) : (
         <div className="absolute inset-0 bg-[#161310]" />
