@@ -50,7 +50,13 @@ export function AbilityDetails({
   const name = entry.base
   const a: AbilityConst | undefined = abilities[name]
   const videoBase = `${VID}/${heroShort}/${name}`
-  const attribs = (a?.attrib ?? []).filter((x) => x.header && x.value !== '' && x.value != null)
+  const attribs = (a?.attrib ?? []).filter((x) => {
+    if (!x.header || x.value === '' || x.value == null) return false
+    const header = (x.header ?? '').toLowerCase()
+    if (header.includes('cast time') || header.includes('cast_time')) return false
+    const v = joinLv(x.value)
+    return v !== '' && v !== '0' && !v.split(' / ').every((s) => s === '0')
+  })
   const hasCd = a?.cd != null && joinLv(a.cd) !== '' && joinLv(a.cd) !== '0'
   const hasMc =
     a?.mc != null &&
@@ -111,22 +117,22 @@ export function AbilityDetails({
               onClick={() => setSel(i)}
               className="relative shrink-0 overflow-hidden transition-opacity"
               style={{
-                width: 64,
-                height: 64,
+                width: 80,
+                height: 80,
                 border: i === sel ? '2px solid #c9a94a' : '2px solid rgba(255,255,255,0.08)',
                 opacity: i === sel ? 1 : 0.5,
               }}
               title={abilities[e.base]?.dname ?? e.base}
             >
-              <AbilityIcon entry={e} size={64} />
+              <AbilityIcon entry={e} size={80} />
               {e.aghs && (
                 <img
                   src={e.aghs === 'scepter' ? SCEPTER_BADGE : SHARD_BADGE}
                   alt={e.aghs}
                   className="absolute bottom-0 right-0"
                   style={{
-                    width: 18,
-                    height: 18,
+                    width: 64,
+                    height: 64,
                     filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.9))',
                   }}
                   onError={cdnFallback(e.aghs === 'scepter' ? AGHS_SCEPTER_CDN : AGHS_SHARD_CDN)}
@@ -154,7 +160,7 @@ export function AbilityDetails({
                 <img
                   src={entry.aghs === 'scepter' ? SCEPTER_BADGE : SHARD_BADGE}
                   alt=""
-                  style={{ width: 10, height: 10 }}
+                  style={{ width: 20, height: 20 }}
                 />
                 {entry.aghs === 'scepter' ? 'Scepter' : 'Shard'}
               </div>

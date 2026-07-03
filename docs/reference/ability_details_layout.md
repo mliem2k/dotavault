@@ -41,9 +41,23 @@ Measured at 1568px viewport, scroll to ability section (pause videos first:
 - Box: background rgba(255,255,255,0.03), border #1c1810, px-3 py-2
 
 ## Screenshot approach
-To get clean screenshots, pause all videos before capturing:
-```js
-document.querySelectorAll('video').forEach(v => v.pause())
+
+Use Playwright (headless) to save directly to `references/`:
+
+```bash
+PLAYWRIGHT_BROWSERS_PATH=/tmp/pw-browsers \
+  ~/.nvm/versions/node/v24.13.1/bin/node --input-type=module << 'EOF'
+import { chromium } from '/private/tmp/.../scratchpad/node_modules/playwright/index.mjs'
+const browser = await chromium.launch({ headless: true })
+const page = await browser.newPage()
+await page.setViewportSize({ width: 1800, height: 900 })
+await page.goto('https://www.dota2.com/hero/axe', { waitUntil: 'networkidle' })
+await page.evaluate(() => document.querySelectorAll('video').forEach(v => v.pause()))
+await page.evaluate(() => window.scrollTo(0, 900))
+await page.waitForTimeout(800)
+await page.screenshot({ path: 'references/dota2_axe_abilities.png' })
+await browser.close()
+EOF
 ```
-Then use `mcp__claude-in-chrome__computer screenshot` with `save_to_disk: true`.
-Use `zoom` with a region for detail crops.
+
+One-time setup: `PLAYWRIGHT_BROWSERS_PATH=/tmp/pw-browsers ~/.nvm/versions/node/v24.13.1/bin/npx playwright install chromium`
