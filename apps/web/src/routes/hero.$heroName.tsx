@@ -160,13 +160,13 @@ function StatLine({
   return (
     <div className="flex items-baseline justify-between gap-4 py-[3px]">
       <span
-        className="text-[11px] uppercase tracking-wide"
+        className="text-[13px] uppercase tracking-wide"
         style={{ color: '#8a8578', fontFamily: 'var(--font-dota)' }}
       >
         {label}
       </span>
       <span
-        className="text-[13px] font-bold tabular-nums"
+        className="text-[15px] font-bold tabular-nums"
         style={{ color: color ?? '#ece6d8', fontFamily: 'var(--font-dota)' }}
       >
         {value}
@@ -180,7 +180,7 @@ function StatGroup({ title, children }: { title: string; children: React.ReactNo
   return (
     <div className="flex flex-col">
       <div
-        className="text-[11px] font-bold uppercase tracking-[0.22em] mb-2 pb-1.5"
+        className="text-[15px] font-bold uppercase tracking-[0.15em] mb-2 pb-1.5"
         style={{
           color: '#c8c2b4',
           fontFamily: 'var(--font-dota)',
@@ -208,21 +208,18 @@ function AttrLine({
 }) {
   return (
     <div className="flex items-center gap-2 py-[3px]">
+      <span className="inline-block h-3 w-3 rounded-full shrink-0" style={{ background: color }} />
       <span
-        className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
-        style={{ background: color }}
-      />
-      <span
-        className="text-[13px] font-bold tabular-nums"
+        className="text-[20px] font-bold tabular-nums leading-none"
         style={{ color: '#ece6d8', fontFamily: 'var(--font-dota)' }}
       >
         {base}
       </span>
-      <span className="text-[12px] tabular-nums" style={{ color: '#8a8578' }}>
+      <span className="text-[15px] tabular-nums" style={{ color: '#8a8578' }}>
         +{gain.toFixed(1)}
       </span>
       <span
-        className="text-[10px] uppercase tracking-wide ml-auto"
+        className="text-[13px] uppercase tracking-wide ml-auto"
         style={{ color: '#6a675e', fontFamily: 'var(--font-dota)' }}
       >
         {label}
@@ -547,7 +544,7 @@ function HeroDetailPage() {
 
         <div className="lg:col-span-2">
           <div
-            className="text-[11px] font-bold uppercase tracking-[0.22em] mb-2 pb-1.5"
+            className="text-[15px] font-bold uppercase tracking-[0.15em] mb-2 pb-1.5"
             style={{
               color: '#c8c2b4',
               fontFamily: 'var(--font-dota)',
@@ -564,7 +561,7 @@ function HeroDetailPage() {
               return (
                 <div key={r} className="flex flex-col gap-1.5">
                   <span
-                    className="text-[12px] font-bold uppercase tracking-wide"
+                    className="text-[15px] font-bold uppercase tracking-wide"
                     style={{
                       color: active ? '#e8e2d4' : '#5c584e',
                       fontFamily: 'var(--font-dota)',
