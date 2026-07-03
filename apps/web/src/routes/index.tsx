@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { SearchBar } from '@/components/search/search_bar'
-import { Card } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
 import { formatTimeAgo, heroBracketTotal, heroIconFromPath, winRate } from '@/lib/utils'
@@ -9,6 +8,28 @@ import { formatTimeAgo, heroBracketTotal, heroIconFromPath, winRate } from '@/li
 export const Route = createFileRoute('/')({
   component: HomePage,
 })
+
+// Dota2.com-style panel: translucent dark over the greyfade texture, Reaver uppercase header.
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+      <div
+        className="px-4 py-3 uppercase"
+        style={{
+          color: '#c8c2b4',
+          fontFamily: 'var(--font-display)',
+          fontSize: 20,
+          fontWeight: 500,
+          letterSpacing: '3px',
+          borderBottom: '1px solid #24222a',
+        }}
+      >
+        {title}
+      </div>
+      <div className="px-4 py-2">{children}</div>
+    </div>
+  )
+}
 
 function HomePage() {
   const heroes = useQuery({
@@ -23,41 +44,51 @@ function HomePage() {
 
   return (
     <div className="space-y-12">
-      <div className="flex flex-col items-center gap-6 py-16 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">dotavault</h1>
-        <p className="text-sm text-muted">Dota 2 stats, match analysis, and replay viewer</p>
+      <div className="flex flex-col items-center gap-8 py-24 text-center">
+        <h1 className="font-display text-7xl font-bold uppercase tracking-widest text-foreground md:text-8xl">
+          dotavault
+        </h1>
+        <div className="h-px w-20 bg-[#d14a38]" />
+        <p className="text-xs uppercase tracking-[0.3em] text-muted">
+          Dota 2 stats, match analysis, and replay viewer
+        </p>
         <SearchBar />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
-          <h2 className="mb-4 text-sm font-medium text-muted">Recent Pro Matches</h2>
+        <Panel title="Recent Pro Matches">
           {proMatches.isPending && <Spinner />}
           {proMatches.data && (
-            <div className="space-y-1">
-              {proMatches.data.slice(0, 8).map((m) => (
+            <div>
+              {proMatches.data.slice(0, 8).map((m, i) => (
                 <a
                   key={m.match_id}
                   href={`/match/${m.match_id}`}
-                  className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-white/5"
+                  className="flex items-center justify-between py-2.5 hover:bg-white/[0.03]"
+                  style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
                 >
-                  <span className="text-foreground">
+                  <span
+                    className="text-[15px]"
+                    style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
+                  >
                     {m.radiant_name ?? 'Radiant'} vs {m.dire_name ?? 'Dire'}
                   </span>
-                  <span className="font-mono text-xs text-muted">
+                  <span
+                    className="text-[13px] tabular-nums"
+                    style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                  >
                     {formatTimeAgo(m.start_time)}
                   </span>
                 </a>
               ))}
             </div>
           )}
-        </Card>
+        </Panel>
 
-        <Card>
-          <h2 className="mb-4 text-sm font-medium text-muted">Top Heroes (This Week)</h2>
+        <Panel title="Top Heroes (This Week)">
           {heroes.isPending && <Spinner />}
           {heroes.data && (
-            <div className="space-y-1">
+            <div>
               {[...heroes.data]
                 .sort((a, b) => {
                   const ap = heroBracketTotal(a, 'pick')
@@ -67,30 +98,45 @@ function HomePage() {
                   return bw / (bp || 1) - aw / (ap || 1)
                 })
                 .slice(0, 8)
-                .map((h) => {
+                .map((h, i) => {
                   const picks = heroBracketTotal(h, 'pick')
                   const wins = heroBracketTotal(h, 'win')
+                  const wr = picks > 0 ? (wins / picks) * 100 : 0
                   return (
                     <a
                       key={h.id}
                       href={`/hero/${h.name.replace('npc_dota_hero_', '')}`}
-                      className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-white/5"
+                      className="flex items-center justify-between py-2 hover:bg-white/[0.03]"
+                      style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2.5">
                         <img
                           src={heroIconFromPath(h.icon)}
                           alt={h.localized_name}
-                          className="h-6 w-6 rounded"
+                          className="h-7 w-7 rounded"
                         />
-                        <span className="text-foreground">{h.localized_name}</span>
+                        <span
+                          className="text-[15px]"
+                          style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
+                        >
+                          {h.localized_name}
+                        </span>
                       </div>
-                      <span className="font-mono text-xs text-muted">{winRate(wins, picks)}</span>
+                      <span
+                        className="text-[14px] font-semibold tabular-nums"
+                        style={{
+                          color: wr >= 50 ? '#8ec63f' : '#d14a38',
+                          fontFamily: 'var(--font-dota)',
+                        }}
+                      >
+                        {winRate(wins, picks)}
+                      </span>
                     </a>
                   )
                 })}
             </div>
           )}
-        </Card>
+        </Panel>
       </div>
     </div>
   )
