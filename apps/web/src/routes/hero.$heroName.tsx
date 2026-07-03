@@ -25,11 +25,6 @@ function heroLandscape(name: string): string {
   return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${short}.png`
 }
 
-function heroVert(name: string): string {
-  const short = name.replace('npc_dota_hero_', '')
-  return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/heroes/${short}_vert.jpg`
-}
-
 // The same animated, transparent hero render dota2.com uses on its hero pages.
 const RENDER = 'https://cdn.steamstatic.com/apps/dota2/videos/dota_react/heroes/renders'
 function heroRenderPoster(short: string): string {
@@ -136,7 +131,6 @@ function HeroDetailPage() {
   const attr = ATTR[hero.primary_attr] ?? { label: hero.primary_attr, color: '#888' }
   const picks = heroBracketTotal(hero, 'pick')
   const wins = heroBracketTotal(hero, 'win')
-  const viewerUrl = `https://pissang.github.io/dota2hero/#/hero/${short}`
 
   const heroMap = new Map<number, HeroMapVal>(
     (heroStats.data ?? []).map((h) => [h.id, { name: h.name, shortName: h.name.replace('npc_dota_hero_', ''), localized_name: h.localized_name, icon: h.icon }]),
@@ -276,19 +270,6 @@ function HeroDetailPage() {
           </div>
         ))}
       </div>
-
-      {/* 3D viewer */}
-      <Panel title="3D Model">
-        <div className="relative overflow-hidden rounded" style={{ height: 460 }}>
-          <iframe
-            src={viewerUrl}
-            style={{ position: 'absolute', top: 0, left: '-260px', width: 'calc(100% + 260px)', height: '100%', border: 0 }}
-            title={`${hero.localized_name} 3D Model`}
-            allow="fullscreen"
-            loading="lazy"
-          />
-        </div>
-      </Panel>
 
       {/* Win rate + matchups */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
