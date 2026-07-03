@@ -30,6 +30,12 @@ function heroVert(name: string): string {
   return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/heroes/${short}_vert.jpg`
 }
 
+// The same animated, transparent hero render dota2.com uses on its hero pages.
+const RENDER = 'https://cdn.steamstatic.com/apps/dota2/videos/dota_react/heroes/renders'
+function heroRenderPoster(short: string): string {
+  return `${RENDER}/${short}.png`
+}
+
 function cleanTalent(s: string): string {
   return s.replace(/\{[^}]*\}/g, '').replace(/\s+/g, ' ').trim()
 }
@@ -162,29 +168,36 @@ function HeroDetailPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-4">
-      {/* Hero banner */}
-      <div className="relative overflow-hidden rounded" style={{ height: 360, border: '1px solid #24222a', background: '#08080a' }}>
-        {/* landscape scene fills, hero portrait render sits dominant on the right */}
-        <img src={heroLandscape(hero.name)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" style={{ objectPosition: 'center 25%' }} />
-        <img
-          src={heroVert(hero.name)}
-          alt={hero.localized_name}
-          className="absolute top-0 bottom-0 right-0 h-full object-cover"
-          style={{ objectPosition: 'center top', maskImage: 'linear-gradient(90deg, transparent, #000 35%)', WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 35%)' }}
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-        />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(6,6,8,0.97) 0%, rgba(6,6,8,0.75) 45%, transparent 90%)' }} />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(6,6,8,0.9) 0%, transparent 40%)' }} />
+      {/* Hero banner — immersive, matching dota2.com: animated render right, text left */}
+      <div className="relative overflow-hidden rounded" style={{ height: 560, border: '1px solid #24222a', background: '#08080a' }}>
+        {/* faint scene fill */}
+        <img src={heroLandscape(hero.name)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20" style={{ objectPosition: 'center 25%' }} />
+        {/* the actual animated, transparent hero render on the right */}
+        <video
+          key={short}
+          autoPlay
+          loop
+          muted
+          playsInline
+          poster={heroRenderPoster(short)}
+          className="absolute top-0 bottom-0 h-full"
+          style={{ right: '-4%', objectFit: 'contain', objectPosition: 'right center', width: '62%' }}
+        >
+          <source type="video/webm" src={`${RENDER}/${short}.webm`} />
+          <source type='video/mp4; codecs="hvc1"' src={`${RENDER}/${short}.mov`} />
+        </video>
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(8,8,10,0.96) 0%, rgba(8,8,10,0.7) 38%, transparent 70%)' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(8,8,10,0.92) 0%, transparent 42%)' }} />
         <div className="absolute top-0 left-0 right-0 h-1" style={{ background: attr.color }} />
 
-        <div className="absolute left-7 bottom-6 right-6">
-          <div className="text-[13px] font-bold uppercase tracking-[0.25em] mb-1" style={{ color: attr.color, fontFamily: 'var(--font-dota)' }}>
+        <div className="absolute left-8 bottom-8 right-6">
+          <div className="text-[14px] font-bold uppercase tracking-[0.3em] mb-1" style={{ color: attr.color, fontFamily: 'var(--font-dota)' }}>
             {attr.label} · {hero.attack_type}
           </div>
-          <h1 className="text-[72px] leading-[0.95] font-bold uppercase" style={{ fontFamily: 'var(--font-display)', color: '#fff', letterSpacing: '1px', textShadow: '0 2px 16px rgba(0,0,0,0.9)' }}>
+          <h1 className="text-[84px] leading-[0.9] font-bold uppercase" style={{ fontFamily: 'var(--font-display)', color: '#fff', letterSpacing: '1px', textShadow: '0 2px 20px rgba(0,0,0,0.95)' }}>
             {hero.localized_name}
           </h1>
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <div className="mt-4 flex flex-wrap gap-1.5">
             {hero.roles.map((r) => (
               <span key={r} className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid #3a3630', color: '#b8b2a4', fontFamily: 'var(--font-dota)' }}>
                 {r}
