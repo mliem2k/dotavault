@@ -8,14 +8,20 @@ import (
 	"github.com/dotabuff/manta"
 )
 
-// PositionPoint is one sampled hero position, in the same ~64-192 world-grid
-// cell scale OpenDota's obs_log/deaths_pos already use, so the frontend can
-// feed these straight into the existing minimap interpolation without any
-// unit conversion.
+// PositionPoint is one sampled hero snapshot. X/Y are in the same ~64-192
+// world-grid cell scale OpenDota's obs_log/deaths_pos already use, so the
+// frontend can feed these straight into the existing minimap interpolation
+// without any unit conversion. Level, health, and mana ride along so the
+// playback UI can render live bars.
 type PositionPoint struct {
-	T float64 `json:"t"` // match clock, seconds
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
+	T     float64 `json:"t"` // match clock, seconds
+	X     float64 `json:"x"`
+	Y     float64 `json:"y"`
+	Level int32   `json:"lvl"`
+	HP    int32   `json:"hp"`
+	MaxHP int32   `json:"mhp"`
+	MP    int32   `json:"mp"`
+	MaxMP int32   `json:"mmp"`
 }
 
 // Dota 2 Source 2 replays tick at a fixed 30Hz. This is a stable, widely
@@ -104,7 +110,24 @@ func ExtractPositions(dem io.Reader) (map[int][]PositionPoint, float64, error) {
 		}
 
 		lastEmittedSecond[slot] = second
-		positions[slot] = append(positions[slot], PositionPoint{T: matchTime, X: x, Y: y})
+
+		pt := PositionPoint{T: matchTime, X: x, Y: y}
+		if v, ok := e.Get("m_iCurrentLevel").(int32); ok {
+			pt.Level = v
+		}
+		if v, ok := e.Get("m_iHealth").(int32); ok {
+			pt.HP = v
+		}
+		if v, ok := e.Get("m_iMaxHealth").(int32); ok {
+			pt.MaxHP = v
+		}
+		if v, ok := e.Get("m_flMana").(float32); ok {
+			pt.MP = int32(v)
+		}
+		if v, ok := e.Get("m_flMaxMana").(float32); ok {
+			pt.MaxMP = int32(v)
+		}
+		positions[slot] = append(positions[slot], pt)
 		return nil
 	})
 

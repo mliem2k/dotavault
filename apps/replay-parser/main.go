@@ -6,11 +6,18 @@
 // the match ends); OpenDota's public API never exposes continuous movement,
 // only sparse per-fight death locations and ward placements, so this is a
 // separate, best-effort "if it's still there" capability, not a replacement.
+//
+// Primary interface: `replay-parser -remote <match_id> <cluster> <salt>`,
+// which prints the parse result as JSON to stdout (errors as JSON to stdout
+// with a nonzero exit code). The Bun/Elysia API in apps/api invokes this as
+// a subprocess and caches the result in Postgres, so each replay is parsed
+// at most once. A standalone HTTP mode (no args) is kept for local testing.
 package main
 
 import (
 	"compress/bzip2"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,15 +25,103 @@ import (
 	"time"
 )
 
+type parseResponse struct {
+	MatchID   int64                      `json:"match_id"`
+	Duration  float64                    `json:"duration"`
+	Positions map[string][]PositionPoint `json:"positions"`
+}
+
+type errorResponse struct {
+	Error string `json:"error"`
+}
+
+// errReplayGone means Valve's CDN no longer serves this replay (404), which
+// callers treat differently from a transient failure.
+var errReplayGone = errors.New("replay no longer available")
+
 func main() {
-	// `replay-parser somefile.dem` parses a local file and prints a summary
-	// (no HTTP server, no network fetch), for local testing against a replay
-	// already on disk.
-	if len(os.Args) > 1 {
+	switch {
+	case len(os.Args) == 5 && os.Args[1] == "-remote":
+		runRemote(os.Args[2], os.Args[3], os.Args[4])
+	case len(os.Args) == 2:
+		// `replay-parser somefile.dem` parses a local file and prints a
+		// summary (no network fetch), for testing against a replay on disk.
 		runLocalFile(os.Args[1])
-		return
+	case len(os.Args) == 1:
+		runServer()
+	default:
+		fmt.Fprintln(os.Stderr, "usage: replay-parser [-remote <match_id> <cluster> <salt>] [file.dem]")
+		os.Exit(2)
+	}
+}
+
+// fetchAndParse downloads the replay from Valve's CDN and extracts positions.
+func fetchAndParse(matchID, cluster, salt int64) (*parseResponse, error) {
+	replayURL := fmt.Sprintf("http://replay%d.valve.net/570/%d_%d.dem.bz2", cluster, matchID, salt)
+	log.Printf("match %d: fetching %s", matchID, replayURL)
+
+	client := &http.Client{Timeout: 5 * time.Minute}
+	resp, err := client.Get(replayURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to reach Valve's replay CDN: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, errReplayGone
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("replay CDN returned %d", resp.StatusCode)
 	}
 
+	positions, duration, err := ExtractPositions(bzip2.NewReader(resp.Body))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse replay: %w", err)
+	}
+
+	out := make(map[string][]PositionPoint, len(positions))
+	for slot, pts := range positions {
+		out[fmt.Sprintf("%d", slot)] = pts
+	}
+	return &parseResponse{MatchID: matchID, Duration: duration, Positions: out}, nil
+}
+
+/* ---------------- subprocess (CLI) mode ---------------- */
+
+// runRemote prints the parse result as JSON to stdout. Exit codes: 0 ok,
+// 4 replay gone (Valve expired it), 1 any other failure.
+func runRemote(matchIDs, clusters, salts string) {
+	var matchID, cluster, salt int64
+	if _, err := fmt.Sscanf(matchIDs, "%d", &matchID); err != nil || matchID <= 0 {
+		cliFail("invalid match_id", 2)
+	}
+	if _, err := fmt.Sscanf(clusters, "%d", &cluster); err != nil || cluster <= 0 {
+		cliFail("invalid cluster", 2)
+	}
+	if _, err := fmt.Sscanf(salts, "%d", &salt); err != nil || salt <= 0 {
+		cliFail("invalid salt", 2)
+	}
+
+	result, err := fetchAndParse(matchID, cluster, salt)
+	if err != nil {
+		if errors.Is(err, errReplayGone) {
+			cliFail("replay is no longer available (Valve's CDN has expired it)", 4)
+		}
+		cliFail(err.Error(), 1)
+	}
+	if err := json.NewEncoder(os.Stdout).Encode(result); err != nil {
+		cliFail(err.Error(), 1)
+	}
+}
+
+func cliFail(msg string, code int) {
+	_ = json.NewEncoder(os.Stdout).Encode(errorResponse{Error: msg})
+	os.Exit(code)
+}
+
+/* ---------------- HTTP mode (local testing) ---------------- */
+
+func runServer() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8081"
@@ -62,18 +157,8 @@ func handleHealth(w http.ResponseWriter, _ *http.Request) {
 
 type parseRequest struct {
 	MatchID    int64 `json:"match_id"`
-	Cluster    int   `json:"cluster"`
+	Cluster    int64 `json:"cluster"`
 	ReplaySalt int64 `json:"replay_salt"`
-}
-
-type parseResponse struct {
-	MatchID   int64                      `json:"match_id"`
-	Duration  float64                    `json:"duration"`
-	Positions map[string][]PositionPoint `json:"positions"`
-}
-
-type errorResponse struct {
-	Error string `json:"error"`
 }
 
 func handleParse(w http.ResponseWriter, r *http.Request) {
@@ -92,45 +177,17 @@ func handleParse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	replayURL := fmt.Sprintf("http://replay%d.valve.net/570/%d_%d.dem.bz2", req.Cluster, req.MatchID, req.ReplaySalt)
-	log.Printf("match %d: fetching %s", req.MatchID, replayURL)
-
-	client := &http.Client{Timeout: 5 * time.Minute}
-	resp, err := client.Get(replayURL)
+	result, err := fetchAndParse(req.MatchID, req.Cluster, req.ReplaySalt)
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, errorResponse{Error: "failed to reach Valve's replay CDN"})
+		if errors.Is(err, errReplayGone) {
+			writeJSON(w, http.StatusNotFound, errorResponse{Error: "replay is no longer available (Valve's CDN has expired it)"})
+			return
+		}
+		log.Printf("match %d: %v", req.MatchID, err)
+		writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})
 		return
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		writeJSON(w, http.StatusNotFound, errorResponse{Error: "replay is no longer available (Valve's CDN has expired it)"})
-		return
-	}
-	if resp.StatusCode != http.StatusOK {
-		writeJSON(w, http.StatusBadGateway, errorResponse{Error: fmt.Sprintf("replay CDN returned %d", resp.StatusCode)})
-		return
-	}
-
-	dem := bzip2.NewReader(resp.Body)
-
-	positions, duration, err := ExtractPositions(dem)
-	if err != nil {
-		log.Printf("match %d: parse error: %v", req.MatchID, err)
-		writeJSON(w, http.StatusUnprocessableEntity, errorResponse{Error: "failed to parse replay"})
-		return
-	}
-
-	out := make(map[string][]PositionPoint, len(positions))
-	for slot, pts := range positions {
-		out[fmt.Sprintf("%d", slot)] = pts
-	}
-
-	writeJSON(w, http.StatusOK, parseResponse{
-		MatchID:   req.MatchID,
-		Duration:  duration,
-		Positions: out,
-	})
+	writeJSON(w, http.StatusOK, result)
 }
 
 func writeJSON(w http.ResponseWriter, status int, body any) {
@@ -138,6 +195,8 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(body)
 }
+
+/* ---------------- local file mode ---------------- */
 
 func runLocalFile(path string) {
 	f, err := os.Open(path)
@@ -155,6 +214,8 @@ func runLocalFile(path string) {
 		if len(pts) == 0 {
 			continue
 		}
-		fmt.Printf("  slot=%-3d samples=%-5d first_t=%.2f last_t=%.2f\n", slot, len(pts), pts[0].T, pts[len(pts)-1].T)
+		mid := pts[len(pts)/2]
+		fmt.Printf("  slot=%-3d samples=%-5d first_t=%.2f last_t=%.2f mid={t=%.0f lvl=%d hp=%d/%d mp=%d/%d}\n",
+			slot, len(pts), pts[0].T, pts[len(pts)-1].T, mid.T, mid.Level, mid.HP, mid.MaxHP, mid.MP, mid.MaxMP)
 	}
 }

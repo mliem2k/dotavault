@@ -2,13 +2,15 @@ app = 'dotavault-api'
 primary_region = 'sin'
 
 [build]
-  dockerfile = 'apps/replay-parser/Dockerfile'
+  # Single image: Bun/Elysia API (public, port 3000) + the Go replay-parser
+  # binary it spawns as a subprocess for /replay cache misses.
+  dockerfile = 'apps/api/Dockerfile'
 
 [env]
-  PORT = '8081'
+  PORT = '3000'
 
 [http_service]
-  internal_port = 8081
+  internal_port = 3000
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
@@ -16,8 +18,8 @@ primary_region = 'sin'
 
   [http_service.concurrency]
     type = 'requests'
-    hard_limit = 20
-    soft_limit = 10
+    hard_limit = 250
+    soft_limit = 200
 
 [[http_service.checks]]
   grace_period = '10s'
@@ -28,8 +30,8 @@ primary_region = 'sin'
   tls_skip_verify = false
 
 [[vm]]
-  # Parsing a full match briefly needs real memory (decompressed .dem +
-  # manta's live entity state), more than the old (unused) TS api's 512mb.
+  # Replay parse jobs briefly hold manta's full entity state plus the
+  # decompression stream; 512mb was fine for the API alone but not for that.
   memory = '1024mb'
   cpu_kind = 'shared'
   cpus = 1

@@ -8,6 +8,7 @@ import { heroesPlugin } from './routes/heroes'
 import { matchesPlugin } from './routes/matches'
 import { playersPlugin } from './routes/players'
 import { proPlugin } from './routes/pro'
+import { replayPlugin } from './routes/replay'
 import { searchPlugin } from './routes/search'
 
 const app = new Elysia()
@@ -19,7 +20,7 @@ const app = new Elysia()
   )
   .use(
     cors({
-      origin: ['https://dotavault.mliem.com', 'http://localhost:5173'],
+      origin: ['https://dotavault.mliem.com', 'http://localhost:5173', 'http://localhost:5174'],
       credentials: true,
     })
   )
@@ -36,6 +37,7 @@ const app = new Elysia()
   .use(heroesPlugin)
   .use(proPlugin)
   .use(searchPlugin)
+  .use(replayPlugin)
   .listen(env.PORT)
 
 console.log(`dotavault api running on port ${env.PORT}`)

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { HeroStat, MatchPlayer } from 'types'
 import { itemIconUrl, ITEM_CDN_FALLBACK } from '@/lib/utils'
 
+/* Local asset first (itemIconUrl), Steam CDN only if the local file 404s. */
 function onItemError(e: React.SyntheticEvent<HTMLImageElement>) {
   const img = e.currentTarget
   const name = img.dataset.itemName

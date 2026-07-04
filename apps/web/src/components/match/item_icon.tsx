@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { ItemConst } from 'types'
-import { itemIconUrl } from '@/lib/utils'
+import { itemIconUrl, ITEM_CDN_FALLBACK } from '@/lib/utils'
 
 function ItemTooltip({ meta, x, y }: { meta: ItemConst; x: number; y: number }) {
   // Clamp to viewport (tooltip ~ 300px wide)
@@ -117,9 +117,14 @@ export function ItemIcon({
           alt={meta?.dname ?? name}
           className="w-full h-full object-cover"
           onError={(e) => {
+            // Local asset first, Steam CDN if it 404s, dim if both fail.
             const img = e.currentTarget
-            img.onerror = null
-            img.style.opacity = '0.12'
+            if (!img.src.includes('cdn.cloudflare')) {
+              img.src = `${ITEM_CDN_FALLBACK}/${name}.png`
+            } else {
+              img.onerror = null
+              img.style.opacity = '0.12'
+            }
           }}
         />
       ) : null}
