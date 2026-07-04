@@ -514,6 +514,7 @@ function HeroDetailPage() {
                   fontWeight: 200,
                   lineHeight: 1.5,
                   marginTop: 14,
+                  textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)',
                 }}
               >
                 <HistoryText text={history} />
@@ -523,7 +524,12 @@ function HeroDetailPage() {
                   type="button"
                   onClick={() => setLoreOpen((v) => !v)}
                   className="inline-block mt-2 text-[18px] underline cursor-pointer hover:text-white"
-                  style={{ color: '#8a8a8a', fontWeight: 200, fontFamily: 'var(--font-dota)' }}
+                  style={{
+                    color: '#8a8a8a',
+                    fontWeight: 200,
+                    fontFamily: 'var(--font-dota)',
+                    textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)',
+                  }}
                 >
                   {loreOpen ? 'Close History' : 'Read Full History'}
                 </button>
