@@ -2,18 +2,25 @@ import { Pause, Play, RefreshCw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { HeroStat, Match } from 'types'
 import { opendota } from '@/lib/opendota'
+import { ReplayUnavailableError, parseReplayPositions } from '@/lib/replay_parser'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { type ObjectiveEvent, extractObjectiveEvents } from './match_objectives'
 import { formatClock, GameTimeSlider } from './match_time'
 
-/* Replay / playback tab. OpenDota exposes no continuous hero movement (that
-   only exists in Valve's raw .dem replay, which we don't parse) — only two
-   kinds of anchored positions: where a hero died in a teamfight
+/* Replay / playback tab. OpenDota's parsed data only ever gives two kinds of
+   anchored positions: where a hero died in a teamfight
    (teamfights[].players[].deaths_pos, a sparse per-fight heatmap) and where
    they placed wards (obs_log/sen_log). Both use the same ~64-192 world grid
-   as the Vision tab's ward map (NOT 0-127). Heroes are interpolated between
-   whichever of these anchors are known, and shown dimmed ("ghost") outside
-   their known time range rather than guessing a fabricated position. */
+   as the Vision tab's ward map (NOT 0-127). By default heroes are
+   interpolated between whichever of these anchors are known, shown dimmed
+   ("ghost") outside their known time range rather than guessing a
+   fabricated position.
+
+   "Full Playback" is an upgrade path: while Valve is still actually serving
+   the match's raw replay file (a short window after the match ends), our
+   own Go service (apps/replay-parser) downloads and parses it directly with
+   manta to get true continuous hero movement, replacing the sparse
+   snapshots above entirely once it loads. */
 
 const MAP_MIN = 64
 const MAP_MAX = 192
@@ -167,11 +174,31 @@ export function ReplayViewer({ match, heroStats }: { match: Match; heroStats: He
   const [time, setTime] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
+  const [fullPlaybackState, setFullPlaybackState] = useState<'idle' | 'loading' | 'unavailable' | 'error' | 'done'>('idle')
+  const [densePositions, setDensePositions] = useState<Waypoint[][] | null>(null)
 
   const heroMap = useMemo(() => new Map(heroStats.map((h) => [h.id, h])), [heroStats])
   const heroByName = useMemo(() => new Map(heroStats.map((h) => [h.name, h])), [heroStats])
-  const waypointsBySlot = useMemo(() => buildWaypoints(match), [match])
+  const sparseWaypoints = useMemo(() => buildWaypoints(match), [match])
+  const waypointsBySlot = densePositions ?? sparseWaypoints
   const hasAnyWaypoints = waypointsBySlot.some((w) => w.length > 0)
+  const canFetchFullPlayback = match.cluster != null && match.replay_salt != null
+
+  async function fetchFullPlayback() {
+    if (match.replay_salt == null) return
+    setFullPlaybackState('loading')
+    try {
+      const result = await parseReplayPositions(match.match_id, match.cluster, match.replay_salt)
+      const bySlot: Waypoint[][] = match.players.map((p) => {
+        const pts = result.positions[String(p.player_slot)] ?? []
+        return pts.map((pt) => ({ time: pt.t, x: pt.x, y: pt.y }))
+      })
+      setDensePositions(bySlot)
+      setFullPlaybackState('done')
+    } catch (err) {
+      setFullPlaybackState(err instanceof ReplayUnavailableError ? 'unavailable' : 'error')
+    }
+  }
 
   const events = useMemo(() => {
     const combined = [...extractObjectiveEvents(match, heroStats), ...extractKillEvents(match, heroMap, heroByName)]
@@ -321,10 +348,38 @@ export function ReplayViewer({ match, heroStats }: { match: Match; heroStats: He
       {/* Map + controls */}
       <div className="flex-1 space-y-3" style={{ background: C.panel }}>
         <div
-          className="text-[15px] uppercase px-4 py-3"
-          style={{ color: C.white, letterSpacing: '2px', background: C.panelDark }}
+          className="flex items-center justify-between px-4 py-3"
+          style={{ background: C.panelDark }}
         >
-          Playback
+          <span className="text-[15px] uppercase" style={{ color: C.white, letterSpacing: '2px' }}>
+            Playback
+          </span>
+          {canFetchFullPlayback && fullPlaybackState !== 'done' && (
+            <div className="flex items-center gap-2.5">
+              {fullPlaybackState === 'unavailable' && (
+                <span className="text-[12px]" style={{ color: C.dim }}>Replay no longer available</span>
+              )}
+              {fullPlaybackState === 'error' && (
+                <span className="text-[12px]" style={{ color: C.red }}>Failed to parse replay</span>
+              )}
+              <button
+                type="button"
+                onClick={fetchFullPlayback}
+                disabled={fullPlaybackState === 'loading'}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-[12px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-60"
+                style={{ background: '#1d2a12', border: '1px solid #3d5a24', color: C.green, letterSpacing: '1px' }}
+                title="Downloads and parses the raw replay ourselves for true continuous hero movement, only works while Valve still serves the file"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${fullPlaybackState === 'loading' ? 'animate-spin' : ''}`} />
+                {fullPlaybackState === 'loading' ? 'Parsing Replay…' : fullPlaybackState === 'error' ? 'Retry Full Playback' : 'Full Playback'}
+              </button>
+            </div>
+          )}
+          {fullPlaybackState === 'done' && (
+            <span className="text-[12px] uppercase" style={{ color: C.green, letterSpacing: '1px' }}>
+              ✓ Full playback loaded
+            </span>
+          )}
         </div>
         <div className="flex justify-center px-4">
           <canvas

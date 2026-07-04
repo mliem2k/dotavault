@@ -1,0 +1,35 @@
+app = 'dotavault-replay-parser'
+primary_region = 'sin'
+
+[build]
+  dockerfile = 'apps/replay-parser/Dockerfile'
+
+[env]
+  PORT = '8081'
+
+[http_service]
+  internal_port = 8081
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = 'requests'
+    hard_limit = 20
+    soft_limit = 10
+
+[[http_service.checks]]
+  grace_period = '10s'
+  interval = '30s'
+  method = 'GET'
+  path = '/health'
+  timeout = '5s'
+  tls_skip_verify = false
+
+[[vm]]
+  # Parsing a full match briefly needs real memory (decompressed .dem +
+  # manta's live entity state), more than the existing api's 512mb.
+  memory = '1024mb'
+  cpu_kind = 'shared'
+  cpus = 1
