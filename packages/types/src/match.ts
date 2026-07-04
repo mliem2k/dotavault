@@ -22,16 +22,20 @@ export type Objective = {
 }
 
 export type TeamfightPlayer = {
-  account_id: number | null
+  // Sparse death-location heatmap: { x: { y: count } }, world grid cells
+  // (same ~64-192 range as ward log x/y) — populated only for the players
+  // who actually died in this fight, only at their death spot(s).
+  deaths_pos: Record<string, Record<string, number>>
+  ability_uses: Record<string, number>
+  item_uses: Record<string, number>
+  // Victim internal hero name -> kill count within this fight.
+  killed: Record<string, number>
   buybacks: number
   damage: number
   deaths: number
   gold_delta: number
   healing: number
-  hero_id: number
-  kills: number
-  x: number | null
-  y: number | null
+  xp_delta: number
 }
 
 export type Teamfight = {

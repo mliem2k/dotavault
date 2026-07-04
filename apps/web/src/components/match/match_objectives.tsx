@@ -40,15 +40,10 @@ function buildingLabel(key: string): { team: 'radiant' | 'dire'; label: string }
   return { team: owner, label }
 }
 
-type Ev = { time: number; icon: string; text: string; team: 'radiant' | 'dire' | null; heroId?: number }
+export type ObjectiveEvent = { time: number; icon: string; text: string; team: 'radiant' | 'dire' | null; heroId?: number }
 
-export function MatchObjectives({
-  match,
-  heroStats,
-}: {
-  match: Match
-  heroStats: HeroStat[]
-}) {
+// Shared by the Objectives tab and the replay viewer's event feed.
+export function extractObjectiveEvents(match: Match, heroStats: HeroStat[]): ObjectiveEvent[] {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const bySlot = new Map(match.players.map((p) => [p.player_slot, p]))
   const heroName = (playerSlot: number | null | undefined) => {
@@ -56,7 +51,7 @@ export function MatchObjectives({
     return p ? heroMap.get(p.hero_id) : undefined
   }
 
-  const events: Ev[] = []
+  const events: ObjectiveEvent[] = []
   for (const o of (match.objectives ?? []) as Objective[]) {
     switch (o.type) {
       case 'CHAT_MESSAGE_FIRSTBLOOD': {
@@ -117,6 +112,18 @@ export function MatchObjectives({
     }
   }
   events.sort((a, b) => a.time - b.time)
+  return events
+}
+
+export function MatchObjectives({
+  match,
+  heroStats,
+}: {
+  match: Match
+  heroStats: HeroStat[]
+}) {
+  const heroMap = new Map(heroStats.map((h) => [h.id, h]))
+  const events = extractObjectiveEvents(match, heroStats)
 
   if (events.length === 0) {
     return (

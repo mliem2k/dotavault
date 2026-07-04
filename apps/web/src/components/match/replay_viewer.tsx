@@ -1,38 +1,113 @@
 import { Pause, Play, RefreshCw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
-import type { HeroStat, Match, TeamfightPlayer } from 'types'
+import type { HeroStat, Match } from 'types'
 import { opendota } from '@/lib/opendota'
-import { formatDuration } from '@/lib/utils'
+import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { type ObjectiveEvent, extractObjectiveEvents } from './match_objectives'
+import { formatClock, GameTimeSlider } from './match_time'
 
-// OpenDota heatmap grid: 0–127 on each axis
-const MAP_MIN = 0
-const MAP_MAX = 127
+/* Replay / playback tab. OpenDota exposes no continuous hero movement (that
+   only exists in Valve's raw .dem replay, which we don't parse) — only two
+   kinds of anchored positions: where a hero died in a teamfight
+   (teamfights[].players[].deaths_pos, a sparse per-fight heatmap) and where
+   they placed wards (obs_log/sen_log). Both use the same ~64-192 world grid
+   as the Vision tab's ward map (NOT 0-127). Heroes are interpolated between
+   whichever of these anchors are known, and shown dimmed ("ghost") outside
+   their known time range rather than guessing a fabricated position. */
 
-type HeroPos = { time: number; x: number; y: number; slot: number }
+const MAP_MIN = 64
+const MAP_MAX = 192
 
-function extractPositions(match: Match): HeroPos[] {
-  const positions: HeroPos[] = []
-  if (!match.teamfights) return positions
-  for (const fight of match.teamfights) {
-    fight.players.forEach((p: TeamfightPlayer, slot: number) => {
-      if (p.x != null && p.y != null) {
-        positions.push({ time: fight.start, x: p.x, y: p.y, slot })
-        positions.push({ time: fight.end, x: p.x, y: p.y, slot })
-      }
-    })
-  }
-  return positions.sort((a, b) => a.time - b.time)
+const C = {
+  label: '#8a97a0',
+  dim: '#67757f',
+  text: '#cfd4d8',
+  white: '#ffffff',
+  green: '#9fbf3f',
+  red: '#c94a38',
+  gold: '#f2c94c',
+  panel: 'rgba(16,19,22,0.72)',
+  panelDark: 'rgba(8,10,12,0.7)',
 }
 
-function interpolate(slotPositions: HeroPos[], t: number): { x: number; y: number } | null {
-  if (!slotPositions.length) return null
-  const before = [...slotPositions].reverse().find((p) => p.time <= t)
-  const after = slotPositions.find((p) => p.time > t)
-  if (!before) return after ? { x: after.x, y: after.y } : null
-  if (!after) return { x: before.x, y: before.y }
-  const f = (t - before.time) / (after.time - before.time)
-  return { x: before.x + (after.x - before.x) * f, y: before.y + (after.y - before.y) * f }
+type Waypoint = { time: number; x: number; y: number }
+
+function extractDeathWaypoints(match: Match): Waypoint[][] {
+  const bySlot: Waypoint[][] = match.players.map(() => [])
+  for (const tf of match.teamfights ?? []) {
+    tf.players.forEach((tp, idx) => {
+      const dp = tp.deaths_pos
+      if (!dp) return
+      let best: { x: number; y: number; count: number } | null = null
+      for (const [xk, inner] of Object.entries(dp)) {
+        for (const [yk, count] of Object.entries(inner)) {
+          if (!best || count > best.count) best = { x: Number(xk), y: Number(yk), count }
+        }
+      }
+      if (best) bySlot[idx]?.push({ time: tf.last_death ?? tf.end, x: best.x, y: best.y })
+    })
+  }
+  return bySlot
+}
+
+function extractWardWaypoints(match: Match): Waypoint[][] {
+  return match.players.map((p) => {
+    const points: Waypoint[] = []
+    for (const log of [p.obs_log, p.sen_log]) {
+      for (const w of log ?? []) points.push({ time: w.time, x: w.x, y: w.y })
+    }
+    return points
+  })
+}
+
+function buildWaypoints(match: Match): Waypoint[][] {
+  const deaths = extractDeathWaypoints(match)
+  const wards = extractWardWaypoints(match)
+  return match.players.map((_, idx) => [...(deaths[idx] ?? []), ...(wards[idx] ?? [])].sort((a, b) => a.time - b.time))
+}
+
+type Interpolated = { x: number; y: number; ghost: boolean }
+
+function interpolate(points: Waypoint[], t: number): Interpolated | null {
+  if (!points.length) return null
+  let before: Waypoint | null = null
+  let after: Waypoint | null = null
+  for (const p of points) {
+    if (p.time <= t) before = p
+    else {
+      after = p
+      break
+    }
+  }
+  if (before && after) {
+    const f = (t - before.time) / Math.max(1, after.time - before.time)
+    return { x: before.x + (after.x - before.x) * f, y: before.y + (after.y - before.y) * f, ghost: false }
+  }
+  if (before) return { x: before.x, y: before.y, ghost: true }
+  if (after) return { x: after.x, y: after.y, ghost: true }
+  return null
+}
+
+function extractKillEvents(
+  match: Match,
+  heroMap: Map<number, HeroStat>,
+  heroByName: Map<string, HeroStat>,
+): ObjectiveEvent[] {
+  const events: ObjectiveEvent[] = []
+  for (const p of match.players) {
+    const killerHero = heroMap.get(p.hero_id)
+    for (const k of p.kills_log ?? []) {
+      const victimHero = heroByName.get(k.key)
+      events.push({
+        time: k.time,
+        icon: '⚔',
+        text: `${killerHero?.localized_name ?? 'A hero'} killed ${victimHero?.localized_name ?? k.key.replace('npc_dota_hero_', '')}`,
+        team: p.player_slot < 128 ? 'radiant' : 'dire',
+        heroId: killerHero?.id,
+      })
+    }
+  }
+  return events
 }
 
 function toCanvas(val: number, size: number): number {
@@ -55,21 +130,23 @@ function ParseRequest({ matchId }: { matchId: number }) {
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6 text-center space-y-3">
-      <p className="text-sm text-muted">
+    <div className="p-8 text-center space-y-3" style={{ background: C.panel, fontFamily: 'var(--font-dota)' }}>
+      <p className="text-[14px]" style={{ color: C.dim }}>
         This match has not been parsed yet. Request a parse to enable the replay viewer.
       </p>
       {state === 'submitted' ? (
-        <p className="text-sm text-radiant">
-          Parse requested — reload the page in a few minutes to check if data is available.
+        <p className="text-[14px]" style={{ color: C.green }}>
+          Parse requested, reload in a few minutes to check if data is available.
         </p>
       ) : state === 'error' ? (
-        <p className="text-sm text-dire">Failed to request parse. Try again later.</p>
+        <p className="text-[14px]" style={{ color: C.red }}>Failed to request parse. Try again later.</p>
       ) : (
         <button
+          type="button"
           onClick={request}
           disabled={state === 'requesting'}
-          className="inline-flex items-center gap-2 rounded border border-border px-4 py-2 text-sm hover:border-accent hover:text-accent disabled:opacity-50 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:opacity-50"
+          style={{ background: '#1d2a12', border: '1px solid #3d5a24', color: C.green, letterSpacing: '1px' }}
         >
           <RefreshCw className={`h-3.5 w-3.5 ${state === 'requesting' ? 'animate-spin' : ''}`} />
           {state === 'requesting' ? 'Requesting…' : 'Request Parse'}
@@ -79,38 +156,31 @@ function ParseRequest({ matchId }: { matchId: number }) {
   )
 }
 
+const SPEEDS = [1, 2, 4, 8]
+
 export function ReplayViewer({ match, heroStats }: { match: Match; heroStats: HeroStat[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const mapImgRef = useRef<HTMLImageElement | null>(null)
+  const iconImgsRef = useRef<Map<number, HTMLImageElement>>(new Map())
   const animRef = useRef<number | null>(null)
   const lastTsRef = useRef<number | null>(null)
   const [time, setTime] = useState(0)
   const [playing, setPlaying] = useState(false)
+  const [speed, setSpeed] = useState(1)
 
-  const heroMap = useMemo(
-    () => new Map(heroStats.map((h) => [h.id, h])),
-    [heroStats],
-  )
-  const positions = useMemo(() => extractPositions(match), [match])
-  const positionsBySlot = useMemo(() => {
-    const map = new Map<number, HeroPos[]>()
-    for (const p of positions) {
-      if (!map.has(p.slot)) map.set(p.slot, [])
-      map.get(p.slot)!.push(p)
-    }
-    return map
-  }, [positions])
+  const heroMap = useMemo(() => new Map(heroStats.map((h) => [h.id, h])), [heroStats])
+  const heroByName = useMemo(() => new Map(heroStats.map((h) => [h.name, h])), [heroStats])
+  const waypointsBySlot = useMemo(() => buildWaypoints(match), [match])
+  const hasAnyWaypoints = waypointsBySlot.some((w) => w.length > 0)
+
+  const events = useMemo(() => {
+    const combined = [...extractObjectiveEvents(match, heroStats), ...extractKillEvents(match, heroMap, heroByName)]
+    combined.sort((a, b) => a.time - b.time)
+    return combined
+  }, [match, heroStats, heroMap, heroByName])
+
   const duration = match.duration
-
   const activeTeamfight = match.teamfights?.find((tf) => time >= tf.start && time <= tf.end)
-
-  useEffect(() => {
-    const img = new Image()
-    img.src = '/minimap.webp'
-    img.onload = () => {
-      mapImgRef.current = img
-    }
-  }, [])
 
   const draw = useCallback(
     (t: number) => {
@@ -121,7 +191,6 @@ export function ReplayViewer({ match, heroStats }: { match: Match; heroStats: He
       const size = canvas.width
 
       ctx.clearRect(0, 0, size, size)
-
       if (mapImgRef.current) {
         ctx.drawImage(mapImgRef.current, 0, 0, size, size)
       } else {
@@ -130,53 +199,84 @@ export function ReplayViewer({ match, heroStats }: { match: Match; heroStats: He
       }
 
       if (activeTeamfight) {
-        const pts = activeTeamfight.players
-          .filter((p) => p.x != null && p.y != null)
-          .map((p) => ({
-            x: toCanvas(p.x!, size),
-            y: size - toCanvas(p.y!, size),
-          }))
-        if (pts.length) {
-          const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length
-          const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length
-          const alpha = 0.3 + 0.2 * Math.sin(t * 4)
-          ctx.beginPath()
-          ctx.arc(cx, cy, 32, 0, Math.PI * 2)
-          ctx.strokeStyle = `rgba(255, 200, 50, ${alpha})`
-          ctx.lineWidth = 2
-          ctx.stroke()
-        }
+        ctx.fillStyle = 'rgba(242,201,76,0.12)'
+        ctx.fillRect(0, 0, size, size)
       }
 
-      match.players.forEach((player, slot) => {
-        const pos = interpolate(positionsBySlot.get(slot) ?? [], t)
+      match.players.forEach((player, idx) => {
+        const pos = interpolate(waypointsBySlot[idx] ?? [], t)
         if (!pos) return
         const cx = toCanvas(pos.x, size)
         const cy = size - toCanvas(pos.y, size)
         const isRadiant = player.player_slot < 128
+        const icon = iconImgsRef.current.get(player.hero_id)
+        const r = 13
+        const alpha = pos.ghost ? 0.4 : 1
 
+        ctx.save()
+        ctx.globalAlpha = alpha
         ctx.beginPath()
-        ctx.arc(cx, cy, 5, 0, Math.PI * 2)
-        ctx.fillStyle = isRadiant ? '#4ade80' : '#f87171'
+        ctx.arc(cx, cy, r + 2, 0, Math.PI * 2)
+        ctx.fillStyle = isRadiant ? C.green : C.red
         ctx.fill()
-        ctx.strokeStyle = '#000'
-        ctx.lineWidth = 1
-        ctx.stroke()
 
-        const hero = heroMap.get(player.hero_id)
-        if (hero) {
-          ctx.fillStyle = '#fff'
-          ctx.font = '9px monospace'
-          ctx.fillText(hero.localized_name.slice(0, 4), cx + 6, cy + 3)
+        if (icon?.complete && icon.naturalWidth > 0) {
+          ctx.save()
+          ctx.beginPath()
+          ctx.arc(cx, cy, r, 0, Math.PI * 2)
+          ctx.clip()
+          ctx.drawImage(icon, cx - r, cy - r, r * 2, r * 2)
+          ctx.restore()
         }
+        ctx.restore()
       })
     },
-    [match, positionsBySlot, heroMap, activeTeamfight],
+    [match, waypointsBySlot, activeTeamfight],
   )
 
   useEffect(() => {
     draw(time)
   }, [time, draw])
+
+  // Images load asynchronously well after this render; loading them doesn't
+  // change `time` or `draw`'s identity, so the effect above won't re-fire on
+  // its own. Track both in refs and redraw directly from each image's load
+  // handler instead of hoping a state bump re-triggers the effect.
+  const drawRef = useRef(draw)
+  useEffect(() => {
+    drawRef.current = draw
+  }, [draw])
+  const timeRef = useRef(time)
+  useEffect(() => {
+    timeRef.current = time
+  }, [time])
+
+  useEffect(() => {
+    const img = new Image()
+    img.src = '/minimap.webp'
+    img.onload = () => {
+      mapImgRef.current = img
+      drawRef.current(timeRef.current)
+    }
+  }, [])
+
+  // Load hero portrait icons lazily, once per hero present in this match.
+  useEffect(() => {
+    for (const p of match.players) {
+      if (iconImgsRef.current.has(p.hero_id)) continue
+      const hero = heroMap.get(p.hero_id)
+      if (!hero) continue
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.src = heroIconUrl(hero.name)
+      img.onerror = () => {
+        img.onerror = null
+        img.src = heroIconFromPath(hero.icon)
+      }
+      img.onload = () => drawRef.current(timeRef.current)
+      iconImgsRef.current.set(p.hero_id, img)
+    }
+  }, [match.players, heroMap])
 
   useEffect(() => {
     if (!playing) {
@@ -186,7 +286,7 @@ export function ReplayViewer({ match, heroStats }: { match: Match; heroStats: He
     }
     function tick(ts: number) {
       if (lastTsRef.current === null) lastTsRef.current = ts
-      const delta = (ts - lastTsRef.current) / 1000
+      const delta = ((ts - lastTsRef.current) / 1000) * speed
       lastTsRef.current = ts
       setTime((prev) => {
         const next = prev + delta
@@ -202,62 +302,121 @@ export function ReplayViewer({ match, heroStats }: { match: Match; heroStats: He
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current)
     }
-  }, [playing, duration])
+  }, [playing, duration, speed])
 
-  if (match.version === null) {
-    return <ParseRequest matchId={match.match_id} />
-  }
+  if (match.version === null) return <ParseRequest matchId={match.match_id} />
 
-  if (positions.length === 0) {
+  if (!hasAnyWaypoints) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6 text-center">
-        <p className="text-sm text-muted">No teamfight position data available for this match.</p>
+      <div className="p-8 text-center" style={{ background: C.panel, fontFamily: 'var(--font-dota)' }}>
+        <p className="text-[14px]" style={{ color: C.dim }}>
+          No teamfight or ward position data available for this match.
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-3">
-        <motion.div whileTap={{ scale: 0.9 }} style={{ display: 'inline-flex' }}>
-          <button
-            onClick={() => setPlaying((p) => !p)}
-            className="flex h-8 w-8 items-center justify-center rounded border border-border bg-card hover:bg-white/10"
-          >
-            {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-          </button>
-        </motion.div>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <input
-            type="range"
-            min={0}
-            max={duration}
-            value={time}
-            onChange={(e) => {
-              setPlaying(false)
-              setTime(Number(e.target.value))
-            }}
-            className="flex-1 accent-accent"
+    <div className="flex gap-4" style={{ fontFamily: 'var(--font-dota)' }}>
+      {/* Map + controls */}
+      <div className="flex-1 space-y-3" style={{ background: C.panel }}>
+        <div
+          className="text-[15px] uppercase px-4 py-3"
+          style={{ color: C.white, letterSpacing: '2px', background: C.panelDark }}
+        >
+          Playback
+        </div>
+        <div className="flex justify-center px-4">
+          <canvas
+            ref={canvasRef}
+            width={560}
+            height={560}
+            className="w-full max-w-[560px]"
+            style={{ border: '1px solid #22282c' }}
           />
-        </motion.div>
-        <span className="w-12 text-right font-mono text-xs text-muted">
-          {formatDuration(Math.floor(time))}
-        </span>
+        </div>
+        <div className="flex items-center gap-3 px-4 pb-4">
+          <button
+            type="button"
+            onClick={() => setPlaying((p) => !p)}
+            className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125"
+            style={{ background: '#1a2024', border: '1px solid #2c3236', color: C.text }}
+          >
+            {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          </button>
+          <div className="flex items-center shrink-0" style={{ border: '1px solid #2c3236' }}>
+            {SPEEDS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setSpeed(s)}
+                className="px-2.5 py-1.5 text-[12px] cursor-pointer"
+                style={{ background: speed === s ? '#2c3236' : 'transparent', color: speed === s ? C.white : C.dim }}
+              >
+                {s}x
+              </button>
+            ))}
+          </div>
+          <GameTimeSlider timeSec={time} duration={duration} onChange={(t) => { setPlaying(false); setTime(t) }} />
+        </div>
+        {activeTeamfight && (
+          <p className="text-center text-[13px] pb-3" style={{ color: C.gold }}>
+            ⚔ Teamfight {formatClock(activeTeamfight.start)}–{formatClock(activeTeamfight.end)} · {activeTeamfight.deaths} deaths
+          </p>
+        )}
       </div>
-      <div className="flex justify-center">
-        <canvas
-          ref={canvasRef}
-          width={400}
-          height={400}
-          className="rounded-lg border border-border"
-        />
+
+      {/* Synced event feed */}
+      <div className="w-[340px] shrink-0" style={{ background: C.panel }}>
+        <div
+          className="text-[15px] uppercase px-4 py-3"
+          style={{ color: C.white, letterSpacing: '2px', background: C.panelDark }}
+        >
+          Match Events
+        </div>
+        <div className="max-h-[560px] overflow-y-auto">
+          {events.map((e, i) => {
+            const hero = e.heroId != null ? heroMap.get(e.heroId) : undefined
+            const passed = e.time <= time
+            return (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static event list
+              <button
+                key={i}
+                type="button"
+                onClick={() => { setPlaying(false); setTime(Math.max(0, e.time)) }}
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-left cursor-pointer hover:bg-white/[0.05]"
+                style={{
+                  borderBottom: '1px solid rgba(255,255,255,0.04)',
+                  opacity: passed ? 1 : 0.45,
+                  background: passed ? 'rgba(242,201,76,0.05)' : 'transparent',
+                }}
+              >
+                <span className="w-11 text-right text-[13px] tabular-nums shrink-0" style={{ color: C.dim }}>
+                  {formatClock(Math.max(0, e.time))}
+                </span>
+                <span style={{ width: 3, height: 20, background: e.team === 'radiant' ? C.green : e.team === 'dire' ? C.red : '#3a4147' }} />
+                <span className="text-[15px] w-6 text-center shrink-0">{e.icon}</span>
+                {hero && (
+                  <img
+                    src={heroIconUrl(hero.name)}
+                    alt=""
+                    style={{ width: 24, height: 24 }}
+                    onError={(ev) => {
+                      const img = ev.currentTarget
+                      img.onerror = null
+                      img.src = heroIconFromPath(hero.icon)
+                    }}
+                  />
+                )}
+                <span className="text-[13px] truncate" style={{ color: C.text }}>{e.text}</span>
+              </button>
+            )
+          })}
+          {events.length === 0 && (
+            <div className="py-8 text-center text-[13px]" style={{ color: C.dim }}>No events recorded.</div>
+          )}
+        </div>
       </div>
-      {activeTeamfight && (
-        <p className="text-center text-xs text-muted">
-          ⚔ Teamfight {formatDuration(activeTeamfight.start)}–
-          {formatDuration(activeTeamfight.end)} · {activeTeamfight.deaths} deaths
-        </p>
-      )}
     </div>
   )
 }

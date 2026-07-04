@@ -211,11 +211,12 @@ function Teamfights({
               <div className="flex items-center gap-2 flex-wrap flex-1">
                 {f.players.map((tp, idx) => {
                   const mp = match.players[idx]
-                  if (!mp || (tp.damage === 0 && tp.deaths === 0 && tp.kills === 0 && tp.gold_delta === 0)) return null
+                  const kills = Object.values(tp.killed ?? {}).reduce((s, n) => s + n, 0)
+                  if (!mp || (tp.damage === 0 && tp.deaths === 0 && kills === 0 && tp.gold_delta === 0)) return null
                   const hero = heroMap.get(mp.hero_id)
                   return (
                     // biome-ignore lint/suspicious/noArrayIndexKey: aligned to players order
-                    <div key={idx} className="relative" title={`${hero?.localized_name}: ${tp.damage.toLocaleString()} dmg, ${tp.kills} kills${tp.deaths ? ', died' : ''}`}>
+                    <div key={idx} className="relative" title={`${hero?.localized_name}: ${tp.damage.toLocaleString()} dmg, ${kills} kills${tp.deaths ? ', died' : ''}`}>
                       <div style={{ borderTop: `2px solid ${mp.player_slot < 128 ? C.green : C.red}`, opacity: tp.deaths ? 0.45 : 1 }}>
                         <HeroIcon hero={hero} size={42} />
                       </div>
