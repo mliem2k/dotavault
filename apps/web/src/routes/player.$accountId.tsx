@@ -186,7 +186,7 @@ function PlayerPage() {
             </h1>
             {proInfo?.name && proInfo.name !== p.profile.personaname && (
               <span className="text-[15px]" style={{ color: C.labelBright }}>
-                ({proInfo.name})
+                [{proInfo.name}]
               </span>
             )}
             {proInfo?.team_id && (

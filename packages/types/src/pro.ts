@@ -22,7 +22,7 @@ export type ProPlayer = {
   avatarmedium: string
   avatarfull: string
   profileurl: string
-  personaname: string
+  personaname: string | null
   last_login: string | null
   loccountrycode: string | null
   last_match_time: string | null

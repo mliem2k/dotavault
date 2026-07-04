@@ -65,6 +65,22 @@ function LeaderboardsPage() {
     staleTime: 15 * 60 * 1000,
   })
 
+  // Shared cache with the player page's pro-roster lookup. Leaderboard rows
+  // carry only a display name, so match it against each pro's persona name
+  // to show their real/pro name alongside it.
+  const proPlayers = useQuery({
+    queryKey: ['pro_players'],
+    queryFn: () => opendota.proPlayers(),
+    staleTime: 60 * 60 * 1000,
+  })
+  const proByPersona = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const p of proPlayers.data ?? []) {
+      if (p.is_pro && p.name && p.personaname) map.set(p.personaname.toLowerCase(), p.name)
+    }
+    return map
+  }, [proPlayers.data])
+
   const filtered = useMemo(() => {
     const rows = query.data?.leaderboard ?? []
     const q = search.trim().toLowerCase()
@@ -204,6 +220,21 @@ function LeaderboardsPage() {
                   <span className="text-[16px] truncate" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
                     {r.name}
                   </span>
+                  {(() => {
+                    // Short/generic names (".", "1", "))") collide across
+                    // unrelated players too often for a persona-name match
+                    // to be trustworthy — require a few real characters.
+                    if (r.name.length < 3) return null
+                    const proName = proByPersona.get(r.name.toLowerCase())
+                    return (
+                      proName &&
+                      proName !== r.name && (
+                        <span className="text-[13px] shrink-0" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+                          [{proName}]
+                        </span>
+                      )
+                    )
+                  })()}
                   {r.sponsor && (
                     <span className="text-[13px] shrink-0" style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}>
                       .{r.sponsor}

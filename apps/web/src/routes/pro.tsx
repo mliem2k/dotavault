@@ -131,7 +131,7 @@ function ProPage() {
                   >
                     <img
                       src={p.avatarmedium}
-                      alt={p.personaname}
+                      alt={p.name ?? p.personaname ?? ''}
                       className="h-7 w-7 rounded-full shrink-0"
                       style={{ border: '1px solid #2c2820' }}
                     />
