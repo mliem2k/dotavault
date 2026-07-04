@@ -18,6 +18,8 @@ import { Route as TeamTeamIdRouteImport } from './routes/team.$teamId'
 import { Route as PlayerAccountIdRouteImport } from './routes/player.$accountId'
 import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
 import { Route as HeroHeroNameRouteImport } from './routes/hero.$heroName'
+import { Route as MatchMatchIdIndexRouteImport } from './routes/match.$matchId.index'
+import { Route as MatchMatchIdTabRouteImport } from './routes/match.$matchId.$tab'
 
 const ProRoute = ProRouteImport.update({
   id: '/pro',
@@ -64,6 +66,16 @@ const HeroHeroNameRoute = HeroHeroNameRouteImport.update({
   path: '/hero/$heroName',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MatchMatchIdIndexRoute = MatchMatchIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MatchMatchIdRoute,
+} as any)
+const MatchMatchIdTabRoute = MatchMatchIdTabRouteImport.update({
+  id: '/$tab',
+  path: '/$tab',
+  getParentRoute: () => MatchMatchIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -72,9 +84,11 @@ export interface FileRoutesByFullPath {
   '/meta': typeof MetaRoute
   '/pro': typeof ProRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
-  '/match/$matchId': typeof MatchMatchIdRoute
+  '/match/$matchId': typeof MatchMatchIdRouteWithChildren
   '/player/$accountId': typeof PlayerAccountIdRoute
   '/team/$teamId': typeof TeamTeamIdRoute
+  '/match/$matchId/$tab': typeof MatchMatchIdTabRoute
+  '/match/$matchId/': typeof MatchMatchIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -83,9 +97,10 @@ export interface FileRoutesByTo {
   '/meta': typeof MetaRoute
   '/pro': typeof ProRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
-  '/match/$matchId': typeof MatchMatchIdRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
   '/team/$teamId': typeof TeamTeamIdRoute
+  '/match/$matchId/$tab': typeof MatchMatchIdTabRoute
+  '/match/$matchId': typeof MatchMatchIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,9 +110,11 @@ export interface FileRoutesById {
   '/meta': typeof MetaRoute
   '/pro': typeof ProRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
-  '/match/$matchId': typeof MatchMatchIdRoute
+  '/match/$matchId': typeof MatchMatchIdRouteWithChildren
   '/player/$accountId': typeof PlayerAccountIdRoute
   '/team/$teamId': typeof TeamTeamIdRoute
+  '/match/$matchId/$tab': typeof MatchMatchIdTabRoute
+  '/match/$matchId/': typeof MatchMatchIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +128,8 @@ export interface FileRouteTypes {
     | '/match/$matchId'
     | '/player/$accountId'
     | '/team/$teamId'
+    | '/match/$matchId/$tab'
+    | '/match/$matchId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -119,9 +138,10 @@ export interface FileRouteTypes {
     | '/meta'
     | '/pro'
     | '/hero/$heroName'
-    | '/match/$matchId'
     | '/player/$accountId'
     | '/team/$teamId'
+    | '/match/$matchId/$tab'
+    | '/match/$matchId'
   id:
     | '__root__'
     | '/'
@@ -133,6 +153,8 @@ export interface FileRouteTypes {
     | '/match/$matchId'
     | '/player/$accountId'
     | '/team/$teamId'
+    | '/match/$matchId/$tab'
+    | '/match/$matchId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -142,7 +164,7 @@ export interface RootRouteChildren {
   MetaRoute: typeof MetaRoute
   ProRoute: typeof ProRoute
   HeroHeroNameRoute: typeof HeroHeroNameRoute
-  MatchMatchIdRoute: typeof MatchMatchIdRoute
+  MatchMatchIdRoute: typeof MatchMatchIdRouteWithChildren
   PlayerAccountIdRoute: typeof PlayerAccountIdRoute
   TeamTeamIdRoute: typeof TeamTeamIdRoute
 }
@@ -212,8 +234,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HeroHeroNameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/match/$matchId/': {
+      id: '/match/$matchId/'
+      path: '/'
+      fullPath: '/match/$matchId/'
+      preLoaderRoute: typeof MatchMatchIdIndexRouteImport
+      parentRoute: typeof MatchMatchIdRoute
+    }
+    '/match/$matchId/$tab': {
+      id: '/match/$matchId/$tab'
+      path: '/$tab'
+      fullPath: '/match/$matchId/$tab'
+      preLoaderRoute: typeof MatchMatchIdTabRouteImport
+      parentRoute: typeof MatchMatchIdRoute
+    }
   }
 }
+
+interface MatchMatchIdRouteChildren {
+  MatchMatchIdTabRoute: typeof MatchMatchIdTabRoute
+  MatchMatchIdIndexRoute: typeof MatchMatchIdIndexRoute
+}
+
+const MatchMatchIdRouteChildren: MatchMatchIdRouteChildren = {
+  MatchMatchIdTabRoute: MatchMatchIdTabRoute,
+  MatchMatchIdIndexRoute: MatchMatchIdIndexRoute,
+}
+
+const MatchMatchIdRouteWithChildren = MatchMatchIdRoute._addFileChildren(
+  MatchMatchIdRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -222,7 +272,7 @@ const rootRouteChildren: RootRouteChildren = {
   MetaRoute: MetaRoute,
   ProRoute: ProRoute,
   HeroHeroNameRoute: HeroHeroNameRoute,
-  MatchMatchIdRoute: MatchMatchIdRoute,
+  MatchMatchIdRoute: MatchMatchIdRouteWithChildren,
   PlayerAccountIdRoute: PlayerAccountIdRoute,
   TeamTeamIdRoute: TeamTeamIdRoute,
 }
