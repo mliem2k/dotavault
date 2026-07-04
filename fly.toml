@@ -2,13 +2,13 @@ app = 'dotavault-api'
 primary_region = 'sin'
 
 [build]
-  dockerfile = 'apps/api/Dockerfile'
+  dockerfile = 'apps/replay-parser/Dockerfile'
 
 [env]
-  PORT = '3000'
+  PORT = '8081'
 
 [http_service]
-  internal_port = 3000
+  internal_port = 8081
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
@@ -16,8 +16,8 @@ primary_region = 'sin'
 
   [http_service.concurrency]
     type = 'requests'
-    hard_limit = 250
-    soft_limit = 200
+    hard_limit = 20
+    soft_limit = 10
 
 [[http_service.checks]]
   grace_period = '10s'
@@ -28,6 +28,8 @@ primary_region = 'sin'
   tls_skip_verify = false
 
 [[vm]]
-  memory = '512mb'
+  # Parsing a full match briefly needs real memory (decompressed .dem +
+  # manta's live entity state), more than the old (unused) TS api's 512mb.
+  memory = '1024mb'
   cpu_kind = 'shared'
   cpus = 1

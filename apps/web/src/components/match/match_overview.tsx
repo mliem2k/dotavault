@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import type { HeroBenchmarks, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { opendota } from '@/lib/opendota'
 import {
+  AGHS_SCEPTER_CDN,
+  AGHS_SHARD_CDN,
   cdnFallback,
   formatDuration,
   heroIconFromPath,
@@ -28,9 +30,8 @@ const GAME_MODES: Record<number, string> = {
   23: 'Turbo',
 }
 
-// Animated hero renders (kept on Valve's CDN — the webm clips are ~1.3MB each).
+// Animated hero renders (kept on Valve's CDN, the webm clips are ~1.3MB each).
 const RENDER = 'https://cdn.steamstatic.com/apps/dota2/videos/dota_react/heroes/renders'
-const AGHS_SCEPTER = 'https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/stats/aghs_scepter.png'
 
 /* Horizontal center of the hero model inside its square render, measured from
    each render's alpha channel (percent from the left edge). Narrow portrait
@@ -198,7 +199,8 @@ function HeroPortraitCard({
   onClick: () => void
 }) {
   const playerName = usePlayerName(player)
-  const hasAghs = (player.aghanims_scepter ?? 0) > 0
+  const hasScepter = (player.aghanims_scepter ?? 0) > 0
+  const hasShard = (player.aghanims_shard ?? 0) > 0
 
   return (
     <div className="flex flex-col items-center shrink-0" style={{ width: 118 }}>
@@ -257,13 +259,27 @@ function HeroPortraitCard({
         </div>
       </button>
 
-      {/* Aghanim's Scepter badge under the card, like the client */}
-      {hasAghs && (
-        <div
-          className="mt-1.5 flex items-center justify-center"
-          style={{ width: 32, height: 32, background: 'rgba(13,16,18,0.9)', border: `1px solid ${C.panelBorder}` }}
-        >
-          <img src={AGHS_SCEPTER} alt="Aghanim's Scepter" style={{ width: 24, height: 24 }} />
+      {/* Aghanim's Scepter/Shard badges under the card, like the client */}
+      {(hasScepter || hasShard) && (
+        <div className="mt-1.5 flex items-center justify-center gap-1">
+          {hasScepter && (
+            <div
+              className="flex items-center justify-center"
+              style={{ width: 32, height: 32, background: 'rgba(13,16,18,0.9)', border: `1px solid ${C.panelBorder}` }}
+              title="Aghanim's Scepter"
+            >
+              <img src={AGHS_SCEPTER_CDN} alt="Aghanim's Scepter" style={{ width: 24, height: 24 }} />
+            </div>
+          )}
+          {hasShard && (
+            <div
+              className="flex items-center justify-center"
+              style={{ width: 32, height: 32, background: 'rgba(13,16,18,0.9)', border: `1px solid ${C.panelBorder}` }}
+              title="Aghanim's Shard"
+            >
+              <img src={AGHS_SHARD_CDN} alt="Aghanim's Shard" style={{ width: 24, height: 24 }} />
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -598,12 +614,16 @@ export function MatchOverview({
 }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   // Valve replays can be reconstructed from cluster + salt when the API
-  // omits replay_url. Unparsed matches carry no salt, so no link exists.
+  // omits replay_url. Only offer the link once the match is actually
+  // parsed (unparsed matches don't have a real replay to download yet, and
+  // shouldn't show a placeholder for one).
   const replayUrl =
-    match.replay_url ??
-    (match.replay_salt != null && match.cluster
-      ? `http://replay${match.cluster}.valve.net/570/${match.match_id}_${match.replay_salt}.dem.bz2`
-      : null)
+    match.version != null
+      ? (match.replay_url ??
+        (match.replay_salt != null && match.cluster
+          ? `http://replay${match.cluster}.valve.net/570/${match.match_id}_${match.replay_salt}.dem.bz2`
+          : null))
+      : null
   const [parseState, setParseState] = useState<'idle' | 'requesting' | 'requested' | 'failed'>('idle')
   async function requestParse() {
     if (parseState === 'requesting' || parseState === 'requested') return
@@ -682,7 +702,7 @@ export function MatchOverview({
   const footer = (
     <div className="flex flex-col items-center gap-5 pt-10 pb-6" style={{ fontFamily: 'var(--font-dota)' }}>
       <div className="flex items-center gap-3">
-        {replayUrl ? (
+        {replayUrl && (
           <a
             href={replayUrl}
             className="px-6 py-2 text-[15px] uppercase hover:brightness-125"
@@ -690,14 +710,6 @@ export function MatchOverview({
           >
             Download Replay
           </a>
-        ) : (
-          <span
-            className="px-6 py-2 text-[15px] uppercase"
-            style={{ background: '#0e2233', border: '1px solid #24455f', color: '#4faee3', letterSpacing: '2px', opacity: 0.45 }}
-            title="Replay unavailable — Valve no longer serves it or the match is unparsed"
-          >
-            Download Replay
-          </span>
         )}
         {match.version == null && (
           <button
