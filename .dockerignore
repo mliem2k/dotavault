@@ -1,0 +1,9 @@
+.git
+node_modules
+**/node_modules
+**/dist
+**/.turbo
+apps/web/.tanstack
+references
+docs
+.superpowers

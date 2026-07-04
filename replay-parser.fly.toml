@@ -2,6 +2,9 @@ app = 'dotavault-replay-parser'
 primary_region = 'sin'
 
 [build]
+  # Like apps/api's fly.toml, this builds with the repo root as context
+  # (flyctl doesn't honor a `context` override), so the Dockerfile's COPY
+  # paths are prefixed with apps/replay-parser/ accordingly.
   dockerfile = 'apps/replay-parser/Dockerfile'
 
 [env]
