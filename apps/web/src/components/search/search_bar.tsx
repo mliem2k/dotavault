@@ -3,6 +3,7 @@ import { Loader2, Search, Swords, User } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { SearchResult } from 'types'
 import { opendota } from '@/lib/opendota'
+import { resolveVanitySteamId, STEAM64_BASE } from '@/lib/steam'
 
 type Destination = { kind: 'player'; id: string } | { kind: 'match'; id: string }
 
@@ -11,7 +12,6 @@ type Parsed =
   | { type: 'vanity'; url: string }
   | { type: 'search'; query: string }
 
-const STEAM64_BASE = BigInt('76561197960265728')
 const MAX_ACCOUNT_ID = BigInt('4294967295')
 
 function numericDest(s: string): Destination {
@@ -77,19 +77,6 @@ function parseInput(raw: string): Parsed | null {
   return { type: 'search', query: s }
 }
 
-async function resolveVanity(vanity: string): Promise<string | null> {
-  try {
-    const res = await fetch(`https://playerdb.co/api/player/steam/${encodeURIComponent(vanity)}`)
-    if (!res.ok) return null
-    const data = await res.json()
-    const steam64 = data?.data?.player?.id
-    if (!steam64) return null
-    return String(BigInt(steam64) - STEAM64_BASE)
-  } catch {
-    return null
-  }
-}
-
 export function SearchBar() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
@@ -131,7 +118,7 @@ export function SearchBar() {
       setResolving(true)
       currentVanity.current = p.url
       vanityDebounce.current = setTimeout(async () => {
-        const id = await resolveVanity(p.url)
+        const id = await resolveVanitySteamId(p.url)
         if (currentVanity.current === p.url) {
           setVanityResult(id)
           setResolving(false)

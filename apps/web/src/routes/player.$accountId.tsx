@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AllMatches } from '@/components/player/all_matches'
 import { HeroStatsTable } from '@/components/player/hero_stats_table'
 import { PlayerStats } from '@/components/player/player_stats'
@@ -10,6 +10,7 @@ import { RecentGames } from '@/components/player/recent_games'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
 import { RANK_NAMES, rankBadge, rankName } from '@/lib/rank'
+import { resolveVanitySteamId } from '@/lib/steam'
 import { usePageTitle } from '@/lib/title'
 import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl, heroSlug, winRate } from '@/lib/utils'
 
@@ -33,8 +34,25 @@ const FEED_TABS = ['Recent Games', 'Teammates']
 
 function PlayerPage() {
   const { accountId } = Route.useParams()
+  const navigate = useNavigate()
   const [tab, setTab] = useState<(typeof PROFILE_TABS)[number]>('Profile')
   const [feedTab, setFeedTab] = useState<'Recent Games' | 'Teammates'>('Recent Games')
+
+  // /player/mliem etc: the id in the URL is a Steam vanity slug, not a
+  // numeric Dota account_id. Resolve it via Steam, then replace the URL with
+  // the canonical numeric one instead of querying OpenDota with garbage.
+  const isNumeric = /^\d+$/.test(accountId)
+  const vanity = useQuery({
+    queryKey: ['steam_vanity', accountId],
+    queryFn: () => resolveVanitySteamId(accountId),
+    enabled: !isNumeric,
+  })
+
+  useEffect(() => {
+    if (vanity.data) {
+      navigate({ to: '/player/$accountId', params: { accountId: vanity.data }, replace: true })
+    }
+  }, [vanity.data, navigate])
 
   const player = useQuery({
     queryKey: ['player', accountId],
@@ -42,35 +60,55 @@ function PlayerPage() {
       const [player, wl] = await Promise.all([opendota.player(accountId), opendota.playerWL(accountId)])
       return { player, wl }
     },
+    enabled: isNumeric,
   })
   const matches = useQuery({
     queryKey: ['player_matches', accountId],
     queryFn: () => opendota.playerMatches(accountId, { limit: 40 }),
+    enabled: isNumeric,
   })
   const playerHeroes = useQuery({
     queryKey: ['player_heroes', accountId],
     queryFn: () => opendota.playerHeroes(accountId),
+    enabled: isNumeric,
   })
   const heroStats = useQuery({ queryKey: ['heroes'], queryFn: () => opendota.heroStats() })
   const totals = useQuery({
     queryKey: ['player_totals', accountId],
     queryFn: () => opendota.playerTotals(accountId),
     staleTime: 10 * 60 * 1000,
+    enabled: isNumeric,
   })
   const peers = useQuery({
     queryKey: ['player_peers', accountId],
     queryFn: () => opendota.playerPeers(accountId),
     staleTime: 10 * 60 * 1000,
-    enabled: feedTab === 'Teammates',
+    enabled: isNumeric && feedTab === 'Teammates',
   })
   const countsQ = useQuery({
     queryKey: ['player_counts', accountId],
     queryFn: () => opendota.playerCounts(accountId),
     staleTime: 10 * 60 * 1000,
-    enabled: tab === 'Stats',
+    enabled: isNumeric && tab === 'Stats',
   })
 
   usePageTitle(player.data?.player.profile.personaname)
+
+  if (!isNumeric) {
+    if (vanity.isPending || vanity.data) {
+      return (
+        <div className="flex flex-col items-center gap-3 py-20">
+          <Spinner className="h-8 w-8" />
+          <span className="text-sm" style={{ color: C.labelBright }}>Resolving Steam profile…</span>
+        </div>
+      )
+    }
+    return (
+      <div className="text-sm text-muted py-20 text-center">
+        Could not resolve "{accountId}" to a Steam profile.
+      </div>
+    )
+  }
 
   if (player.isPending) {
     return (
