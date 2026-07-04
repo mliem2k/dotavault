@@ -91,6 +91,13 @@ function PlayerPage() {
     staleTime: 10 * 60 * 1000,
     enabled: isNumeric && tab === 'Stats',
   })
+  // Small, slow-changing roster — shared cache with the Pro page if visited.
+  const proPlayers = useQuery({
+    queryKey: ['pro_players'],
+    queryFn: () => opendota.proPlayers(),
+    staleTime: 60 * 60 * 1000,
+    enabled: isNumeric,
+  })
 
   usePageTitle(player.data?.player.profile.personaname)
 
@@ -122,6 +129,7 @@ function PlayerPage() {
   const p = player.data.player
   const wl = player.data.wl
   const totalGames = wl.win + wl.lose
+  const proInfo = proPlayers.data?.find((pp) => pp.account_id === Number(accountId) && pp.is_pro)
   const badge = rankBadge(p.rank_tier)
   const heroesPlayed = (playerHeroes.data ?? []).filter((h) => h.games > 0).length
   const heroMap = new Map((heroStats.data ?? []).map((h) => [h.id, h]))
@@ -172,9 +180,26 @@ function PlayerPage() {
           style={{ border: '1px solid #2c3236' }}
         />
         <div className="min-w-0">
-          <h1 className="text-[28px] leading-tight truncate" style={{ color: C.white }}>
-            {p.profile.personaname}
-          </h1>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-[28px] leading-tight truncate" style={{ color: C.white }}>
+              {p.profile.personaname}
+            </h1>
+            {proInfo?.name && proInfo.name !== p.profile.personaname && (
+              <span className="text-[15px]" style={{ color: C.labelBright }}>
+                ({proInfo.name})
+              </span>
+            )}
+            {proInfo?.team_id && (
+              <a
+                href={`/team/${proInfo.team_id}`}
+                className="text-[13px] px-1.5 py-0.5 shrink-0 hover:brightness-125"
+                style={{ background: '#24222a', color: '#c9a94a' }}
+                title={proInfo.team_name ?? undefined}
+              >
+                {proInfo.team_tag ?? proInfo.team_name}
+              </a>
+            )}
+          </div>
           <div className="text-[13px] uppercase" style={{ color: C.green, letterSpacing: '2px' }}>
             {rankName(p.rank_tier)}
           </div>

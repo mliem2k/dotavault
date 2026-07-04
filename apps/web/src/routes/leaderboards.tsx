@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { Spinner } from '@/components/ui/spinner'
 import { countryFlagUrl, DIVISIONS, fetchLeaderboard, type Division } from '@/lib/leaderboard'
+import { opendota } from '@/lib/opendota'
 import { usePageTitle } from '@/lib/title'
 
 export const Route = createFileRoute('/leaderboards')({
@@ -28,9 +29,35 @@ function fmtTime(unix: number): string {
 
 function LeaderboardsPage() {
   usePageTitle('Leaderboards')
+  const navigate = useNavigate()
   const [division, setDivision] = useState<Division>('americas')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
+  const [resolvingRank, setResolvingRank] = useState<number | null>(null)
+  const [notFoundRank, setNotFoundRank] = useState<number | null>(null)
+
+  // Valve's public leaderboard exposes only a display name, never an account
+  // id, so a name has to be resolved to a profile via OpenDota's player
+  // search on click. The top-ranked search hit is trusted as-is: these are
+  // distinctive top-5000 names, so an exact index match is effectively
+  // always the right account.
+  async function openProfile(name: string, rank: number) {
+    setNotFoundRank(null)
+    setResolvingRank(rank)
+    try {
+      const results = await opendota.search(name)
+      const match = results.find((r) => r.personaname.toLowerCase() === name.toLowerCase()) ?? results[0]
+      if (match) {
+        navigate({ to: '/player/$accountId', params: { accountId: String(match.account_id) } })
+      } else {
+        setNotFoundRank(rank)
+      }
+    } catch {
+      setNotFoundRank(rank)
+    } finally {
+      setResolvingRank(null)
+    }
+  }
 
   const query = useQuery({
     queryKey: ['leaderboard', division],
@@ -141,9 +168,11 @@ function LeaderboardsPage() {
         ) : (
           <div>
             {shown.map((r, i) => (
-              <div
+              <button
                 key={r.rank}
-                className="flex items-center gap-4 px-4 py-2.5"
+                type="button"
+                onClick={() => openProfile(r.name, r.rank)}
+                className="flex w-full items-center gap-4 px-4 py-2.5 text-left cursor-pointer hover:bg-white/[0.04]"
                 style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
               >
                 <span
@@ -157,6 +186,7 @@ function LeaderboardsPage() {
                     r.team_id ? (
                       <a
                         href={`/team/${r.team_id}`}
+                        onClick={(e) => e.stopPropagation()}
                         className="shrink-0 text-[13px] px-1.5 py-0.5 hover:brightness-125"
                         style={{ background: '#24222a', color: '#c9a94a', fontFamily: 'var(--font-dota)' }}
                       >
@@ -179,6 +209,12 @@ function LeaderboardsPage() {
                       .{r.sponsor}
                     </span>
                   )}
+                  {resolvingRank === r.rank && <Spinner className="h-3.5 w-3.5 shrink-0" />}
+                  {notFoundRank === r.rank && (
+                    <span className="text-[12px] shrink-0" style={{ color: '#8a5a5a', fontFamily: 'var(--font-dota)' }}>
+                      No profile found
+                    </span>
+                  )}
                 </div>
                 {r.country && (
                   <img
@@ -190,7 +226,7 @@ function LeaderboardsPage() {
                     }}
                   />
                 )}
-              </div>
+              </button>
             ))}
           </div>
         )}

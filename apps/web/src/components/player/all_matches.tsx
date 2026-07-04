@@ -3,7 +3,7 @@ import { useState } from 'react'
 import type { HeroStat, PlayerMatch } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
 import { Spinner } from '@/components/ui/spinner'
-import { opendota } from '@/lib/opendota'
+import { opendota, type ProMatchRow } from '@/lib/opendota'
 import { rankBadge, rankName } from '@/lib/rank'
 import { applySort, useSort } from '@/lib/sortable'
 import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl } from '@/lib/utils'
@@ -55,7 +55,65 @@ const DATE_OPTIONS: [number, string][] = [
   [365, 'Last Year'],
 ]
 
-function isWin(m: PlayerMatch): boolean {
+// Normalized shape both the regular matches endpoint and the Pro Only
+// (SQL Explorer) query map into, so sorting/rendering doesn't care which
+// source a row came from.
+type Row = {
+  match_id: number
+  start_time: number
+  duration: number
+  hero_id: number
+  kills: number
+  deaths: number
+  assists: number
+  player_slot: number
+  radiant_win: boolean
+  gold_per_min: number | null
+  xp_per_min: number | null
+  last_hits: number | null
+  average_rank: number | null
+  typeLabel: string
+}
+
+function toRow(m: PlayerMatch): Row {
+  return {
+    match_id: m.match_id,
+    start_time: m.start_time,
+    duration: m.duration,
+    hero_id: m.hero_id,
+    kills: m.kills,
+    deaths: m.deaths,
+    assists: m.assists,
+    player_slot: m.player_slot,
+    radiant_win: m.radiant_win,
+    gold_per_min: m.gold_per_min ?? null,
+    xp_per_min: m.xp_per_min ?? null,
+    last_hits: m.last_hits ?? null,
+    average_rank: m.average_rank,
+    typeLabel: LOBBY_TYPES[m.lobby_type] ?? GAME_MODES[m.game_mode] ?? '—',
+  }
+}
+
+function toProRow(m: ProMatchRow): Row {
+  return {
+    match_id: m.match_id,
+    start_time: m.start_time,
+    duration: m.duration,
+    hero_id: m.hero_id,
+    kills: m.kills,
+    deaths: m.deaths,
+    assists: m.assists,
+    player_slot: m.player_slot,
+    radiant_win: m.radiant_win,
+    gold_per_min: m.gold_per_min,
+    xp_per_min: m.xp_per_min,
+    last_hits: m.last_hits,
+    average_rank: null,
+    typeLabel: m.league_name ?? 'League',
+  }
+}
+
+function isWin(m: Row): boolean {
   const radiant = m.player_slot < 128
   return radiant === m.radiant_win
 }
@@ -73,7 +131,7 @@ function fmtDur(sec: number): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-function kda(m: PlayerMatch): number {
+function kda(m: Row): number {
   return (m.kills + m.assists) / Math.max(1, m.deaths)
 }
 
@@ -82,8 +140,14 @@ type ResultFilter = 'all' | 'win' | 'loss'
 type SideFilter = 'all' | 'radiant' | 'dire'
 type NumOrAll = number | 'all'
 
-function selectStyle(): React.CSSProperties {
-  return { background: '#14181b', color: '#cfd4d8', border: '1px solid #2c3236' }
+function selectStyle(disabled?: boolean): React.CSSProperties {
+  return {
+    background: '#14181b',
+    color: '#cfd4d8',
+    border: '1px solid #2c3236',
+    opacity: disabled ? 0.4 : 1,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+  }
 }
 
 export function AllMatches({
@@ -103,6 +167,7 @@ export function AllMatches({
   const [withHeroFilter, setWithHeroFilter] = useState<NumOrAll>('all')
   const [againstHeroFilter, setAgainstHeroFilter] = useState<NumOrAll>('all')
   const [withPlayerFilter, setWithPlayerFilter] = useState<NumOrAll>('all')
+  const [proOnly, setProOnly] = useState(false)
   const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('date', 'desc')
 
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
@@ -130,7 +195,8 @@ export function AllMatches({
     dateFilter !== 'all' ||
     withHeroFilter !== 'all' ||
     againstHeroFilter !== 'all' ||
-    withPlayerFilter !== 'all'
+    withPlayerFilter !== 'all' ||
+    proOnly
 
   function resetFilters() {
     setHeroFilter('all')
@@ -143,46 +209,65 @@ export function AllMatches({
     setWithHeroFilter('all')
     setAgainstHeroFilter('all')
     setWithPlayerFilter('all')
+    setProOnly(false)
   }
 
+  // Pro Only replaces the source entirely (SQL Explorer join on leagues),
+  // which can't compose with game mode / lobby / lane / side / with-hero /
+  // against-hero / with-player — those selects are disabled while it's on.
   const query = useInfiniteQuery({
-    queryKey: [
-      'player_all_matches',
-      accountId,
-      heroFilter,
-      resultFilter,
-      gameModeFilter,
-      lobbyTypeFilter,
-      laneRoleFilter,
-      sideFilter,
-      dateFilter,
-      withHeroFilter,
-      againstHeroFilter,
-      withPlayerFilter,
-    ],
-    queryFn: ({ pageParam }) =>
-      opendota.playerMatches(accountId, {
-        limit: PAGE_SIZE,
-        offset: pageParam,
-        heroId: heroFilter === 'all' ? undefined : heroFilter,
-        win: resultFilter === 'all' ? undefined : resultFilter === 'win' ? 1 : 0,
-        gameMode: gameModeFilter === 'all' ? undefined : gameModeFilter,
-        lobbyType: lobbyTypeFilter === 'all' ? undefined : lobbyTypeFilter,
-        laneRole: laneRoleFilter === 'all' ? undefined : laneRoleFilter,
-        isRadiant: sideFilter === 'all' ? undefined : sideFilter === 'radiant' ? 1 : 0,
-        date: dateFilter === 'all' ? undefined : dateFilter,
-        withHeroId: withHeroFilter === 'all' ? undefined : withHeroFilter,
-        againstHeroId: againstHeroFilter === 'all' ? undefined : againstHeroFilter,
-        includedAccountId: withPlayerFilter === 'all' ? undefined : withPlayerFilter,
-        // Any `project` param switches OpenDota into custom-projection mode,
-        // returning ONLY these fields (plus match_id/player_slot/radiant_win/
-        // duration/game_mode/lobby_type) — every field the table needs must
-        // be listed explicitly or it silently comes back undefined.
-        project: [
-          'hero_id', 'start_time', 'version', 'kills', 'deaths', 'assists',
-          'average_rank', 'gold_per_min', 'xp_per_min', 'last_hits',
+    queryKey: proOnly
+      ? ['player_pro_matches', accountId, heroFilter, resultFilter, dateFilter]
+      : [
+          'player_all_matches',
+          accountId,
+          heroFilter,
+          resultFilter,
+          gameModeFilter,
+          lobbyTypeFilter,
+          laneRoleFilter,
+          sideFilter,
+          dateFilter,
+          withHeroFilter,
+          againstHeroFilter,
+          withPlayerFilter,
         ],
-      }),
+    queryFn: ({ pageParam }) =>
+      proOnly
+        ? opendota
+            .playerProMatches(accountId, {
+              limit: PAGE_SIZE,
+              offset: pageParam,
+              heroId: heroFilter === 'all' ? undefined : heroFilter,
+              win: resultFilter === 'all' ? undefined : resultFilter === 'win' ? 1 : 0,
+              date: dateFilter === 'all' ? undefined : dateFilter,
+            })
+            .then((rows) => rows.map(toProRow))
+        : opendota
+            .playerMatches(accountId, {
+              limit: PAGE_SIZE,
+              offset: pageParam,
+              heroId: heroFilter === 'all' ? undefined : heroFilter,
+              win: resultFilter === 'all' ? undefined : resultFilter === 'win' ? 1 : 0,
+              gameMode: gameModeFilter === 'all' ? undefined : gameModeFilter,
+              lobbyType: lobbyTypeFilter === 'all' ? undefined : lobbyTypeFilter,
+              laneRole: laneRoleFilter === 'all' ? undefined : laneRoleFilter,
+              isRadiant: sideFilter === 'all' ? undefined : sideFilter === 'radiant' ? 1 : 0,
+              date: dateFilter === 'all' ? undefined : dateFilter,
+              withHeroId: withHeroFilter === 'all' ? undefined : withHeroFilter,
+              againstHeroId: againstHeroFilter === 'all' ? undefined : againstHeroFilter,
+              includedAccountId: withPlayerFilter === 'all' ? undefined : withPlayerFilter,
+              // Any `project` param switches OpenDota into custom-projection
+              // mode, returning ONLY these fields (plus match_id/player_slot/
+              // radiant_win/duration/game_mode/lobby_type) — every field the
+              // table needs must be listed explicitly or it silently comes
+              // back undefined.
+              project: [
+                'hero_id', 'start_time', 'version', 'kills', 'deaths', 'assists',
+                'average_rank', 'gold_per_min', 'xp_per_min', 'last_hits',
+              ],
+            })
+            .then((rows) => rows.map(toRow)),
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => (lastPage.length < PAGE_SIZE ? undefined : allPages.length * PAGE_SIZE),
     staleTime: 60 * 1000,
@@ -229,9 +314,10 @@ export function AllMatches({
 
         <select
           value={withHeroFilter}
+          disabled={proOnly}
           onChange={(e) => setWithHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
-          style={selectStyle()}
+          className="text-[13px] px-2 py-1.5 outline-none"
+          style={selectStyle(proOnly)}
         >
           <option value="all">With Hero</option>
           {heroOptions.map((h) => (
@@ -243,9 +329,10 @@ export function AllMatches({
 
         <select
           value={againstHeroFilter}
+          disabled={proOnly}
           onChange={(e) => setAgainstHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
-          style={selectStyle()}
+          className="text-[13px] px-2 py-1.5 outline-none"
+          style={selectStyle(proOnly)}
         >
           <option value="all">Against Hero</option>
           {heroOptions.map((h) => (
@@ -257,9 +344,10 @@ export function AllMatches({
 
         <select
           value={withPlayerFilter}
+          disabled={proOnly}
           onChange={(e) => setWithPlayerFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
-          style={selectStyle()}
+          className="text-[13px] px-2 py-1.5 outline-none"
+          style={selectStyle(proOnly)}
         >
           <option value="all">With Player</option>
           {peerOptions.map((p) => (
@@ -271,9 +359,10 @@ export function AllMatches({
 
         <select
           value={gameModeFilter}
+          disabled={proOnly}
           onChange={(e) => setGameModeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
-          style={selectStyle()}
+          className="text-[13px] px-2 py-1.5 outline-none"
+          style={selectStyle(proOnly)}
         >
           <option value="all">All Modes</option>
           {GAME_MODE_OPTIONS.map(([id, label]) => (
@@ -285,9 +374,10 @@ export function AllMatches({
 
         <select
           value={lobbyTypeFilter}
+          disabled={proOnly}
           onChange={(e) => setLobbyTypeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
-          style={selectStyle()}
+          className="text-[13px] px-2 py-1.5 outline-none"
+          style={selectStyle(proOnly)}
         >
           <option value="all">All Lobbies</option>
           {LOBBY_TYPE_OPTIONS.map(([id, label]) => (
@@ -299,9 +389,10 @@ export function AllMatches({
 
         <select
           value={laneRoleFilter}
+          disabled={proOnly}
           onChange={(e) => setLaneRoleFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
-          style={selectStyle()}
+          className="text-[13px] px-2 py-1.5 outline-none"
+          style={selectStyle(proOnly)}
         >
           <option value="all">All Roles</option>
           {LANE_ROLE_OPTIONS.map(([id, label]) => (
@@ -313,9 +404,10 @@ export function AllMatches({
 
         <select
           value={sideFilter}
+          disabled={proOnly}
           onChange={(e) => setSideFilter(e.target.value as SideFilter)}
-          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
-          style={selectStyle()}
+          className="text-[13px] px-2 py-1.5 outline-none"
+          style={selectStyle(proOnly)}
         >
           <option value="all">Any Side</option>
           <option value="radiant">Radiant</option>
@@ -353,6 +445,20 @@ export function AllMatches({
             </button>
           ))}
         </div>
+
+        <button
+          type="button"
+          onClick={() => setProOnly((v) => !v)}
+          className="px-3 py-1.5 text-[12px] uppercase cursor-pointer transition-colors"
+          style={{
+            background: proOnly ? 'rgba(201,169,74,0.15)' : 'transparent',
+            color: proOnly ? '#c9a94a' : '#8a97a0',
+            border: `1px solid ${proOnly ? '#c9a94a' : '#2c3236'}`,
+            letterSpacing: '1px',
+          }}
+        >
+          Pro Only
+        </button>
 
         {filtersActive && (
           <button
@@ -442,7 +548,6 @@ export function AllMatches({
           const hero = heroMap.get(m.hero_id)
           const won = isWin(m)
           const { d, t } = fmtDate(m.start_time)
-          const type = LOBBY_TYPES[m.lobby_type] ?? GAME_MODES[m.game_mode] ?? '—'
           const badge = rankBadge(m.average_rank)
 
           return (
@@ -508,8 +613,8 @@ export function AllMatches({
                 {fmtDur(m.duration)}
               </div>
 
-              <div className="w-[90px] shrink-0 text-right text-[13px] pr-2" style={{ color: '#cfd4d8' }}>
-                {type}
+              <div className="w-[90px] shrink-0 text-right text-[13px] pr-2 truncate" style={{ color: '#cfd4d8' }} title={m.typeLabel}>
+                {m.typeLabel}
               </div>
             </a>
           )

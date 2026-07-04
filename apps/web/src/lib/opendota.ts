@@ -15,6 +15,22 @@ import type { Player } from 'types'
 
 const BASE = 'https://api.opendota.com/api'
 
+export type ProMatchRow = {
+  match_id: number
+  start_time: number
+  duration: number
+  league_name: string | null
+  hero_id: number
+  kills: number
+  deaths: number
+  assists: number
+  player_slot: number
+  radiant_win: boolean
+  gold_per_min: number | null
+  xp_per_min: number | null
+  last_hits: number | null
+}
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`)
   if (!res.ok) throw new Error(`OpenDota ${res.status}: ${path}`)
@@ -63,6 +79,32 @@ export const opendota = {
     if (opts?.includedAccountId != null) params.set('included_account_id', String(opts.includedAccountId))
     for (const p of opts?.project ?? []) params.append('project', p)
     return get<PlayerMatch[]>(`/players/${id}/matches?${params.toString()}`)
+  },
+  // Official league/tournament matches only. OpenDota's plain matches
+  // endpoint has no leagueid filter (and can't even project it out), so this
+  // goes through the SQL Explorer instead, joining in the league name for
+  // display. account_id is guaranteed numeric by the caller (route-level
+  // guard); heroId/win/date are always our own numeric dropdown values, never
+  // free text, so string interpolation here can't be injected.
+  playerProMatches: (
+    id: string,
+    opts?: { limit?: number; offset?: number; heroId?: number; win?: 0 | 1; date?: number },
+  ) => {
+    if (!/^\d+$/.test(id)) throw new Error('invalid account id')
+    const limit = Math.min(200, Math.max(1, Math.trunc(opts?.limit ?? 30)))
+    const offset = Math.max(0, Math.trunc(opts?.offset ?? 0))
+    const conditions = [`player_matches.account_id = ${id}`, 'matches.leagueid > 0']
+    if (opts?.heroId != null && Number.isFinite(opts.heroId)) {
+      conditions.push(`player_matches.hero_id = ${Math.trunc(opts.heroId)}`)
+    }
+    if (opts?.win === 0 || opts?.win === 1) {
+      conditions.push(`((player_matches.player_slot < 128) = matches.radiant_win) = ${opts.win === 1}`)
+    }
+    if (opts?.date != null && Number.isFinite(opts.date)) {
+      conditions.push(`matches.start_time > extract(epoch from now() - interval '${Math.trunc(opts.date)} days')`)
+    }
+    const sql = `SELECT matches.match_id, matches.start_time, matches.duration, leagues.name as league_name, player_matches.hero_id, player_matches.kills, player_matches.deaths, player_matches.assists, player_matches.player_slot, matches.radiant_win, player_matches.gold_per_min, player_matches.xp_per_min, player_matches.last_hits FROM player_matches JOIN matches USING(match_id) LEFT JOIN leagues USING(leagueid) WHERE ${conditions.join(' AND ')} ORDER BY matches.start_time DESC LIMIT ${limit} OFFSET ${offset}`
+    return get<{ rows: ProMatchRow[] }>(`/explorer?sql=${encodeURIComponent(sql)}`).then((r) => r.rows)
   },
   playerHeroes: (id: string) => get<PlayerHero[]>(`/players/${id}/heroes`),
   match: (id: string) => get<Match>(`/matches/${id}`),
