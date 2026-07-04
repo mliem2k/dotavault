@@ -137,7 +137,7 @@ function LeaderboardsPage() {
       </div>
 
       {/* Region tabs */}
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center gap-2 py-1">
         {DIVISIONS.map((d) => (
           <button
             key={d.id}
@@ -148,9 +148,10 @@ function LeaderboardsPage() {
               fontFamily: 'var(--font-display)',
               letterSpacing: '1px',
               fontWeight: 600,
-              background: division === d.id ? 'rgba(201,169,74,0.15)' : 'transparent',
-              color: division === d.id ? '#c9a94a' : '#8a8474',
+              background: division === d.id ? 'rgba(201,169,74,0.18)' : 'rgba(12,11,14,0.72)',
+              color: division === d.id ? '#c9a94a' : '#dcd6c8',
               border: `1px solid ${division === d.id ? '#c9a94a' : '#24222a'}`,
+              textShadow: '0 1px 3px rgba(0,0,0,0.9)',
             }}
           >
             {d.label}

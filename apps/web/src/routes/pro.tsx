@@ -53,7 +53,11 @@ function ProPage() {
         </h1>
         <p
           className="mt-2 text-[13px] uppercase tracking-[0.2em]"
-          style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+          style={{
+            color: '#fff',
+            fontFamily: 'var(--font-dota)',
+            textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)',
+          }}
         >
           Recent professional matches and players
         </p>
