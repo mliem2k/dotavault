@@ -29,15 +29,26 @@ export type ReplayInfo = { match_id: number; cluster: number; replay_salt: numbe
 
 // Replay cluster + salt for a match, or null while OpenDota doesn't know it
 // yet (it learns the salt from Valve's game coordinator during a parse).
+// The light /replays endpoint doesn't cover every match (observed returning
+// Not Found for a match whose row already carried the salt), so fall back
+// to the full match row, always uncached: this is exactly the value whose
+// appearance we're waiting on.
 export async function fetchReplayInfo(matchId: number): Promise<ReplayInfo | null> {
   try {
     const rows = (await fetchOpenDota(`/replays?match_id=${matchId}`)) as ReplayInfo[]
     const row = Array.isArray(rows) ? rows[0] : null
     if (row && row.cluster > 0 && row.replay_salt != null && row.replay_salt !== 0) return row
-    return null
-  } catch {
-    return null
-  }
+  } catch {}
+  try {
+    const m = (await fetchOpenDota(`/matches/${matchId}`)) as {
+      cluster?: number | null
+      replay_salt?: number | null
+    }
+    if (m.cluster && m.cluster > 0 && m.replay_salt) {
+      return { match_id: matchId, cluster: m.cluster, replay_salt: m.replay_salt }
+    }
+  } catch {}
+  return null
 }
 
 export async function requestOpendotaParse(matchId: number): Promise<void> {

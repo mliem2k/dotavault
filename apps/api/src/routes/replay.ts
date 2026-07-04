@@ -41,7 +41,8 @@ type Job = { phase: JobPhase; error?: string; updatedAt: number }
 const jobs = new Map<number, Job>()
 const FAILED_RETENTION_MS = 5 * 60 * 1000
 const SALT_POLL_INTERVAL_MS = 20 * 1000
-const SALT_POLL_DEADLINE_MS = 12 * 60 * 1000
+// OpenDota's parse queue was observed taking 15+ minutes on a cold match.
+const SALT_POLL_DEADLINE_MS = 25 * 60 * 1000
 
 let running = 0
 const MAX_CONCURRENT_PARSES = 2
