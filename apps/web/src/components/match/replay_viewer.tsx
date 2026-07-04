@@ -745,9 +745,11 @@ export function ReplayViewer({
     }
   }, [playing, duration, speed])
 
-  if (match.version === null) return <ParseRequest matchId={match.match_id} />
-
-  if (!hasAnyWaypoints) {
+  // Our own parser works independently of OpenDota's parse, so the playback
+  // UI stays available whenever position data exists OR could still be
+  // fetched from Valve's CDN. Only give up when neither is true.
+  if (!hasAnyWaypoints && !denseBySlot && !canFetchFullPlayback) {
+    if (match.version === null) return <ParseRequest matchId={match.match_id} />
     return (
       <div className="p-8 text-center" style={{ background: C.panel, fontFamily: 'var(--font-dota)' }}>
         <p className="text-[14px]" style={{ color: C.dim }}>
@@ -813,7 +815,7 @@ export function ReplayViewer({
             </span>
           )}
         </div>
-        <div className="flex justify-center px-4">
+        <div className="relative flex justify-center px-4">
           <canvas
             ref={canvasRef}
             width={560}
@@ -821,6 +823,19 @@ export function ReplayViewer({
             className="w-full max-w-[560px]"
             style={{ border: '1px solid #22282c' }}
           />
+          {!hasAnyWaypoints && !denseBySlot && (
+            <div className="absolute inset-0 flex items-center justify-center px-8">
+              <p
+                className="px-4 py-3 text-center text-[13px]"
+                style={{ color: C.text, background: 'rgba(8,10,12,0.85)', border: '1px solid #2c3236' }}
+              >
+                No position data from OpenDota for this match.
+                {fullPlaybackState === 'loading'
+                  ? ' Parsing the replay…'
+                  : ' Use Full Playback above to parse the replay directly.'}
+              </p>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3 px-4 pb-4">
           <button
