@@ -184,14 +184,20 @@ export function teamScoreAtTime(match: Match, isRadiant: boolean, timeSec: numbe
 }
 
 /* Game time slider, styled like the client's post-game scrubber. */
+export type TimelineMarker = { time: number; color: string }
+
 export function GameTimeSlider({
   timeSec,
   duration,
   onChange,
+  markers,
+  fullWidth,
 }: {
   timeSec: number
   duration: number
   onChange: (t: number) => void
+  markers?: TimelineMarker[]
+  fullWidth?: boolean
 }) {
   const trackRef = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
@@ -206,7 +212,10 @@ export function GameTimeSlider({
   }
 
   return (
-    <div className="mx-auto select-none" style={{ width: '46%', minWidth: 320 }}>
+    <div
+      className={fullWidth ? 'flex-1 select-none' : 'mx-auto select-none'}
+      style={fullWidth ? { minWidth: 200 } : { width: '46%', minWidth: 320 }}
+    >
       <div
         ref={trackRef}
         className="relative h-7 flex items-center cursor-pointer"
@@ -228,6 +237,21 @@ export function GameTimeSlider({
           style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.35)' }}
         />
         <div className="absolute left-0 h-[12px]" style={{ width: `${pct * 100}%`, background: 'rgba(255,255,255,0.18)' }} />
+        {duration > 0 &&
+          markers?.map((m, i) => (
+            <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: static marker list
+              key={i}
+              className="absolute pointer-events-none"
+              style={{
+                left: `${Math.min(100, Math.max(0, (m.time / duration) * 100))}%`,
+                width: 2,
+                height: 12,
+                background: m.color,
+                opacity: 0.9,
+              }}
+            />
+          ))}
         <div
           className="absolute -translate-x-1/2 flex items-center justify-center"
           style={{

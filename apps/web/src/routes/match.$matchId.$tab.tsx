@@ -210,7 +210,9 @@ function MatchPage() {
         ) : loading)}
 
       {activeTab === 'replay' &&
-        (heroStats.data ? <ReplayViewer match={m} heroStats={heroStats.data} /> : loading)}
+        (heroStats.data ? (
+          <ReplayViewer match={m} heroStats={heroStats.data} idToName={idToName} itemConst={itemConst} />
+        ) : loading)}
     </div>
   )
 }

@@ -29,6 +29,14 @@ export type ReplayPositions = {
 
 export class ReplayUnavailableError extends Error {}
 
+// Returns the stored parse if this match was ever parsed before (no work is
+// triggered server-side), or null when it hasn't been.
+export async function getCachedReplay(matchId: number): Promise<ReplayPositions | null> {
+  const { data, error } = await api.replay({ matchId: String(matchId) }).get({ query: {} })
+  if (error || !data || typeof data !== 'object' || !('positions' in data)) return null
+  return data as ReplayPositions
+}
+
 export async function parseReplayPositions(
   matchId: number,
   cluster: number,
