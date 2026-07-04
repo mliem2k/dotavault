@@ -27,6 +27,9 @@ export function Navbar() {
           <Link to="/pro" className="text-white transition-colors hover:text-[#c9a94a]">
             Pro
           </Link>
+          <Link to="/leaderboards" className="text-white transition-colors hover:text-[#c9a94a]">
+            Leaderboards
+          </Link>
         </div>
         <a
           href="https://store.steampowered.com/app/570/Dota_2/"

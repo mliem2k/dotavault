@@ -28,6 +28,15 @@ export default defineConfig({
           referer: 'https://www.dota2.com/heroes',
         },
       },
+      // Local mirror of the /api/leaderboard Pages Function → Valve's leaderboard webapi.
+      '/api/leaderboard': {
+        target: 'https://www.dota2.com',
+        changeOrigin: true,
+        rewrite: (p) => `${p.replace(/^\/api\/leaderboard/, '/webapi/ILeaderboard/GetDivisionLeaderboard/v0001')}&leaderboard=0`,
+        headers: {
+          'user-agent': 'Mozilla/5.0 (compatible; dotavault/1.0)',
+        },
+      },
     },
   },
 })

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProRouteImport } from './routes/pro'
 import { Route as MetaRouteImport } from './routes/meta'
+import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
 import { Route as HeroesRouteImport } from './routes/heroes'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TeamTeamIdRouteImport } from './routes/team.$teamId'
@@ -26,6 +27,11 @@ const ProRoute = ProRouteImport.update({
 const MetaRoute = MetaRouteImport.update({
   id: '/meta',
   path: '/meta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardsRoute = LeaderboardsRouteImport.update({
+  id: '/leaderboards',
+  path: '/leaderboards',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HeroesRoute = HeroesRouteImport.update({
@@ -62,6 +68,7 @@ const HeroHeroNameRoute = HeroHeroNameRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/heroes': typeof HeroesRoute
+  '/leaderboards': typeof LeaderboardsRoute
   '/meta': typeof MetaRoute
   '/pro': typeof ProRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/heroes': typeof HeroesRoute
+  '/leaderboards': typeof LeaderboardsRoute
   '/meta': typeof MetaRoute
   '/pro': typeof ProRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/heroes': typeof HeroesRoute
+  '/leaderboards': typeof LeaderboardsRoute
   '/meta': typeof MetaRoute
   '/pro': typeof ProRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/heroes'
+    | '/leaderboards'
     | '/meta'
     | '/pro'
     | '/hero/$heroName'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/heroes'
+    | '/leaderboards'
     | '/meta'
     | '/pro'
     | '/hero/$heroName'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/heroes'
+    | '/leaderboards'
     | '/meta'
     | '/pro'
     | '/hero/$heroName'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HeroesRoute: typeof HeroesRoute
+  LeaderboardsRoute: typeof LeaderboardsRoute
   MetaRoute: typeof MetaRoute
   ProRoute: typeof ProRoute
   HeroHeroNameRoute: typeof HeroHeroNameRoute
@@ -148,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/meta'
       fullPath: '/meta'
       preLoaderRoute: typeof MetaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboards': {
+      id: '/leaderboards'
+      path: '/leaderboards'
+      fullPath: '/leaderboards'
+      preLoaderRoute: typeof LeaderboardsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/heroes': {
@@ -198,6 +218,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HeroesRoute: HeroesRoute,
+  LeaderboardsRoute: LeaderboardsRoute,
   MetaRoute: MetaRoute,
   ProRoute: ProRoute,
   HeroHeroNameRoute: HeroHeroNameRoute,

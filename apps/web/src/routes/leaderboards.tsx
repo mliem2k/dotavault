@@ -1,0 +1,230 @@
+import { useQuery } from '@tanstack/react-query'
+import { createFileRoute } from '@tanstack/react-router'
+import { useMemo, useState } from 'react'
+import { Spinner } from '@/components/ui/spinner'
+import { countryFlagUrl, DIVISIONS, fetchLeaderboard, type Division } from '@/lib/leaderboard'
+import { usePageTitle } from '@/lib/title'
+
+export const Route = createFileRoute('/leaderboards')({
+  component: LeaderboardsPage,
+})
+
+const PAGE_SIZE = 50
+
+const RANK_COLORS: Record<number, string> = {
+  1: '#f2c94c',
+  2: '#c8ccd1',
+  3: '#c98a4a',
+}
+
+function fmtTime(unix: number): string {
+  return new Date(unix * 1000).toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function LeaderboardsPage() {
+  usePageTitle('Leaderboards')
+  const [division, setDivision] = useState<Division>('americas')
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(0)
+
+  const query = useQuery({
+    queryKey: ['leaderboard', division],
+    queryFn: () => fetchLeaderboard(division),
+    staleTime: 15 * 60 * 1000,
+  })
+
+  const filtered = useMemo(() => {
+    const rows = query.data?.leaderboard ?? []
+    const q = search.trim().toLowerCase()
+    if (!q) return rows
+    return rows.filter(
+      (r) => r.name.toLowerCase().includes(q) || (r.team_tag ?? '').toLowerCase().includes(q),
+    )
+  }, [query.data, search])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const clampedPage = Math.min(page, totalPages - 1)
+  const shown = filtered.slice(clampedPage * PAGE_SIZE, clampedPage * PAGE_SIZE + PAGE_SIZE)
+
+  function selectDivision(d: Division) {
+    setDivision(d)
+    setSearch('')
+    setPage(0)
+  }
+
+  return (
+    <div className="space-y-6 py-4">
+      <div className="text-center mb-2">
+        <h1
+          className="text-[44px] leading-none font-bold uppercase"
+          style={{ fontFamily: 'var(--font-display)', color: '#fff', letterSpacing: '2px' }}
+        >
+          World Leaderboards
+        </h1>
+        <p
+          className="mt-2 text-[13px] uppercase tracking-[0.2em]"
+          style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+        >
+          Top 5,000 players by solo ranked MMR, per region
+        </p>
+      </div>
+
+      {/* Region tabs */}
+      <div className="flex items-center justify-center gap-2">
+        {DIVISIONS.map((d) => (
+          <button
+            key={d.id}
+            type="button"
+            onClick={() => selectDivision(d.id)}
+            className="px-5 py-2 text-[14px] uppercase cursor-pointer transition-colors"
+            style={{
+              fontFamily: 'var(--font-display)',
+              letterSpacing: '1px',
+              fontWeight: 600,
+              background: division === d.id ? 'rgba(201,169,74,0.15)' : 'transparent',
+              color: division === d.id ? '#c9a94a' : '#8a8474',
+              border: `1px solid ${division === d.id ? '#c9a94a' : '#24222a'}`,
+            }}
+          >
+            {d.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="max-w-[860px] mx-auto" style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+        {/* Toolbar */}
+        <div
+          className="flex items-center gap-3 px-4 py-3 flex-wrap"
+          style={{ borderBottom: '1px solid #24222a' }}
+        >
+          <input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(0)
+            }}
+            placeholder="Search player or team tag…"
+            className="text-[14px] px-3 py-1.5 outline-none flex-1 min-w-[200px]"
+            style={{
+              background: '#14181b',
+              color: '#dcd6c8',
+              border: '1px solid #2c3236',
+              fontFamily: 'var(--font-dota)',
+            }}
+          />
+          {query.data && (
+            <div className="text-[12px] text-right shrink-0" style={{ color: '#4a4436', fontFamily: 'var(--font-dota)' }}>
+              Updated {fmtTime(query.data.time_posted)}
+              <br />
+              Next {fmtTime(query.data.next_scheduled_post_time)}
+            </div>
+          )}
+        </div>
+
+        {query.isPending ? (
+          <div className="flex justify-center py-16">
+            <Spinner />
+          </div>
+        ) : !query.data ? (
+          <div className="py-16 text-center text-[14px]" style={{ color: '#8a8474' }}>
+            This leaderboard is currently unavailable.
+          </div>
+        ) : shown.length === 0 ? (
+          <div className="py-16 text-center text-[14px]" style={{ color: '#8a8474' }}>
+            No players match "{search}".
+          </div>
+        ) : (
+          <div>
+            {shown.map((r, i) => (
+              <div
+                key={r.rank}
+                className="flex items-center gap-4 px-4 py-2.5"
+                style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
+              >
+                <span
+                  className="w-10 shrink-0 text-right text-[16px] tabular-nums"
+                  style={{ color: RANK_COLORS[r.rank] ?? '#4a4436', fontFamily: 'var(--font-display)', fontWeight: 600 }}
+                >
+                  {r.rank}
+                </span>
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                  {r.team_tag ? (
+                    r.team_id ? (
+                      <a
+                        href={`/team/${r.team_id}`}
+                        className="shrink-0 text-[13px] px-1.5 py-0.5 hover:brightness-125"
+                        style={{ background: '#24222a', color: '#c9a94a', fontFamily: 'var(--font-dota)' }}
+                      >
+                        {r.team_tag}
+                      </a>
+                    ) : (
+                      <span
+                        className="shrink-0 text-[13px] px-1.5 py-0.5"
+                        style={{ background: '#24222a', color: '#c9a94a', fontFamily: 'var(--font-dota)' }}
+                      >
+                        {r.team_tag}
+                      </span>
+                    )
+                  ) : null}
+                  <span className="text-[16px] truncate" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+                    {r.name}
+                  </span>
+                  {r.sponsor && (
+                    <span className="text-[13px] shrink-0" style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}>
+                      .{r.sponsor}
+                    </span>
+                  )}
+                </div>
+                {r.country && (
+                  <img
+                    src={countryFlagUrl(r.country)}
+                    alt={r.country}
+                    className="shrink-0"
+                    onError={(e) => {
+                      e.currentTarget.style.visibility = 'hidden'
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {filtered.length > PAGE_SIZE && (
+          <div
+            className="flex items-center justify-center gap-4 px-4 py-3"
+            style={{ borderTop: '1px solid #24222a' }}
+          >
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={clampedPage === 0}
+              className="px-4 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-40"
+              style={{ background: '#1a2024', border: '1px solid #2c3236', color: '#cfd4d8', letterSpacing: '1px' }}
+            >
+              Prev
+            </button>
+            <span className="text-[13px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+              Page {clampedPage + 1} of {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={clampedPage >= totalPages - 1}
+              className="px-4 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-40"
+              style={{ background: '#1a2024', border: '1px solid #2c3236', color: '#cfd4d8', letterSpacing: '1px' }}
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
