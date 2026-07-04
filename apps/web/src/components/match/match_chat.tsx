@@ -1,9 +1,18 @@
 import type { ChatMessage, HeroStat, MatchPlayer } from 'types'
-import { formatDuration, heroIconUrl } from '@/lib/utils'
+import { formatDuration, heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { PlayerNameLink } from './match_roster'
 
 const PLAYER_COLORS: Record<number, string> = {
   0: '#3375FF', 1: '#66FFBF', 2: '#BF00BF', 3: '#F3F00B', 4: '#FF6600',
   128: '#FE87C4', 129: '#A1B477', 130: '#65D9F7', 131: '#007A00', 132: '#A46900',
+}
+
+const C = {
+  dim: '#67757f',
+  text: '#e8ecef',
+  white: '#ffffff',
+  panel: 'rgba(16,19,22,0.72)',
+  panelDark: 'rgba(8,10,12,0.7)',
 }
 
 const CHATWHEEL_LABELS: Record<string, string> = {
@@ -19,14 +28,24 @@ const CHATWHEEL_LABELS: Record<string, string> = {
   chatwheel_lol: 'lol',
 }
 
+type ChatWheelEntry = { id: number; name?: string; message?: string; label?: string }
+
+// "MissingHero" → "Missing hero", "Game_Is_Hard" → "Game is hard"
+function prettifyWheelName(name: string): string {
+  const words = name.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').split(/\s+/)
+  return words.map((w, i) => (i === 0 ? w : w.toLowerCase())).join(' ')
+}
+
 export function MatchChat({
   chat,
   players,
   heroStats,
+  chatWheel = {},
 }: {
   chat: ChatMessage[]
   players: MatchPlayer[]
   heroStats: HeroStat[]
+  chatWheel?: Record<string, ChatWheelEntry>
 }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const playerBySlot = new Map(players.map((p) => [p.player_slot, p]))
@@ -34,43 +53,86 @@ export function MatchChat({
   const messages = chat.filter((m) => m.type === 'chat' || m.type === 'chatwheel' || m.type === 'say_team')
 
   if (messages.length === 0) {
-    return <p className="px-4 pb-4 text-xs text-muted">No chat messages recorded for this match.</p>
+    return (
+      <div className="flex items-center justify-center py-16">
+        <span className="text-sm" style={{ color: C.dim, fontFamily: 'var(--font-dota)' }}>
+          No chat messages recorded for this match.
+        </span>
+      </div>
+    )
   }
 
   return (
-    <div className="divide-y divide-border/30 max-h-[400px] overflow-y-auto">
-      {messages.map((msg, i) => {
-        const player = playerBySlot.get(msg.player_slot)
-        const hero = player ? heroMap.get(player.hero_id) : undefined
-        const color = PLAYER_COLORS[msg.player_slot] ?? '#888'
-        const isTeam = msg.type === 'say_team'
-        const text = CHATWHEEL_LABELS[msg.key] ?? msg.key
+    <div className="max-w-[980px]" style={{ background: C.panel, fontFamily: 'var(--font-dota)' }}>
+      <div
+        className="text-[15px] uppercase px-4 py-3"
+        style={{ color: C.white, letterSpacing: '2px', background: C.panelDark }}
+      >
+        Chat
+      </div>
+      <div className="px-4 py-2">
+        {messages.map((msg, i) => {
+          const player = playerBySlot.get(msg.player_slot)
+          const hero = player ? heroMap.get(player.hero_id) : undefined
+          const color = PLAYER_COLORS[msg.player_slot] ?? '#888'
+          const isTeam = msg.type === 'say_team'
+          const isWheel = msg.type === 'chatwheel'
+          const wheelEntry = isWheel ? chatWheel[msg.key] : undefined
+          const wheelText =
+            wheelEntry?.message && !wheelEntry.message.startsWith('dota_chatwheel')
+              ? wheelEntry.message
+              : wheelEntry?.name
+                ? prettifyWheelName(wheelEntry.name)
+                : undefined
+          const text = wheelText ?? CHATWHEEL_LABELS[msg.key] ?? msg.key
 
-        return (
-          <div key={i} className="flex items-start gap-2 px-4 py-1.5">
-            <span className="w-10 shrink-0 text-right font-mono text-[10px] text-muted pt-0.5">
-              {formatDuration(msg.time)}
-            </span>
-            {hero && (
-              <img
-                src={heroIconUrl(hero.name)}
-                alt=""
-                className="mt-0.5 h-5 w-5 shrink-0 rounded-sm"
-                style={{ border: `1px solid ${color}40` }}
-              />
-            )}
-            <div className="min-w-0 flex-1">
-              <span className="text-[11px] font-medium" style={{ color }}>
-                {player?.personaname ?? player?.name ?? hero?.localized_name ?? `Player ${msg.player_slot}`}
+          return (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static message list
+            <div key={i} className="flex items-center gap-3 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <span className="w-14 shrink-0 text-right text-[14px] tabular-nums" style={{ color: C.dim }}>
+                {formatDuration(Math.max(0, msg.time))}
               </span>
-              {isTeam && (
-                <span className="ml-1 text-[10px] text-muted">(team)</span>
+              {hero && (
+                <img
+                  src={heroIconUrl(hero.name)}
+                  alt=""
+                  className="shrink-0"
+                  style={{ width: 32, height: 32, borderLeft: `3px solid ${color}` }}
+                  onError={(e) => {
+                    const img = e.currentTarget
+                    img.onerror = null
+                    img.src = heroIconFromPath(hero.icon)
+                  }}
+                />
               )}
-              <span className="ml-2 text-xs text-foreground/80 break-words">{text}</span>
+              {player ? (
+                <PlayerNameLink player={player} className="shrink-0 text-[15px] font-semibold" style={{ color }} />
+              ) : (
+                <span className="shrink-0 text-[15px] font-semibold" style={{ color }}>
+                  {hero?.localized_name ?? `Player ${msg.player_slot}`}
+                </span>
+              )}
+              {isTeam && (
+                <span
+                  className="shrink-0 text-[11px] uppercase px-1.5 py-0.5"
+                  style={{ color: C.dim, border: '1px solid #2c3236', letterSpacing: '1px' }}
+                >
+                  Team
+                </span>
+              )}
+              {isWheel && (
+                <span
+                  className="shrink-0 text-[11px] uppercase px-1.5 py-0.5"
+                  style={{ color: C.dim, border: '1px solid #2c3236', letterSpacing: '1px' }}
+                >
+                  Wheel
+                </span>
+              )}
+              <span className="min-w-0 text-[16px] break-words" style={{ color: C.text }}>{text}</span>
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
     </div>
   )
 }

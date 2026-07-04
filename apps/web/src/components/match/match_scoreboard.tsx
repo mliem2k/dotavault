@@ -3,7 +3,8 @@ import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'type
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { AbilityIcon } from './ability_icon'
 import { ItemIcon } from './item_icon'
-import { MatchRosterSidebar, ROW_H, TEAM_HEADER_H, orderedTeams } from './match_roster'
+import { MatchRosterSidebar, orderedTeams, useRosterMetrics } from './match_roster'
+import { GameTimeSlider, damageHealAtTime, hasTimeline, itemsAtTime, statsAtTime, teamScoreAtTime, type TimedStats } from './match_time'
 
 const SIDEBAR_W = 272
 
@@ -33,12 +34,19 @@ function fmtK(v: number | null | undefined): string {
 function HeroKillsGroup({
   player,
   enemies,
+  timeSec,
+  duration,
+  totalKills,
 }: {
   player: MatchPlayer
   enemies: HeroStat[]
+  timeSec: number
+  duration: number
+  totalKills: number
 }) {
+  const atEnd = timeSec >= duration
   const killCount = (heroName: string) =>
-    (player.kills_log ?? []).filter((e) => e.key === heroName).length
+    (player.kills_log ?? []).filter((e) => e.key === heroName && (atEnd || e.time <= timeSec)).length
 
   return (
     <div className="flex items-center gap-1.5 px-2 shrink-0">
@@ -72,7 +80,7 @@ function HeroKillsGroup({
         className="flex items-center justify-center ml-2 shrink-0 text-[18px] tabular-nums"
         style={{ width: 44, height: 40, background: 'rgba(216,222,227,0.08)', color: '#ffffff', fontFamily: 'var(--font-dota)' }}
       >
-        {player.kills}
+        {totalKills}
       </div>
     </div>
   )
@@ -82,13 +90,18 @@ function HeroKillsGroup({
 function SupportItemsGroup({
   player,
   itemConst,
+  timeSec,
+  duration,
 }: {
   player: MatchPlayer
   itemConst: Record<string, ItemConst>
+  timeSec: number
+  duration: number
 }) {
+  const atEnd = timeSec >= duration
   const counts = new Map<string, number>()
   for (const e of player.purchase_log ?? []) {
-    if (SUPPORT_ITEMS.has(e.key)) counts.set(e.key, (counts.get(e.key) ?? 0) + 1)
+    if (SUPPORT_ITEMS.has(e.key) && (atEnd || e.time <= timeSec)) counts.set(e.key, (counts.get(e.key) ?? 0) + 1)
   }
   const entries = [...counts.entries()]
   const gold = entries.reduce((s, [name, n]) => s + n * (itemConst[name]?.cost ?? 0), 0)
@@ -122,12 +135,16 @@ function AbilityBuildGroup({
   player,
   abilities,
   abilityIds,
+  maxLevel,
 }: {
   player: MatchPlayer
   abilities: Abilities
   abilityIds: AbilityIds
+  maxLevel: number
 }) {
-  const arr = player.ability_upgrades_arr ?? []
+  // Skill points are taken one per level, so the build at time T is simply
+  // the first `level at T` upgrades.
+  const arr = (player.ability_upgrades_arr ?? []).slice(0, maxLevel)
   return (
     <div className="flex items-center gap-[3px] px-2 shrink-0">
       {arr.map((id, i) => {
@@ -145,19 +162,23 @@ type Col = {
   label: string | JSX.Element
   width: number
   align?: 'center' | 'right'
-  render: (p: MatchPlayer) => JSX.Element
+  render: (p: MatchPlayer, t: TimedStats) => JSX.Element
 }
 
 function ItemsCell({
   player,
   idToName,
   itemConst,
+  timeSec,
+  duration,
 }: {
   player: MatchPlayer
   idToName: Map<number, string>
   itemConst: Record<string, ItemConst>
+  timeSec: number
+  duration: number
 }) {
-  const items = [player.item_0, player.item_1, player.item_2, player.item_3, player.item_4, player.item_5]
+  const items = itemsAtTime(player, idToName, timeSec, duration, itemConst)
   return (
     <div className="flex gap-[3px]">
       {items.map((id, i) => {
@@ -186,43 +207,67 @@ export function MatchScoreboard({
   abilityIds: AbilityIds
 }) {
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
+  const [timeSec, setTimeSec] = useState<number>(match.duration)
 
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const { radiant, dire } = orderedTeams(match)
+  const scrubbable = hasTimeline(match)
+  // Shrink rows so scoreboard + timeline fit the viewport without scrolling.
+  const { ref: fitRef, rowH, headerH } = useRosterMetrics(scrubbable ? 82 : 36)
 
   const num = (color: string, size = 16, weight = 400) => (v: number | string) => (
     <span className="tabular-nums" style={{ color, fontSize: size, fontWeight: weight, fontFamily: 'var(--font-dota)' }}>{v}</span>
   )
 
   const cols: Col[] = [
-    { label: 'K', width: 44, render: (p) => num('#ffffff', 18, 700)(p.kills) },
-    { label: 'D', width: 44, render: (p) => num('#cfd4d8')(p.deaths) },
-    { label: 'A', width: 44, render: (p) => num('#cfd4d8')(p.assists) },
+    { label: 'K', width: 44, render: (_p, t) => num('#ffffff', 18, 700)(t.kills) },
+    { label: 'D', width: 44, render: (_p, t) => num('#cfd4d8')(t.deaths) },
+    { label: 'A', width: 44, render: (_p, t) => num('#cfd4d8')(t.assists) },
     {
       label: (<span className="inline-flex items-center gap-1"><GoldPip />NET</span>),
       width: 84,
-      render: (p) => num('#f2c94c', 16)(p.net_worth.toLocaleString()),
+      render: (_p, t) => num('#f2c94c', 16)(t.netWorth.toLocaleString()),
     },
     {
       label: 'Items',
       width: 6 * 36 + 5 * 3,
-      render: (p) => <ItemsCell player={p} idToName={idToName} itemConst={itemConst} />,
+      render: (p) => <ItemsCell player={p} idToName={idToName} itemConst={itemConst} timeSec={timeSec} duration={match.duration} />,
     },
     {
       label: 'LH / DN',
       width: 80,
-      render: (p) => (
+      render: (_p, t) => (
         <span className="text-[15px] tabular-nums" style={{ color: '#e8ecef', fontFamily: 'var(--font-dota)' }}>
-          {p.last_hits}<span style={{ color: '#5a6066' }}> / </span>{p.denies}
+          {t.lastHits}<span style={{ color: '#5a6066' }}> / </span>{t.denies}
         </span>
       ),
     },
-    { label: 'GPM', width: 58, render: (p) => num('#f2c94c')(p.gold_per_min) },
-    { label: 'XPM', width: 58, render: (p) => num('#e8ecef')(p.xp_per_min) },
-    { label: 'DMG', width: 72, render: (p) => num('#e8ecef')(p.hero_damage != null ? fmtK(p.hero_damage) : '—') },
-    { label: 'HEAL', width: 62, render: (p) => num('#e8ecef')(p.hero_healing != null ? fmtK(p.hero_healing) : '—') },
+    { label: 'GPM', width: 58, render: (_p, t) => num('#f2c94c')(t.gpm) },
+    { label: 'XPM', width: 58, render: (_p, t) => num('#e8ecef')(t.xpm) },
+    {
+      label: 'DMG',
+      width: 72,
+      render: (p) =>
+        num('#e8ecef')(p.hero_damage != null ? fmtK(damageHealAtTime(match, p, timeSec).damage) : '—'),
+    },
+    {
+      label: 'HEAL',
+      width: 62,
+      render: (p) =>
+        num('#e8ecef')(p.hero_healing != null ? fmtK(damageHealAtTime(match, p, timeSec).healing) : '—'),
+    },
     { label: 'MMR', width: 84, render: () => num('#67757f')('—') },
   ]
+
+  // Time-aware sidebar data: levels and team scores at the scrub position.
+  const levelBySlot = new Map(
+    match.players.map((p) => [
+      p.player_slot,
+      statsAtTime(p, match.players, heroMap.get(p.hero_id)?.name ?? '', timeSec, match.duration).level,
+    ]),
+  )
+  const radScore = teamScoreAtTime(match, true, timeSec)
+  const direScore = teamScoreAtTime(match, false, timeSec)
 
   const hasKillLogs = match.players.some((p) => (p.kills_log?.length ?? 0) > 0)
   const hasPurchases = match.players.some((p) => (p.purchase_log?.length ?? 0) > 0)
@@ -231,7 +276,7 @@ export function MatchScoreboard({
   const label = (content: string | JSX.Element, width?: number, extraClass = '') => (
     <div
       className={`shrink-0 flex items-center justify-center text-[13px] uppercase ${extraClass}`}
-      style={{ width, height: TEAM_HEADER_H, color: '#8a97a0', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}
+      style={{ width, height: headerH, color: '#8a97a0', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}
     >
       {content}
     </div>
@@ -240,7 +285,7 @@ export function MatchScoreboard({
   const headerRow = (isRadiant: boolean) => {
     const enemies = isRadiant ? dire : radiant
     return (
-      <div className="flex items-stretch" style={{ height: TEAM_HEADER_H }}>
+      <div className="flex items-stretch" style={{ height: headerH }}>
         {cols.map((c, i) => label(c.label as string | JSX.Element, c.width, i === 4 ? 'justify-start pl-1' : ''))}
         {hasKillLogs && (
           <div className="flex items-center shrink-0 pl-2" style={{ width: enemies.length * 38 + 60 }}>
@@ -282,13 +327,14 @@ export function MatchScoreboard({
     const active = selectedSlot === p.player_slot
     const enemies = isRadiant ? dire : radiant
     const enemyHeroes = enemies.map((e) => heroMap.get(e.hero_id)).filter((h): h is HeroStat => !!h)
+    const timed = statsAtTime(p, match.players, heroMap.get(p.hero_id)?.name ?? '', timeSec, match.duration)
     return (
       <button
         key={p.player_slot}
         type="button"
         onClick={() => setSelectedSlot(active ? null : p.player_slot)}
         className="flex items-stretch w-full text-left cursor-pointer hover:bg-white/[0.04]"
-        style={{ height: ROW_H, background: active ? 'rgba(255,255,255,0.13)' : undefined, borderBottom: '1px solid rgba(255,255,255,0.03)' }}
+        style={{ height: rowH, background: active ? 'rgba(255,255,255,0.13)' : undefined, borderBottom: '1px solid rgba(255,255,255,0.03)' }}
       >
         {cols.map((c, i) => (
           <div
@@ -296,22 +342,28 @@ export function MatchScoreboard({
             className={`shrink-0 flex items-center ${i === 4 ? 'justify-start pl-1' : 'justify-center'}`}
             style={{ width: c.width }}
           >
-            {c.render(p)}
+            {c.render(p, timed)}
           </div>
         ))}
         {hasKillLogs && (
           <div className="flex items-center shrink-0">
-            <HeroKillsGroup player={p} enemies={enemyHeroes} />
+            <HeroKillsGroup
+              player={p}
+              enemies={enemyHeroes}
+              timeSec={timeSec}
+              duration={match.duration}
+              totalKills={timed.kills}
+            />
           </div>
         )}
         {hasPurchases && (
           <div className="flex items-center shrink-0">
-            <SupportItemsGroup player={p} itemConst={itemConst} />
+            <SupportItemsGroup player={p} itemConst={itemConst} timeSec={timeSec} duration={match.duration} />
           </div>
         )}
         {maxAbilities > 0 && (
           <div className="flex items-center shrink-0">
-            <AbilityBuildGroup player={p} abilities={abilities} abilityIds={abilityIds} />
+            <AbilityBuildGroup player={p} abilities={abilities} abilityIds={abilityIds} maxLevel={timed.level} />
           </div>
         )}
       </button>
@@ -319,22 +371,34 @@ export function MatchScoreboard({
   }
 
   return (
-    <div className="flex items-start" style={{ background: 'rgba(12,15,17,0.55)' }}>
-      <MatchRosterSidebar
-        match={match}
-        heroStats={heroStats}
-        width={SIDEBAR_W}
-        selectedSlot={selectedSlot}
-      />
-      {/* Stats pane — scrolls horizontally, rows aligned with the sidebar */}
-      <div className="flex-1 min-w-0 overflow-x-auto">
-        <div className="inline-block min-w-full">
-          {headerRow(true)}
-          {radiant.map((p) => playerRow(p, true))}
-          {headerRow(false)}
-          {dire.map((p) => playerRow(p, false))}
+    <div ref={fitRef}>
+      <div className="flex items-start" style={{ background: 'rgba(12,15,17,0.55)' }}>
+        <MatchRosterSidebar
+          match={match}
+          heroStats={heroStats}
+          width={SIDEBAR_W}
+          selectedSlot={selectedSlot}
+          rowH={rowH}
+          headerH={headerH}
+          scoreRadiant={radScore}
+          scoreDire={direScore}
+          levels={levelBySlot}
+        />
+        {/* Stats pane — scrolls horizontally, rows aligned with the sidebar */}
+        <div className="flex-1 min-w-0 overflow-x-auto">
+          <div className="inline-block min-w-full">
+            {headerRow(true)}
+            {radiant.map((p) => playerRow(p, true))}
+            {headerRow(false)}
+            {dire.map((p) => playerRow(p, false))}
+          </div>
         </div>
       </div>
+      {scrubbable && (
+        <div className="pt-3">
+          <GameTimeSlider timeSec={timeSec} duration={match.duration} onChange={setTimeSec} />
+        </div>
+      )}
     </div>
   )
 }

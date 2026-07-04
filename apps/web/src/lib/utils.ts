@@ -36,6 +36,13 @@ function short(name: string): string {
   return name.replace('npc_dota_hero_', '')
 }
 
+// URL slug for hero pages, matching dota2.com: the display name lowercased
+// with everything but letters/digits/hyphens stripped ("Anti-Mage" →
+// "anti-mage", "Zeus" → "zeus", "Nature's Prophet" → "naturesprophet").
+export function heroSlug(localizedName: string): string {
+  return localizedName.toLowerCase().replace(/[^a-z0-9-]/g, '')
+}
+
 export const heroLandscapeUrl = (name: string) => `/landscape/${short(name)}.webp`
 export const heroLandscapeCdn = (name: string) => `${IMG_CDN}/dota_react/heroes/${short(name)}.png`
 export const heroSbUrl = (name: string) => `/portraits/${short(name)}_sb.webp`

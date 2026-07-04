@@ -1,89 +1,132 @@
-import type { HeroStat, MatchPlayer } from 'types'
-import { formatDuration, heroIconUrl, itemIconUrl } from '@/lib/utils'
+import type { HeroStat, ItemConst, MatchPlayer } from 'types'
+import { formatDuration, heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { ItemIcon } from './item_icon'
+import { PlayerNameLink } from './match_roster'
 
-const PLAYER_COLORS: Record<number, string> = {
-  0: '#3375FF', 1: '#66FFBF', 2: '#BF00BF', 3: '#F3F00B', 4: '#FF6600',
-  128: '#FE87C4', 129: '#A1B477', 130: '#65D9F7', 131: '#007A00', 132: '#A46900',
+/* Purchases tab — one column per player, chronological item builds
+   (consumables filtered out), full page width. */
+
+const C = {
+  label: '#8a97a0',
+  dim: '#67757f',
+  text: '#cfd4d8',
+  white: '#ffffff',
+  green: '#9fbf3f',
+  red: '#c94a38',
+  panel: 'rgba(16,19,22,0.72)',
+  panelDark: 'rgba(8,10,12,0.7)',
 }
 
 const CONSUMABLES = new Set([
   'tpscroll', 'flask', 'clarity', 'faerie_fire', 'smoke_of_deceit',
-  'dust', 'ward_observer', 'ward_sentry', 'tome_of_knowledge',
+  'dust', 'ward_observer', 'ward_sentry', 'tome_of_knowledge', 'tango',
+  'tango_single', 'enchanted_mango', 'blood_grenade',
 ])
 
-type PurchaseEvent = {
-  time: number
-  key: string
+function PlayerColumn({
+  player,
+  hero,
+  itemConst,
+}: {
   player: MatchPlayer
+  hero: HeroStat | undefined
+  itemConst: Record<string, ItemConst>
+}) {
+  const purchases = (player.purchase_log ?? []).filter((e) => !CONSUMABLES.has(e.key))
+  return (
+    <div style={{ background: C.panel }}>
+      {/* column header */}
+      <div className="flex items-center gap-2.5 px-3 py-2.5" style={{ background: C.panelDark }}>
+        {hero && (
+          <img
+            src={heroIconUrl(hero.name)}
+            alt=""
+            style={{ width: 38, height: 38 }}
+            onError={(e) => {
+              const img = e.currentTarget
+              img.onerror = null
+              img.src = heroIconFromPath(hero.icon)
+            }}
+          />
+        )}
+        <div className="min-w-0" style={{ fontFamily: 'var(--font-dota)' }}>
+          <div className="text-[15px] truncate" style={{ color: C.white }}>{hero?.localized_name}</div>
+          <PlayerNameLink player={player} className="block text-[12px] truncate" style={{ color: C.dim }} />
+        </div>
+      </div>
+      {/* purchase list */}
+      <div className="px-2 py-1.5">
+        {purchases.map((e, i) => {
+          const meta = itemConst[e.key]
+          return (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static purchase list
+            <div key={i} className="flex items-center gap-2.5 py-[3px]">
+              <span className="w-12 text-right text-[13px] tabular-nums shrink-0" style={{ color: C.dim, fontFamily: 'var(--font-dota)' }}>
+                {formatDuration(Math.max(0, e.time))}
+              </span>
+              <ItemIcon name={e.key} meta={meta} width={34} height={25} />
+              <span className="text-[13px] truncate" style={{ color: C.text, fontFamily: 'var(--font-dota)' }}>
+                {meta?.dname ?? e.key.replace(/_/g, ' ')}
+              </span>
+            </div>
+          )
+        })}
+        {purchases.length === 0 && (
+          <div className="py-2 text-[13px]" style={{ color: C.dim, fontFamily: 'var(--font-dota)' }}>No purchases.</div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export function MatchPurchases({
   players,
   heroStats,
+  itemConst,
 }: {
   players: MatchPlayer[]
   heroStats: HeroStat[]
+  itemConst: Record<string, ItemConst>
 }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
+  const radiant = players.filter((p) => p.player_slot < 128)
+  const dire = players.filter((p) => p.player_slot >= 128)
 
-  const events: PurchaseEvent[] = []
-  for (const p of players) {
-    for (const entry of p.purchase_log ?? []) {
-      if (!CONSUMABLES.has(entry.key)) {
-        events.push({ time: entry.time, key: entry.key, player: p })
-      }
-    }
+  const hasAny = players.some((p) => (p.purchase_log?.length ?? 0) > 0)
+  if (!hasAny) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <span className="text-sm" style={{ color: C.dim, fontFamily: 'var(--font-dota)' }}>
+          No purchase data available for this match.
+        </span>
+      </div>
+    )
   }
-  events.sort((a, b) => a.time - b.time)
 
-  if (events.length === 0) {
-    return <p className="px-4 pb-4 text-xs text-muted">No purchase data available for this match.</p>
-  }
+  const teamSection = (team: MatchPlayer[], isRadiant: boolean) => (
+    <div>
+      <div
+        className="text-[17px] mb-2 px-1"
+        style={{
+          color: isRadiant ? C.green : C.red,
+          fontFamily: 'var(--font-dota)',
+          textShadow: `0 1px 3px rgba(0,0,0,0.9), 0 0 10px ${isRadiant ? C.green : C.red}44`,
+        }}
+      >
+        {isRadiant ? 'The Radiant' : 'The Dire'}
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
+        {team.map((p) => (
+          <PlayerColumn key={p.player_slot} player={p} hero={heroMap.get(p.hero_id)} itemConst={itemConst} />
+        ))}
+      </div>
+    </div>
+  )
 
   return (
-    <div className="max-h-[400px] overflow-y-auto">
-      <div className="flex gap-1 flex-wrap px-4 pb-3 pt-1 border-b border-border/40">
-        {players.map((p) => {
-          const hero = heroMap.get(p.hero_id)
-          const color = PLAYER_COLORS[p.player_slot] ?? '#888'
-          return (
-            <span key={p.player_slot} className="flex items-center gap-1 text-[10px]" style={{ color }}>
-              {hero && <img src={heroIconUrl(hero.name)} alt="" className="h-4 w-4 rounded-sm" />}
-              {hero?.localized_name ?? `Slot ${p.player_slot}`}
-            </span>
-          )
-        })}
-      </div>
-      <div className="divide-y divide-border/20">
-        {events.map((ev, i) => {
-          const hero = heroMap.get(ev.player.hero_id)
-          const color = PLAYER_COLORS[ev.player.player_slot] ?? '#888'
-          return (
-            <div key={i} className="flex items-center gap-2 px-4 py-1">
-              <span className="w-10 shrink-0 text-right font-mono text-[10px] text-muted">
-                {formatDuration(ev.time)}
-              </span>
-              {hero && (
-                <img
-                  src={heroIconUrl(hero.name)}
-                  alt=""
-                  className="h-4 w-4 shrink-0 rounded-sm"
-                  style={{ border: `1px solid ${color}50` }}
-                />
-              )}
-              <img
-                src={itemIconUrl(ev.key)}
-                alt={ev.key}
-                className="h-5 w-5 shrink-0 rounded-sm"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-              />
-              <span className="text-xs text-foreground/80">
-                {ev.key.replace(/_/g, ' ')}
-              </span>
-            </div>
-          )
-        })}
-      </div>
+    <div className="space-y-5">
+      {teamSection(radiant, true)}
+      {teamSection(dire, false)}
     </div>
   )
 }

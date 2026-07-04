@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
+import { usePageTitle } from '@/lib/title'
 import { createFileRoute } from '@tanstack/react-router'
 import type { HeroStat } from 'types'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
-import { heroIconUrl, winRate } from '@/lib/utils'
+import { heroIconUrl, heroSlug, winRate } from '@/lib/utils'
 
 export const Route = createFileRoute('/meta')({
   component: MetaPage,
@@ -107,7 +108,7 @@ function LaneCard({ lane, heroes }: { lane: (typeof LANES)[0]; heroes: HeroStat[
           return (
             <a
               key={h.id}
-              href={`/hero/${h.name.replace('npc_dota_hero_', '')}`}
+              href={`/hero/${heroSlug(h.localized_name)}`}
               className="flex items-center gap-2 py-1.5 hover:bg-white/[0.03]"
               style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
             >
@@ -213,7 +214,7 @@ function TopHeroesTable({ heroes }: { heroes: HeroStat[] }) {
                 </td>
                 <td className="py-1.5">
                   <a
-                    href={`/hero/${h.name.replace('npc_dota_hero_', '')}`}
+                    href={`/hero/${heroSlug(h.localized_name)}`}
                     className="flex items-center gap-2"
                   >
                     <img
@@ -260,6 +261,7 @@ function TopHeroesTable({ heroes }: { heroes: HeroStat[] }) {
 }
 
 function MetaPage() {
+  usePageTitle('Meta')
   const heroes = useQuery({
     queryKey: ['heroes'],
     queryFn: () => opendota.heroStats(),

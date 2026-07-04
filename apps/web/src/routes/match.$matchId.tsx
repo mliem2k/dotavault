@@ -1,15 +1,37 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { DraftPanel } from '@/components/match/draft_panel'
+import { MatchChat } from '@/components/match/match_chat'
+import { MatchCombat } from '@/components/match/match_combat'
+import { MatchDamage } from '@/components/match/match_damage'
+import { MatchFarm } from '@/components/match/match_farm'
 import { MatchGraphs } from '@/components/match/match_graphs'
+import { MatchObjectives } from '@/components/match/match_objectives'
 import { MatchOverview } from '@/components/match/match_overview'
+import { MatchPerformance } from '@/components/match/match_performance'
+import { MatchPurchases } from '@/components/match/match_purchases'
 import { MatchScoreboard } from '@/components/match/match_scoreboard'
+import { MatchVision } from '@/components/match/match_vision'
+import { ReplayViewer } from '@/components/match/replay_viewer'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
+import { usePageTitle } from '@/lib/title'
 
-type Tab = 'overview' | 'scoreboard' | 'graphs'
-
-const TABS: Tab[] = ['overview', 'scoreboard', 'graphs']
+type Tab =
+  | 'overview'
+  | 'scoreboard'
+  | 'graphs'
+  | 'combat'
+  | 'damage'
+  | 'performance'
+  | 'farm'
+  | 'purchases'
+  | 'objectives'
+  | 'draft'
+  | 'vision'
+  | 'chat'
+  | 'replay'
 
 export const Route = createFileRoute('/match/$matchId')({
   component: MatchPage,
@@ -17,6 +39,7 @@ export const Route = createFileRoute('/match/$matchId')({
 
 function MatchPage() {
   const { matchId } = Route.useParams()
+  usePageTitle(`Match ${matchId}`)
   const [tab, setTab] = useState<Tab>('overview')
 
   const match = useQuery({
@@ -47,6 +70,12 @@ function MatchPage() {
     staleTime: Number.POSITIVE_INFINITY,
   })
 
+  const chatWheelData = useQuery({
+    queryKey: ['chat_wheel_constants'],
+    queryFn: () => opendota.chatWheel(),
+    staleTime: Number.POSITIVE_INFINITY,
+  })
+
   if (match.isPending) {
     return (
       <div className="flex justify-center py-20">
@@ -63,24 +92,60 @@ function MatchPage() {
     Object.entries(itemConst).map(([name, { id }]) => [id, name]),
   )
 
+  // Parsed-only tabs appear only when the data behind them exists.
+  const hasCombat =
+    (m.teamfights?.length ?? 0) > 0 ||
+    m.players.some((p) => (p.kills_log?.length ?? 0) > 0 || Object.keys(p.killed ?? {}).length > 0)
+  const hasDamage = m.players.some((p) => p.damage != null || p.damage_inflictor != null)
+  const hasPerformance = m.players.some((p) => p.lane_role != null || p.benchmarks != null)
+  const hasFarm = m.players.some((p) => Object.keys(p.gold_reasons ?? {}).length > 0)
+  const hasPurchases = m.players.some((p) => (p.purchase_log?.length ?? 0) > 0)
+  const hasObjectives = (m.objectives?.length ?? 0) > 0
+  const hasDraft = (m.picks_bans?.length ?? 0) > 0
+  const hasVision = m.players.some((p) => (p.obs_log?.length ?? 0) + (p.sen_log?.length ?? 0) > 0)
+  const hasChat = (m.chat?.length ?? 0) > 0
+
+  const availableTabs: Tab[] = [
+    'overview',
+    'scoreboard',
+    'graphs',
+    ...(hasCombat ? (['combat'] as Tab[]) : []),
+    ...(hasDamage ? (['damage'] as Tab[]) : []),
+    ...(hasPerformance ? (['performance'] as Tab[]) : []),
+    ...(hasFarm ? (['farm'] as Tab[]) : []),
+    ...(hasPurchases ? (['purchases'] as Tab[]) : []),
+    ...(hasObjectives ? (['objectives'] as Tab[]) : []),
+    ...(hasDraft ? (['draft'] as Tab[]) : []),
+    ...(hasVision ? (['vision'] as Tab[]) : []),
+    ...(hasChat ? (['chat'] as Tab[]) : []),
+    'replay',
+  ]
+
+  const activeTab = availableTabs.includes(tab) ? tab : 'overview'
+  const loading = <div className="flex justify-center py-12"><Spinner /></div>
+
   return (
     <div className="flex flex-col gap-0">
-      {/* Tab strip — OVERVIEW / SCOREBOARD / GRAPHS, slash-separated like the client */}
-      <div className="flex items-center pt-4 pb-3 pl-2" style={{ fontFamily: 'var(--font-dota)' }}>
-        {TABS.map((t, i) => (
+      {/* Tab strip — slash-separated like the client */}
+      <div
+        className="flex items-center flex-wrap mt-3 mb-3 px-3 py-2.5"
+        style={{ fontFamily: 'var(--font-dota)', background: 'rgba(8,10,12,0.55)' }}
+      >
+        {availableTabs.map((t, i) => (
           <span key={t} className="flex items-center">
             {i > 0 && (
-              <span className="mx-3 text-[15px]" style={{ color: '#3f464d' }}>/</span>
+              <span className="mx-2.5 text-[13px]" style={{ color: '#3f464d' }}>/</span>
             )}
             <button
               type="button"
               onClick={() => setTab(t)}
-              className="text-[16px] font-semibold uppercase cursor-pointer"
+              className="text-[14px] font-semibold uppercase cursor-pointer whitespace-nowrap"
               style={{
-                color: tab === t ? '#ffffff' : '#67757f',
-                letterSpacing: '3px',
-                borderBottom: tab === t ? '1px solid #ffffff' : '1px solid transparent',
+                color: activeTab === t ? '#ffffff' : '#7d8b95',
+                letterSpacing: '2px',
+                borderBottom: activeTab === t ? '1px solid #ffffff' : '1px solid transparent',
                 paddingBottom: 2,
+                textShadow: '0 1px 2px rgba(0,0,0,0.9)',
               }}
             >
               {t}
@@ -89,14 +154,12 @@ function MatchPage() {
         ))}
       </div>
 
-      {tab === 'overview' &&
+      {activeTab === 'overview' &&
         (heroStats.data ? (
           <MatchOverview match={m} heroStats={heroStats.data} idToName={idToName} itemConst={itemConst} />
-        ) : (
-          <div className="flex justify-center py-12"><Spinner /></div>
-        ))}
+        ) : loading)}
 
-      {tab === 'scoreboard' &&
+      {activeTab === 'scoreboard' &&
         (heroStats.data ? (
           <MatchScoreboard
             match={m}
@@ -106,16 +169,50 @@ function MatchPage() {
             abilities={abilitiesData.data ?? {}}
             abilityIds={abilityIdsData.data ?? {}}
           />
-        ) : (
-          <div className="flex justify-center py-12"><Spinner /></div>
-        ))}
+        ) : loading)}
 
-      {tab === 'graphs' &&
+      {activeTab === 'graphs' &&
         (heroStats.data ? (
           <MatchGraphs match={m} heroStats={heroStats.data} idToName={idToName} itemConst={itemConst} />
-        ) : (
-          <div className="flex justify-center py-12"><Spinner /></div>
-        ))}
+        ) : loading)}
+
+      {activeTab === 'combat' &&
+        (heroStats.data ? <MatchCombat match={m} heroStats={heroStats.data} /> : loading)}
+
+      {activeTab === 'damage' &&
+        (heroStats.data ? (
+          <MatchDamage match={m} heroStats={heroStats.data} abilities={abilitiesData.data ?? {}} itemConst={itemConst} />
+        ) : loading)}
+
+      {activeTab === 'performance' &&
+        (heroStats.data ? <MatchPerformance match={m} heroStats={heroStats.data} /> : loading)}
+
+      {activeTab === 'farm' &&
+        (heroStats.data ? <MatchFarm match={m} heroStats={heroStats.data} /> : loading)}
+
+      {activeTab === 'purchases' &&
+        (heroStats.data ? (
+          <MatchPurchases players={m.players} heroStats={heroStats.data} itemConst={itemConst} />
+        ) : loading)}
+
+      {activeTab === 'objectives' &&
+        (heroStats.data ? <MatchObjectives match={m} heroStats={heroStats.data} /> : loading)}
+
+      {activeTab === 'draft' &&
+        (hasDraft && heroStats.data ? (
+          <DraftPanel picksBans={m.picks_bans ?? []} heroStats={heroStats.data} />
+        ) : loading)}
+
+      {activeTab === 'vision' &&
+        (heroStats.data ? <MatchVision players={m.players} heroStats={heroStats.data} duration={m.duration} /> : loading)}
+
+      {activeTab === 'chat' &&
+        (hasChat && heroStats.data ? (
+          <MatchChat chat={m.chat ?? []} players={m.players} heroStats={heroStats.data} chatWheel={chatWheelData.data ?? {}} />
+        ) : loading)}
+
+      {activeTab === 'replay' &&
+        (heroStats.data ? <ReplayViewer match={m} heroStats={heroStats.data} /> : loading)}
     </div>
   )
 }

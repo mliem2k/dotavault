@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
+import { usePageTitle } from '@/lib/title'
 import { createFileRoute } from '@tanstack/react-router'
 import { SearchBar } from '@/components/search/search_bar'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
-import { formatTimeAgo, heroBracketTotal, heroIconFromPath, winRate } from '@/lib/utils'
+import { formatTimeAgo, heroBracketTotal, heroIconFromPath, heroSlug, winRate } from '@/lib/utils'
 
 export const Route = createFileRoute('/')({
   component: HomePage,
@@ -32,6 +33,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 }
 
 function HomePage() {
+  usePageTitle(null)
   const heroes = useQuery({
     queryKey: ['heroes'],
     queryFn: () => opendota.heroStats(),
@@ -105,7 +107,7 @@ function HomePage() {
                   return (
                     <a
                       key={h.id}
-                      href={`/hero/${h.name.replace('npc_dota_hero_', '')}`}
+                      href={`/hero/${heroSlug(h.localized_name)}`}
                       className="flex items-center justify-between py-2 hover:bg-white/[0.03]"
                       style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
                     >

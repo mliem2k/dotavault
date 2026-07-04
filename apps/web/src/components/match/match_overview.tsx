@@ -13,7 +13,8 @@ import {
   heroVertUrl,
 } from '@/lib/utils'
 import { ItemIcon } from './item_icon'
-import { levelFromXp } from './match_roster'
+import { PlayerAvatar, PlayerNameLink, usePlayerName } from './match_roster'
+import { GameTimeSlider, hasTimeline, itemsAtTime, statsAtTime, type TimedStats } from './match_time'
 
 const GAME_MODES: Record<number, string> = {
   1: 'All Pick',
@@ -30,6 +31,37 @@ const GAME_MODES: Record<number, string> = {
 // Animated hero renders (kept on Valve's CDN — the webm clips are ~1.3MB each).
 const RENDER = 'https://cdn.steamstatic.com/apps/dota2/videos/dota_react/heroes/renders'
 const AGHS_SCEPTER = 'https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/stats/aghs_scepter.png'
+
+/* Horizontal center of the hero model inside its square render, measured from
+   each render's alpha channel (percent from the left edge). Narrow portrait
+   crops use this as the object-position x so off-center models (Sven, Ember
+   Spirit, Kunkka, ...) stay in frame. Heroes near 50% are omitted. */
+const RENDER_CENTER_X: Record<string, number> = {
+  abaddon: 57, abyssal_underlord: 53, alchemist: 56, ancient_apparition: 54,
+  axe: 62, bane: 54, bounty_hunter: 54, brewmaster: 57,
+  bristleback: 68, centaur: 54, dark_seer: 53, dawnbreaker: 46,
+  dazzle: 57, doom_bringer: 56, dragon_knight: 60, drow_ranger: 57,
+  ember_spirit: 67, enigma: 58, grimstroke: 55, huskar: 44,
+  jakiro: 58, juggernaut: 56, keeper_of_the_light: 57, kunkka: 68,
+  legion_commander: 57, life_stealer: 46, lion: 57, luna: 54,
+  mars: 56, medusa: 58, meepo: 53, monkey_king: 64,
+  morphling: 56, naga_siren: 58, necrolyte: 55, nevermore: 53,
+  night_stalker: 55, nyx_assassin: 43, ogre_magi: 46, omniknight: 53,
+  oracle: 56, pangolier: 65, phantom_assassin: 57, phantom_lancer: 57,
+  primal_beast: 47, puck: 55, pudge: 57, pugna: 43,
+  rattletrap: 56, razor: 54, riki: 46, shadow_demon: 53,
+  slardar: 42, snapfire: 57, sniper: 41, spectre: 58,
+  spirit_breaker: 59, storm_spirit: 54, sven: 62, templar_assassin: 46,
+  terrorblade: 57, tidehunter: 53, tiny: 46, troll_warlord: 60,
+  tusk: 58, ursa: 56, vengefulspirit: 63, void_spirit: 53,
+  windrunner: 53,
+}
+
+// object-position that keeps the hero model centered in a narrow crop.
+function renderObjectPosition(hero: HeroStat): string {
+  const short = hero.name.replace('npc_dota_hero_', '')
+  return `${RENDER_CENTER_X[short] ?? 50}% top`
+}
 
 // Client palette (post-game screens).
 const C = {
@@ -105,14 +137,6 @@ function HeroRender({
   )
 }
 
-function formatClock(seconds: number): string {
-  const neg = seconds < 0
-  const abs = Math.abs(Math.floor(seconds))
-  const m = Math.floor(abs / 60)
-  const s = abs % 60
-  return `${neg ? '-' : ''}${m}:${String(s).padStart(2, '0')}`
-}
-
 const GoldIcon = ({ size = 12 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 10 10" fill="none" className="inline-block shrink-0">
     <circle cx="5" cy="5" r="4.5" fill="#e5b12c" />
@@ -123,78 +147,6 @@ const GoldIcon = ({ size = 12 }: { size?: number }) => (
 /* ------------------------------------------------------------------ */
 /* Data derivations                                                    */
 /* ------------------------------------------------------------------ */
-
-// Final inventory items, revealed only once purchased at/before `timeSec`.
-function itemsAtTime(player: MatchPlayer, idToName: Map<number, string>, timeSec: number): number[] {
-  const finalItems = [player.item_0, player.item_1, player.item_2, player.item_3, player.item_4, player.item_5]
-  const log = player.purchase_log ?? []
-  const firstTime = new Map<string, number>()
-  for (const e of log) {
-    if (!firstTime.has(e.key)) firstTime.set(e.key, e.time)
-  }
-  return finalItems.map((id) => {
-    if (!id) return 0
-    const name = idToName.get(id)
-    if (!name) return id // no timing info (unparsed) → always show
-    const t = firstTime.get(name)
-    if (t == null) return id
-    return t <= timeSec ? id : 0
-  })
-}
-
-type TimedStats = {
-  netWorth: number
-  kills: number
-  deaths: number
-  assists: number
-  lastHits: number
-  level: number
-  gpm: number
-  xpm: number
-}
-
-// Reconstruct a player's stats at slider time `timeSec` from the parsed time
-// series (gold_t/xp_t/lh_t) and kill logs. At the end of the game (default
-// slider position) this returns the final scoreboard values exactly.
-function statsAtTime(
-  player: MatchPlayer,
-  allPlayers: MatchPlayer[],
-  heroName: string,
-  timeSec: number,
-  durationSec: number,
-): TimedStats {
-  const atEnd = timeSec >= durationSec
-  const goldT = player.gold_t
-  const xpT = player.xp_t
-  const lhT = player.lh_t
-  const idx = Math.max(0, Math.floor(timeSec / 60))
-
-  const at = (arr: number[] | null, fallback: number): number => {
-    if (atEnd || !arr || arr.length === 0) return fallback
-    return arr[Math.min(idx, arr.length - 1)] ?? fallback
-  }
-
-  const netWorth = at(goldT, player.net_worth)
-  const lastHits = at(lhT, player.last_hits)
-  const xpVal = xpT && xpT.length ? (xpT[Math.min(idx, xpT.length - 1)] ?? 0) : 0
-  const level = atEnd || !xpT?.length ? player.level : levelFromXp(xpVal)
-  const minutesElapsed = Math.max(1, timeSec / 60)
-  const gpm = atEnd ? player.gold_per_min : Math.round(netWorth / minutesElapsed)
-  const xpm = atEnd || !xpT?.length ? player.xp_per_min : Math.round(xpVal / minutesElapsed)
-  const kills = atEnd
-    ? player.kills
-    : (player.kills_log ?? []).filter((e) => e.time <= timeSec).length
-  const deaths = atEnd
-    ? player.deaths
-    : allPlayers.reduce(
-        (s, pl) => s + (pl.kills_log ?? []).filter((e) => e.key === heroName && e.time <= timeSec).length,
-        0,
-      )
-  // Assists have no per-time series in the OpenDota response → final value only.
-  const assists = player.assists
-
-  return { netWorth, kills, deaths, assists, lastHits, level, gpm, xpm }
-}
 
 type PlayStyle = { support: number; pushing: number; fighting: number; farming: number }
 
@@ -245,7 +197,7 @@ function HeroPortraitCard({
   hero: HeroStat | undefined
   onClick: () => void
 }) {
-  const playerName = player.personaname ?? player.name ?? 'Anonymous'
+  const playerName = usePlayerName(player)
   const hasAghs = (player.aghanims_scepter ?? 0) > 0
 
   return (
@@ -275,7 +227,7 @@ function HeroPortraitCard({
             <HeroRender
               hero={hero}
               className="absolute inset-0 w-full h-full object-cover"
-              objectPosition="center top"
+              objectPosition={renderObjectPosition(hero)}
               scale={1.15}
             />
           ) : (
@@ -288,8 +240,8 @@ function HeroPortraitCard({
         </div>
 
         {/* Net worth + KDA below the artwork */}
-        <div className="shrink-0 px-2 py-1.5" style={{ background: 'rgba(10,12,14,0.85)' }}>
-          <div className="flex items-center gap-1 mb-0.5">
+        <div className="shrink-0 px-2 py-1.5 flex flex-col items-center text-center" style={{ background: 'rgba(10,12,14,0.85)' }}>
+          <div className="flex items-center justify-center gap-1 mb-0.5">
             <GoldIcon size={12} />
             <span className="text-[14px] leading-none tabular-nums" style={{ color: C.gold, fontFamily: 'var(--font-dota)' }}>
               {player.net_worth.toLocaleString()}
@@ -334,7 +286,7 @@ function ThumbStrip({
   onSelect: (slot: number) => void
 }) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 flex-wrap">
       {players.map((p) => {
         const hero = heroMap.get(p.hero_id)
         const active = p.player_slot === selectedSlot
@@ -520,8 +472,7 @@ function DetailPanel({
   timeSec: number
   durationSec: number
 }) {
-  const playerName = player.personaname ?? player.name ?? 'Anonymous'
-  const items = itemsAtTime(player, idToName, timeSec)
+  const items = itemsAtTime(player, idToName, timeSec, durationSec, itemConst)
   const style = playStyle(player, allPlayers)
   const stats = statsAtTime(player, allPlayers, hero?.name ?? '', timeSec, durationSec)
   const elapsedMin = Math.max(1, Math.round(Math.min(timeSec, durationSec) / 60))
@@ -534,30 +485,18 @@ function DetailPanel({
   })
 
   return (
-    <div className="flex gap-5 min-w-0">
+    <div className="flex flex-wrap gap-5 min-w-0">
       {/* Info column */}
-      <div className="flex-1 min-w-0 space-y-3" style={{ maxWidth: 360 }}>
-        {/* Name panel */}
+      <div className="flex-1 min-w-[300px] space-y-3" style={{ maxWidth: 360 }}>
+        {/* Name panel — player avatar + profile link */}
         <div className="flex items-center gap-3 px-3 py-2.5" style={{ background: 'rgba(8,10,12,0.9)' }}>
-          {hero && (
-            <img
-              src={heroIconUrl(hero.name)}
-              alt=""
-              className="w-12 h-12 shrink-0"
-              onError={(e) => {
-                const img = e.currentTarget
-                img.onerror = null
-                img.src = heroIconFromPath(hero.icon)
-              }}
-            />
-          )}
+          <PlayerAvatar accountId={player.account_id} active={false} size={48} />
           <div className="min-w-0">
-            <div
-              className="text-[24px] leading-tight truncate"
+            <PlayerNameLink
+              player={player}
+              className="block text-[24px] leading-tight truncate"
               style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}
-            >
-              {playerName}
-            </div>
+            />
             <div className="text-[12px] uppercase" style={{ color: '#86a34c', fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}>
               Lvl {stats.level} {hero?.localized_name ?? ''}
             </div>
@@ -593,93 +532,30 @@ function DetailPanel({
         />
       </div>
 
-      {/* Hero render column */}
-      <div className="shrink-0 flex flex-col" style={{ width: 230 }}>
-        <div className="relative overflow-hidden w-full" style={{ height: 400 }}>
+      {/* Hero render column — fills the remaining width so the model isn't
+          clipped into a narrow strip; stats centered beneath it */}
+      <div className="flex-1 flex flex-col items-center min-w-[240px]" style={{ maxWidth: 460 }}>
+        <div className="relative overflow-hidden w-full" style={{ height: 500 }}>
           {hero ? (
-            <HeroRender hero={hero} className="absolute inset-0 w-full h-full object-cover" objectPosition="center top" />
+            <HeroRender
+              hero={hero}
+              className="absolute inset-0 w-full h-full object-cover"
+              objectPosition={renderObjectPosition(hero)}
+            />
           ) : null}
         </div>
-        <div className="flex items-center gap-1.5 mt-2">
+        <div className="flex items-center justify-center gap-1.5 mt-2">
           <GoldIcon size={15} />
           <span className="text-[19px] tabular-nums" style={{ color: C.gold, fontFamily: 'var(--font-dota)' }}>
             {stats.netWorth.toLocaleString()}
           </span>
         </div>
-        <div className="text-[21px] tabular-nums mt-0.5" style={{ fontFamily: 'var(--font-dota)' }}>
+        <div className="text-[21px] tabular-nums mt-0.5 text-center" style={{ fontFamily: 'var(--font-dota)' }}>
           <span style={{ color: '#fff', fontWeight: 700 }}>{stats.kills}</span>
           <span style={{ color: '#5a6066' }}> / </span>
           <span style={{ color: C.text }}>{stats.deaths}</span>
           <span style={{ color: '#5a6066' }}> / </span>
           <span style={{ color: C.text }}>{stats.assists}</span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* Game time slider                                                    */
-/* ------------------------------------------------------------------ */
-
-function GameTimeSlider({
-  timeSec,
-  duration,
-  onChange,
-}: {
-  timeSec: number
-  duration: number
-  onChange: (t: number) => void
-}) {
-  const trackRef = useRef<HTMLDivElement>(null)
-  const dragging = useRef(false)
-  const pct = duration > 0 ? Math.min(1, Math.max(0, timeSec / duration)) : 0
-
-  function setFromClientX(clientX: number) {
-    const el = trackRef.current
-    if (!el) return
-    const r = el.getBoundingClientRect()
-    const f = Math.min(1, Math.max(0, (clientX - r.left) / r.width))
-    onChange(Math.round(f * duration))
-  }
-
-  return (
-    <div className="mx-auto select-none" style={{ width: '46%', minWidth: 320 }}>
-      <div
-        ref={trackRef}
-        className="relative h-7 flex items-center cursor-pointer"
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId)
-          dragging.current = true
-          setFromClientX(e.clientX)
-        }}
-        onPointerMove={(e) => {
-          if (dragging.current) setFromClientX(e.clientX)
-        }}
-        onPointerUp={(e) => {
-          dragging.current = false
-          e.currentTarget.releasePointerCapture(e.pointerId)
-        }}
-      >
-        <div
-          className="absolute left-0 right-0 h-[12px]"
-          style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.35)' }}
-        />
-        <div className="absolute left-0 h-[12px]" style={{ width: `${pct * 100}%`, background: 'rgba(255,255,255,0.18)' }} />
-        <div
-          className="absolute -translate-x-1/2 flex items-center justify-center"
-          style={{
-            left: `${pct * 100}%`,
-            minWidth: 62,
-            height: 26,
-            background: '#15181b',
-            border: '1px solid rgba(255,255,255,0.7)',
-            boxShadow: '0 1px 6px rgba(0,0,0,0.7)',
-          }}
-        >
-          <span className="text-[14px] tabular-nums px-1.5" style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}>
-            {formatClock(timeSec)}
-          </span>
         </div>
       </div>
     </div>
@@ -721,6 +597,24 @@ export function MatchOverview({
   itemConst: Record<string, ItemConst>
 }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
+  // Valve replays can be reconstructed from cluster + salt when the API
+  // omits replay_url. Unparsed matches carry no salt, so no link exists.
+  const replayUrl =
+    match.replay_url ??
+    (match.replay_salt != null && match.cluster
+      ? `http://replay${match.cluster}.valve.net/570/${match.match_id}_${match.replay_salt}.dem.bz2`
+      : null)
+  const [parseState, setParseState] = useState<'idle' | 'requesting' | 'requested' | 'failed'>('idle')
+  async function requestParse() {
+    if (parseState === 'requesting' || parseState === 'requested') return
+    setParseState('requesting')
+    try {
+      await opendota.requestParse(String(match.match_id))
+      setParseState('requested')
+    } catch {
+      setParseState('failed')
+    }
+  }
   const radiant = match.players.filter((p) => p.player_slot < 128)
   const dire = match.players.filter((p) => p.player_slot >= 128)
 
@@ -751,21 +645,21 @@ export function MatchOverview({
       <div className="flex items-center gap-5">
         <span
           className="tabular-nums"
-          style={{ fontSize: 64, lineHeight: 1, color: C.green, fontFamily: 'var(--font-dota)', textShadow: '0 0 12px rgba(159,191,63,0.35)' }}
+          style={{ fontSize: 64, lineHeight: 1, color: C.green, fontFamily: 'var(--font-dota)', textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(159,191,63,0.4)' }}
         >
           {match.radiant_score}
         </span>
         <div className="text-center" style={{ fontFamily: 'var(--font-dota)' }}>
-          <div className="text-[13px] uppercase" style={{ color: C.labelBright, letterSpacing: '2px' }}>
+          <div className="text-[13px] uppercase" style={{ color: '#aab8c2', letterSpacing: '2px', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
             {GAME_MODES[match.game_mode] ?? `Mode ${match.game_mode}`}
           </div>
-          <div className="text-[13px] uppercase" style={{ color: C.label, letterSpacing: '2px' }}>
-            Duration <span className="ml-1 text-[17px]" style={{ color: '#e8ecef' }}>{formatDuration(match.duration)}</span>
+          <div className="text-[13px] uppercase" style={{ color: '#93a2ad', letterSpacing: '2px', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
+            Duration <span className="ml-1 text-[17px]" style={{ color: '#ffffff', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>{formatDuration(match.duration)}</span>
           </div>
         </div>
         <span
           className="tabular-nums"
-          style={{ fontSize: 64, lineHeight: 1, color: C.red, fontFamily: 'var(--font-dota)', textShadow: '0 0 12px rgba(201,74,56,0.35)' }}
+          style={{ fontSize: 64, lineHeight: 1, color: C.red, fontFamily: 'var(--font-dota)', textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(201,74,56,0.4)' }}
         >
           {match.dire_score}
         </span>
@@ -776,7 +670,7 @@ export function MatchOverview({
           fontSize: 44,
           color: winnerColor,
           fontFamily: 'var(--font-dota)',
-          textShadow: `0 0 24px ${winnerColor}66`,
+          textShadow: `0 2px 8px rgba(0,0,0,0.9), 0 0 24px ${winnerColor}88`,
         }}
       >
         {winnerLabel}
@@ -787,22 +681,49 @@ export function MatchOverview({
   /* Footer: replay button + match id / date (team view only) */
   const footer = (
     <div className="flex flex-col items-center gap-5 pt-10 pb-6" style={{ fontFamily: 'var(--font-dota)' }}>
-      {match.replay_url ? (
-        <a
-          href={match.replay_url}
-          className="px-6 py-2 text-[15px] uppercase hover:brightness-125"
-          style={{ background: '#0e2233', border: '1px solid #24455f', color: '#4faee3', letterSpacing: '2px' }}
-        >
-          Download Replay
-        </a>
-      ) : (
-        <span
-          className="px-6 py-2 text-[15px] uppercase"
-          style={{ background: '#0e2233', border: '1px solid #24455f', color: '#4faee3', letterSpacing: '2px', opacity: 0.45 }}
-          title="Replay unavailable"
-        >
-          Download Replay
-        </span>
+      <div className="flex items-center gap-3">
+        {replayUrl ? (
+          <a
+            href={replayUrl}
+            className="px-6 py-2 text-[15px] uppercase hover:brightness-125"
+            style={{ background: '#0e2233', border: '1px solid #24455f', color: '#4faee3', letterSpacing: '2px' }}
+          >
+            Download Replay
+          </a>
+        ) : (
+          <span
+            className="px-6 py-2 text-[15px] uppercase"
+            style={{ background: '#0e2233', border: '1px solid #24455f', color: '#4faee3', letterSpacing: '2px', opacity: 0.45 }}
+            title="Replay unavailable — Valve no longer serves it or the match is unparsed"
+          >
+            Download Replay
+          </span>
+        )}
+        {match.version == null && (
+          <button
+            type="button"
+            onClick={requestParse}
+            disabled={parseState === 'requesting' || parseState === 'requested'}
+            className="px-6 py-2 text-[15px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default"
+            style={{
+              background: '#1d2a12',
+              border: '1px solid #3d5a24',
+              color: '#9fbf3f',
+              letterSpacing: '2px',
+              opacity: parseState === 'requested' ? 0.6 : 1,
+            }}
+          >
+            {parseState === 'idle' && 'Request Parse'}
+            {parseState === 'requesting' && 'Requesting…'}
+            {parseState === 'requested' && 'Parse Requested'}
+            {parseState === 'failed' && 'Retry Parse'}
+          </button>
+        )}
+      </div>
+      {parseState === 'requested' && (
+        <div className="text-[13px]" style={{ color: '#8a97a0' }}>
+          Parse queued at OpenDota — full stats usually appear within a few minutes. Refresh to check.
+        </div>
       )}
       <div className="flex items-center gap-10">
         <div className="flex items-baseline gap-3">
@@ -861,11 +782,12 @@ export function MatchOverview({
     selectedSlot: number | null,
     selectedPlayer: MatchPlayer | undefined,
   ) => {
-    // Collapsed → thumbnail strip + detail panel
+    // Collapsed → thumbnail strip + detail panel. Capped at half the page so
+    // a single selected side doesn't sprawl over the other team's cards.
     if (selectedSlot != null && selectedPlayer) {
       return (
-        <div className="flex-1 min-w-0 space-y-4">
-          <div className="flex items-center justify-between gap-3">
+        <div className="flex-1 min-w-0 space-y-4" style={{ maxWidth: '50%' }}>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <ThumbStrip
               players={players}
               heroMap={heroMap}
@@ -902,6 +824,9 @@ export function MatchOverview({
     )
   }
 
+  // The scrubber only makes sense when the match has per-time data to show.
+  const scrubbable = hasTimeline(match)
+
   return (
     <div className="overflow-x-auto">
       <div className="space-y-6" style={{ minWidth: 1080 }}>
@@ -910,7 +835,9 @@ export function MatchOverview({
           {renderTeamSide(false, dire, selDire, selDirePlayer)}
         </div>
 
-        <GameTimeSlider timeSec={timeSec} duration={match.duration} onChange={setTimeSec} />
+        {scrubbable && (
+          <GameTimeSlider timeSec={timeSec} duration={match.duration} onChange={setTimeSec} />
+        )}
       </div>
     </div>
   )

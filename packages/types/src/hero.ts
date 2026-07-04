@@ -28,6 +28,11 @@ export type HeroMeta = {
   mana_regen: number
   // Role emphasis 0..3, ordered Carry, Support, Nuker, Disabler, Jungler, Durable, Escape, Pusher, Initiator.
   role_levels: number[]
+  // Talent strings with {s:...} placeholders resolved, in Valve order:
+  // [10R, 10L, 15R, 15L, 20R, 20L, 25R, 25L].
+  talents?: { name: string; label: string }[]
+  // Ability name → description from Valve's datafeed (fills OpenDota gaps).
+  abilityDescs?: Record<string, string>
 }
 
 // One entry from Valve's /datafeed/herolist — what dota2.com/heroes itself renders.

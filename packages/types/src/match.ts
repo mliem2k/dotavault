@@ -82,6 +82,7 @@ export type ItemConst = {
   img: string
   dname?: string
   cost?: number | null
+  components?: string[] | null
   qual?: string
   notes?: string
   hint?: string[]
@@ -167,15 +168,29 @@ export type MatchPlayer = {
   purchase_log: { key: string; time: number }[] | null
   gold_t: number[] | null
   lh_t: number[] | null
+  dn_t?: number[] | null
   xp_t: number[] | null
   obs_log: WardLog[] | null
   sen_log: WardLog[] | null
+  obs_left_log?: WardLog[] | null
+  sen_left_log?: WardLog[] | null
   rank_tier: number | null
   benchmarks: PlayerBenchmarks | null
   ability_upgrades_arr: number[] | null
   damage: Record<string, number> | null
   damage_taken: Record<string, number> | null
   damage_inflictor: Record<string, number> | null
+  // Parsed-only extras used by the combat / performance / farm tabs.
+  killed?: Record<string, number> | null
+  gold_reasons?: Record<string, number> | null
+  xp_reasons?: Record<string, number> | null
+  lane_efficiency_pct?: number | null
+  actions_per_min?: number | null
+  camps_stacked?: number | null
+  rune_pickups?: number | null
+  buyback_count?: number | null
+  pings?: number | null
+  total_gold?: number | null
 }
 
 export type Match = {
@@ -209,6 +224,7 @@ export type Match = {
   tower_status_radiant: number
   version: number | null
   replay_url?: string | null
+  replay_salt?: number | null
   series_id: number | null
   series_type: number | null
   chat: ChatMessage[] | null

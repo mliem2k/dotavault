@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { usePageTitle } from '@/lib/title'
 import { createFileRoute } from '@tanstack/react-router'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
@@ -54,6 +55,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 }
 
 function TeamPage() {
+  usePageTitle('Team')
   const { teamId } = Route.useParams()
 
   const team = useQuery({

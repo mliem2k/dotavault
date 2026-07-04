@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { AbilityConst } from 'types'
-import { INNATE_ICON_CDN, abilityIconCdn, abilityIconUrl, dotaIconUrl } from '@/lib/utils'
+import { INNATE_ICON_CDN, TALENTS_ICON_CDN, abilityIconCdn, abilityIconUrl, dotaIconUrl } from '@/lib/utils'
 
 // Innate abilities don't ship a per-ability icon — fall back to the generic one.
 const INNATE_ICON = dotaIconUrl('innate_icon')
@@ -138,7 +138,11 @@ export function AbilityIcon({
             }}
           />
         ) : (
-          <span className="text-[11px] font-bold" style={{ color: '#8ec63f' }}>▲</span>
+          <img
+            src={TALENTS_ICON_CDN}
+            alt="Talent"
+            style={{ width: '78%', height: '78%', objectFit: 'contain' }}
+          />
         )}
       </div>
       {pos && meta && createPortal(<AbilityTooltip meta={meta} isTalent={isTalent} x={pos.x} y={pos.y} />, document.body)}

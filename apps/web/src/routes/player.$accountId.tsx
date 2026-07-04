@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { HeroStatsTable } from '@/components/player/hero_stats_table'
+import { PlayerStats } from '@/components/player/player_stats'
+import { Teammates } from '@/components/player/teammates'
 import { LifetimeStats, PlayStyleRadar } from '@/components/player/play_style_radar'
 import { RecentGames } from '@/components/player/recent_games'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
-import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl, winRate } from '@/lib/utils'
+import { usePageTitle } from '@/lib/title'
+import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl, heroSlug, winRate } from '@/lib/utils'
 
 export const Route = createFileRoute('/player/$accountId')({
   component: PlayerPage,
@@ -43,12 +47,13 @@ const C = {
   panel: 'rgba(16,19,22,0.72)',
 }
 
-const PROFILE_TABS = ['Profile', 'Trophies', 'Tickets', 'Stats']
-const FEED_TABS = ['Activity Feed', 'Recent Games', 'All-Hero Challenge', 'Teammates']
+const PROFILE_TABS = ['Profile', 'Stats'] as const
+const FEED_TABS = ['Recent Games', 'Teammates']
 
 function PlayerPage() {
   const { accountId } = Route.useParams()
-  const [feedTab] = useState('Recent Games')
+  const [tab, setTab] = useState<(typeof PROFILE_TABS)[number]>('Profile')
+  const [feedTab, setFeedTab] = useState<'Recent Games' | 'Teammates'>('Recent Games')
 
   const player = useQuery({
     queryKey: ['player', accountId],
@@ -71,6 +76,20 @@ function PlayerPage() {
     queryFn: () => opendota.playerTotals(accountId),
     staleTime: 10 * 60 * 1000,
   })
+  const peers = useQuery({
+    queryKey: ['player_peers', accountId],
+    queryFn: () => opendota.playerPeers(accountId),
+    staleTime: 10 * 60 * 1000,
+    enabled: feedTab === 'Teammates',
+  })
+  const countsQ = useQuery({
+    queryKey: ['player_counts', accountId],
+    queryFn: () => opendota.playerCounts(accountId),
+    staleTime: 10 * 60 * 1000,
+    enabled: tab === 'Stats',
+  })
+
+  usePageTitle(player.data?.player.profile.personaname)
 
   if (player.isPending) {
     return (
@@ -102,25 +121,25 @@ function PlayerPage() {
 
   return (
     <div className="flex flex-col gap-0" style={{ fontFamily: 'var(--font-dota)' }}>
-      {/* Tab strip — PROFILE / TROPHIES / TICKETS / STATS */}
-      <div className="flex items-center pt-4 pb-3 pl-2">
+      {/* Tab strip — PROFILE / STATS */}
+      <div className="flex items-center mt-3 mb-3 px-3 py-2.5" style={{ background: 'rgba(8,10,12,0.55)' }}>
         {PROFILE_TABS.map((t, i) => (
           <span key={t} className="flex items-center">
             {i > 0 && <span className="mx-3 text-[15px]" style={{ color: '#3f464d' }}>/</span>}
-            <span
-              className="text-[16px] font-semibold uppercase"
+            <button
+              type="button"
+              onClick={() => setTab(t)}
+              className="text-[16px] font-semibold uppercase cursor-pointer"
               style={{
-                color: t === 'Profile' ? '#ffffff' : '#67757f',
+                color: t === tab ? '#ffffff' : '#7d8b95',
                 letterSpacing: '3px',
-                borderBottom: t === 'Profile' ? '1px solid #ffffff' : '1px solid transparent',
+                textShadow: '0 1px 2px rgba(0,0,0,0.9)',
+                borderBottom: t === tab ? '1px solid #ffffff' : '1px solid transparent',
                 paddingBottom: 2,
-                cursor: t === 'Profile' ? 'default' : 'not-allowed',
-                opacity: t === 'Profile' ? 1 : 0.8,
               }}
-              title={t === 'Profile' ? undefined : 'Not available'}
             >
               {t}
-            </span>
+            </button>
           </span>
         ))}
       </div>
@@ -145,14 +164,7 @@ function PlayerPage() {
         <div className="flex items-center gap-10 ml-auto pr-2">
           {bigStat('Matches', totalGames.toLocaleString())}
           {bigStat('Win Rate', winRate(wl.win, totalGames))}
-          <div className="flex flex-col items-end gap-1.5">
-            <span
-              className="px-4 py-1.5 text-[12px] uppercase"
-              style={{ background: '#2c3236', color: C.text, letterSpacing: '1px', opacity: 0.7, cursor: 'not-allowed' }}
-              title="Not available"
-            >
-              ✎ Edit Profile
-            </span>
+          <div className="flex flex-col items-end">
             <div className="text-[12px] uppercase" style={{ color: C.label, letterSpacing: '1px' }}>
               Friend ID: <span className="tabular-nums" style={{ color: C.white }}>{p.profile.account_id}</span>
             </div>
@@ -160,6 +172,32 @@ function PlayerPage() {
         </div>
       </div>
 
+      {tab === 'Stats' && (
+        <div className="mt-3 space-y-4">
+          {totals.isPending || countsQ.isPending ? (
+            <div className="flex justify-center py-10"><Spinner /></div>
+          ) : totals.data ? (
+            <PlayerStats totals={totals.data} counts={countsQ.data} wl={wl} />
+          ) : null}
+          <div style={{ background: C.panel }}>
+            <div
+              className="text-[15px] uppercase px-4 py-3"
+              style={{ color: C.white, letterSpacing: '2px', background: 'rgba(8,10,12,0.7)' }}
+            >
+              Most Played Heroes
+            </div>
+            <div className="p-4">
+              {playerHeroes.isPending || heroStats.isPending ? (
+                <div className="flex justify-center py-8"><Spinner /></div>
+              ) : playerHeroes.data && heroStats.data ? (
+                <HeroStatsTable playerHeroes={playerHeroes.data} heroStats={heroStats.data} />
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === 'Profile' && (
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,46%)_1fr] gap-4 mt-3">
         {/* ---- Left column ---- */}
         <div className="space-y-3 min-w-0">
@@ -169,9 +207,8 @@ function PlayerPage() {
               {featured.map((ph) => {
                 const hero = heroMap.get(Number(ph.hero_id))
                 if (!hero) return null
-                const short = hero.name.replace('npc_dota_hero_', '')
                 return (
-                  <a key={ph.hero_id} href={`/hero/${short}`} className="shrink-0 hover:brightness-125">
+                  <a key={ph.hero_id} href={`/hero/${heroSlug(hero.localized_name)}`} className="shrink-0 hover:brightness-125">
                     <img
                       src={heroLandscapeUrl(hero.name)}
                       alt={hero.localized_name}
@@ -184,31 +221,60 @@ function PlayerPage() {
               })}
             </div>
             {badge && (
-              <div
-                className="relative shrink-0 flex items-center justify-center rounded-full"
-                style={{ width: 84, height: 84, background: 'radial-gradient(circle, #23282c 0%, #101316 70%)', border: '2px solid #2c3236' }}
-              >
-                <img src={badge.medal} alt={rankName(p.rank_tier)} className="h-16 w-16 object-contain" />
-                {badge.stars && <img src={badge.stars} alt="" className="absolute h-16 w-16 object-contain" />}
+              <div className="relative group shrink-0">
+                <div
+                  className="relative flex items-center justify-center rounded-full cursor-default"
+                  style={{ width: 84, height: 84, background: 'radial-gradient(circle, #23282c 0%, #101316 70%)', border: '2px solid #2c3236' }}
+                >
+                  <img src={badge.medal} alt={rankName(p.rank_tier)} className="h-16 w-16 object-contain" />
+                  {badge.stars && <img src={badge.stars} alt="" className="absolute h-16 w-16 object-contain" />}
+                </div>
+                {/* Rank ladder tooltip: all tiers, current one highlighted */}
+                <div
+                  className="absolute right-0 top-full mt-2 hidden group-hover:block z-50 pointer-events-none"
+                  style={{
+                    background: 'rgba(10,13,15,0.97)',
+                    border: '1px solid #3a4147',
+                    boxShadow: '0 6px 24px rgba(0,0,0,0.75)',
+                    padding: '12px 14px',
+                    width: 460,
+                  }}
+                >
+                  <div className="text-[12px] uppercase mb-2" style={{ color: C.labelBright, letterSpacing: '2px' }}>
+                    Rank Tiers
+                  </div>
+                  <div className="flex justify-between">
+                    {RANK_NAMES.slice(1).map((name, i) => {
+                      const tier = i + 1
+                      const current = Math.floor((p.rank_tier ?? 0) / 10) === tier
+                      return (
+                        <div key={name} className="flex flex-col items-center" style={{ width: 52, opacity: current ? 1 : 0.45 }}>
+                          <div
+                            className="relative flex items-center justify-center rounded-full"
+                            style={{
+                              width: 48,
+                              height: 48,
+                              border: current ? '2px solid rgba(255,255,255,0.8)' : '2px solid transparent',
+                            }}
+                          >
+                            <img src={`/ranks/rank_icon_${tier}.webp`} alt={name} className="h-11 w-11 object-contain" />
+                            {current && badge.stars && (
+                              <img src={badge.stars} alt="" className="absolute h-11 w-11 object-contain" />
+                            )}
+                          </div>
+                          <span
+                            className="mt-1 text-[10px] uppercase text-center"
+                            style={{ color: current ? C.white : C.label, letterSpacing: '0.5px' }}
+                          >
+                            {name}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
               </div>
             )}
-          </div>
-
-          {/* Conduct summary bar */}
-          <div className="flex items-center gap-3 px-3 py-2.5" style={{ background: C.panel }}>
-            <span className="text-[13px] uppercase" style={{ color: C.white, letterSpacing: '1px' }}>
-              Conduct Summary
-            </span>
-            {updatedStr && (
-              <span className="text-[12px]" style={{ color: C.label }}>Updated {updatedStr}</span>
-            )}
-            <span
-              className="ml-auto px-4 py-1 text-[12px]"
-              style={{ background: '#3a4147', color: C.text, opacity: 0.7, cursor: 'not-allowed' }}
-              title="Not available"
-            >
-              Show Summary
-            </span>
           </div>
 
           {/* Play style + lifetime stats */}
@@ -251,28 +317,37 @@ function PlayerPage() {
             {FEED_TABS.map((t, i) => (
               <span key={t} className="flex items-center">
                 {i > 0 && <span className="mx-2.5 text-[13px]" style={{ color: '#3f464d' }}>/</span>}
-                <span
-                  className="text-[13px] uppercase"
+                <button
+                  type="button"
+                  onClick={() => setFeedTab(t as 'Recent Games' | 'Teammates')}
+                  className="text-[13px] uppercase cursor-pointer"
                   style={{
-                    color: t === feedTab ? '#ffffff' : '#67757f',
+                    color: t === feedTab ? '#ffffff' : '#7d8b95',
                     letterSpacing: '2px',
-                    cursor: t === feedTab ? 'default' : 'not-allowed',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.9)',
                   }}
-                  title={t === feedTab ? undefined : 'Not available'}
                 >
                   {t}
-                </span>
+                </button>
               </span>
             ))}
           </div>
 
-          {matches.isPending || heroStats.isPending ? (
-            <div className="flex justify-center py-8"><Spinner /></div>
-          ) : matches.data && heroStats.data ? (
-            <RecentGames matches={matches.data} heroStats={heroStats.data} />
-          ) : null}
+          {feedTab === 'Recent Games' &&
+            (matches.isPending || heroStats.isPending ? (
+              <div className="flex justify-center py-8"><Spinner /></div>
+            ) : matches.data && heroStats.data ? (
+              <RecentGames matches={matches.data} heroStats={heroStats.data} />
+            ) : null)}
+          {feedTab === 'Teammates' &&
+            (peers.isPending ? (
+              <div className="flex justify-center py-8"><Spinner /></div>
+            ) : peers.data ? (
+              <Teammates peers={peers.data} />
+            ) : null)}
         </div>
       </div>
+      )}
     </div>
   )
 }

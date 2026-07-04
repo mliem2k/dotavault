@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { usePageTitle } from '@/lib/title'
 import { createFileRoute } from '@tanstack/react-router'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
@@ -30,6 +31,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 }
 
 function ProPage() {
+  usePageTitle('Pro Matches')
   const matches = useQuery({
     queryKey: ['pro-matches'],
     queryFn: () => opendota.proMatches(),

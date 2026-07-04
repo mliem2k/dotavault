@@ -4,7 +4,8 @@ import { createFileRoute } from '@tanstack/react-router'
 import type { HeroListItem } from 'types'
 import { Spinner } from '@/components/ui/spinner'
 import { datafeed } from '@/lib/datafeed'
-import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl } from '@/lib/utils'
+import { usePageTitle } from '@/lib/title'
+import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl, heroSlug } from '@/lib/utils'
 
 export const Route = createFileRoute('/heroes')({
   component: HeroesPage,
@@ -53,12 +54,12 @@ function HeroCard({
   pos: { left: number; top: number } | null
   size: { w: number; h: number }
 }) {
-  const short = hero.name.replace('npc_dota_hero_', '')
+  const slug = heroSlug(hero.name_loc)
   const attr = ATTRS[hero.primary_attr]
   const hidden = pos === null
   return (
     <a
-      href={`/hero/${short}`}
+      href={`/hero/${slug}`}
       className="group absolute block overflow-hidden transition-[transform,box-shadow,opacity,top,left] duration-300 ease-out hover:z-[4] hover:scale-[1.4] hover:[box-shadow:3px_3px_8px_#000]"
       style={{
         left: pos?.left ?? 0,
@@ -102,6 +103,7 @@ function HeroCard({
 }
 
 function HeroesPage() {
+  usePageTitle('Heroes')
   const heroes = useQuery({ queryKey: ['herolist'], queryFn: () => datafeed.heroList() })
   const [attr, setAttr] = useState<number | null>(null)
   const [complexity, setComplexity] = useState<number | null>(null)

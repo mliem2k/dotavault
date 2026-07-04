@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { HeroStat } from 'types'
-import { heroBracketTotal, heroIconUrl, winRate } from '@/lib/utils'
+import { heroBracketTotal, heroIconUrl, heroSlug, winRate } from '@/lib/utils'
 
 type SortKey = 'winrate' | 'pickrate' | 'banrate' | 'name'
 
@@ -100,7 +100,7 @@ export function HeroTable({ heroes }: { heroes: HeroStat[] }) {
               >
                 <td className="py-1.5 font-mono text-xs text-muted">{idx + 1}</td>
                 <td className="py-1.5" colSpan={2}>
-                  <a href={`/hero/${h.name.replace('npc_dota_hero_', '')}`} className="flex items-center gap-2 hover:text-accent">
+                  <a href={`/hero/${heroSlug(h.localized_name)}`} className="flex items-center gap-2 hover:text-accent">
                     <img
                       src={heroIconUrl(h.name)}
                       alt={h.localized_name}

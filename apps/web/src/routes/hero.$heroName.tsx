@@ -4,8 +4,9 @@ import { useRef, useState } from 'react'
 import { AbilityDetails } from '@/components/heroes/ability_details'
 import { Spinner } from '@/components/ui/spinner'
 import { datafeed } from '@/lib/datafeed'
+import { usePageTitle } from '@/lib/title'
 import { opendota } from '@/lib/opendota'
-import { INNATE_ICON_CDN, TALENTS_ICON_CDN, abilityIconCdn, abilityIconUrl, heroLandscapeCdn } from '@/lib/utils'
+import { INNATE_ICON_CDN, TALENTS_ICON_CDN, abilityIconCdn, abilityIconUrl, heroLandscapeCdn, heroSlug } from '@/lib/utils'
 
 export const Route = createFileRoute('/hero/$heroName')({
   component: HeroDetailPage,
@@ -202,7 +203,12 @@ function HeroDetailPage() {
     staleTime: Number.POSITIVE_INFINITY,
   })
 
-  const hero = heroStats.data?.find((h) => h.name === `npc_dota_hero_${heroName}`)
+  const hero = heroStats.data?.find(
+    (h) =>
+      h.name === `npc_dota_hero_${heroName}` ||
+      heroSlug(h.localized_name) === heroName.toLowerCase(),
+  )
+  usePageTitle(hero?.localized_name)
 
   // Live tagline / complexity / exact stats from Valve's datafeed (via /df proxy).
   const heroData = useQuery({
@@ -214,7 +220,6 @@ function HeroDetailPage() {
   // Whether the header's lore is expanded to its full history inline.
   const [loreOpen, setLoreOpen] = useState(false)
   const [selectedAbilityIdx, setSelectedAbilityIdx] = useState(0)
-  const [talentOpen, setTalentOpen] = useState(false)
   const abilityDetailRef = useRef<HTMLDivElement>(null)
 
   function selectAbilityOnBanner(name: string) {
@@ -263,14 +268,11 @@ function HeroDetailPage() {
       : String(beh ?? '').includes('Hidden')
     return !isHidden
   })
+  // Only true innates get the circular icon. Hidden non-innate abilities are
+  // toggle sub-states of other skills (e.g. Techies' Detonate Tazer) — skip.
   const innateList = (ha?.abilities ?? []).filter((a) => {
     if (!a || a === 'generic_hidden' || a.startsWith('special_') || aghsNewSkills.has(a)) return false
-    const ab = abilities.data?.[a]
-    if (ab?.is_innate) return true
-    const beh = ab?.behavior
-    return Array.isArray(beh)
-      ? beh.some((s) => String(s).includes('Hidden'))
-      : String(beh ?? '').includes('Hidden')
+    return abilities.data?.[a]?.is_innate === true
   })
   const meta = heroData.data
   // dota2.com shows the short hype blurb by default and the full bio behind "Read Full History".
@@ -282,6 +284,23 @@ function HeroDetailPage() {
     lvl: [0, 10, 15, 20, 25][lvl],
     pair: talents.filter((t) => t.level === lvl),
   }))
+  // Talent rows for the hover tooltip, highest tier first. Prefer Valve's
+  // datafeed strings (placeholders resolved, [10R,10L,15R,15L,...] order);
+  // fall back to OpenDota dnames for heroes the datafeed hasn't loaded yet.
+  const talentRows: { lvl: number; left: string; right: string }[] =
+    meta?.talents && meta.talents.length >= 8
+      ? [3, 2, 1, 0].map((i) => ({
+          lvl: [10, 15, 20, 25][i],
+          left: meta.talents?.[2 * i + 1]?.label ?? '',
+          right: meta.talents?.[2 * i]?.label ?? '',
+        }))
+      : talentTiers
+          .map(({ lvl, pair }) => ({
+            lvl,
+            left: abilities.data?.[pair[0]?.name ?? '']?.dname ?? '',
+            right: abilities.data?.[pair[1]?.name ?? '']?.dname ?? '',
+          }))
+          .filter((r) => r.left || r.right)
   // Prev / next hero (alphabetical), used by the top-right nav and the footer.
   const sortedHeroes = [...(heroStats.data ?? [])].sort((a, b) =>
     a.localized_name.localeCompare(b.localized_name),
@@ -389,7 +408,7 @@ function HeroDetailPage() {
         <div className="absolute z-[4] flex items-center gap-2" style={{ top: 160, right: 30 }}>
           {prevHero && (
             <a
-              href={`/hero/${prevHero.name.replace('npc_dota_hero_', '')}`}
+              href={`/hero/${heroSlug(prevHero.localized_name)}`}
               title={prevHero.localized_name}
               className="flex items-center justify-center hover:bg-white/10"
               style={{
@@ -423,7 +442,7 @@ function HeroDetailPage() {
           </a>
           {nextHero && (
             <a
-              href={`/hero/${nextHero.name.replace('npc_dota_hero_', '')}`}
+              href={`/hero/${heroSlug(nextHero.localized_name)}`}
               title={nextHero.localized_name}
               className="flex items-center justify-center hover:bg-white/10"
               style={{
@@ -571,36 +590,83 @@ function HeroDetailPage() {
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               {talents.length > 0 && abilities.data && (
-                <button
-                  type="button"
-                  onClick={() => setTalentOpen(true)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    cursor: 'pointer',
-                    width: 72,
-                    height: 72,
-                    overflow: 'visible',
-                    position: 'relative',
-                    display: 'flex',
-                    transitionProperty: 'transform',
-                    transitionTimingFunction: 'ease',
-                    transitionDuration: '0.15s',
-                    fontFamily: 'Radiance, "Noto Sans", sans-serif',
-                    color: '#fff',
-                    boxSizing: 'border-box',
-                  }}
-                >
+                <div className="relative group shrink-0" style={{ width: 72, height: 72 }}>
                   <img
                     src={TALENTS_ICON_CDN}
                     alt="Talents"
-                    style={{ width: 72, height: 72 }}
+                    style={{ width: 72, height: 72, cursor: 'default' }}
                   />
-                </button>
+                  {/* Talent tree tooltip on hover, styled like dota2.com */}
+                  <div
+                    className="absolute bottom-full mb-2 hidden group-hover:block z-50 pointer-events-none"
+                    style={{
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: 500,
+                      background: 'linear-gradient(150deg, rgb(104,114,124), rgb(20,23,26))',
+                      padding: '16px 16px 28px',
+                      boxShadow: '0 4px 24px rgba(0,0,0,0.8)',
+                    }}
+                  >
+                    <div
+                      className="text-center uppercase"
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 20,
+                        fontWeight: 600,
+                        letterSpacing: '2px',
+                        color: '#fff',
+                        marginBottom: 12,
+                      }}
+                    >
+                      Talent Tree
+                    </div>
+                    {talentRows.map(({ lvl, left, right }) => (
+                      <div
+                        key={lvl}
+                        className="flex items-center"
+                        style={{ height: 50, background: 'rgba(0,0,0,0.5)', marginBottom: 4, padding: '0 14px' }}
+                      >
+                        <div
+                          className="flex-1 text-center"
+                          style={{ fontSize: 13, lineHeight: 1.25, color: 'rgba(255,255,255,0.73)', fontFamily: 'var(--font-dota)' }}
+                        >
+                          {left}
+                        </div>
+                        <div
+                          className="shrink-0 flex items-center justify-center rounded-full"
+                          style={{
+                            width: 38,
+                            height: 38,
+                            margin: '0 12px',
+                            background: '#222',
+                            border: '2px solid #85601f',
+                            color: '#e7d292',
+                            fontFamily: 'var(--font-display)',
+                            fontSize: 20,
+                            fontWeight: 700,
+                            textShadow: '0 0 8px rgb(255,83,28)',
+                          }}
+                        >
+                          {lvl}
+                        </div>
+                        <div
+                          className="flex-1 text-center"
+                          style={{ fontSize: 13, lineHeight: 1.25, color: 'rgba(255,255,255,0.73)', fontFamily: 'var(--font-dota)' }}
+                        >
+                          {right}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
               {innateList.map((name) => {
                 const ab = abilities.data?.[name]
+                const abilityDesc =
+                  ab?.desc ||
+                  meta?.abilityDescs?.[name] ||
+                  (ab?.dname ? meta?.abilityDescs?.[ab.dname.toLowerCase()] : undefined)
                 const beh = Array.isArray(ab?.behavior)
                   ? (ab.behavior as string[]).filter((b) => b !== 'Hidden').join(' / ')
                   : ab?.behavior ? String(ab.behavior) : null
@@ -610,7 +676,7 @@ function HeroDetailPage() {
                 return (
                   <div key={name} className="relative group shrink-0">
                     <img
-                      src={abilityIconUrl(name)}
+                      src={INNATE_ICON_CDN}
                       alt={ab?.dname ?? name}
                       style={{
                         width: 72,
@@ -620,17 +686,6 @@ function HeroDetailPage() {
                         border: '2px solid rgba(255,255,255,0.25)',
                         filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.8))',
                         cursor: 'default',
-                      }}
-                      onError={(ev) => {
-                        const el = ev.currentTarget
-                        const step = el.dataset.step ?? '0'
-                        if (step === '0') {
-                          el.dataset.step = '1'
-                          el.src = abilityIconCdn(name, abilities.data?.[name]?.img)
-                        } else {
-                          el.dataset.step = '2'
-                          el.src = INNATE_ICON_CDN
-                        }
                       }}
                     />
                     <div
@@ -656,7 +711,17 @@ function HeroDetailPage() {
                             flexShrink: 0,
                             objectFit: 'cover',
                           }}
-                          onError={(ev) => { ev.currentTarget.src = INNATE_ICON_CDN }}
+                          onError={(ev) => {
+                            const el = ev.currentTarget
+                            const step = el.dataset.step ?? '0'
+                            if (step === '0') {
+                              el.dataset.step = '1'
+                              el.src = abilityIconCdn(name, abilities.data?.[name]?.img)
+                            } else {
+                              el.dataset.step = '2'
+                              el.src = INNATE_ICON_CDN
+                            }
+                          }}
                         />
                         <div>
                           <div
@@ -671,7 +736,7 @@ function HeroDetailPage() {
                           >
                             {ab?.dname ?? name}
                           </div>
-                          {ab?.desc && (
+                          {abilityDesc && (
                             <div
                               style={{
                                 color: '#c8c2b4',
@@ -681,7 +746,7 @@ function HeroDetailPage() {
                                 marginTop: 3,
                               }}
                             >
-                              {ab.desc}
+                              {abilityDesc}
                             </div>
                           )}
                         </div>
@@ -998,7 +1063,7 @@ function HeroDetailPage() {
           >
             {prevHero ? (
               <a
-                href={`/hero/${prevHero.name.replace('npc_dota_hero_', '')}`}
+                href={`/hero/${heroSlug(prevHero.localized_name)}`}
                 className="hover:brightness-125"
                 style={{ ...linkBase, justifyContent: 'flex-end' }}
               >
@@ -1035,7 +1100,7 @@ function HeroDetailPage() {
 
             {nextHero ? (
               <a
-                href={`/hero/${nextHero.name.replace('npc_dota_hero_', '')}`}
+                href={`/hero/${heroSlug(nextHero.localized_name)}`}
                 className="hover:brightness-125"
                 style={{ ...linkBase, justifyContent: 'flex-start' }}
               >
@@ -1056,152 +1121,6 @@ function HeroDetailPage() {
         )
       })()}
 
-      {/* Talent tree overlay */}
-      {talentOpen && abilities.data && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.82)' }}
-          onClick={() => setTalentOpen(false)}
-        >
-          <div
-            style={{
-              fontFamily: 'Radiance, "Noto Sans", sans-serif',
-              color: '#fff',
-              boxSizing: 'border-box',
-              background: '#0d0c0a',
-              border: '1px solid #24222a',
-              minWidth: 560,
-              maxWidth: '92vw',
-              position: 'relative',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setTalentOpen(false)}
-              style={{
-                position: 'absolute',
-                top: 10,
-                right: 14,
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: '#6a675e',
-                fontSize: 18,
-                lineHeight: 1,
-                fontFamily: 'inherit',
-              }}
-            >
-              ×
-            </button>
-            <div style={{ padding: '16px 20px 20px' }}>
-              {/* Title */}
-              <div
-                style={{
-                  textAlign: 'center',
-                  color: '#c8c2b4',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: '4px',
-                  textTransform: 'uppercase',
-                  borderBottom: '1px solid #24222a',
-                  paddingBottom: 10,
-                  marginBottom: 8,
-                  fontFamily: 'Radiance, "Noto Sans", sans-serif',
-                }}
-              >
-                Talent Tree
-              </div>
-              {/* Talent rows */}
-              {talentTiers.map(({ lvl, pair }) => {
-                if (pair.length === 0) return null
-                const lDname = abilities.data?.[pair[0]?.name ?? '']?.dname ?? ''
-                const rDname = abilities.data?.[pair[1]?.name ?? '']?.dname ?? ''
-                return (
-                  <div
-                    key={lvl}
-                    style={{ display: 'flex', alignItems: 'stretch', marginBottom: 4 }}
-                  >
-                    {/* Left talent */}
-                    <div
-                      style={{
-                        flex: 1,
-                        background: '#14130f',
-                        border: '1px solid #1e1a12',
-                        padding: '10px 14px',
-                        textAlign: 'right',
-                        fontSize: 13,
-                        color: '#e8e0d0',
-                        fontFamily: 'Radiance, "Noto Sans", sans-serif',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'flex-end',
-                      }}
-                    >
-                      {lDname}
-                    </div>
-                    {/* Level diamond node */}
-                    <div
-                      style={{
-                        flexShrink: 0,
-                        width: 44,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: '#0d0c0a',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 30,
-                          height: 30,
-                          transform: 'rotate(45deg)',
-                          background: '#1a1710',
-                          border: '2px solid #c9a94a',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <span
-                          style={{
-                            transform: 'rotate(-45deg)',
-                            display: 'block',
-                            fontSize: 10,
-                            fontWeight: 800,
-                            color: '#c9a94a',
-                            fontFamily: 'Radiance, "Noto Sans", sans-serif',
-                            lineHeight: 1,
-                          }}
-                        >
-                          {lvl}
-                        </span>
-                      </div>
-                    </div>
-                    {/* Right talent */}
-                    <div
-                      style={{
-                        flex: 1,
-                        background: '#14130f',
-                        border: '1px solid #1e1a12',
-                        padding: '10px 14px',
-                        textAlign: 'left',
-                        fontSize: 13,
-                        color: '#e8e0d0',
-                        fontFamily: 'Radiance, "Noto Sans", sans-serif',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                    >
-                      {rDname}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
