@@ -1,3 +1,6 @@
+import { SortHeader } from '@/components/ui/sort_header'
+import { applySort, useSort } from '@/lib/sortable'
+
 const C = {
   label: '#8a97a0',
   dim: '#67757f',
@@ -8,6 +11,8 @@ const C = {
   panel: 'rgba(16,19,22,0.72)',
   panelDark: 'rgba(8,10,12,0.7)',
 }
+
+type SortKey = 'player' | 'games' | 'wins' | 'winrate' | 'last'
 
 export type Peer = {
   account_id: number
@@ -30,10 +35,26 @@ function wrColor(pct: number): string {
 }
 
 export function Teammates({ peers }: { peers: Peer[] }) {
-  const rows = peers
-    .filter((p) => p.with_games >= 2)
+  const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('games', 'desc')
+
+  // Cap to the 100 most-played-with teammates, then apply the chosen sort.
+  const filtered = [...peers.filter((p) => p.with_games >= 2)]
     .sort((a, b) => b.with_games - a.with_games)
-    .slice(0, 40)
+    .slice(0, 100)
+  const rows = applySort(filtered, sortDir, (a, b) => {
+    switch (sortKey) {
+      case 'player':
+        return (a.personaname ?? '').localeCompare(b.personaname ?? '')
+      case 'wins':
+        return a.with_win - b.with_win
+      case 'winrate':
+        return (a.with_win / Math.max(1, a.with_games)) - (b.with_win / Math.max(1, b.with_games))
+      case 'last':
+        return a.last_played - b.last_played
+      default:
+        return a.with_games - b.with_games
+    }
+  })
 
   if (rows.length === 0) {
     return (
@@ -52,11 +73,11 @@ export function Teammates({ peers }: { peers: Peer[] }) {
         className="flex items-center px-3 py-2.5 text-[12px] uppercase"
         style={{ color: C.label, letterSpacing: '1px', background: C.panelDark }}
       >
-        <span className="flex-1 min-w-0">Player</span>
-        <span className="w-[110px] shrink-0 text-center">Games</span>
-        <span className="w-[110px] shrink-0 text-center">Wins</span>
-        <span className="w-[110px] shrink-0 text-center">Win Rate</span>
-        <span className="w-[130px] shrink-0 text-right pr-2">Last Played</span>
+        <SortHeader label="Player" sortKey="player" active={sortKey === 'player'} dir={sortDir} onClick={onSort} className="flex-1 min-w-0" />
+        <SortHeader label="Games" sortKey="games" active={sortKey === 'games'} dir={sortDir} onClick={onSort} className="w-[110px] shrink-0 justify-center" />
+        <SortHeader label="Wins" sortKey="wins" active={sortKey === 'wins'} dir={sortDir} onClick={onSort} className="w-[110px] shrink-0 justify-center" />
+        <SortHeader label="Win Rate" sortKey="winrate" active={sortKey === 'winrate'} dir={sortDir} onClick={onSort} className="w-[110px] shrink-0 justify-center" />
+        <SortHeader label="Last Played" sortKey="last" active={sortKey === 'last'} dir={sortDir} onClick={onSort} className="w-[130px] shrink-0 justify-end pr-2" />
       </div>
 
       {rows.map((peer, i) => {

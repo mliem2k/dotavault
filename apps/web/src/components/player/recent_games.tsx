@@ -1,4 +1,6 @@
 import type { HeroStat, PlayerMatch } from 'types'
+import { SortHeader } from '@/components/ui/sort_header'
+import { applySort, useSort } from '@/lib/sortable'
 import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl } from '@/lib/utils'
 
 const GAME_MODES: Record<number, string> = {
@@ -28,6 +30,8 @@ function fmtDur(sec: number): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
+type SortKey = 'date' | 'hero' | 'result' | 'duration' | 'type'
+
 export function RecentGames({
   matches,
   heroStats,
@@ -36,6 +40,26 @@ export function RecentGames({
   heroStats: HeroStat[]
 }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
+  const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('date', 'desc')
+
+  const sorted = applySort(matches, sortDir, (a, b) => {
+    switch (sortKey) {
+      case 'hero':
+        return (heroMap.get(a.hero_id)?.localized_name ?? '').localeCompare(
+          heroMap.get(b.hero_id)?.localized_name ?? '',
+        )
+      case 'result':
+        return Number(isWin(a)) - Number(isWin(b))
+      case 'duration':
+        return a.duration - b.duration
+      case 'type':
+        return (LOBBY_TYPES[a.lobby_type] ?? GAME_MODES[a.game_mode] ?? '').localeCompare(
+          LOBBY_TYPES[b.lobby_type] ?? GAME_MODES[b.game_mode] ?? '',
+        )
+      default:
+        return a.start_time - b.start_time
+    }
+  })
 
   return (
     <div style={{ background: 'rgba(16,19,22,0.72)', fontFamily: 'var(--font-dota)' }}>
@@ -44,15 +68,15 @@ export function RecentGames({
         className="flex items-center px-3 py-2.5 text-[12px] uppercase"
         style={{ color: '#8a97a0', letterSpacing: '1px', background: 'rgba(8,10,12,0.7)' }}
       >
-        <span className="w-[150px] shrink-0">Date / Time</span>
-        <span className="flex-1 min-w-0">Hero Played</span>
-        <span className="w-[110px] shrink-0 text-center">Result</span>
-        <span className="w-[80px] shrink-0 text-right">Duration</span>
-        <span className="w-[90px] shrink-0 text-right pr-2">Type</span>
+        <SortHeader label="Date / Time" sortKey="date" active={sortKey === 'date'} dir={sortDir} onClick={onSort} className="w-[150px] shrink-0" />
+        <SortHeader label="Hero Played" sortKey="hero" active={sortKey === 'hero'} dir={sortDir} onClick={onSort} className="flex-1 min-w-0" />
+        <SortHeader label="Result" sortKey="result" active={sortKey === 'result'} dir={sortDir} onClick={onSort} className="w-[110px] shrink-0 justify-center" />
+        <SortHeader label="Duration" sortKey="duration" active={sortKey === 'duration'} dir={sortDir} onClick={onSort} className="w-[80px] shrink-0 justify-end" />
+        <SortHeader label="Type" sortKey="type" active={sortKey === 'type'} dir={sortDir} onClick={onSort} className="w-[90px] shrink-0 justify-end pr-2" />
         <span className="w-[24px] shrink-0 text-right" style={{ color: '#67757f' }}>⚙</span>
       </div>
 
-      {matches.map((m, i) => {
+      {sorted.map((m, i) => {
         const hero = heroMap.get(m.hero_id)
         const won = isWin(m)
         const { d, t } = fmtDate(m.start_time)

@@ -30,8 +30,18 @@ async function post<T>(path: string): Promise<T> {
 export const opendota = {
   player: (id: string) => get<Player>(`/players/${id}`),
   playerWL: (id: string) => get<PlayerWL>(`/players/${id}/wl`),
-  playerMatches: (id: string, limit = 50) =>
-    get<PlayerMatch[]>(`/players/${id}/matches?limit=${limit}`),
+  playerMatches: (
+    id: string,
+    opts?: { limit?: number; offset?: number; heroId?: number; win?: 0 | 1; project?: string[] },
+  ) => {
+    const params = new URLSearchParams()
+    params.set('limit', String(opts?.limit ?? 50))
+    if (opts?.offset) params.set('offset', String(opts.offset))
+    if (opts?.heroId != null) params.set('hero_id', String(opts.heroId))
+    if (opts?.win != null) params.set('win', String(opts.win))
+    for (const p of opts?.project ?? []) params.append('project', p)
+    return get<PlayerMatch[]>(`/players/${id}/matches?${params.toString()}`)
+  },
   playerHeroes: (id: string) => get<PlayerHero[]>(`/players/${id}/heroes`),
   match: (id: string) => get<Match>(`/matches/${id}`),
   heroStats: () => get<HeroStat[]>('/heroStats'),

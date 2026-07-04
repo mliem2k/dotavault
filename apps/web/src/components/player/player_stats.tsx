@@ -1,4 +1,6 @@
 import type { PlayerWL } from 'types'
+import { SortHeader } from '@/components/ui/sort_header'
+import { applySort, useSort } from '@/lib/sortable'
 
 /* Stats tab — lifetime totals plus win-rate breakdowns by side, lane role,
    game mode, and lobby type from OpenDota's totals/counts endpoints. */
@@ -50,6 +52,8 @@ function StatTile({ value, label }: { value: string; label: string }) {
   )
 }
 
+type RateSortKey = 'label' | 'winrate' | 'games'
+
 function WinRateTable({
   title,
   rows,
@@ -57,7 +61,18 @@ function WinRateTable({
   title: string
   rows: { label: string; games: number; win: number }[]
 }) {
-  const shown = rows.filter((r) => r.games > 0).sort((a, b) => b.games - a.games)
+  const { key: sortKey, dir: sortDir, onSort } = useSort<RateSortKey>('games', 'desc')
+  const qualifying = rows.filter((r) => r.games > 0)
+  const shown = applySort(qualifying, sortDir, (a, b) => {
+    switch (sortKey) {
+      case 'label':
+        return a.label.localeCompare(b.label)
+      case 'winrate':
+        return a.win / a.games - b.win / b.games
+      default:
+        return a.games - b.games
+    }
+  })
   if (shown.length === 0) return null
   return (
     <div style={{ background: C.panel }}>
@@ -66,6 +81,12 @@ function WinRateTable({
         style={{ color: C.white, letterSpacing: '2px', background: C.panelDark, fontFamily: 'var(--font-dota)' }}
       >
         {title}
+      </div>
+      <div className="flex items-center gap-3 px-3 pt-2 text-[11px] uppercase" style={{ color: C.label, fontFamily: 'var(--font-dota)' }}>
+        <SortHeader label="Label" sortKey="label" active={sortKey === 'label'} dir={sortDir} onClick={onSort} className="w-32 shrink-0" />
+        <span className="flex-1" />
+        <SortHeader label="Win Rate" sortKey="winrate" active={sortKey === 'winrate'} dir={sortDir} onClick={onSort} className="w-14 shrink-0 justify-end" />
+        <SortHeader label="Games" sortKey="games" active={sortKey === 'games'} dir={sortDir} onClick={onSort} className="w-20 shrink-0 justify-end" />
       </div>
       <div className="px-3 py-2">
         {shown.map((r) => {

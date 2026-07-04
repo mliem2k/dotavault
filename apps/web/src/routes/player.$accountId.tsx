@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { AllMatches } from '@/components/player/all_matches'
 import { HeroStatsTable } from '@/components/player/hero_stats_table'
 import { PlayerStats } from '@/components/player/player_stats'
 import { Teammates } from '@/components/player/teammates'
@@ -8,33 +9,13 @@ import { LifetimeStats, PlayStyleRadar } from '@/components/player/play_style_ra
 import { RecentGames } from '@/components/player/recent_games'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
+import { RANK_NAMES, rankBadge, rankName } from '@/lib/rank'
 import { usePageTitle } from '@/lib/title'
 import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl, heroSlug, winRate } from '@/lib/utils'
 
 export const Route = createFileRoute('/player/$accountId')({
   component: PlayerPage,
 })
-
-const RANK_NAMES = ['', 'Herald', 'Guardian', 'Crusader', 'Archon', 'Legend', 'Ancient', 'Divine', 'Immortal']
-
-function rankName(rankTier: number | null): string {
-  if (!rankTier) return 'Unranked'
-  const tier = Math.floor(rankTier / 10)
-  const stars = rankTier % 10
-  if (tier === 8) return 'Immortal'
-  return `${RANK_NAMES[tier] ?? 'Unknown'}${stars ? ` ${stars}` : ''}`
-}
-
-function rankBadge(rankTier: number | null): { medal: string; stars: string | null } | null {
-  if (!rankTier) return null
-  const tier = Math.floor(rankTier / 10)
-  const stars = rankTier % 10
-  if (tier < 1 || tier > 8) return null
-  return {
-    medal: `/ranks/rank_icon_${tier}.webp`,
-    stars: tier < 8 && stars > 0 ? `/ranks/rank_star_${stars}.webp` : null,
-  }
-}
 
 // Client palette shared with the match screens.
 const C = {
@@ -47,7 +28,7 @@ const C = {
   panel: 'rgba(16,19,22,0.72)',
 }
 
-const PROFILE_TABS = ['Profile', 'Stats'] as const
+const PROFILE_TABS = ['Profile', 'Matches', 'Stats'] as const
 const FEED_TABS = ['Recent Games', 'Teammates']
 
 function PlayerPage() {
@@ -64,7 +45,7 @@ function PlayerPage() {
   })
   const matches = useQuery({
     queryKey: ['player_matches', accountId],
-    queryFn: () => opendota.playerMatches(accountId, 40),
+    queryFn: () => opendota.playerMatches(accountId, { limit: 40 }),
   })
   const playerHeroes = useQuery({
     queryKey: ['player_heroes', accountId],
@@ -171,6 +152,16 @@ function PlayerPage() {
           </div>
         </div>
       </div>
+
+      {tab === 'Matches' && (
+        <div className="mt-3">
+          {heroStats.isPending ? (
+            <div className="flex justify-center py-10"><Spinner /></div>
+          ) : heroStats.data ? (
+            <AllMatches accountId={accountId} heroStats={heroStats.data} />
+          ) : null}
+        </div>
+      )}
 
       {tab === 'Stats' && (
         <div className="mt-3 space-y-4">

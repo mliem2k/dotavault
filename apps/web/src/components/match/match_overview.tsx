@@ -827,12 +827,28 @@ export function MatchOverview({
   // The scrubber only makes sense when the match has per-time data to show.
   const scrubbable = hasTimeline(match)
 
+  // The selected side's detail panel is the important content and should
+  // never be the one that gets pushed offscreen by the other (fixed-width)
+  // team's portrait strip, so put whichever side is actually selected first.
+  const direOnly = selDire != null && selRadiant == null
+  const radiantSide = renderTeamSide(true, radiant, selRadiant, selRadiantPlayer)
+  const direSide = renderTeamSide(false, dire, selDire, selDirePlayer)
+
   return (
     <div className="overflow-x-auto">
       <div className="space-y-6" style={{ minWidth: 1080 }}>
         <div className="flex items-start gap-8">
-          {renderTeamSide(true, radiant, selRadiant, selRadiantPlayer)}
-          {renderTeamSide(false, dire, selDire, selDirePlayer)}
+          {direOnly ? (
+            <>
+              {direSide}
+              {radiantSide}
+            </>
+          ) : (
+            <>
+              {radiantSide}
+              {direSide}
+            </>
+          )}
         </div>
 
         {scrubbable && (
