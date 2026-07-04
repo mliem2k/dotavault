@@ -42,6 +42,9 @@ export const opendota = {
       laneRole?: number
       isRadiant?: 0 | 1
       date?: number
+      withHeroId?: number
+      againstHeroId?: number
+      includedAccountId?: number
       project?: string[]
     },
   ) => {
@@ -55,6 +58,9 @@ export const opendota = {
     if (opts?.laneRole != null) params.set('lane_role', String(opts.laneRole))
     if (opts?.isRadiant != null) params.set('is_radiant', String(opts.isRadiant))
     if (opts?.date != null) params.set('date', String(opts.date))
+    if (opts?.withHeroId != null) params.set('with_hero_id', String(opts.withHeroId))
+    if (opts?.againstHeroId != null) params.set('against_hero_id', String(opts.againstHeroId))
+    if (opts?.includedAccountId != null) params.set('included_account_id', String(opts.includedAccountId))
     for (const p of opts?.project ?? []) params.append('project', p)
     return get<PlayerMatch[]>(`/players/${id}/matches?${params.toString()}`)
   },

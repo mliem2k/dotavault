@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import type { HeroStat, PlayerMatch } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
@@ -100,10 +100,25 @@ export function AllMatches({
   const [laneRoleFilter, setLaneRoleFilter] = useState<NumOrAll>('all')
   const [sideFilter, setSideFilter] = useState<SideFilter>('all')
   const [dateFilter, setDateFilter] = useState<NumOrAll>('all')
+  const [withHeroFilter, setWithHeroFilter] = useState<NumOrAll>('all')
+  const [againstHeroFilter, setAgainstHeroFilter] = useState<NumOrAll>('all')
+  const [withPlayerFilter, setWithPlayerFilter] = useState<NumOrAll>('all')
   const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('date', 'desc')
 
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const heroOptions = [...heroStats].sort((a, b) => a.localized_name.localeCompare(b.localized_name))
+
+  // Peers list doubles as the "With Player" dropdown; also used by the
+  // Teammates tab (same query key), so this reuses that cache when warm.
+  const peers = useQuery({
+    queryKey: ['player_peers', accountId],
+    queryFn: () => opendota.playerPeers(accountId),
+    staleTime: 10 * 60 * 1000,
+  })
+  const peerOptions = (peers.data ?? [])
+    .filter((p) => p.with_games >= 2)
+    .sort((a, b) => b.with_games - a.with_games)
+    .slice(0, 100)
 
   const filtersActive =
     heroFilter !== 'all' ||
@@ -112,7 +127,10 @@ export function AllMatches({
     lobbyTypeFilter !== 'all' ||
     laneRoleFilter !== 'all' ||
     sideFilter !== 'all' ||
-    dateFilter !== 'all'
+    dateFilter !== 'all' ||
+    withHeroFilter !== 'all' ||
+    againstHeroFilter !== 'all' ||
+    withPlayerFilter !== 'all'
 
   function resetFilters() {
     setHeroFilter('all')
@@ -122,6 +140,9 @@ export function AllMatches({
     setLaneRoleFilter('all')
     setSideFilter('all')
     setDateFilter('all')
+    setWithHeroFilter('all')
+    setAgainstHeroFilter('all')
+    setWithPlayerFilter('all')
   }
 
   const query = useInfiniteQuery({
@@ -135,6 +156,9 @@ export function AllMatches({
       laneRoleFilter,
       sideFilter,
       dateFilter,
+      withHeroFilter,
+      againstHeroFilter,
+      withPlayerFilter,
     ],
     queryFn: ({ pageParam }) =>
       opendota.playerMatches(accountId, {
@@ -147,6 +171,9 @@ export function AllMatches({
         laneRole: laneRoleFilter === 'all' ? undefined : laneRoleFilter,
         isRadiant: sideFilter === 'all' ? undefined : sideFilter === 'radiant' ? 1 : 0,
         date: dateFilter === 'all' ? undefined : dateFilter,
+        withHeroId: withHeroFilter === 'all' ? undefined : withHeroFilter,
+        againstHeroId: againstHeroFilter === 'all' ? undefined : againstHeroFilter,
+        includedAccountId: withPlayerFilter === 'all' ? undefined : withPlayerFilter,
         // Any `project` param switches OpenDota into custom-projection mode,
         // returning ONLY these fields (plus match_id/player_slot/radiant_win/
         // duration/game_mode/lobby_type) — every field the table needs must
@@ -192,10 +219,52 @@ export function AllMatches({
           className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
           style={selectStyle()}
         >
-          <option value="all">All Heroes</option>
+          <option value="all">My Hero</option>
           {heroOptions.map((h) => (
             <option key={h.id} value={h.id}>
               {h.localized_name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={withHeroFilter}
+          onChange={(e) => setWithHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
+          style={selectStyle()}
+        >
+          <option value="all">With Hero</option>
+          {heroOptions.map((h) => (
+            <option key={h.id} value={h.id}>
+              {h.localized_name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={againstHeroFilter}
+          onChange={(e) => setAgainstHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
+          style={selectStyle()}
+        >
+          <option value="all">Against Hero</option>
+          {heroOptions.map((h) => (
+            <option key={h.id} value={h.id}>
+              {h.localized_name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={withPlayerFilter}
+          onChange={(e) => setWithPlayerFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
+          style={selectStyle()}
+        >
+          <option value="all">With Player</option>
+          {peerOptions.map((p) => (
+            <option key={p.account_id} value={p.account_id}>
+              {p.personaname ?? `#${p.account_id}`}
             </option>
           ))}
         </select>
