@@ -32,13 +32,29 @@ export const opendota = {
   playerWL: (id: string) => get<PlayerWL>(`/players/${id}/wl`),
   playerMatches: (
     id: string,
-    opts?: { limit?: number; offset?: number; heroId?: number; win?: 0 | 1; project?: string[] },
+    opts?: {
+      limit?: number
+      offset?: number
+      heroId?: number
+      win?: 0 | 1
+      gameMode?: number
+      lobbyType?: number
+      laneRole?: number
+      isRadiant?: 0 | 1
+      date?: number
+      project?: string[]
+    },
   ) => {
     const params = new URLSearchParams()
     params.set('limit', String(opts?.limit ?? 50))
     if (opts?.offset) params.set('offset', String(opts.offset))
     if (opts?.heroId != null) params.set('hero_id', String(opts.heroId))
     if (opts?.win != null) params.set('win', String(opts.win))
+    if (opts?.gameMode != null) params.set('game_mode', String(opts.gameMode))
+    if (opts?.lobbyType != null) params.set('lobby_type', String(opts.lobbyType))
+    if (opts?.laneRole != null) params.set('lane_role', String(opts.laneRole))
+    if (opts?.isRadiant != null) params.set('is_radiant', String(opts.isRadiant))
+    if (opts?.date != null) params.set('date', String(opts.date))
     for (const p of opts?.project ?? []) params.append('project', p)
     return get<PlayerMatch[]>(`/players/${id}/matches?${params.toString()}`)
   },

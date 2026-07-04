@@ -10,14 +10,50 @@ import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl } from '@/lib/utils'
 
 const PAGE_SIZE = 30
 
-const GAME_MODES: Record<number, string> = {
-  1: 'All Pick', 2: 'Captains Mode', 3: 'Random Draft', 4: 'Single Draft',
-  5: 'All Random', 16: 'Captains Draft', 22: 'Ranked', 23: 'Turbo',
-}
+// Curated to the modes/lobbies players actually queue into (skips tutorial,
+// diretide, greeviling, custom, etc.) — matches dotabuff/opendota's filters.
+const GAME_MODE_OPTIONS: [number, string][] = [
+  [1, 'All Pick'],
+  [22, 'All Pick (Ranked)'],
+  [2, 'Captains Mode'],
+  [16, 'Captains Draft'],
+  [17, 'Balanced Draft'],
+  [3, 'Random Draft'],
+  [4, 'Single Draft'],
+  [5, 'All Random'],
+  [20, 'All Random Deathmatch'],
+  [18, 'Ability Draft'],
+  [12, 'Least Played'],
+  [21, '1v1 Mid'],
+  [23, 'Turbo'],
+]
+const GAME_MODES: Record<number, string> = Object.fromEntries(GAME_MODE_OPTIONS)
 
-const LOBBY_TYPES: Record<number, string> = {
-  0: 'Normal', 1: 'Practice', 5: 'Team', 6: 'Tournament', 7: 'Ranked', 9: 'Battle Cup',
-}
+const LOBBY_TYPE_OPTIONS: [number, string][] = [
+  [0, 'Normal'],
+  [7, 'Ranked'],
+  [1, 'Practice'],
+  [2, 'Tournament'],
+  [8, '1v1 Mid'],
+  [9, 'Battle Cup'],
+  [14, 'New Player'],
+]
+const LOBBY_TYPES: Record<number, string> = Object.fromEntries(LOBBY_TYPE_OPTIONS)
+
+const LANE_ROLE_OPTIONS: [number, string][] = [
+  [1, 'Safe Lane'],
+  [2, 'Mid Lane'],
+  [3, 'Off Lane'],
+  [4, 'Jungle'],
+]
+
+const DATE_OPTIONS: [number, string][] = [
+  [7, 'Last 7 Days'],
+  [30, 'Last 30 Days'],
+  [90, 'Last 90 Days'],
+  [182, 'Last 6 Months'],
+  [365, 'Last Year'],
+]
 
 function isWin(m: PlayerMatch): boolean {
   const radiant = m.player_slot < 128
@@ -41,8 +77,14 @@ function kda(m: PlayerMatch): number {
   return (m.kills + m.assists) / Math.max(1, m.deaths)
 }
 
-type SortKey = 'date' | 'kda' | 'duration' | 'gpm'
+type SortKey = 'date' | 'kda' | 'gpm' | 'xpm' | 'lh' | 'duration'
 type ResultFilter = 'all' | 'win' | 'loss'
+type SideFilter = 'all' | 'radiant' | 'dire'
+type NumOrAll = number | 'all'
+
+function selectStyle(): React.CSSProperties {
+  return { background: '#14181b', color: '#cfd4d8', border: '1px solid #2c3236' }
+}
 
 export function AllMatches({
   accountId,
@@ -51,26 +93,68 @@ export function AllMatches({
   accountId: string
   heroStats: HeroStat[]
 }) {
-  const [heroFilter, setHeroFilter] = useState<number | 'all'>('all')
+  const [heroFilter, setHeroFilter] = useState<NumOrAll>('all')
   const [resultFilter, setResultFilter] = useState<ResultFilter>('all')
+  const [gameModeFilter, setGameModeFilter] = useState<NumOrAll>('all')
+  const [lobbyTypeFilter, setLobbyTypeFilter] = useState<NumOrAll>('all')
+  const [laneRoleFilter, setLaneRoleFilter] = useState<NumOrAll>('all')
+  const [sideFilter, setSideFilter] = useState<SideFilter>('all')
+  const [dateFilter, setDateFilter] = useState<NumOrAll>('all')
   const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('date', 'desc')
 
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const heroOptions = [...heroStats].sort((a, b) => a.localized_name.localeCompare(b.localized_name))
 
+  const filtersActive =
+    heroFilter !== 'all' ||
+    resultFilter !== 'all' ||
+    gameModeFilter !== 'all' ||
+    lobbyTypeFilter !== 'all' ||
+    laneRoleFilter !== 'all' ||
+    sideFilter !== 'all' ||
+    dateFilter !== 'all'
+
+  function resetFilters() {
+    setHeroFilter('all')
+    setResultFilter('all')
+    setGameModeFilter('all')
+    setLobbyTypeFilter('all')
+    setLaneRoleFilter('all')
+    setSideFilter('all')
+    setDateFilter('all')
+  }
+
   const query = useInfiniteQuery({
-    queryKey: ['player_all_matches', accountId, heroFilter, resultFilter],
+    queryKey: [
+      'player_all_matches',
+      accountId,
+      heroFilter,
+      resultFilter,
+      gameModeFilter,
+      lobbyTypeFilter,
+      laneRoleFilter,
+      sideFilter,
+      dateFilter,
+    ],
     queryFn: ({ pageParam }) =>
       opendota.playerMatches(accountId, {
         limit: PAGE_SIZE,
         offset: pageParam,
         heroId: heroFilter === 'all' ? undefined : heroFilter,
         win: resultFilter === 'all' ? undefined : resultFilter === 'win' ? 1 : 0,
+        gameMode: gameModeFilter === 'all' ? undefined : gameModeFilter,
+        lobbyType: lobbyTypeFilter === 'all' ? undefined : lobbyTypeFilter,
+        laneRole: laneRoleFilter === 'all' ? undefined : laneRoleFilter,
+        isRadiant: sideFilter === 'all' ? undefined : sideFilter === 'radiant' ? 1 : 0,
+        date: dateFilter === 'all' ? undefined : dateFilter,
         // Any `project` param switches OpenDota into custom-projection mode,
         // returning ONLY these fields (plus match_id/player_slot/radiant_win/
         // duration/game_mode/lobby_type) — every field the table needs must
         // be listed explicitly or it silently comes back undefined.
-        project: ['hero_id', 'start_time', 'version', 'kills', 'deaths', 'assists', 'average_rank', 'gold_per_min', 'xp_per_min'],
+        project: [
+          'hero_id', 'start_time', 'version', 'kills', 'deaths', 'assists',
+          'average_rank', 'gold_per_min', 'xp_per_min', 'last_hits',
+        ],
       }),
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => (lastPage.length < PAGE_SIZE ? undefined : allPages.length * PAGE_SIZE),
@@ -82,10 +166,14 @@ export function AllMatches({
     switch (sortKey) {
       case 'kda':
         return kda(a) - kda(b)
-      case 'duration':
-        return a.duration - b.duration
       case 'gpm':
         return (a.gold_per_min ?? 0) - (b.gold_per_min ?? 0)
+      case 'xpm':
+        return (a.xp_per_min ?? 0) - (b.xp_per_min ?? 0)
+      case 'lh':
+        return (a.last_hits ?? 0) - (b.last_hits ?? 0)
+      case 'duration':
+        return a.duration - b.duration
       default:
         return a.start_time - b.start_time
     }
@@ -95,19 +183,86 @@ export function AllMatches({
     <div style={{ background: 'rgba(16,19,22,0.72)', fontFamily: 'var(--font-dota)' }}>
       {/* Filter toolbar */}
       <div
-        className="flex items-center gap-3 px-3 py-2.5 flex-wrap"
+        className="flex items-center gap-2.5 px-3 py-2.5 flex-wrap"
         style={{ background: 'rgba(8,10,12,0.7)' }}
       >
         <select
           value={heroFilter}
           onChange={(e) => setHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
           className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
-          style={{ background: '#14181b', color: '#cfd4d8', border: '1px solid #2c3236' }}
+          style={selectStyle()}
         >
           <option value="all">All Heroes</option>
           {heroOptions.map((h) => (
             <option key={h.id} value={h.id}>
               {h.localized_name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={gameModeFilter}
+          onChange={(e) => setGameModeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
+          style={selectStyle()}
+        >
+          <option value="all">All Modes</option>
+          {GAME_MODE_OPTIONS.map(([id, label]) => (
+            <option key={id} value={id}>
+              {label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={lobbyTypeFilter}
+          onChange={(e) => setLobbyTypeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
+          style={selectStyle()}
+        >
+          <option value="all">All Lobbies</option>
+          {LOBBY_TYPE_OPTIONS.map(([id, label]) => (
+            <option key={id} value={id}>
+              {label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={laneRoleFilter}
+          onChange={(e) => setLaneRoleFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
+          style={selectStyle()}
+        >
+          <option value="all">All Roles</option>
+          {LANE_ROLE_OPTIONS.map(([id, label]) => (
+            <option key={id} value={id}>
+              {label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={sideFilter}
+          onChange={(e) => setSideFilter(e.target.value as SideFilter)}
+          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
+          style={selectStyle()}
+        >
+          <option value="all">Any Side</option>
+          <option value="radiant">Radiant</option>
+          <option value="dire">Dire</option>
+        </select>
+
+        <select
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
+          style={selectStyle()}
+        >
+          <option value="all">All Time</option>
+          {DATE_OPTIONS.map(([days, label]) => (
+            <option key={days} value={days}>
+              {label}
             </option>
           ))}
         </select>
@@ -129,6 +284,17 @@ export function AllMatches({
             </button>
           ))}
         </div>
+
+        {filtersActive && (
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="text-[12px] uppercase cursor-pointer hover:text-white"
+            style={{ color: '#67757f', letterSpacing: '1px' }}
+          >
+            Reset Filters
+          </button>
+        )}
 
         <span className="text-[12px] ml-auto" style={{ color: '#67757f' }}>
           {matches.length.toLocaleString()} loaded
@@ -165,7 +331,23 @@ export function AllMatches({
           active={sortKey === 'gpm'}
           dir={sortDir}
           onClick={onSort}
-          className="w-[64px] shrink-0 justify-end"
+          className="w-[60px] shrink-0 justify-end"
+        />
+        <SortHeader
+          label="XPM"
+          sortKey="xpm"
+          active={sortKey === 'xpm'}
+          dir={sortDir}
+          onClick={onSort}
+          className="w-[60px] shrink-0 justify-end"
+        />
+        <SortHeader
+          label="LH"
+          sortKey="lh"
+          active={sortKey === 'lh'}
+          dir={sortDir}
+          onClick={onSort}
+          className="w-[50px] shrink-0 justify-end"
         />
         <SortHeader
           label="Duration"
@@ -241,8 +423,16 @@ export function AllMatches({
                 {m.kills} / {m.deaths} / {m.assists}
               </div>
 
-              <div className="w-[64px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#cfd4d8' }}>
+              <div className="w-[60px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#cfd4d8' }}>
                 {m.gold_per_min ?? '—'}
+              </div>
+
+              <div className="w-[60px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#cfd4d8' }}>
+                {m.xp_per_min ?? '—'}
+              </div>
+
+              <div className="w-[50px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#cfd4d8' }}>
+                {m.last_hits ?? '—'}
               </div>
 
               <div className="w-[80px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
