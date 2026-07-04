@@ -4,9 +4,11 @@ import type { HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { opendota } from '@/lib/opendota'
 import {
   getCachedReplay,
-  parseReplayPositions,
+  getReplayStatus,
   type PositionPoint,
-  ReplayUnavailableError,
+  type ReplayJobPhase,
+  type ReplayStatus,
+  startReplayParse,
 } from '@/lib/replay_parser'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { type ObjectiveEvent, extractObjectiveEvents } from './match_objectives'
@@ -477,8 +479,10 @@ export function ReplayViewer({
   const [time, setTime] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
-  const [fullPlaybackState, setFullPlaybackState] = useState<'idle' | 'loading' | 'unavailable' | 'error' | 'done'>('idle')
+  const [fullPlaybackState, setFullPlaybackState] = useState<'idle' | 'working' | 'unavailable' | 'error' | 'done'>('idle')
+  const [workPhase, setWorkPhase] = useState<ReplayJobPhase | null>(null)
   const [denseBySlot, setDenseBySlot] = useState<Map<number, PositionPoint[]> | null>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const heroMap = useMemo(() => new Map(heroStats.map((h) => [h.id, h])), [heroStats])
   const heroByName = useMemo(() => new Map(heroStats.map((h) => [h.name, h])), [heroStats])
@@ -491,7 +495,9 @@ export function ReplayViewer({
     })
   }, [denseBySlot, sparseWaypoints, match.players])
   const hasAnyWaypoints = waypointsBySlot.some((w) => w.length > 0)
-  const canFetchFullPlayback = match.cluster != null && match.replay_salt != null
+  // The API can orchestrate the OpenDota parse itself when the salt isn't
+  // known yet, so full playback is offerable for any match.
+  const canFetchFullPlayback = true
 
   const buildingDeaths = useMemo(() => buildingDeathTimes(match), [match])
   const wardLives = useMemo(() => extractWardLives(match), [match])
@@ -511,17 +517,48 @@ export function ReplayViewer({
     })
     return () => {
       cancelled = true
+      if (pollRef.current) clearInterval(pollRef.current)
     }
   }, [match.match_id])
 
+  function applyStatus(status: ReplayStatus): boolean {
+    switch (status.kind) {
+      case 'done':
+        if (pollRef.current) clearInterval(pollRef.current)
+        adoptResult(status.result.positions)
+        return true
+      case 'failed':
+        if (pollRef.current) clearInterval(pollRef.current)
+        setWorkPhase(null)
+        setFullPlaybackState(status.phase === 'gone' ? 'unavailable' : 'error')
+        return true
+      case 'working':
+        setWorkPhase(status.phase)
+        setFullPlaybackState('working')
+        return false
+      default:
+        return false
+    }
+  }
+
+  // One click starts the server-side job (which requests an OpenDota parse
+  // first when the replay salt isn't known yet); after that we just poll.
+  // The polling doubles as a keep-alive for the scale-to-zero API machine.
   async function fetchFullPlayback() {
-    if (match.replay_salt == null) return
-    setFullPlaybackState('loading')
+    setFullPlaybackState('working')
+    setWorkPhase(match.replay_salt != null ? 'parsing' : 'requesting_parse')
     try {
-      const result = await parseReplayPositions(match.match_id, match.cluster, match.replay_salt)
-      adoptResult(result.positions)
-    } catch (err) {
-      setFullPlaybackState(err instanceof ReplayUnavailableError ? 'unavailable' : 'error')
+      const status = await startReplayParse(match.match_id, match.cluster, match.replay_salt)
+      if (applyStatus(status)) return
+      if (pollRef.current) clearInterval(pollRef.current)
+      pollRef.current = setInterval(async () => {
+        try {
+          const s = await getReplayStatus(match.match_id)
+          if (s.kind !== 'none') applyStatus(s)
+        } catch {}
+      }, 6000)
+    } catch {
+      setFullPlaybackState('error')
     }
   }
 
@@ -799,13 +836,21 @@ export function ReplayViewer({
               <button
                 type="button"
                 onClick={fetchFullPlayback}
-                disabled={fullPlaybackState === 'loading'}
+                disabled={fullPlaybackState === 'working'}
                 className="inline-flex items-center gap-2 px-3 py-1.5 text-[12px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-60"
                 style={{ background: '#1d2a12', border: '1px solid #3d5a24', color: C.green, letterSpacing: '1px' }}
-                title="Downloads and parses the raw replay ourselves for true continuous hero movement plus live HP/mana/levels; first-time parses only work while Valve still serves the file"
+                title="Parses the raw replay ourselves for true continuous hero movement plus live HP/mana/levels. If OpenDota hasn't parsed the match yet, the server requests that first and continues automatically; only works while Valve still serves the replay file"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${fullPlaybackState === 'loading' ? 'animate-spin' : ''}`} />
-                {fullPlaybackState === 'loading' ? 'Parsing Replay…' : fullPlaybackState === 'error' ? 'Retry Full Playback' : 'Full Playback'}
+                <RefreshCw className={`h-3.5 w-3.5 ${fullPlaybackState === 'working' ? 'animate-spin' : ''}`} />
+                {fullPlaybackState === 'working'
+                  ? workPhase === 'requesting_parse'
+                    ? 'Requesting OpenDota Parse…'
+                    : workPhase === 'waiting_salt'
+                      ? 'Waiting For Replay Info…'
+                      : 'Parsing Replay…'
+                  : fullPlaybackState === 'error'
+                    ? 'Retry Full Playback'
+                    : 'Full Playback'}
               </button>
             </div>
           )}
@@ -830,8 +875,8 @@ export function ReplayViewer({
                 style={{ color: C.text, background: 'rgba(8,10,12,0.85)', border: '1px solid #2c3236' }}
               >
                 No position data from OpenDota for this match.
-                {fullPlaybackState === 'loading'
-                  ? ' Parsing the replay…'
+                {fullPlaybackState === 'working'
+                  ? ' Working on it, this can take a few minutes for unparsed matches…'
                   : ' Use Full Playback above to parse the replay directly.'}
               </p>
             </div>

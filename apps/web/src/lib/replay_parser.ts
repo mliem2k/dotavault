@@ -1,8 +1,10 @@
-// Eden Treaty client for the dotavault API's /replay endpoint (apps/api),
-// which serves self-parsed replay positions: cached in Postgres when the
-// match was parsed before, otherwise parsed on demand by the Go binary
-// (apps/replay-parser) the API spawns as a subprocess. First-time parses
-// only work while Valve's CDN still serves the replay file.
+// Eden Treaty client for the dotavault API's /replay endpoints (apps/api),
+// which serve self-parsed replay positions: cached in Postgres when the
+// match was parsed before, otherwise parsed by the Go binary
+// (apps/replay-parser) the API spawns as a subprocess. When the replay salt
+// isn't known yet, the API orchestrates the whole pipeline itself (request
+// an OpenDota parse, wait for the salt, parse), so the frontend only starts
+// the job once and polls for status.
 
 import { treaty } from '@elysiajs/eden'
 import type { App } from 'api'
@@ -27,38 +29,52 @@ export type ReplayPositions = {
   positions: Record<string, PositionPoint[]>
 }
 
-export class ReplayUnavailableError extends Error {}
+export type ReplayJobPhase = 'requesting_parse' | 'waiting_salt' | 'parsing' | 'failed' | 'gone'
 
-// Returns the stored parse if this match was ever parsed before (no work is
-// triggered server-side), or null when it hasn't been.
-export async function getCachedReplay(matchId: number): Promise<ReplayPositions | null> {
-  const { data, error } = await api.replay({ matchId: String(matchId) }).get({ query: {} })
-  if (error || !data || typeof data !== 'object' || !('positions' in data)) return null
-  return data as ReplayPositions
+export type ReplayStatus =
+  | { kind: 'done'; result: ReplayPositions }
+  | { kind: 'working'; phase: ReplayJobPhase }
+  | { kind: 'failed'; phase: ReplayJobPhase; error: string }
+  | { kind: 'none' }
+
+function isResult(v: unknown): v is ReplayPositions {
+  return typeof v === 'object' && v !== null && 'positions' in v
 }
 
-export async function parseReplayPositions(
+function toStatus(data: unknown, error: { status: unknown; value: unknown } | null): ReplayStatus {
+  const body = (error?.value ?? data) as
+    | ReplayPositions
+    | { status?: ReplayJobPhase; error?: string }
+    | null
+  if (isResult(body)) return { kind: 'done', result: body }
+  const phase = body && 'status' in body ? body.status : undefined
+  if (phase === 'failed' || phase === 'gone') {
+    return { kind: 'failed', phase, error: body?.error ?? 'replay parse failed' }
+  }
+  if (phase) return { kind: 'working', phase }
+  return { kind: 'none' }
+}
+
+// One-shot cache check: the stored parse if this match was ever parsed
+// before, or null (never triggers any work server-side).
+export async function getCachedReplay(matchId: number): Promise<ReplayPositions | null> {
+  const { data } = await api.replay({ matchId: String(matchId) }).get()
+  return isResult(data) ? data : null
+}
+
+// Start (or re-attach to) the server-side parse job. Pass cluster/salt when
+// the match already knows them so the server can skip the OpenDota wait.
+export async function startReplayParse(
   matchId: number,
-  cluster: number,
-  replaySalt: number,
-): Promise<ReplayPositions> {
-  const { data, error } = await api.replay({ matchId: String(matchId) }).get({
-    query: { cluster: String(cluster), salt: String(replaySalt) },
-  })
-  if (error) {
-    // Runtime statuses (404/429/502 set via set.status) are wider than the
-    // union Elysia infers, which only sees the 422 validation case.
-    if ((error.status as number) === 404) {
-      throw new ReplayUnavailableError("Replay is no longer available on Valve's CDN")
-    }
-    const message =
-      typeof error.value === 'object' && error.value && 'error' in error.value
-        ? String((error.value as { error: unknown }).error)
-        : `replay request failed (${error.status})`
-    throw new Error(message)
-  }
-  if (!data || typeof data !== 'object' || !('positions' in data)) {
-    throw new Error('unexpected replay response')
-  }
-  return data as ReplayPositions
+  cluster?: number | null,
+  salt?: number | null,
+): Promise<ReplayStatus> {
+  const body = cluster != null && salt != null ? { cluster, salt } : undefined
+  const { data, error } = await api.replay({ matchId: String(matchId) }).parse.post(body)
+  return toStatus(data, error)
+}
+
+export async function getReplayStatus(matchId: number): Promise<ReplayStatus> {
+  const { data, error } = await api.replay({ matchId: String(matchId) }).get()
+  return toStatus(data, error)
 }
