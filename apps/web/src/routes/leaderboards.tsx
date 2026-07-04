@@ -36,17 +36,54 @@ function LeaderboardsPage() {
   const [resolvingRank, setResolvingRank] = useState<number | null>(null)
   const [notFoundRank, setNotFoundRank] = useState<number | null>(null)
 
+  const query = useQuery({
+    queryKey: ['leaderboard', division],
+    queryFn: () => fetchLeaderboard(division),
+    staleTime: 15 * 60 * 1000,
+  })
+
+  // Shared cache with the player page's pro-roster lookup. Leaderboard rows
+  // carry only a display name, so match it against each pro's persona name
+  // both to show their real/pro name alongside it and, on click, to jump
+  // straight to their account id without touching OpenDota's slow search.
+  const proPlayers = useQuery({
+    queryKey: ['pro_players'],
+    queryFn: () => opendota.proPlayers(),
+    staleTime: 60 * 60 * 1000,
+  })
+  const proByPersona = useMemo(() => {
+    const map = new Map<string, { name: string; account_id: number }>()
+    for (const p of proPlayers.data ?? []) {
+      if (p.is_pro && p.name && p.personaname) {
+        map.set(p.personaname.toLowerCase(), { name: p.name, account_id: p.account_id })
+      }
+    }
+    return map
+  }, [proPlayers.data])
+
   // Valve's public leaderboard exposes only a display name, never an account
-  // id, so a name has to be resolved to a profile via OpenDota's player
-  // search on click. The top-ranked search hit is trusted as-is: these are
-  // distinctive top-5000 names, so an exact index match is effectively
-  // always the right account.
+  // id. A known pro (matched via the roster above) resolves instantly with
+  // no network call; anything else falls back to OpenDota's player search,
+  // which can be slow, so only pay that cost when we actually have to. The
+  // top-ranked search hit is trusted as-is: these are distinctive top-5000
+  // names, so an exact index match is effectively always the right account.
   async function openProfile(name: string, rank: number) {
+    if (name.length >= 3) {
+      const pro = proByPersona.get(name.toLowerCase())
+      if (pro) {
+        navigate({ to: '/player/$accountId', params: { accountId: String(pro.account_id) } })
+        return
+      }
+    }
+
     setNotFoundRank(null)
     setResolvingRank(rank)
     try {
       const results = await opendota.search(name)
-      const match = results.find((r) => r.personaname.toLowerCase() === name.toLowerCase()) ?? results[0]
+      // Only an exact (case-insensitive) persona-name match is trustworthy —
+      // falling back to the top fuzzy result risks landing on a completely
+      // unrelated player who merely searched similarly.
+      const match = results.find((r) => r.personaname.toLowerCase() === name.toLowerCase())
       if (match) {
         navigate({ to: '/player/$accountId', params: { accountId: String(match.account_id) } })
       } else {
@@ -58,28 +95,6 @@ function LeaderboardsPage() {
       setResolvingRank(null)
     }
   }
-
-  const query = useQuery({
-    queryKey: ['leaderboard', division],
-    queryFn: () => fetchLeaderboard(division),
-    staleTime: 15 * 60 * 1000,
-  })
-
-  // Shared cache with the player page's pro-roster lookup. Leaderboard rows
-  // carry only a display name, so match it against each pro's persona name
-  // to show their real/pro name alongside it.
-  const proPlayers = useQuery({
-    queryKey: ['pro_players'],
-    queryFn: () => opendota.proPlayers(),
-    staleTime: 60 * 60 * 1000,
-  })
-  const proByPersona = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const p of proPlayers.data ?? []) {
-      if (p.is_pro && p.name && p.personaname) map.set(p.personaname.toLowerCase(), p.name)
-    }
-    return map
-  }, [proPlayers.data])
 
   const filtered = useMemo(() => {
     const rows = query.data?.leaderboard ?? []
@@ -111,7 +126,11 @@ function LeaderboardsPage() {
         </h1>
         <p
           className="mt-2 text-[13px] uppercase tracking-[0.2em]"
-          style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+          style={{
+            color: '#fff',
+            fontFamily: 'var(--font-dota)',
+            textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)',
+          }}
         >
           Top 5,000 players by solo ranked MMR, per region
         </p>
@@ -225,12 +244,12 @@ function LeaderboardsPage() {
                     // unrelated players too often for a persona-name match
                     // to be trustworthy — require a few real characters.
                     if (r.name.length < 3) return null
-                    const proName = proByPersona.get(r.name.toLowerCase())
+                    const pro = proByPersona.get(r.name.toLowerCase())
                     return (
-                      proName &&
-                      proName !== r.name && (
+                      pro &&
+                      pro.name !== r.name && (
                         <span className="text-[13px] shrink-0" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
-                          [{proName}]
+                          [{pro.name}]
                         </span>
                       )
                     )
