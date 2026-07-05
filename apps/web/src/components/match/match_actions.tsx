@@ -63,7 +63,7 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
                 img.src = heroIconFromPath(hero.icon)
               }}
             />
-            <span className="max-w-[130px] truncate text-[12px]" style={{ color: p.player_slot < 128 ? C.green : C.red }}>
+            <span className="max-w-[130px] truncate text-[13px]" style={{ color: p.player_slot < 128 ? C.green : C.red }}>
               {p.personaname ?? 'Anonymous'}
             </span>
           </div>
@@ -79,7 +79,7 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
           return (
             <td key={id} className="px-1 py-1">
               <div
-                className="flex h-[22px] items-center justify-center text-[12px] tabular-nums"
+                className="flex h-[22px] items-center justify-center text-[13px] tabular-nums"
                 style={{
                   background: v > 0 ? `rgba(159,191,63,${0.06 + 0.4 * (v / maxCell)})` : 'rgba(255,255,255,0.02)',
                   color: v > 0 ? C.text : '#3a4147',
@@ -101,7 +101,7 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
       </div>
       <table className="w-full border-collapse" style={{ minWidth: 1100 }}>
         <thead>
-          <tr className="text-[11px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
+          <tr className="text-[12px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
             <th className="px-3 py-2 text-left">Player</th>
             <th className="px-2 text-right" title="Actions per minute">APM</th>
             <th className="px-2 text-right">Total</th>

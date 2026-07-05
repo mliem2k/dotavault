@@ -55,7 +55,7 @@ export function MatchCosmetics({ match, heroStats }: { match: Match; heroStats: 
               <span className="text-[13px]" style={{ color: p.player_slot < 128 ? C.green : C.red }}>
                 {hero?.localized_name ?? 'Unknown'}
               </span>
-              <span className="truncate text-[12px]" style={{ color: C.dim }}>{p.personaname ?? 'Anonymous'}</span>
+              <span className="truncate text-[13px]" style={{ color: C.dim }}>{p.personaname ?? 'Anonymous'}</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {(p.cosmetics ?? []).map((c) => (
@@ -78,7 +78,7 @@ export function MatchCosmetics({ match, heroStats }: { match: Match; heroStats: 
                       }}
                     />
                   )}
-                  <span className="text-[12px]" style={{ color: RARITY_COLORS[c.item_rarity ?? ''] ?? C.text }}>
+                  <span className="text-[13px]" style={{ color: RARITY_COLORS[c.item_rarity ?? ''] ?? C.text }}>
                     {c.name ?? `Item ${c.item_id}`}
                   </span>
                 </div>

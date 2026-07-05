@@ -63,7 +63,7 @@ export function MatchFantasy({ match, heroStats }: { match: Match; heroStats: He
                 img.src = heroIconFromPath(hero.icon)
               }}
             />
-            <span className="max-w-[130px] truncate text-[12px]" style={{ color: p.player_slot < 128 ? C.green : C.red }}>
+            <span className="max-w-[130px] truncate text-[13px]" style={{ color: p.player_slot < 128 ? C.green : C.red }}>
               {p.personaname ?? 'Anonymous'}
             </span>
           </div>
@@ -81,10 +81,10 @@ export function MatchFantasy({ match, heroStats }: { match: Match; heroStats: He
           const pts = c.points(p)
           return (
             <td key={c.label} className="px-2 text-center">
-              <div className="text-[12px] tabular-nums" style={{ color: pts > 0 ? C.text : '#3a4147' }}>
+              <div className="text-[13px] tabular-nums" style={{ color: pts > 0 ? C.text : '#3a4147' }}>
                 {pts.toFixed(1)}
               </div>
-              <div className="text-[10px] tabular-nums" style={{ color: C.dim }}>{c.value(p)}</div>
+              <div className="text-[11px] tabular-nums" style={{ color: C.dim }}>{c.value(p)}</div>
             </td>
           )
         })}
@@ -99,7 +99,7 @@ export function MatchFantasy({ match, heroStats }: { match: Match; heroStats: He
       </div>
       <table className="w-full border-collapse" style={{ minWidth: 1100 }}>
         <thead>
-          <tr className="text-[11px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
+          <tr className="text-[12px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
             <th className="px-3 py-2 text-left">Player</th>
             <th className="px-2 text-right">Total</th>
             {COMPONENTS.map((c) => (
@@ -115,7 +115,7 @@ export function MatchFantasy({ match, heroStats }: { match: Match; heroStats: He
           {match.players.filter((p) => p.player_slot >= 128).map(row)}
         </tbody>
       </table>
-      <p className="px-4 py-3 text-[11px]" style={{ color: C.dim }}>
+      <p className="px-4 py-3 text-[12px]" style={{ color: C.dim }}>
         Standard fantasy scoring: 0.3/kill, 3 minus 0.3/death, 0.003/CS, 0.002/GPM, 1/tower, 1/Roshan, 3 x teamfight
         share, 0.5/observer, 0.5/stack, 0.25/rune, 4/first blood, 0.05/stun second. Small values show points over raw
         stat.

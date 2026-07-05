@@ -126,7 +126,7 @@ function RunesSummary({ match, heroMap }: { match: Match; heroMap: Map<number, H
 
   return (
     <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-      <div className="mb-2 text-[12px] uppercase" style={{ color: C.dim, letterSpacing: '2px' }}>
+      <div className="mb-2 text-[13px] uppercase" style={{ color: C.dim, letterSpacing: '2px' }}>
         Runes Taken
       </div>
       <div className="overflow-x-auto">
@@ -135,7 +135,7 @@ function RunesSummary({ match, heroMap }: { match: Match; heroMap: Map<number, H
             <tr>
               <th />
               {cols.map((id) => (
-                <th key={id} className="px-2 pb-1 text-[11px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
+                <th key={id} className="px-2 pb-1 text-[12px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
                   {RUNE_NAMES[id] ?? id}
                 </th>
               ))}
@@ -162,7 +162,7 @@ function RunesSummary({ match, heroMap }: { match: Match; heroMap: Map<number, H
                     />
                   </td>
                   {cols.map((id) => (
-                    <td key={id} className="px-2 text-center text-[12px] tabular-nums" style={{ color: rec[id] ? C.text : '#3a4147' }}>
+                    <td key={id} className="px-2 text-center text-[13px] tabular-nums" style={{ color: rec[id] ? C.text : '#3a4147' }}>
                       {rec[id] ?? ''}
                     </td>
                   ))}
@@ -214,7 +214,7 @@ export function MatchLog({ match, heroStats }: { match: Match; heroStats: HeroSt
                 type="button"
                 onClick={() => toggleCategory(c)}
                 disabled={!present.has(c)}
-                className="px-2.5 py-1 text-[12px] uppercase cursor-pointer disabled:cursor-default disabled:opacity-30"
+                className="px-2.5 py-1 text-[13px] uppercase cursor-pointer disabled:cursor-default disabled:opacity-30"
                 style={{
                   background: active ? '#2c3236' : 'transparent',
                   border: '1px solid #2c3236',
@@ -232,7 +232,7 @@ export function MatchLog({ match, heroStats }: { match: Match; heroStats: HeroSt
                 key={t}
                 type="button"
                 onClick={() => setTeamFilter(t)}
-                className="px-2.5 py-1 text-[12px] uppercase cursor-pointer"
+                className="px-2.5 py-1 text-[13px] uppercase cursor-pointer"
                 style={{
                   background: teamFilter === t ? '#2c3236' : 'transparent',
                   color: teamFilter === t ? (t === 'radiant' ? C.green : t === 'dire' ? C.red : C.white) : C.dim,

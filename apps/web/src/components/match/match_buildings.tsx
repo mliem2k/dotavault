@@ -116,13 +116,13 @@ function BuildingTooltip({
         <span className="text-[13px] font-bold uppercase" style={{ color: team === 'radiant' ? C.green : C.red, letterSpacing: '1px' }}>
           {label}
         </span>
-        <span className="text-[11px]" style={{ color: C.dim }}>
+        <span className="text-[12px]" style={{ color: C.dim }}>
           {info.deadAt != null ? `Destroyed ${formatClock(info.deadAt)}` : 'Standing'}
         </span>
       </div>
 
       {info.attackers.length === 0 && info.creepDamage === 0 ? (
-        <div className="py-1 text-[11px]" style={{ color: C.dim }}>
+        <div className="py-1 text-[12px]" style={{ color: C.dim }}>
           Took no recorded damage.
         </div>
       ) : (
@@ -140,7 +140,7 @@ function BuildingTooltip({
           </div>
           <div className="space-y-1">
             {info.attackers.map((a) => (
-              <div key={a.player.player_slot} className="flex items-center gap-1.5 text-[11px]">
+              <div key={a.player.player_slot} className="flex items-center gap-1.5 text-[12px]">
                 {a.hero && (
                   <img
                     src={heroIconUrl(a.hero.name)}
@@ -163,7 +163,7 @@ function BuildingTooltip({
               </div>
             ))}
             {info.creepDamage > 0 && (
-              <div className="flex items-center gap-1.5 text-[11px]">
+              <div className="flex items-center gap-1.5 text-[12px]">
                 <span style={{ width: 18, textAlign: 'center', color: C.dim }}>⚔</span>
                 <span className="tabular-nums" style={{ color: C.white, minWidth: 38 }}>{info.creepDamage.toLocaleString()}</span>
                 <span style={{ color: C.dim }}>creeps</span>
@@ -280,7 +280,7 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
             })}
           </div>
         </div>
-        <p className="px-4 pb-4 text-center text-[12px]" style={{ color: C.dim }}>
+        <p className="px-4 pb-4 text-center text-[13px]" style={{ color: C.dim }}>
           Hover a building for its damage breakdown. Dimmed buildings were destroyed. Hero icons mark laning assignments.
         </p>
       </div>

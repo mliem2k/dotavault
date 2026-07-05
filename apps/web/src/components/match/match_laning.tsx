@@ -118,24 +118,24 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
                 img.src = heroIconFromPath(hero.icon)
               }}
             />
-            <span className="max-w-[120px] truncate text-[12px]" style={{ color: isRadiant ? C.green : C.red }}>
+            <span className="max-w-[120px] truncate text-[13px]" style={{ color: isRadiant ? C.green : C.red }}>
               {p.personaname ?? 'Anonymous'}
             </span>
           </div>
         </td>
-        <td className="px-2 text-[12px]" style={{ color: C.text }}>
+        <td className="px-2 text-[13px]" style={{ color: C.text }}>
           {p.lane_role ? LANE_NAMES[p.lane_role] ?? '?' : '?'}
         </td>
-        <td className="px-2 text-right text-[12px] tabular-nums" style={{ color: p.lane_efficiency_pct != null && p.lane_efficiency_pct >= 60 ? C.gold : C.text }}>
+        <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: p.lane_efficiency_pct != null && p.lane_efficiency_pct >= 60 ? C.gold : C.text }}>
           {p.lane_efficiency_pct != null ? `${p.lane_efficiency_pct}%` : '-'}
         </td>
-        <td className="px-2 text-right text-[12px] tabular-nums" style={{ color: C.text }}>
+        <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: C.text }}>
           {at10(p.lh_t) ?? '-'} / {at10(p.dn_t) ?? '-'}
         </td>
-        <td className="px-2 text-right text-[12px] tabular-nums" style={{ color: C.gold }}>
+        <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: C.gold }}>
           {at10(p.gold_t)?.toLocaleString() ?? '-'}
         </td>
-        <td className="px-2 text-right text-[12px] tabular-nums" style={{ color: C.text }}>
+        <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: C.text }}>
           {at10(p.xp_t)?.toLocaleString() ?? '-'}
         </td>
       </tr>
@@ -185,7 +185,7 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
         <div className="flex justify-center p-4">
           <canvas ref={canvasRef} width={560} height={560} className="w-full max-w-[560px]" style={{ border: '1px solid #22282c' }} />
         </div>
-        <p className="px-4 pb-4 text-center text-[12px]" style={{ color: C.dim }}>
+        <p className="px-4 pb-4 text-center text-[13px]" style={{ color: C.dim }}>
           Position heatmap during the laning phase, colored per player. Toggle heroes above.
         </p>
       </div>
@@ -196,7 +196,7 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
         </div>
         <table className="w-full border-collapse">
           <thead>
-            <tr className="text-left text-[11px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
+            <tr className="text-left text-[12px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
               <th className="px-2 py-2">Player</th>
               <th className="px-2">Lane</th>
               <th className="px-2 text-right" title="Lane efficiency: share of the maximum possible lane farm">Eff</th>

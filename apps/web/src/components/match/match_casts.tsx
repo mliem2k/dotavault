@@ -45,7 +45,7 @@ function AbilityUse({ name, count, meta }: { name: string; count: number; meta: 
           }
         }}
       />
-      <span className="text-[11px] tabular-nums" style={{ color: C.text }}>{count}</span>
+      <span className="text-[12px] tabular-nums" style={{ color: C.text }}>{count}</span>
     </div>
   )
 }
@@ -71,7 +71,7 @@ function ItemUse({ name, count, meta }: { name: string; count: number; meta: Ite
           }
         }}
       />
-      <span className="text-[11px] tabular-nums" style={{ color: C.text }}>{count}</span>
+      <span className="text-[12px] tabular-nums" style={{ color: C.text }}>{count}</span>
     </div>
   )
 }
@@ -111,8 +111,8 @@ function PlayerCasts({
         <span className="text-[13px]" style={{ color: isRadiant ? C.green : C.red }}>
           {hero?.localized_name ?? 'Unknown'}
         </span>
-        <span className="truncate text-[12px]" style={{ color: C.dim }}>{player.personaname ?? 'Anonymous'}</span>
-        <span className="ml-auto shrink-0 text-[11px] tabular-nums" style={{ color: C.dim }}>
+        <span className="truncate text-[13px]" style={{ color: C.dim }}>{player.personaname ?? 'Anonymous'}</span>
+        <span className="ml-auto shrink-0 text-[12px] tabular-nums" style={{ color: C.dim }}>
           {attacks > 0 ? `${attacks.toLocaleString()} attacks landed` : ''}
           {tp > 0 ? `${attacks > 0 ? ' · ' : ''}${tp} TPs` : ''}
         </span>
@@ -125,7 +125,7 @@ function PlayerCasts({
           <ItemUse key={name} name={name} count={count} meta={itemConst[name]} />
         ))}
         {abilities.length === 0 && items.length === 0 && (
-          <span className="text-[12px]" style={{ color: C.dim }}>No cast data recorded.</span>
+          <span className="text-[13px]" style={{ color: C.dim }}>No cast data recorded.</span>
         )}
       </div>
     </div>

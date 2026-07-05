@@ -220,12 +220,12 @@ function MatchPage() {
           {activeGroup.tabs.map((t, i) => (
             <span key={t} className="flex items-center">
               {i > 0 && (
-                <span className="mx-2 text-[12px]" style={{ color: '#3f464d' }}>·</span>
+                <span className="mx-2 text-[13px]" style={{ color: '#3f464d' }}>·</span>
               )}
               <Link
                 to="/match/$matchId/$tab"
                 params={{ matchId, tab: t }}
-                className="text-[12px] uppercase cursor-pointer whitespace-nowrap"
+                className="text-[13px] uppercase cursor-pointer whitespace-nowrap"
                 style={{
                   color: activeTab === t ? '#f2c94c' : '#7d8b95',
                   letterSpacing: '2px',
