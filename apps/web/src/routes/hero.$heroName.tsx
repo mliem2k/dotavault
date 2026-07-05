@@ -315,7 +315,7 @@ function DurationSection({ durations }: { durations: { duration_bin: number; gam
             </div>
             <div
               className="w-full rounded-t-sm"
-              style={{ height: heightFor(r.wr), background: r.wr >= 52 ? '#8ec63f' : r.wr < 48 ? '#d14a38' : '#5a8fc2' }}
+              style={{ height: heightFor(r.wr), background: r.wr >= 52 ? '#8ec63f' : r.wr < 48 ? '#d14a38' : '#c9a94a' }}
               title={`${r.games_played.toLocaleString()} games`}
             />
             <div className="mt-1.5 text-[13px]" style={{ color: '#7a7464', fontFamily: 'var(--font-dota)' }}>
@@ -355,7 +355,7 @@ function ItemPopularitySection({
 }) {
   return (
     <StatPanel title="Popular Items">
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {ITEM_PHASES.map((phase) => {
           const counts = popularity[phase.key] ?? {}
           const top = Object.entries(counts)
@@ -1287,7 +1287,7 @@ function HeroDetailPage() {
           above) rather than the page's usual full-bleed width, tables and
           charts read better at that narrower measure than stretched wide. */}
       {hero && (
-        <div className="max-w-[740px] space-y-6">
+        <div className="max-w-[1040px] mx-auto space-y-6">
           {matchups.data && <MatchupsSection heroMap={heroMap} matchups={matchups.data} />}
           {durations.data && <DurationSection durations={durations.data} />}
           {itemPopularity.data && <ItemPopularitySection popularity={itemPopularity.data} idToName={itemIdToName} />}
