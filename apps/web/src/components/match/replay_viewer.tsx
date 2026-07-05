@@ -312,6 +312,22 @@ function PlayerRow({
   const level = sample?.lvl || stats.level
   const dead = sample != null && sample.hp === 0
   const respawnIn = dead ? respawnCountdown(dense, timeSec) : null
+  // Without a parse, there's no continuous HP data to know exactly when a
+  // dead hero comes back (respawn time depends on level and can be cut
+  // short by buyback), so this only tells us "killed recently, might
+  // still be dead" from OpenDota's own kill log, same data statsAtTime
+  // already uses to count deaths, rather than guessing at a number.
+  const heroName = hero?.name ?? ''
+  const lastDeathTime = !sample && heroName
+    ? match.players.reduce(
+        (max, pl) => {
+          const t = (pl.kills_log ?? []).filter((e) => e.key === heroName && e.time <= timeSec).map((e) => e.time)
+          return t.length ? Math.max(max, ...t) : max
+        },
+        -1,
+      )
+    : -1
+  const maybeDead = lastDeathTime >= 0 && timeSec - lastDeathTime <= 100
   const items = itemsAtTime(player, idToName, timeSec, match.duration, itemConst)
 
   const portrait = (
@@ -319,7 +335,7 @@ function PlayerRow({
       <img
         src={hero ? heroIconUrl(hero.name) : ''}
         alt=""
-        style={{ width: 34, height: 34, filter: dead ? 'grayscale(1)' : undefined }}
+        style={{ width: 34, height: 34, filter: dead || maybeDead ? 'grayscale(1)' : undefined }}
         onError={(e) => {
           if (!hero) return
           const img = e.currentTarget
@@ -353,6 +369,21 @@ function PlayerRow({
           title="Respawns in"
         >
           {respawnIn}
+        </span>
+      )}
+      {respawnIn == null && maybeDead && (
+        <span
+          className="absolute -top-1 -left-1 flex items-center justify-center text-[10px] font-bold leading-none"
+          style={{
+            minWidth: 14,
+            height: 14,
+            background: '#3a1210',
+            border: '1px solid #6b2622',
+            color: '#ff8f7a',
+          }}
+          title="Killed recently, may still be dead. Use Parse Details for the exact live respawn timer."
+        >
+          ?
         </span>
       )}
     </div>
