@@ -242,7 +242,7 @@ function MatchPage() {
 
       {activeTab === 'replay' &&
         (heroStats.data ? (
-          <ReplayViewer match={m} heroStats={heroStats.data} idToName={idToName} itemConst={itemConst} />
+          <ReplayViewer match={m} heroStats={heroStats.data} idToName={idToName} itemConst={itemConst} abilityConst={abilitiesData.data ?? {}} />
         ) : loading)}
     </div>
   )

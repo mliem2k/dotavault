@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/dotabuff/manta"
+	"github.com/dotabuff/manta/dota"
 )
 
 // PositionPoint is one sampled hero snapshot. X/Y are in the same ~64-192
@@ -24,18 +25,31 @@ type PositionPoint struct {
 	MaxMP int32   `json:"mmp"`
 }
 
+// KillEvent is one hero death from the combat log, with the detail OpenDota
+// never exposes: the killing-blow ability/item and the victim's death gold
+// loss. Names are raw combat-log names (npc_dota_hero_*, ability/item
+// names); the frontend maps them to display names.
+type KillEvent struct {
+	T         float64 `json:"t"` // match clock, seconds (negative = pre-horn)
+	Attacker  string  `json:"attacker"`
+	Victim    string  `json:"victim"`
+	Inflictor string  `json:"inflictor,omitempty"` // absent = plain attack
+	GoldLost  int32   `json:"gold,omitempty"`
+}
+
 // Dota 2 Source 2 replays tick at a fixed 30Hz. This is a stable, widely
 // relied-upon community constant (clarity/manta-based tools all assume it),
 // not something the demo header exposes directly.
 const tickRate = 30.0
 
 // ExtractPositions parses a decompressed .dem stream and returns one
-// position series per player_slot (0-4 Radiant, 128-132 Dire), sampled at
-// roughly 1Hz to keep the payload small, plus the match duration in seconds.
-func ExtractPositions(dem io.Reader) (map[int][]PositionPoint, float64, error) {
+// position series per player_slot (0-4 Radiant, 128-132 Dire) sampled at
+// roughly 1Hz, kill events with combat-log detail, and the match duration
+// in seconds.
+func ExtractPositions(dem io.Reader) (map[int][]PositionPoint, []KillEvent, float64, error) {
 	p, err := manta.NewStreamParser(dem)
 	if err != nil {
-		return nil, 0, fmt.Errorf("create parser: %w", err)
+		return nil, nil, 0, fmt.Errorf("create parser: %w", err)
 	}
 
 	// DOTA_GAMERULES_STATE_GAME_IN_PROGRESS / _POST_GAME. Position samples
@@ -55,6 +69,45 @@ func ExtractPositions(dem io.Reader) (map[int][]PositionPoint, float64, error) {
 	var gameEndSet bool
 	lastEmittedSecond := map[int]int{}
 	positions := map[int][]PositionPoint{}
+
+	// Combat-log kills buffer raw timestamps (same clock as
+	// m_flGameStartTime) and convert to match time after the parse, since
+	// pre-horn kills arrive before the start time is known.
+	type rawKill struct {
+		ts                          float64
+		attacker, victim, inflictor string
+	}
+	var rawKills []rawKill
+	goldLost := map[string]int32{} // "ts|victim" -> death gold loss
+
+	clName := func(idx uint32) string {
+		s, _ := p.LookupStringByIndex("CombatLogNames", int32(idx))
+		return s
+	}
+	p.Callbacks.OnCMsgDOTACombatLogEntry(func(m *dota.CMsgDOTACombatLogEntry) error {
+		switch m.GetType() {
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DEATH:
+			if !m.GetIsTargetHero() || m.GetIsTargetIllusion() {
+				return nil
+			}
+			rawKills = append(rawKills, rawKill{
+				ts:        float64(m.GetTimestamp()),
+				attacker:  clName(m.GetAttackerName()),
+				victim:    clName(m.GetTargetName()),
+				inflictor: clName(m.GetInflictorName()),
+			})
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_GOLD:
+			// Reason 1 = death loss; the value is a wrapped negative.
+			if m.GetGoldReason() != 1 {
+				return nil
+			}
+			key := fmt.Sprintf("%.1f|%s", m.GetTimestamp(), clName(m.GetTargetName()))
+			if v := int32(m.GetValue()); v < 0 {
+				goldLost[key] = -v
+			}
+		}
+		return nil
+	})
 
 	p.OnEntity(func(e *manta.Entity, op manta.EntityOp) error {
 		name := e.GetClassName()
@@ -135,7 +188,7 @@ func ExtractPositions(dem io.Reader) (map[int][]PositionPoint, float64, error) {
 		// manta returns an error at end-of-stream for most replays; only
 		// treat it as fatal if we extracted nothing at all.
 		if len(positions) == 0 {
-			return nil, 0, fmt.Errorf("parse: %w", err)
+			return nil, nil, 0, fmt.Errorf("parse: %w", err)
 		}
 	}
 
@@ -150,7 +203,21 @@ func ExtractPositions(dem io.Reader) (map[int][]PositionPoint, float64, error) {
 		}
 	}
 
-	return positions, duration, nil
+	kills := make([]KillEvent, 0, len(rawKills))
+	for _, rk := range rawKills {
+		ev := KillEvent{
+			T:        rk.ts - gameStartTime,
+			Attacker: rk.attacker,
+			Victim:   rk.victim,
+			GoldLost: goldLost[fmt.Sprintf("%.1f|%s", rk.ts, rk.victim)],
+		}
+		if rk.inflictor != "" && rk.inflictor != "dota_unknown" {
+			ev.Inflictor = rk.inflictor
+		}
+		kills = append(kills, ev)
+	}
+
+	return positions, kills, duration, nil
 }
 
 // playerSlot maps manta's raw m_iPlayerID/m_iTeamNum pair to Dota's familiar

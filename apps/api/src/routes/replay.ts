@@ -27,10 +27,18 @@ export type ReplayPoint = {
   mp: number
   mmp: number
 }
+export type ReplayKill = {
+  t: number
+  attacker: string
+  victim: string
+  inflictor?: string
+  gold?: number
+}
 export type ReplayParseResult = {
   match_id: number
   duration: number
   positions: Record<string, ReplayPoint[]>
+  kills?: ReplayKill[]
 }
 
 type JobPhase = 'requesting_parse' | 'waiting_salt' | 'parsing' | 'failed' | 'gone'

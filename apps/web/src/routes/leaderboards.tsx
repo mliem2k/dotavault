@@ -33,8 +33,6 @@ function LeaderboardsPage() {
   const [division, setDivision] = useState<Division>('americas')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
-  const [resolvingRank, setResolvingRank] = useState<number | null>(null)
-  const [notFoundRank, setNotFoundRank] = useState<number | null>(null)
 
   const query = useQuery({
     queryKey: ['leaderboard', division],
@@ -61,39 +59,19 @@ function LeaderboardsPage() {
     return map
   }, [proPlayers.data])
 
-  // Valve's public leaderboard exposes only a display name, never an account
-  // id. A known pro (matched via the roster above) resolves instantly with
-  // no network call; anything else falls back to OpenDota's player search,
-  // which can be slow, so only pay that cost when we actually have to. The
-  // top-ranked search hit is trusted as-is: these are distinctive top-5000
-  // names, so an exact index match is effectively always the right account.
-  async function openProfile(name: string, rank: number) {
-    if (name.length >= 3) {
-      const pro = proByPersona.get(name.toLowerCase())
-      if (pro) {
-        navigate({ to: '/player/$accountId', params: { accountId: String(pro.account_id) } })
-        return
-      }
-    }
+  // Valve's public leaderboard exposes only a display name, never an
+  // account id. Known pros (matched via the roster) resolve instantly with
+  // no network call. Everyone else is intentionally NOT clickable: the only
+  // generic fallback is OpenDota's slow name search, and a name match for a
+  // non-pro can land on an unrelated impostor account.
+  function proFor(name: string) {
+    if (name.length < 3) return undefined
+    return proByPersona.get(name.toLowerCase())
+  }
 
-    setNotFoundRank(null)
-    setResolvingRank(rank)
-    try {
-      const results = await opendota.search(name)
-      // Only an exact (case-insensitive) persona-name match is trustworthy —
-      // falling back to the top fuzzy result risks landing on a completely
-      // unrelated player who merely searched similarly.
-      const match = results.find((r) => r.personaname.toLowerCase() === name.toLowerCase())
-      if (match) {
-        navigate({ to: '/player/$accountId', params: { accountId: String(match.account_id) } })
-      } else {
-        setNotFoundRank(rank)
-      }
-    } catch {
-      setNotFoundRank(rank)
-    } finally {
-      setResolvingRank(null)
-    }
+  function openProfile(name: string) {
+    const pro = proFor(name)
+    if (pro) navigate({ to: '/player/$accountId', params: { accountId: String(pro.account_id) } })
   }
 
   const filtered = useMemo(() => {
@@ -203,12 +181,16 @@ function LeaderboardsPage() {
           </div>
         ) : (
           <div>
-            {shown.map((r, i) => (
+            {shown.map((r, i) => {
+              const clickable = proFor(r.name) != null
+              return (
               <button
                 key={r.rank}
                 type="button"
-                onClick={() => openProfile(r.name, r.rank)}
-                className="flex w-full items-center gap-4 px-4 py-2.5 text-left cursor-pointer hover:bg-white/[0.04]"
+                onClick={clickable ? () => openProfile(r.name) : undefined}
+                disabled={!clickable}
+                title={clickable ? 'Open pro profile' : undefined}
+                className={`flex w-full items-center gap-4 px-4 py-2.5 text-left ${clickable ? 'cursor-pointer hover:bg-white/[0.04]' : 'cursor-default'}`}
                 style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
               >
                 <span
@@ -260,12 +242,6 @@ function LeaderboardsPage() {
                       .{r.sponsor}
                     </span>
                   )}
-                  {resolvingRank === r.rank && <Spinner className="h-3.5 w-3.5 shrink-0" />}
-                  {notFoundRank === r.rank && (
-                    <span className="text-[12px] shrink-0" style={{ color: '#8a5a5a', fontFamily: 'var(--font-dota)' }}>
-                      No profile found
-                    </span>
-                  )}
                 </div>
                 {r.country && (
                   <img
@@ -278,7 +254,8 @@ function LeaderboardsPage() {
                   />
                 )}
               </button>
-            ))}
+              )
+            })}
           </div>
         )}
 

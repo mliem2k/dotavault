@@ -1,9 +1,10 @@
 import { Pause, Play, RefreshCw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { HeroStat, ItemConst, Match, MatchPlayer } from 'types'
+import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { opendota } from '@/lib/opendota'
 import {
   getReplayStatus,
+  type ParsedKill,
   type PositionPoint,
   type ReplayJobPhase,
   type ReplayStatus,
@@ -161,6 +162,49 @@ function extractKillEvents(
     }
   }
   return events
+}
+
+/* Kill events from our own replay parse: same shape as the OpenDota-based
+   feed but with the killing blow and the victim's death gold loss. */
+function parsedKillEvents(
+  match: Match,
+  kills: ParsedKill[],
+  heroByName: Map<string, HeroStat>,
+  abilityConst: Record<string, AbilityConst>,
+  itemConst: Record<string, ItemConst>,
+): ObjectiveEvent[] {
+  const teamByHeroId = new Map(
+    match.players.map((p) => [p.hero_id, p.player_slot < 128 ? ('radiant' as const) : ('dire' as const)]),
+  )
+  const humanize = (raw: string): string => {
+    if (raw.startsWith('item_')) {
+      const item = itemConst[raw.slice(5)]
+      if (item?.dname) return item.dname
+    }
+    const ab = abilityConst[raw]
+    if (ab?.dname) return ab.dname
+    return raw
+      .replace(/^item_/, '')
+      .split('_')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ')
+  }
+  const displayName = (npc: string): string =>
+    heroByName.get(npc)?.localized_name ?? npc.replace('npc_dota_hero_', '').replace(/_/g, ' ')
+
+  return kills.map((k) => {
+    const killer = heroByName.get(k.attacker)
+    let text = `${displayName(k.attacker)} killed ${displayName(k.victim)}`
+    if (k.inflictor) text += ` with ${humanize(k.inflictor)}`
+    if (k.gold) text += ` (lost ${k.gold}g)`
+    return {
+      time: k.t,
+      icon: '⚔',
+      text,
+      team: killer ? (teamByHeroId.get(killer.id) ?? null) : null,
+      heroId: killer?.id,
+    }
+  })
 }
 
 function toCanvas(val: number, size: number): number {
@@ -411,11 +455,13 @@ export function ReplayViewer({
   heroStats,
   idToName,
   itemConst,
+  abilityConst,
 }: {
   match: Match
   heroStats: HeroStat[]
   idToName: Map<number, string>
   itemConst: Record<string, ItemConst>
+  abilityConst: Record<string, AbilityConst>
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const mapImgRef = useRef<HTMLImageElement | null>(null)
@@ -428,6 +474,7 @@ export function ReplayViewer({
   const [fullPlaybackState, setFullPlaybackState] = useState<'idle' | 'working' | 'unavailable' | 'error' | 'done'>('idle')
   const [workPhase, setWorkPhase] = useState<ReplayJobPhase | null>(null)
   const [denseBySlot, setDenseBySlot] = useState<Map<number, PositionPoint[]> | null>(null)
+  const [parsedKills, setParsedKills] = useState<ParsedKill[] | null>(null)
   const [fogTeam, setFogTeam] = useState<'off' | 'radiant' | 'dire'>('off')
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -449,10 +496,11 @@ export function ReplayViewer({
   const buildingDeaths = useMemo(() => buildingDeathTimes(match), [match])
   const wardLives = useMemo(() => extractWardLives(match), [match])
 
-  function adoptResult(positions: Record<string, PositionPoint[]>) {
+  function adoptResult(result: { positions: Record<string, PositionPoint[]>; kills?: ParsedKill[] }) {
     const map = new Map<number, PositionPoint[]>()
-    for (const [slot, pts] of Object.entries(positions)) map.set(Number(slot), pts)
+    for (const [slot, pts] of Object.entries(result.positions)) map.set(Number(slot), pts)
     setDenseBySlot(map)
+    if (result.kills?.length) setParsedKills(result.kills)
     setFullPlaybackState('done')
   }
 
@@ -460,7 +508,7 @@ export function ReplayViewer({
     switch (status.kind) {
       case 'done':
         if (pollRef.current) clearInterval(pollRef.current)
-        adoptResult(status.result.positions)
+        adoptResult(status.result)
         return true
       case 'failed':
         if (pollRef.current) clearInterval(pollRef.current)
@@ -518,10 +566,13 @@ export function ReplayViewer({
   }
 
   const events = useMemo(() => {
-    const combined = [...extractObjectiveEvents(match, heroStats), ...extractKillEvents(match, heroMap, heroByName)]
+    const kills = parsedKills?.length
+      ? parsedKillEvents(match, parsedKills, heroByName, abilityConst, itemConst)
+      : extractKillEvents(match, heroMap, heroByName)
+    const combined = [...extractObjectiveEvents(match, heroStats), ...kills]
     combined.sort((a, b) => a.time - b.time)
     return combined
-  }, [match, heroStats, heroMap, heroByName])
+  }, [match, heroStats, heroMap, heroByName, parsedKills, abilityConst, itemConst])
 
   const timelineMarkers = useMemo<TimelineMarker[]>(
     () =>

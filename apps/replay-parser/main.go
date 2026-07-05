@@ -29,6 +29,7 @@ type parseResponse struct {
 	MatchID   int64                      `json:"match_id"`
 	Duration  float64                    `json:"duration"`
 	Positions map[string][]PositionPoint `json:"positions"`
+	Kills     []KillEvent                `json:"kills"`
 }
 
 type errorResponse struct {
@@ -74,7 +75,7 @@ func fetchAndParse(matchID, cluster, salt int64) (*parseResponse, error) {
 		return nil, fmt.Errorf("replay CDN returned %d", resp.StatusCode)
 	}
 
-	positions, duration, err := ExtractPositions(bzip2.NewReader(resp.Body))
+	positions, kills, duration, err := ExtractPositions(bzip2.NewReader(resp.Body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse replay: %w", err)
 	}
@@ -83,7 +84,7 @@ func fetchAndParse(matchID, cluster, salt int64) (*parseResponse, error) {
 	for slot, pts := range positions {
 		out[fmt.Sprintf("%d", slot)] = pts
 	}
-	return &parseResponse{MatchID: matchID, Duration: duration, Positions: out}, nil
+	return &parseResponse{MatchID: matchID, Duration: duration, Positions: out, Kills: kills}, nil
 }
 
 /* ---------------- subprocess (CLI) mode ---------------- */
@@ -205,11 +206,14 @@ func runLocalFile(path string) {
 	}
 	defer f.Close()
 
-	positions, duration, err := ExtractPositions(f)
+	positions, kills, duration, err := ExtractPositions(f)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("duration=%.2fs slots=%d\n", duration, len(positions))
+	fmt.Printf("duration=%.2fs slots=%d kills=%d\n", duration, len(positions), len(kills))
+	for _, k := range kills[:min(3, len(kills))] {
+		fmt.Printf("  kill t=%.1f %s -> %s inflictor=%q gold=%d\n", k.T, k.Attacker, k.Victim, k.Inflictor, k.GoldLost)
+	}
 	for slot, pts := range positions {
 		if len(pts) == 0 {
 			continue

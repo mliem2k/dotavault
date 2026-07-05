@@ -23,10 +23,19 @@ export type PositionPoint = {
   mp: number
   mmp: number
 }
+export type ParsedKill = {
+  t: number
+  attacker: string
+  victim: string
+  inflictor?: string
+  gold?: number
+}
 export type ReplayPositions = {
   match_id: number
   duration: number
   positions: Record<string, PositionPoint[]>
+  // Combat-log kill details; absent on parses stored before this existed.
+  kills?: ParsedKill[]
 }
 
 export type ReplayJobPhase = 'requesting_parse' | 'waiting_salt' | 'parsing' | 'failed' | 'gone'
