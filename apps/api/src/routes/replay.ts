@@ -178,21 +178,33 @@ export const replayPlugin = new Elysia({ prefix: '/replay' })
         return { error: 'invalid match id' }
       }
 
-      const cached = await getCached(matchId)
-      if (cached) return cached
-
+      // Reserve the job synchronously, before any await, so two concurrent
+      // requests for the same match can't both see "no job" and both start
+      // an orchestration. If the match turns out to already be cached, undo
+      // the reservation below.
       let job = currentJob(matchId)
+      let claimed = false
+      let hint: { cluster: number; salt: number } | undefined
       if (!job) {
         const cluster = Number(body?.cluster)
         const salt = Number(body?.salt)
-        const hint =
+        hint =
           Number.isInteger(cluster) && cluster > 0 && Number.isInteger(salt) && salt > 0
             ? { cluster, salt }
             : undefined
         setJob(matchId, hint ? 'parsing' : 'waiting_salt')
+        claimed = true
+        job = currentJob(matchId)
+      }
+
+      if (claimed) {
+        const cached = await getCached(matchId)
+        if (cached) {
+          jobs.delete(matchId)
+          return cached
+        }
         // Fire and forget: the frontend follows along by polling GET.
         void orchestrate(matchId, hint)
-        job = currentJob(matchId)
       }
 
       set.status = 202

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { Spinner } from '@/components/ui/spinner'
-import { countryFlagUrl, DIVISIONS, fetchLeaderboard, type Division } from '@/lib/leaderboard'
+import { countryFlagUrl, DIVISIONS, fetchLeaderboard, type Division, type LeaderboardEntry } from '@/lib/leaderboard'
 import { opendota } from '@/lib/opendota'
 import { usePageTitle } from '@/lib/title'
 
@@ -49,28 +49,56 @@ function LeaderboardsPage() {
     queryFn: () => opendota.proPlayers(),
     staleTime: 60 * 60 * 1000,
   })
-  const proByPersona = useMemo(() => {
-    const map = new Map<string, { name: string; account_id: number }>()
+  type ProRef = { name: string; personaname: string | null; account_id: number; team_id: number | null }
+  const proIndex = useMemo(() => {
+    const byProName = new Map<string, ProRef[]>()
+    const byPersona = new Map<string, ProRef[]>()
     for (const p of proPlayers.data ?? []) {
-      if (p.is_pro && p.name && p.personaname) {
-        map.set(p.personaname.toLowerCase(), { name: p.name, account_id: p.account_id })
+      if (!p.is_pro || !p.name) continue
+      const ref: ProRef = {
+        name: p.name,
+        personaname: p.personaname ?? null,
+        account_id: p.account_id,
+        team_id: p.team_id ?? null,
+      }
+      const nk = p.name.toLowerCase()
+      byProName.set(nk, [...(byProName.get(nk) ?? []), ref])
+      if (p.personaname) {
+        const pk = p.personaname.toLowerCase()
+        byPersona.set(pk, [...(byPersona.get(pk) ?? []), ref])
       }
     }
-    return map
+    return { byProName, byPersona }
   }, [proPlayers.data])
 
   // Valve's public leaderboard exposes only a display name, never an
-  // account id. Known pros (matched via the roster) resolve instantly with
-  // no network call. Everyone else is intentionally NOT clickable: the only
-  // generic fallback is OpenDota's slow name search, and a name match for a
-  // non-pro can land on an unrelated impostor account.
-  function proFor(name: string) {
-    if (name.length < 3) return undefined
-    return proByPersona.get(name.toLowerCase())
+  // account id. Registered pros usually appear under their official pro
+  // nickname (with a team tag), so match that first, verified by team id
+  // when both sides have one; persona names cover the rest. Everyone else
+  // is intentionally NOT clickable: the only generic fallback would be
+  // OpenDota's slow name search, and a bare name match for a non-pro can
+  // land on an unrelated impostor account.
+  function proFor(r: LeaderboardEntry): ProRef | undefined {
+    const key = r.name.toLowerCase()
+    const nameCands = proIndex.byProName.get(key) ?? []
+    const personaCands = proIndex.byPersona.get(key) ?? []
+
+    if (r.team_id) {
+      const teamVerified =
+        nameCands.find((c) => c.team_id === r.team_id) ??
+        personaCands.find((c) => c.team_id === r.team_id)
+      if (teamVerified) return teamVerified
+    }
+    // Without team verification require a few real characters: short or
+    // symbol-only names collide across unrelated players too often.
+    if (r.name.length < 3) return undefined
+    if (nameCands.length === 1) return nameCands[0]
+    if (personaCands.length === 1) return personaCands[0]
+    return undefined
   }
 
-  function openProfile(name: string) {
-    const pro = proFor(name)
+  function openProfile(r: LeaderboardEntry) {
+    const pro = proFor(r)
     if (pro) navigate({ to: '/player/$accountId', params: { accountId: String(pro.account_id) } })
   }
 
@@ -182,12 +210,13 @@ function LeaderboardsPage() {
         ) : (
           <div>
             {shown.map((r, i) => {
-              const clickable = proFor(r.name) != null
+              const pro = proFor(r)
+              const clickable = pro != null
               return (
               <button
                 key={r.rank}
                 type="button"
-                onClick={clickable ? () => openProfile(r.name) : undefined}
+                onClick={clickable ? () => openProfile(r) : undefined}
                 disabled={!clickable}
                 title={clickable ? 'Open pro profile' : undefined}
                 className={`flex w-full items-center gap-4 px-4 py-2.5 text-left ${clickable ? 'cursor-pointer hover:bg-white/[0.04]' : 'cursor-default'}`}
@@ -222,21 +251,20 @@ function LeaderboardsPage() {
                   <span className="text-[16px] truncate" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
                     {r.name}
                   </span>
-                  {(() => {
-                    // Short/generic names (".", "1", "))") collide across
-                    // unrelated players too often for a persona-name match
-                    // to be trustworthy — require a few real characters.
-                    if (r.name.length < 3) return null
-                    const pro = proByPersona.get(r.name.toLowerCase())
-                    return (
-                      pro &&
-                      pro.name !== r.name && (
-                        <span className="text-[13px] shrink-0" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+                  {pro && (
+                    <>
+                      {pro.name !== r.name && (
+                        <span className="text-[13px] shrink-0" style={{ color: '#c9a94a', fontFamily: 'var(--font-dota)' }}>
                           [{pro.name}]
                         </span>
-                      )
-                    )
-                  })()}
+                      )}
+                      {pro.personaname && pro.personaname !== r.name && pro.personaname !== pro.name && (
+                        <span className="text-[13px] shrink-0" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+                          {pro.personaname}
+                        </span>
+                      )}
+                    </>
+                  )}
                   {r.sponsor && (
                     <span className="text-[13px] shrink-0" style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}>
                       .{r.sponsor}
