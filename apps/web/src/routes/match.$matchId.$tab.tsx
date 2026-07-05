@@ -155,35 +155,91 @@ function MatchPage() {
   const activeTab = availableTabs.includes(tab as Tab) ? (tab as Tab) : 'overview'
   const loading = <div className="flex justify-center py-12"><Spinner /></div>
 
+  /* Two-level navigation: standalone entries plus groups of related tabs,
+     so the strip stays readable now that there are ~20 possible tabs.
+     Every tab keeps its own URL; groups only affect how links render. */
+  type NavEntry = { label: string; tabs: Tab[] }
+  const NAV: NavEntry[] = [
+    { label: 'overview', tabs: ['overview'] },
+    { label: 'scoreboard', tabs: ['scoreboard'] },
+    { label: 'graphs', tabs: ['graphs'] },
+    { label: 'combat', tabs: ['combat', 'damage', 'log'] },
+    { label: 'economy', tabs: ['farm', 'purchases'] },
+    { label: 'performance', tabs: ['performance', 'laning', 'casts', 'actions', 'fantasy'] },
+    { label: 'maps', tabs: ['vision', 'buildings', 'objectives'] },
+    { label: 'draft', tabs: ['draft'] },
+    { label: 'more', tabs: ['story', 'chat', 'cosmetics'] },
+    { label: 'replay', tabs: ['replay'] },
+  ]
+  const navEntries = NAV.map((g) => ({ ...g, tabs: g.tabs.filter((t) => availableTabs.includes(t)) })).filter(
+    (g) => g.tabs.length > 0,
+  )
+  const activeGroup = navEntries.find((g) => g.tabs.includes(activeTab))
+  const TAB_LABELS: Partial<Record<Tab, string>> = {
+    combat: 'kills',
+    performance: 'benchmarks',
+  }
+
   return (
     <div className="flex flex-col gap-0">
-      {/* Tab strip — slash-separated like the client */}
+      {/* Tab strip: grouped primary row, contextual secondary row */}
       <div
-        className="flex items-center flex-wrap mt-3 mb-3 px-3 py-2.5"
+        className="flex items-center flex-wrap mt-3 px-3 py-2.5"
         style={{ fontFamily: 'var(--font-dota)', background: 'rgba(8,10,12,0.55)' }}
       >
-        {availableTabs.map((t, i) => (
-          <span key={t} className="flex items-center">
-            {i > 0 && (
-              <span className="mx-2.5 text-[13px]" style={{ color: '#3f464d' }}>/</span>
-            )}
-            <Link
-              to="/match/$matchId/$tab"
-              params={{ matchId, tab: t }}
-              className="text-[14px] font-semibold uppercase cursor-pointer whitespace-nowrap"
-              style={{
-                color: activeTab === t ? '#ffffff' : '#7d8b95',
-                letterSpacing: '2px',
-                borderBottom: activeTab === t ? '1px solid #ffffff' : '1px solid transparent',
-                paddingBottom: 2,
-                textShadow: '0 1px 2px rgba(0,0,0,0.9)',
-              }}
-            >
-              {t}
-            </Link>
-          </span>
-        ))}
+        {navEntries.map((g, i) => {
+          const active = g === activeGroup
+          return (
+            <span key={g.label} className="flex items-center">
+              {i > 0 && (
+                <span className="mx-2.5 text-[13px]" style={{ color: '#3f464d' }}>/</span>
+              )}
+              <Link
+                to="/match/$matchId/$tab"
+                params={{ matchId, tab: g.tabs[0] }}
+                className="text-[14px] font-semibold uppercase cursor-pointer whitespace-nowrap"
+                style={{
+                  color: active ? '#ffffff' : '#7d8b95',
+                  letterSpacing: '2px',
+                  borderBottom: active ? '1px solid #ffffff' : '1px solid transparent',
+                  paddingBottom: 2,
+                  textShadow: '0 1px 2px rgba(0,0,0,0.9)',
+                }}
+              >
+                {g.label}
+              </Link>
+            </span>
+          )
+        })}
       </div>
+      {activeGroup && activeGroup.tabs.length > 1 && (
+        <div
+          className="flex items-center flex-wrap mb-3 px-3 py-2"
+          style={{ fontFamily: 'var(--font-dota)', background: 'rgba(8,10,12,0.35)', borderTop: '1px solid rgba(255,255,255,0.05)' }}
+        >
+          {activeGroup.tabs.map((t, i) => (
+            <span key={t} className="flex items-center">
+              {i > 0 && (
+                <span className="mx-2 text-[12px]" style={{ color: '#3f464d' }}>·</span>
+              )}
+              <Link
+                to="/match/$matchId/$tab"
+                params={{ matchId, tab: t }}
+                className="text-[12px] uppercase cursor-pointer whitespace-nowrap"
+                style={{
+                  color: activeTab === t ? '#f2c94c' : '#7d8b95',
+                  letterSpacing: '2px',
+                  borderBottom: activeTab === t ? '1px solid #f2c94c' : '1px solid transparent',
+                  paddingBottom: 1,
+                }}
+              >
+                {TAB_LABELS[t] ?? t}
+              </Link>
+            </span>
+          ))}
+        </div>
+      )}
+      {(!activeGroup || activeGroup.tabs.length <= 1) && <div className="mb-3" />}
 
       {activeTab === 'overview' &&
         (heroStats.data ? (
