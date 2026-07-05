@@ -96,7 +96,21 @@ export function usePlayerName(player: MatchPlayer): string {
   )
 }
 
-/* Player name that links to their profile page when the account is public. */
+/* Pro nickname for a match player, when it differs from their persona name
+   (same [name] convention the player profile page uses). */
+export function usePlayerProName(player: MatchPlayer, personaName: string): string | undefined {
+  const proPlayers = useQuery({
+    queryKey: ['pro_players'],
+    queryFn: () => opendota.proPlayers(),
+    enabled: !!player.account_id,
+    staleTime: 60 * 60 * 1000,
+  })
+  const pro = proPlayers.data?.find((p) => p.account_id === player.account_id && p.is_pro)
+  return pro?.name && pro.name !== personaName ? pro.name : undefined
+}
+
+/* Player name that links to their profile page when the account is public,
+   with their pro nickname shown alongside when it differs. */
 export function PlayerNameLink({
   player,
   className,
@@ -107,6 +121,17 @@ export function PlayerNameLink({
   style?: React.CSSProperties
 }) {
   const name = usePlayerName(player)
+  const proName = usePlayerProName(player, name)
+  const content = (
+    <>
+      {name}
+      {proName && (
+        <span className="ml-1 opacity-70" style={{ fontSize: '0.85em' }}>
+          [{proName}]
+        </span>
+      )}
+    </>
+  )
   if (player.account_id) {
     return (
       <a
@@ -115,13 +140,13 @@ export function PlayerNameLink({
         style={style}
         onClick={(e) => e.stopPropagation()}
       >
-        {name}
+        {content}
       </a>
     )
   }
   return (
     <span className={className} style={style}>
-      {name}
+      {content}
     </span>
   )
 }
@@ -187,6 +212,7 @@ export function PlayerIdentityCell({
 }) {
   const accountId = player.account_id
   const playerName = usePlayerName(player)
+  const proName = usePlayerProName(player, playerName)
   const heroShort = hero ? heroSlug(hero.localized_name) : ''
   const small = rowH < 54
   const avatarSize = Math.min(44, rowH - 14)
@@ -234,6 +260,7 @@ export function PlayerIdentityCell({
             style={{ color: active ? '#14181b' : '#ffffff' }}
           >
             {playerName}
+            {proName && <span className="opacity-70"> [{proName}]</span>}
           </a>
         ) : (
           <span
@@ -241,6 +268,7 @@ export function PlayerIdentityCell({
             style={{ color: active ? '#14181b' : accountId ? '#ffffff' : '#c3cbd1' }}
           >
             {playerName}
+            {proName && <span className="opacity-70"> [{proName}]</span>}
           </span>
         )}
         <div className="flex items-center gap-1.5 mt-0.5">

@@ -16,7 +16,7 @@ import {
   itemIconUrl,
 } from '@/lib/utils'
 import { ItemIcon } from './item_icon'
-import { PlayerAvatar, PlayerNameLink, usePlayerName } from './match_roster'
+import { PlayerAvatar, PlayerNameLink, usePlayerName, usePlayerProName } from './match_roster'
 import { GameTimeSlider, hasTimeline, itemsAtTime, statsAtTime, type TimedStats } from './match_time'
 
 const GAME_MODES: Record<number, string> = {
@@ -200,6 +200,7 @@ function HeroPortraitCard({
   onClick: () => void
 }) {
   const playerName = usePlayerName(player)
+  const proName = usePlayerProName(player, playerName)
   const hasScepter = (player.aghanims_scepter ?? 0) > 0
   const hasShard = (player.aghanims_shard ?? 0) > 0
 
@@ -222,6 +223,11 @@ function HeroPortraitCard({
           >
             {playerName}
           </span>
+          {proName && (
+            <span className="block text-[11px] leading-tight truncate opacity-70" style={{ color: '#e8ecef' }}>
+              [{proName}]
+            </span>
+          )}
         </div>
 
         {/* Portrait */}
@@ -873,15 +879,55 @@ export function MatchOverview({
     adv.length > 0 && (match.radiant_win ? Math.min(...adv) <= -10000 : Math.max(...adv) >= 10000)
 
   /* Score header (team view only, like the client) */
-  const scoreHeader = (
-    <div className="relative flex items-center justify-center py-4">
-      <div className="flex items-center gap-2 sm:gap-5">
+  const isTournamentMatch = match.leagueid > 0 && !!match.league?.name
+  const tournamentBanner = isTournamentMatch && (
+    <div className="flex items-center justify-center gap-2 pt-3 text-center" style={{ fontFamily: 'var(--font-dota)' }}>
+      {match.league?.tier && (
         <span
-          className="tabular-nums"
-          style={{ fontSize: 'clamp(32px, 9vw, 64px)', lineHeight: 1, color: C.green, fontFamily: 'var(--font-dota)', textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(159,191,63,0.4)' }}
+          className="shrink-0 px-1.5 py-0.5 text-[11px] font-bold uppercase"
+          style={{ background: 'rgba(255,255,255,0.06)', color: C.gold, letterSpacing: '1px' }}
         >
-          {match.radiant_score}
+          {match.league.tier}
         </span>
+      )}
+      <a
+        href={`/league/${match.leagueid}`}
+        className="truncate text-[13px] uppercase hover:underline"
+        style={{ color: '#c8d2da', letterSpacing: '1px', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}
+      >
+        {match.league?.name}
+      </a>
+    </div>
+  )
+
+  const teamLogo = (team: { name: string | null; team_id: number; logo_url: string | null } | null | undefined) =>
+    team && (
+      <a
+        href={`/team/${team.team_id}`}
+        className="flex flex-col items-center gap-1 hover:opacity-80"
+        title={team.name ?? undefined}
+      >
+        {team.logo_url && <img src={team.logo_url} alt="" className="h-8 w-8 object-contain" />}
+        <span className="max-w-[90px] truncate text-[12px] uppercase" style={{ color: '#c8d2da', letterSpacing: '0.5px', fontFamily: 'var(--font-dota)' }}>
+          {team.name}
+        </span>
+      </a>
+    )
+
+  const scoreHeader = (
+    <div>
+      {tournamentBanner}
+      <div className="relative flex items-center justify-center py-4">
+      <div className="flex items-center gap-2 sm:gap-5">
+        <div className="flex flex-col items-center gap-1.5">
+          {isTournamentMatch && teamLogo(match.radiant_team)}
+          <span
+            className="tabular-nums"
+            style={{ fontSize: 'clamp(32px, 9vw, 64px)', lineHeight: 1, color: C.green, fontFamily: 'var(--font-dota)', textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(159,191,63,0.4)' }}
+          >
+            {match.radiant_score}
+          </span>
+        </div>
         <div className="text-center" style={{ fontFamily: 'var(--font-dota)' }}>
           <div className="text-[13px] uppercase" style={{ color: '#aab8c2', letterSpacing: '2px', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
             {GAME_MODES[match.game_mode] ?? `Mode ${match.game_mode}`}
@@ -901,12 +947,15 @@ export function MatchOverview({
             {region && <span>{avgRankTier != null ? `· ${region}` : region}</span>}
           </div>
         </div>
-        <span
-          className="tabular-nums"
-          style={{ fontSize: 'clamp(32px, 9vw, 64px)', lineHeight: 1, color: C.red, fontFamily: 'var(--font-dota)', textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(201,74,56,0.4)' }}
-        >
-          {match.dire_score}
-        </span>
+        <div className="flex flex-col items-center gap-1.5">
+          {isTournamentMatch && teamLogo(match.dire_team)}
+          <span
+            className="tabular-nums"
+            style={{ fontSize: 'clamp(32px, 9vw, 64px)', lineHeight: 1, color: C.red, fontFamily: 'var(--font-dota)', textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(201,74,56,0.4)' }}
+          >
+            {match.dire_score}
+          </span>
+        </div>
       </div>
       <div className="absolute right-0 top-1/2 hidden -translate-y-1/2 text-right xl:block">
         <div
@@ -934,6 +983,7 @@ export function MatchOverview({
             Comeback
           </div>
         )}
+      </div>
       </div>
     </div>
   )

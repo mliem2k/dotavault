@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { HeroStat, MatchPlayer } from 'types'
+import { usePlayerProName } from './match_roster'
 import { itemIconUrl, ITEM_CDN_FALLBACK } from '@/lib/utils'
 
 /* Local asset first (itemIconUrl), Steam CDN only if the local file 404s. */
@@ -86,6 +87,8 @@ function PlayerRow({
   deathTimes: number[]
   teamColor: string
 }) {
+  const personaName = player.personaname ?? player.name ?? 'Unknown'
+  const proName = usePlayerProName(player, personaName)
   const snapshot = (player.gold_t?.length ?? 0) > 0
   const upToSeconds = activeMinute * 60
 
@@ -143,7 +146,8 @@ function PlayerRow({
             <div className="flex items-center gap-1 min-w-0">
               {rankMedal && <img src={rankMedal} alt="" className="h-3.5 w-3.5 flex-shrink-0 object-contain" />}
               <span className="text-[11px] text-[#c8d6e5] truncate font-medium leading-tight">
-                {player.personaname ?? player.name ?? 'Unknown'}
+                {personaName}
+                {proName && <span className="opacity-70"> [{proName}]</span>}
               </span>
             </div>
             {hero && <div className="text-[10px] text-[#4a7090] truncate leading-tight">{hero.localized_name}</div>}

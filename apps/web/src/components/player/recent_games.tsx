@@ -35,11 +35,14 @@ type SortKey = 'date' | 'hero' | 'result' | 'duration' | 'type'
 export function RecentGames({
   matches,
   heroStats,
+  leagueInfo,
 }: {
   matches: PlayerMatch[]
   heroStats: HeroStat[]
+  leagueInfo?: { match_id: number; leagueid: number; league_name: string | null }[]
 }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
+  const leagueByMatchId = new Map((leagueInfo ?? []).map((l) => [l.match_id, l]))
   const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('date', 'desc')
 
   const sorted = applySort(matches, sortDir, (a, b) => {
@@ -106,6 +109,15 @@ export function RecentGames({
               <span className="text-[14px] truncate" style={{ color: '#e8ecef' }}>
                 {hero?.localized_name ?? `Hero ${m.hero_id}`}
               </span>
+              {leagueByMatchId.get(m.match_id) && (
+                <span
+                  className="shrink-0 px-1.5 py-0.5 text-[11px] font-bold uppercase truncate max-w-[220px]"
+                  style={{ background: 'rgba(201,169,74,0.12)', color: '#c9a94a', letterSpacing: '0.5px' }}
+                  title={leagueByMatchId.get(m.match_id)?.league_name ?? undefined}
+                >
+                  {leagueByMatchId.get(m.match_id)?.league_name ?? 'Tournament'}
+                </span>
+              )}
             </div>
 
             <div className="w-[110px] shrink-0 text-center">

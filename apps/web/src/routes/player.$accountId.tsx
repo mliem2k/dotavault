@@ -68,6 +68,12 @@ function PlayerPage() {
     queryFn: () => opendota.playerMatches(accountId, { limit: 40 }),
     enabled: isNumeric,
   })
+  const matchesLeagueInfo = useQuery({
+    queryKey: ['player_matches_league_info', accountId, matches.data?.map((m) => m.match_id)],
+    queryFn: () => opendota.matchesLeagueInfo(matches.data!.map((m) => m.match_id)),
+    enabled: isNumeric && !!matches.data && matches.data.length > 0,
+    staleTime: 10 * 60 * 1000,
+  })
   const playerHeroes = useQuery({
     queryKey: ['player_heroes', accountId],
     queryFn: () => opendota.playerHeroes(accountId),
@@ -433,7 +439,7 @@ function PlayerPage() {
             (matches.isPending || heroStats.isPending ? (
               <div className="flex justify-center py-8"><Spinner /></div>
             ) : matches.data && heroStats.data ? (
-              <RecentGames matches={matches.data} heroStats={heroStats.data} />
+              <RecentGames matches={matches.data} heroStats={heroStats.data} leagueInfo={matchesLeagueInfo.data} />
             ) : null)}
           {feedTab === 'Teammates' &&
             (peers.isPending ? (

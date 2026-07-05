@@ -252,4 +252,7 @@ export type Match = {
   series_type: number | null
   chat: ChatMessage[] | null
   players: MatchPlayer[]
+  league?: { leagueid: number; ticket: string | null; banner: string | null; tier: string | null; name: string | null } | null
+  radiant_team?: { team_id: number; name: string | null; tag: string | null; logo_url: string | null } | null
+  dire_team?: { team_id: number; name: string | null; tag: string | null; logo_url: string | null } | null
 }

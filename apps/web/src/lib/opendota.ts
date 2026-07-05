@@ -208,6 +208,22 @@ export const opendota = {
       `/explorer?sql=${encodeURIComponent(sql)}`,
     ).then((r) => r.rows)
   },
+  // Which of a batch of matches were tournament matches, and which league.
+  // The plain /players/:id/matches REST endpoint has no leagueid field at
+  // all (confirmed: requesting it via project= just comes back null even
+  // for real tournament matches), so this goes through the SQL Explorer, a
+  // lookup by match_id (primary key) instead of any join, so it stays
+  // cheap even for a full page of matches. matchIds always come from an
+  // already-fetched match list (never user input), and are coerced to
+  // integers before interpolation, so this can't be injected.
+  matchesLeagueInfo: (matchIds: number[]) => {
+    const ids = matchIds.map((id) => Math.trunc(id)).filter((id) => Number.isFinite(id))
+    if (ids.length === 0) return Promise.resolve([] as { match_id: number; leagueid: number; league_name: string | null }[])
+    const sql = `SELECT matches.match_id, matches.leagueid, leagues.name as league_name FROM matches LEFT JOIN leagues USING(leagueid) WHERE matches.match_id IN (${ids.join(',')}) AND matches.leagueid > 0`
+    return get<{ rows: { match_id: number; leagueid: number; league_name: string | null }[] }>(
+      `/explorer?sql=${encodeURIComponent(sql)}`,
+    ).then((r) => r.rows)
+  },
   search: (q: string) => get<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`),
   items: () => get<Record<string, ItemConst>>('/constants/items'),
   abilities: () => get<Record<string, AbilityConst>>('/constants/abilities'),
