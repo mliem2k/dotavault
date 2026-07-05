@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProRouteImport } from './routes/pro'
 import { Route as MetaRouteImport } from './routes/meta'
+import { Route as LeaguesRouteImport } from './routes/leagues'
 import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
 import { Route as HeroesRouteImport } from './routes/heroes'
 import { Route as IndexRouteImport } from './routes/index'
@@ -19,6 +20,7 @@ import { Route as TeamTeamIdRouteImport } from './routes/team.$teamId'
 import { Route as PlayerAccountIdRouteImport } from './routes/player.$accountId'
 import { Route as MetaBracketRouteImport } from './routes/meta.$bracket'
 import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
+import { Route as LeagueLeagueIdRouteImport } from './routes/league.$leagueId'
 import { Route as HeroHeroNameRouteImport } from './routes/hero.$heroName'
 import { Route as MatchMatchIdIndexRouteImport } from './routes/match.$matchId.index'
 import { Route as MatchMatchIdTabRouteImport } from './routes/match.$matchId.$tab'
@@ -31,6 +33,11 @@ const ProRoute = ProRouteImport.update({
 const MetaRoute = MetaRouteImport.update({
   id: '/meta',
   path: '/meta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaguesRoute = LeaguesRouteImport.update({
+  id: '/leagues',
+  path: '/leagues',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeaderboardsRoute = LeaderboardsRouteImport.update({
@@ -73,6 +80,11 @@ const MatchMatchIdRoute = MatchMatchIdRouteImport.update({
   path: '/match/$matchId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeagueLeagueIdRoute = LeagueLeagueIdRouteImport.update({
+  id: '/league/$leagueId',
+  path: '/league/$leagueId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HeroHeroNameRoute = HeroHeroNameRouteImport.update({
   id: '/hero/$heroName',
   path: '/hero/$heroName',
@@ -93,9 +105,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/heroes': typeof HeroesRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/leagues': typeof LeaguesRoute
   '/meta': typeof MetaRouteWithChildren
   '/pro': typeof ProRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
+  '/league/$leagueId': typeof LeagueLeagueIdRoute
   '/match/$matchId': typeof MatchMatchIdRouteWithChildren
   '/meta/$bracket': typeof MetaBracketRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
@@ -108,8 +122,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/heroes': typeof HeroesRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/leagues': typeof LeaguesRoute
   '/pro': typeof ProRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
+  '/league/$leagueId': typeof LeagueLeagueIdRoute
   '/meta/$bracket': typeof MetaBracketRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
   '/team/$teamId': typeof TeamTeamIdRoute
@@ -122,9 +138,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/heroes': typeof HeroesRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/leagues': typeof LeaguesRoute
   '/meta': typeof MetaRouteWithChildren
   '/pro': typeof ProRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
+  '/league/$leagueId': typeof LeagueLeagueIdRoute
   '/match/$matchId': typeof MatchMatchIdRouteWithChildren
   '/meta/$bracket': typeof MetaBracketRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
@@ -139,9 +157,11 @@ export interface FileRouteTypes {
     | '/'
     | '/heroes'
     | '/leaderboards'
+    | '/leagues'
     | '/meta'
     | '/pro'
     | '/hero/$heroName'
+    | '/league/$leagueId'
     | '/match/$matchId'
     | '/meta/$bracket'
     | '/player/$accountId'
@@ -154,8 +174,10 @@ export interface FileRouteTypes {
     | '/'
     | '/heroes'
     | '/leaderboards'
+    | '/leagues'
     | '/pro'
     | '/hero/$heroName'
+    | '/league/$leagueId'
     | '/meta/$bracket'
     | '/player/$accountId'
     | '/team/$teamId'
@@ -167,9 +189,11 @@ export interface FileRouteTypes {
     | '/'
     | '/heroes'
     | '/leaderboards'
+    | '/leagues'
     | '/meta'
     | '/pro'
     | '/hero/$heroName'
+    | '/league/$leagueId'
     | '/match/$matchId'
     | '/meta/$bracket'
     | '/player/$accountId'
@@ -183,9 +207,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HeroesRoute: typeof HeroesRoute
   LeaderboardsRoute: typeof LeaderboardsRoute
+  LeaguesRoute: typeof LeaguesRoute
   MetaRoute: typeof MetaRouteWithChildren
   ProRoute: typeof ProRoute
   HeroHeroNameRoute: typeof HeroHeroNameRoute
+  LeagueLeagueIdRoute: typeof LeagueLeagueIdRoute
   MatchMatchIdRoute: typeof MatchMatchIdRouteWithChildren
   PlayerAccountIdRoute: typeof PlayerAccountIdRoute
   TeamTeamIdRoute: typeof TeamTeamIdRoute
@@ -205,6 +231,13 @@ declare module '@tanstack/react-router' {
       path: '/meta'
       fullPath: '/meta'
       preLoaderRoute: typeof MetaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leagues': {
+      id: '/leagues'
+      path: '/leagues'
+      fullPath: '/leagues'
+      preLoaderRoute: typeof LeaguesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/leaderboards': {
@@ -263,6 +296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatchMatchIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/league/$leagueId': {
+      id: '/league/$leagueId'
+      path: '/league/$leagueId'
+      fullPath: '/league/$leagueId'
+      preLoaderRoute: typeof LeagueLeagueIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/hero/$heroName': {
       id: '/hero/$heroName'
       path: '/hero/$heroName'
@@ -317,9 +357,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HeroesRoute: HeroesRoute,
   LeaderboardsRoute: LeaderboardsRoute,
+  LeaguesRoute: LeaguesRoute,
   MetaRoute: MetaRouteWithChildren,
   ProRoute: ProRoute,
   HeroHeroNameRoute: HeroHeroNameRoute,
+  LeagueLeagueIdRoute: LeagueLeagueIdRoute,
   MatchMatchIdRoute: MatchMatchIdRouteWithChildren,
   PlayerAccountIdRoute: PlayerAccountIdRoute,
   TeamTeamIdRoute: TeamTeamIdRoute,

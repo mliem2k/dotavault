@@ -128,6 +128,53 @@ export const opendota = {
       }[]
     >('/teams'),
   proPlayers: () => get<ProPlayer[]>('/proPlayers'),
+  // Full league directory (~10k rows), used for the /leagues browser and to
+  // resolve a league's own name/tier before its match data loads.
+  leaguesList: () => get<{ leagueid: number; name: string; tier: string | null }[]>('/leagues'),
+  // League report queries, all scoped by `WHERE leagueid = ${id}`. id is
+  // always the numeric route param (validated by the caller), never free
+  // text, so string interpolation here can't be injected.
+  leagueSummary: (id: number) => {
+    const sql = `SELECT count(*)::int as total_matches, min(start_time) as first_match, max(start_time) as last_match FROM matches WHERE leagueid = ${id}`
+    return get<{ rows: { total_matches: number; first_match: number | null; last_match: number | null }[] }>(
+      `/explorer?sql=${encodeURIComponent(sql)}`,
+    ).then((r) => r.rows[0])
+  },
+  leagueHeroStats: (id: number) => {
+    const sql = `SELECT pm.hero_id, count(*)::int as picks, sum(CASE WHEN (pm.player_slot < 128) = m.radiant_win THEN 1 ELSE 0 END)::int as wins FROM player_matches pm JOIN matches m ON pm.match_id = m.match_id WHERE m.leagueid = ${id} GROUP BY pm.hero_id ORDER BY picks DESC`
+    return get<{ rows: { hero_id: number; picks: number; wins: number }[] }>(
+      `/explorer?sql=${encodeURIComponent(sql)}`,
+    ).then((r) => r.rows)
+  },
+  leagueBanStats: (id: number) => {
+    const sql = `SELECT (pb->>'hero_id')::int as hero_id, count(*)::int as bans FROM matches, unnest(picks_bans) pb WHERE leagueid = ${id} AND (pb->>'is_pick')::boolean = false GROUP BY hero_id ORDER BY bans DESC`
+    return get<{ rows: { hero_id: number; bans: number }[] }>(`/explorer?sql=${encodeURIComponent(sql)}`).then(
+      (r) => r.rows,
+    )
+  },
+  leagueTeamStandings: (id: number) => {
+    const sql = `SELECT team_id, sum(wins)::int as wins, sum(losses)::int as losses FROM (SELECT radiant_team_id as team_id, CASE WHEN radiant_win THEN 1 ELSE 0 END as wins, CASE WHEN NOT radiant_win THEN 1 ELSE 0 END as losses FROM matches WHERE leagueid = ${id} AND radiant_team_id IS NOT NULL UNION ALL SELECT dire_team_id as team_id, CASE WHEN NOT radiant_win THEN 1 ELSE 0 END as wins, CASE WHEN radiant_win THEN 1 ELSE 0 END as losses FROM matches WHERE leagueid = ${id} AND dire_team_id IS NOT NULL) t GROUP BY team_id ORDER BY wins DESC`
+    return get<{ rows: { team_id: number; wins: number; losses: number }[] }>(
+      `/explorer?sql=${encodeURIComponent(sql)}`,
+    ).then((r) => r.rows)
+  },
+  leagueMatches: (id: number, limit = 50, offset = 0) => {
+    const lim = Math.min(200, Math.max(1, Math.trunc(limit)))
+    const off = Math.max(0, Math.trunc(offset))
+    const sql = `SELECT match_id, start_time, duration, radiant_team_id, dire_team_id, radiant_win, radiant_score, dire_score FROM matches WHERE leagueid = ${id} ORDER BY start_time DESC LIMIT ${lim} OFFSET ${off}`
+    return get<{
+      rows: {
+        match_id: number
+        start_time: number
+        duration: number
+        radiant_team_id: number | null
+        dire_team_id: number | null
+        radiant_win: boolean
+        radiant_score: number | null
+        dire_score: number | null
+      }[]
+    }>(`/explorer?sql=${encodeURIComponent(sql)}`).then((r) => r.rows)
+  },
   search: (q: string) => get<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`),
   items: () => get<Record<string, ItemConst>>('/constants/items'),
   abilities: () => get<Record<string, AbilityConst>>('/constants/abilities'),

@@ -27,6 +27,9 @@ export function Navbar() {
           <Link to="/pro" className="text-white transition-colors hover:text-[#c9a94a]">
             Pro
           </Link>
+          <Link to="/leagues" className="text-white transition-colors hover:text-[#c9a94a]">
+            Leagues
+          </Link>
           <Link to="/leaderboards" className="text-white transition-colors hover:text-[#c9a94a]">
             Leaderboards
           </Link>
