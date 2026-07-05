@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { opendota } from '@/lib/opendota'
 import {
-  getCachedReplay,
   getReplayStatus,
   type PositionPoint,
   type ReplayJobPhase,
@@ -12,6 +11,7 @@ import {
 } from '@/lib/replay_parser'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { type ObjectiveEvent, extractObjectiveEvents } from './match_objectives'
+import { PlayerNameLink } from './match_roster'
 import { formatClock, GameTimeSlider, itemsAtTime, statsAtTime, teamScoreAtTime, type TimelineMarker } from './match_time'
 
 /* Replay / playback tab, laid out like Stratz's playback page: team panels
@@ -24,10 +24,10 @@ import { formatClock, GameTimeSlider, itemsAtTime, statsAtTime, teamScoreAtTime,
    (NOT 0-127). By default heroes interpolate between those anchors, dimmed
    ("ghost") outside their known range.
 
-   "Full Playback" upgrades to true per-second movement plus live HP/mana/
-   level: previously parsed matches load instantly from our own DB cache;
-   otherwise our Go service parses Valve's raw replay on demand, which only
-   works while Valve still serves the file. */
+   "Parse Details" upgrades to true per-second movement plus live HP/mana/
+   level: previously parsed matches load instantly from our own DB cache on
+   mount (no click needed); otherwise our Go service parses Valve's raw
+   replay on demand, which only works while Valve still serves the file. */
 
 const MAP_MIN = 64
 const MAP_MAX = 192
@@ -311,37 +311,47 @@ function PlayerRow({
   const dead = sample != null && sample.hp === 0
   const items = itemsAtTime(player, idToName, timeSec, match.duration, itemConst)
 
+  const portrait = (
+    <div className="relative shrink-0">
+      <img
+        src={hero ? heroIconUrl(hero.name) : ''}
+        alt=""
+        style={{ width: 30, height: 30, filter: dead ? 'grayscale(1)' : undefined }}
+        onError={(e) => {
+          if (!hero) return
+          const img = e.currentTarget
+          img.onerror = null
+          img.src = heroIconFromPath(hero.icon)
+        }}
+      />
+      <span
+        className="absolute -bottom-1 -right-1 flex items-center justify-center text-[9px] tabular-nums leading-none"
+        style={{
+          minWidth: 13,
+          height: 13,
+          background: '#0d1012',
+          border: '1px solid #2c3236',
+          color: C.gold,
+        }}
+      >
+        {level}
+      </span>
+    </div>
+  )
+
   return (
     <div className="px-2 py-1.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', opacity: dead ? 0.55 : 1 }}>
       <div className="flex items-center gap-1.5">
-        <div className="relative shrink-0">
-          <img
-            src={hero ? heroIconUrl(hero.name) : ''}
-            alt=""
-            style={{ width: 30, height: 30, filter: dead ? 'grayscale(1)' : undefined }}
-            onError={(e) => {
-              if (!hero) return
-              const img = e.currentTarget
-              img.onerror = null
-              img.src = heroIconFromPath(hero.icon)
-            }}
-          />
-          <span
-            className="absolute -bottom-1 -right-1 flex items-center justify-center text-[9px] tabular-nums leading-none"
-            style={{
-              minWidth: 13,
-              height: 13,
-              background: '#0d1012',
-              border: '1px solid #2c3236',
-              color: C.gold,
-            }}
-          >
-            {level}
-          </span>
-        </div>
+        {player.account_id ? (
+          <a href={`/player/${player.account_id}`} className="shrink-0 hover:brightness-125">
+            {portrait}
+          </a>
+        ) : (
+          portrait
+        )}
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[11px] leading-tight" style={{ color: C.text }}>
-            {player.personaname ?? 'Anonymous'}
+          <div className="truncate text-[11px] leading-tight">
+            <PlayerNameLink player={player} style={{ color: C.text }} />
           </div>
           <div className="flex items-center gap-1.5 text-[11px] tabular-nums leading-tight">
             <span style={{ color: C.white }}>{stats.kills}</span>
@@ -482,6 +492,7 @@ export function ReplayViewer({
   const [fullPlaybackState, setFullPlaybackState] = useState<'idle' | 'working' | 'unavailable' | 'error' | 'done'>('idle')
   const [workPhase, setWorkPhase] = useState<ReplayJobPhase | null>(null)
   const [denseBySlot, setDenseBySlot] = useState<Map<number, PositionPoint[]> | null>(null)
+  const [fogTeam, setFogTeam] = useState<'off' | 'radiant' | 'dire'>('off')
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const heroMap = useMemo(() => new Map(heroStats.map((h) => [h.id, h])), [heroStats])
@@ -509,18 +520,6 @@ export function ReplayViewer({
     setFullPlaybackState('done')
   }
 
-  // Previously parsed matches load their stored positions instantly.
-  useEffect(() => {
-    let cancelled = false
-    getCachedReplay(match.match_id).then((cached) => {
-      if (cached && !cancelled) adoptResult(cached.positions)
-    })
-    return () => {
-      cancelled = true
-      if (pollRef.current) clearInterval(pollRef.current)
-    }
-  }, [match.match_id])
-
   function applyStatus(status: ReplayStatus): boolean {
     switch (status.kind) {
       case 'done':
@@ -541,22 +540,42 @@ export function ReplayViewer({
     }
   }
 
+  // The polling doubles as a keep-alive for the scale-to-zero API machine.
+  function startPolling() {
+    if (pollRef.current) clearInterval(pollRef.current)
+    pollRef.current = setInterval(async () => {
+      try {
+        const s = await getReplayStatus(match.match_id)
+        if (s.kind !== 'none') applyStatus(s)
+      } catch {}
+    }, 6000)
+  }
+
+  // Opening the tab checks for a result or job already in progress (e.g. a
+  // previous parse, or one started from another tab) and adopts/resumes it
+  // without waiting for a "Full Playback" click.
+  useEffect(() => {
+    let cancelled = false
+    getReplayStatus(match.match_id).then((status) => {
+      if (cancelled) return
+      if (applyStatus(status)) return
+      if (status.kind === 'working') startPolling()
+    })
+    return () => {
+      cancelled = true
+      if (pollRef.current) clearInterval(pollRef.current)
+    }
+  }, [match.match_id])
+
   // One click starts the server-side job (which requests an OpenDota parse
   // first when the replay salt isn't known yet); after that we just poll.
-  // The polling doubles as a keep-alive for the scale-to-zero API machine.
   async function fetchFullPlayback() {
     setFullPlaybackState('working')
     setWorkPhase(match.replay_salt != null ? 'parsing' : 'requesting_parse')
     try {
       const status = await startReplayParse(match.match_id, match.cluster, match.replay_salt)
       if (applyStatus(status)) return
-      if (pollRef.current) clearInterval(pollRef.current)
-      pollRef.current = setInterval(async () => {
-        try {
-          const s = await getReplayStatus(match.match_id)
-          if (s.kind !== 'none') applyStatus(s)
-        } catch {}
-      }, 6000)
+      startPolling()
     } catch {
       setFullPlaybackState('error')
     }
@@ -651,9 +670,67 @@ export function ReplayViewer({
         ctx.restore()
       })
 
-      // Live observer wards.
+      /* Fog of war, same emulation as the Vision tab: darken the map, then
+         punch out the fog team's vision sources (living observer wards,
+         alive heroes, standing buildings). Radii are Dota's day-vision
+         ranges scaled onto the 16384-unit map. */
+      const reveals: { x: number; y: number; r: number }[] = []
+      if (fogTeam !== 'off') {
+        const WARD_R = size * (1600 / 16384)
+        const HERO_R = size * (1800 / 16384)
+        const TOWER_R = size * (1900 / 16384)
+        const BUILDING_R = size * (900 / 16384)
+
+        for (const w of wardLives) {
+          if (w.team !== fogTeam || t < w.start || t > w.end) continue
+          reveals.push({ x: toCanvas(w.x, size), y: size - toCanvas(w.y, size), r: WARD_R })
+        }
+        BUILDINGS.forEach((b, i) => {
+          if (b.team !== fogTeam || t >= buildingDeaths[i]) return
+          reveals.push({
+            x: toCanvas(b.x, size),
+            y: size - toCanvas(b.y, size),
+            r: b.kind === 'tower' ? TOWER_R : BUILDING_R,
+          })
+        })
+        match.players.forEach((player, idx) => {
+          const team = player.player_slot < 128 ? 'radiant' : 'dire'
+          if (team !== fogTeam) return
+          const pos = interpolate(waypointsBySlot[idx] ?? [], t)
+          if (!pos) return
+          const sample = denseBySlot ? sampleAt(denseBySlot.get(player.player_slot), t) : null
+          if (sample != null && sample.hp === 0) return // dead heroes see nothing
+          reveals.push({ x: toCanvas(pos.x, size), y: size - toCanvas(pos.y, size), r: HERO_R })
+        })
+
+        const fog = document.createElement('canvas')
+        fog.width = size
+        fog.height = size
+        const fctx = fog.getContext('2d')
+        if (fctx) {
+          fctx.fillStyle = 'rgba(4,8,12,0.82)'
+          fctx.fillRect(0, 0, size, size)
+          fctx.globalCompositeOperation = 'destination-out'
+          for (const rv of reveals) {
+            const g = fctx.createRadialGradient(rv.x, rv.y, rv.r * 0.55, rv.x, rv.y, rv.r)
+            g.addColorStop(0, 'rgba(0,0,0,1)')
+            g.addColorStop(1, 'rgba(0,0,0,0)')
+            fctx.fillStyle = g
+            fctx.beginPath()
+            fctx.arc(rv.x, rv.y, rv.r, 0, Math.PI * 2)
+            fctx.fill()
+          }
+          ctx.drawImage(fog, 0, 0)
+        }
+      }
+      const inVision = (cx: number, cy: number) =>
+        reveals.some((rv) => (cx - rv.x) ** 2 + (cy - rv.y) ** 2 <= rv.r * rv.r)
+
+      // Live observer wards. Under fog, enemy wards are hidden (sentry
+      // true-sight isn't simulated here).
       for (const w of wardLives) {
         if (t < w.start || t > w.end) continue
+        if (fogTeam !== 'off' && w.team !== fogTeam) continue
         const cx = toCanvas(w.x, size)
         const cy = size - toCanvas(w.y, size)
         ctx.save()
@@ -676,6 +753,9 @@ export function ReplayViewer({
         const cx = toCanvas(pos.x, size)
         const cy = size - toCanvas(pos.y, size)
         const isRadiant = player.player_slot < 128
+        // Under fog, enemy heroes only appear inside the revealed area.
+        const team = isRadiant ? 'radiant' : 'dire'
+        if (fogTeam !== 'off' && team !== fogTeam && !inVision(cx, cy)) return
         const icon = iconImgsRef.current.get(player.hero_id)
         const r = 13
         const alpha = pos.ghost ? 0.4 : dead ? 0.55 : 1
@@ -709,7 +789,7 @@ export function ReplayViewer({
         ctx.restore()
       })
     },
-    [match, waypointsBySlot, activeTeamfight, buildingDeaths, wardLives, denseBySlot],
+    [match, waypointsBySlot, activeTeamfight, buildingDeaths, wardLives, denseBySlot, fogTeam],
   )
 
   useEffect(() => {
@@ -849,8 +929,8 @@ export function ReplayViewer({
                       ? 'Waiting For Replay Info…'
                       : 'Parsing Replay…'
                   : fullPlaybackState === 'error'
-                    ? 'Retry Full Playback'
-                    : 'Full Playback'}
+                    ? 'Retry Parse Details'
+                    : 'Parse Details'}
               </button>
             </div>
           )}
@@ -877,7 +957,7 @@ export function ReplayViewer({
                 No position data from OpenDota for this match.
                 {fullPlaybackState === 'working'
                   ? ' Working on it, this can take a few minutes for unparsed matches…'
-                  : ' Use Full Playback above to parse the replay directly.'}
+                  : ' Use Parse Details above to parse the replay directly.'}
               </p>
             </div>
           )}
@@ -901,6 +981,23 @@ export function ReplayViewer({
                 style={{ background: speed === s ? '#2c3236' : 'transparent', color: speed === s ? C.white : C.dim }}
               >
                 {s}x
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center shrink-0" style={{ border: '1px solid #2c3236' }} title="Fog of war: show only what this team can see">
+            <span className="px-2 text-[11px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>Fog</span>
+            {(['off', 'radiant', 'dire'] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFogTeam(f)}
+                className="px-2 py-1.5 text-[12px] uppercase cursor-pointer"
+                style={{
+                  background: fogTeam === f ? '#2c3236' : 'transparent',
+                  color: fogTeam === f ? (f === 'radiant' ? C.green : f === 'dire' ? C.red : C.white) : C.dim,
+                }}
+              >
+                {f === 'off' ? 'Off' : f === 'radiant' ? 'Rad' : 'Dire'}
               </button>
             ))}
           </div>
