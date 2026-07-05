@@ -55,13 +55,6 @@ function toStatus(data: unknown, error: { status: unknown; value: unknown } | nu
   return { kind: 'none' }
 }
 
-// One-shot cache check: the stored parse if this match was ever parsed
-// before, or null (never triggers any work server-side).
-export async function getCachedReplay(matchId: number): Promise<ReplayPositions | null> {
-  const { data } = await api.replay({ matchId: String(matchId) }).get()
-  return isResult(data) ? data : null
-}
-
 // Start (or re-attach to) the server-side parse job. Pass cluster/salt when
 // the match already knows them so the server can skip the OpenDota wait.
 export async function startReplayParse(

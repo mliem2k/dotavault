@@ -195,6 +195,8 @@ export type MatchPlayer = {
   buyback_count?: number | null
   pings?: number | null
   total_gold?: number | null
+  runes_log?: { time: number; key: string }[] | null
+  buyback_log?: { time: number; slot: number; player_slot: number }[] | null
 }
 
 export type Match = {

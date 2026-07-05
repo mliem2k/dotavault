@@ -12,12 +12,13 @@ import {
 
 const SIDEBAR_W = 252
 
-type Mode = 'team' | 'networth' | 'level' | 'items'
+type Mode = 'team' | 'networth' | 'level' | 'lasthits' | 'items'
 
 const MODE_LABELS: Record<Mode, string> = {
   team: 'Team XP and Net Worth',
   networth: 'Player Net Worth',
   level: 'Player Level',
+  lasthits: 'Player Last Hits',
   items: 'Player Items',
 }
 
@@ -187,15 +188,15 @@ function PlayerLinesChart({
 }: {
   match: Match
   heroStats: HeroStat[]
-  metric: 'networth' | 'level'
+  metric: 'networth' | 'level' | 'lasthits'
   visibleSlots: Set<number>
   vbH: number
 }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const players = match.players
   const series = players.map((p) => {
-    const raw = metric === 'networth' ? (p.gold_t ?? []) : (p.xp_t ?? [])
-    const data = metric === 'networth' ? raw : raw.map(levelFromXp)
+    const raw = metric === 'networth' ? (p.gold_t ?? []) : metric === 'lasthits' ? (p.lh_t ?? []) : (p.xp_t ?? [])
+    const data = metric === 'level' ? raw.map(levelFromXp) : raw
     return { player: p, data }
   })
   const n = Math.max(0, ...series.map((s) => s.data.length))
@@ -429,7 +430,7 @@ export function MatchGraphs({
 }) {
   // All four client modes are always offered; modes without parsed data render
   // the "unparsed" placeholder in the chart area.
-  const available: Mode[] = ['team', 'networth', 'level', 'items']
+  const available: Mode[] = ['team', 'networth', 'level', 'lasthits', 'items']
 
   const [mode, setMode] = useState<Mode>('team')
   const activeMode = mode
@@ -451,7 +452,7 @@ export function MatchGraphs({
       return next
     })
   }
-  const perPlayerMode = activeMode === 'networth' || activeMode === 'level'
+  const perPlayerMode = activeMode === 'networth' || activeMode === 'level' || activeMode === 'lasthits'
 
   // Position presets derived from lane role + farm priority, index 0..4 = pos 1..5.
   const { radiant: radTeam, dire: direTeam } = orderedTeams(match)
@@ -580,6 +581,7 @@ export function MatchGraphs({
             {activeMode === 'team' && <TeamAdvantageChart match={match} vbH={rosterH - 46} />}
             {activeMode === 'networth' && <PlayerLinesChart match={match} heroStats={heroStats} metric="networth" visibleSlots={visibleSlots} vbH={rosterH - 22} />}
             {activeMode === 'level' && <PlayerLinesChart match={match} heroStats={heroStats} metric="level" visibleSlots={visibleSlots} vbH={rosterH - 22} />}
+            {activeMode === 'lasthits' && <PlayerLinesChart match={match} heroStats={heroStats} metric="lasthits" visibleSlots={visibleSlots} vbH={rosterH - 22} />}
             {activeMode === 'items' && <PlayerItemsTimeline match={match} itemConst={itemConst} rowH={rowH} headerH={headerH} />}
           </div>
         </div>

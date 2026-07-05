@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { HeroBenchmarks, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
+import { lobbyTypeName, regionName } from '@/lib/dotaconst'
 import { opendota } from '@/lib/opendota'
+import { rankBadge, rankName } from '@/lib/rank'
 import {
   cdnFallback,
   formatDuration,
@@ -390,6 +392,195 @@ function PlayStyleBars({ style }: { style: PlayStyle }) {
 /* vs averages box                                                     */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/* Lane results (who won each physical lane by NW+XP at 10 minutes)    */
+/* ------------------------------------------------------------------ */
+
+function laneScoreAt10(players: MatchPlayer[]): number {
+  return players.reduce((s, p) => {
+    const g = p.gold_t?.[10] ?? 0
+    const x = p.xp_t?.[10] ?? 0
+    return s + g + x
+  }, 0)
+}
+
+function HeroIconRow({ players, heroMap }: { players: MatchPlayer[]; heroMap: Map<number, HeroStat> }) {
+  return (
+    <div className="flex gap-1">
+      {players.map((p) => {
+        const hero = heroMap.get(p.hero_id)
+        return (
+          <img
+            key={p.player_slot}
+            src={hero ? heroIconUrl(hero.name) : ''}
+            alt=""
+            title={hero?.localized_name}
+            style={{ width: 28, height: 28 }}
+            onError={(e) => {
+              if (!hero) return
+              const img = e.currentTarget
+              img.onerror = null
+              img.src = heroIconFromPath(hero.icon)
+            }}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+function LaneResults({ match, heroMap }: { match: Match; heroMap: Map<number, HeroStat> }) {
+  const hasData = match.players.some((p) => (p.gold_t?.length ?? 0) > 10 && p.lane_role != null)
+  if (!hasData) return null
+
+  const radiant = match.players.filter((p) => p.player_slot < 128)
+  const dire = match.players.filter((p) => p.player_slot >= 128)
+  // Physical lanes: Radiant safe lane and Dire off lane share the bottom
+  // lane, and vice versa for top. Mid faces mid.
+  const lanes: { name: string; rad: MatchPlayer[]; dir: MatchPlayer[] }[] = [
+    { name: 'Top Lane', rad: radiant.filter((p) => p.lane_role === 3), dir: dire.filter((p) => p.lane_role === 1) },
+    { name: 'Middle Lane', rad: radiant.filter((p) => p.lane_role === 2), dir: dire.filter((p) => p.lane_role === 2) },
+    { name: 'Bottom Lane', rad: radiant.filter((p) => p.lane_role === 1), dir: dire.filter((p) => p.lane_role === 3) },
+  ]
+
+  return (
+    <div className="mx-auto mt-6 flex max-w-[900px] justify-center gap-3" style={{ fontFamily: 'var(--font-dota)' }}>
+      {lanes.map((lane) => {
+        const rs = laneScoreAt10(lane.rad)
+        const ds = laneScoreAt10(lane.dir)
+        const ratio = ds > 0 ? rs / ds : rs > 0 ? 2 : 1
+        const verdict = ratio >= 1.15 ? 'radiant' : ratio <= 0.87 ? 'dire' : 'even'
+        const verdictText = verdict === 'radiant' ? 'Radiant Won' : verdict === 'dire' ? 'Dire Won' : 'Even'
+        const verdictColor = verdict === 'radiant' ? C.green : verdict === 'dire' ? C.red : '#aab8c2'
+        return (
+          <div
+            key={lane.name}
+            className="flex flex-1 flex-col items-center gap-2 px-4 py-3"
+            style={{ background: 'rgba(10,12,14,0.72)', border: '1px solid #22282c' }}
+            title={`Net worth + XP at 10:00: Radiant ${laneScoreAt10(lane.rad).toLocaleString()} vs Dire ${laneScoreAt10(lane.dir).toLocaleString()}`}
+          >
+            <div className="flex items-center gap-2">
+              <HeroIconRow players={lane.rad} heroMap={heroMap} />
+              <span className="text-[11px] uppercase" style={{ color: '#5a6066' }}>vs</span>
+              <HeroIconRow players={lane.dir} heroMap={heroMap} />
+            </div>
+            <div className="text-[13px] uppercase" style={{ color: verdictColor, letterSpacing: '1px' }}>{verdictText}</div>
+            <div className="text-[11px] uppercase" style={{ color: '#5a6066', letterSpacing: '1px' }}>{lane.name}</div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Kill breakdown (kills per player across five time windows)          */
+/* ------------------------------------------------------------------ */
+
+function KillBreakdown({ match, heroMap }: { match: Match; heroMap: Map<number, HeroStat> }) {
+  const hasData = match.players.some((p) => (p.kills_log?.length ?? 0) > 0)
+  if (!hasData || match.duration <= 0) return null
+
+  const BUCKETS = 5
+  const bucketOf = (t: number) => Math.min(BUCKETS - 1, Math.max(0, Math.floor((t / match.duration) * BUCKETS)))
+  const perPlayer = new Map<number, number[]>()
+  for (const p of match.players) {
+    const buckets = Array(BUCKETS).fill(0) as number[]
+    for (const k of p.kills_log ?? []) buckets[bucketOf(k.time)]++
+    perPlayer.set(p.player_slot, buckets)
+  }
+
+  const bucketLabel = (i: number) =>
+    `${formatDuration((match.duration / BUCKETS) * i)}–${formatDuration((match.duration / BUCKETS) * (i + 1))}`
+
+  const renderTeam = (players: MatchPlayer[], team: 'radiant' | 'dire') => {
+    const totals = Array(BUCKETS).fill(0) as number[]
+    for (const p of players) {
+      const b = perPlayer.get(p.player_slot)
+      if (b) b.forEach((v, i) => { totals[i] += v })
+    }
+    const teamTotal = totals.reduce((s, v) => s + v, 0)
+    const maxCell = Math.max(1, ...players.flatMap((p) => perPlayer.get(p.player_slot) ?? []))
+    return (
+      <div className="flex-1" style={{ background: 'rgba(10,12,14,0.72)', border: '1px solid #22282c' }}>
+        <div className="flex items-center justify-between px-3 py-2" style={{ background: 'rgba(8,10,12,0.7)' }}>
+          <span className="text-[13px] uppercase" style={{ color: team === 'radiant' ? C.green : C.red, letterSpacing: '2px' }}>
+            {team === 'radiant' ? 'Radiant' : 'Dire'}
+          </span>
+          <span className="text-[13px] tabular-nums" style={{ color: '#fff' }}>{teamTotal} kills</span>
+        </div>
+        {players.map((p) => {
+          const hero = heroMap.get(p.hero_id)
+          const buckets = perPlayer.get(p.player_slot) ?? []
+          const total = buckets.reduce((s, v) => s + v, 0)
+          return (
+            <div key={p.player_slot} className="flex items-center gap-2 px-3 py-1" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+              <img
+                src={hero ? heroIconUrl(hero.name) : ''}
+                alt=""
+                title={hero?.localized_name}
+                style={{ width: 22, height: 22 }}
+                onError={(e) => {
+                  if (!hero) return
+                  const img = e.currentTarget
+                  img.onerror = null
+                  img.src = heroIconFromPath(hero.icon)
+                }}
+              />
+              <span className="w-6 shrink-0 text-right text-[12px] tabular-nums" style={{ color: '#fff' }}>{total}</span>
+              <div className="flex flex-1 gap-1">
+                {buckets.map((v, i) => (
+                  <div
+                    // biome-ignore lint/suspicious/noArrayIndexKey: fixed buckets
+                    key={i}
+                    className="flex h-[18px] flex-1 items-center justify-center text-[11px] tabular-nums"
+                    title={`${bucketLabel(i)}: ${v} kills`}
+                    style={{
+                      background: v > 0 ? `rgba(${team === 'radiant' ? '159,191,63' : '201,74,56'},${0.12 + 0.5 * (v / maxCell)})` : 'rgba(255,255,255,0.03)',
+                      color: v > 0 ? '#fff' : '#4a5157',
+                    }}
+                  >
+                    {v || ''}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+        <div className="flex items-center gap-2 px-3 py-1" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <span style={{ width: 22 }} />
+          <span className="w-6 shrink-0" />
+          <div className="flex flex-1 gap-1">
+            {totals.map((v, i) => (
+              <div
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed buckets
+                key={i}
+                className="flex h-[18px] flex-1 items-center justify-center text-[11px] tabular-nums"
+                title={bucketLabel(i)}
+                style={{ color: '#aab8c2' }}
+              >
+                {v}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-auto mt-4 max-w-[1080px]" style={{ fontFamily: 'var(--font-dota)' }}>
+      <div className="mb-2 text-center text-[13px] uppercase" style={{ color: '#aab8c2', letterSpacing: '2px' }}>
+        Kill Breakdown
+      </div>
+      <div className="flex gap-3">
+        {renderTeam(match.players.filter((p) => p.player_slot < 128), 'radiant')}
+        {renderTeam(match.players.filter((p) => p.player_slot >= 128), 'dire')}
+      </div>
+    </div>
+  )
+}
+
 function DeltaValue({ value, delta }: { value: number; delta: number | null }) {
   const color = delta == null ? '#e8ecef' : delta >= 0 ? '#7ac74f' : '#d95f4a'
   return (
@@ -669,6 +860,18 @@ export function MatchOverview({
   const startDate = new Date(match.start_time * 1000)
   const dateStr = `${startDate.getMonth() + 1}/${startDate.getDate()}/${startDate.getFullYear()} ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`
 
+  const region = regionName(match.cluster)
+  const lobby = lobbyTypeName(match.lobby_type)
+  // Median rank tier across ranked players (rank_tier is null for hidden
+  // profiles), same idea as the "average rank" other sites show.
+  const tiers = match.players.map((p) => p.rank_tier).filter((t): t is number => t != null).sort((a, b) => a - b)
+  const avgRankTier = tiers.length ? tiers[Math.floor(tiers.length / 2)] : null
+  const avgBadge = rankBadge(avgRankTier)
+  // Comeback: the winner overcame a 10k+ gold deficit at some point.
+  const adv = match.radiant_gold_adv ?? []
+  const comeback =
+    adv.length > 0 && (match.radiant_win ? Math.min(...adv) <= -10000 : Math.max(...adv) >= 10000)
+
   /* Score header (team view only, like the client) */
   const scoreHeader = (
     <div className="relative flex items-center justify-center py-4">
@@ -682,9 +885,20 @@ export function MatchOverview({
         <div className="text-center" style={{ fontFamily: 'var(--font-dota)' }}>
           <div className="text-[13px] uppercase" style={{ color: '#aab8c2', letterSpacing: '2px', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
             {GAME_MODES[match.game_mode] ?? `Mode ${match.game_mode}`}
+            {lobby && lobby !== 'Normal' ? ` · ${lobby}` : ''}
           </div>
           <div className="text-[13px] uppercase" style={{ color: '#93a2ad', letterSpacing: '2px', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
             Duration <span className="ml-1 text-[17px]" style={{ color: '#ffffff', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>{formatDuration(match.duration)}</span>
+          </div>
+          <div className="flex items-center justify-center gap-1.5 text-[12px] uppercase" style={{ color: '#93a2ad', letterSpacing: '2px', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
+            {avgBadge && (
+              <span className="relative inline-block" style={{ width: 22, height: 22 }} title={rankName(avgRankTier)}>
+                <img src={avgBadge.medal} alt="" className="h-full w-full" />
+                {avgBadge.stars && <img src={avgBadge.stars} alt="" className="absolute inset-0 h-full w-full" />}
+              </span>
+            )}
+            {avgRankTier != null && <span>{rankName(avgRankTier)}</span>}
+            {region && <span>{avgRankTier != null ? `· ${region}` : region}</span>}
           </div>
         </div>
         <span
@@ -694,16 +908,32 @@ export function MatchOverview({
           {match.dire_score}
         </span>
       </div>
-      <div
-        className="absolute right-0 top-1/2 -translate-y-1/2 hidden xl:block"
-        style={{
-          fontSize: 44,
-          color: winnerColor,
-          fontFamily: 'var(--font-dota)',
-          textShadow: `0 2px 8px rgba(0,0,0,0.9), 0 0 24px ${winnerColor}88`,
-        }}
-      >
-        {winnerLabel}
+      <div className="absolute right-0 top-1/2 hidden -translate-y-1/2 text-right xl:block">
+        <div
+          style={{
+            fontSize: 44,
+            color: winnerColor,
+            fontFamily: 'var(--font-dota)',
+            textShadow: `0 2px 8px rgba(0,0,0,0.9), 0 0 24px ${winnerColor}88`,
+          }}
+        >
+          {winnerLabel}
+        </div>
+        {comeback && (
+          <div
+            className="mt-1 inline-block px-2.5 py-0.5 text-[13px] uppercase"
+            style={{
+              color: C.gold,
+              border: '1px solid rgba(242,201,76,0.5)',
+              background: 'rgba(242,201,76,0.08)',
+              letterSpacing: '2px',
+              fontFamily: 'var(--font-dota)',
+            }}
+            title="The winning team overcame a 10,000+ gold deficit"
+          >
+            Comeback
+          </div>
+        )}
       </div>
     </div>
   )
@@ -789,6 +1019,8 @@ export function MatchOverview({
               ))}
             </div>
           </div>
+          <LaneResults match={match} heroMap={heroMap} />
+          <KillBreakdown match={match} heroMap={heroMap} />
           {footer}
         </div>
       </div>
