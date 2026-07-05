@@ -875,10 +875,10 @@ export function MatchOverview({
   /* Score header (team view only, like the client) */
   const scoreHeader = (
     <div className="relative flex items-center justify-center py-4">
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-2 sm:gap-5">
         <span
           className="tabular-nums"
-          style={{ fontSize: 64, lineHeight: 1, color: C.green, fontFamily: 'var(--font-dota)', textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(159,191,63,0.4)' }}
+          style={{ fontSize: 'clamp(32px, 9vw, 64px)', lineHeight: 1, color: C.green, fontFamily: 'var(--font-dota)', textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(159,191,63,0.4)' }}
         >
           {match.radiant_score}
         </span>
@@ -903,7 +903,7 @@ export function MatchOverview({
         </div>
         <span
           className="tabular-nums"
-          style={{ fontSize: 64, lineHeight: 1, color: C.red, fontFamily: 'var(--font-dota)', textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(201,74,56,0.4)' }}
+          style={{ fontSize: 'clamp(32px, 9vw, 64px)', lineHeight: 1, color: C.red, fontFamily: 'var(--font-dota)', textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(201,74,56,0.4)' }}
         >
           {match.dire_score}
         </span>
@@ -993,10 +993,14 @@ export function MatchOverview({
   /* ---- Team view (nothing selected) ---- */
   if (!anySelected) {
     return (
-      <div className="overflow-x-auto">
-        <div style={{ minWidth: 1080 }}>
-          {scoreHeader}
-          <div className="flex items-start justify-center gap-1 mt-2">
+      <div>
+        {scoreHeader}
+        {/* Only the hero portrait row needs the wide fixed canvas (ten
+            118px-wide cards can't meaningfully reflow); everything else
+            stays fluid so it doesn't get dragged into a horizontal scroll
+            it doesn't need on narrow viewports. */}
+        <div className="overflow-x-auto">
+          <div className="flex items-start justify-center gap-1 mt-2" style={{ minWidth: 1080 }}>
             <div className="flex gap-1 shrink-0">
               {radiant.map((p) => (
                 <HeroPortraitCard
@@ -1019,10 +1023,10 @@ export function MatchOverview({
               ))}
             </div>
           </div>
-          <LaneResults match={match} heroMap={heroMap} />
-          <KillBreakdown match={match} heroMap={heroMap} />
-          {footer}
         </div>
+        <LaneResults match={match} heroMap={heroMap} />
+        <KillBreakdown match={match} heroMap={heroMap} />
+        {footer}
       </div>
     )
   }

@@ -949,7 +949,7 @@ export function ReplayViewer({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-3 px-4 pb-4">
+        <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
           <button
             type="button"
             onClick={() => setPlaying((p) => !p)}

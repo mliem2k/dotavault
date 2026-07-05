@@ -940,7 +940,7 @@ function HeroDetailPage() {
 
         {/* STATS: Attack / Defense / Mobility + label */}
         <div className="flex-1 flex flex-col justify-between gap-3">
-          <div className="flex items-start justify-center gap-x-10">
+          <div className="flex flex-wrap items-start justify-center gap-x-10 gap-y-4">
             <StatGroup title="Attack">
               <IconStat
                 icon="damage"

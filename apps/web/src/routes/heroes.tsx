@@ -157,12 +157,12 @@ function HeroesPage() {
 
       {/* Filter bar */}
       <div
-        className="mt-5 flex items-center justify-between p-[10px]"
+        className="mt-5 flex flex-wrap items-center gap-y-3 justify-between p-[10px]"
         style={{ backgroundImage: 'linear-gradient(to right, rgba(0,0,0,0.5), rgba(0,0,0,0.3))' }}
       >
         <div className="mx-[10px] text-[18px] tracking-[2px] text-white uppercase">Filter Heroes</div>
 
-        <div className="ml-5 flex items-center">
+        <div className="ml-5 flex items-center flex-wrap gap-y-2">
           <div className="mr-5 text-[17px] tracking-[2px] text-[#808fa6] uppercase">Attribute</div>
           {ATTRS.map((a, i) => (
             <FilterButton
@@ -174,7 +174,7 @@ function HeroesPage() {
           ))}
         </div>
 
-        <div className="ml-5 flex items-center">
+        <div className="ml-5 flex items-center flex-wrap gap-y-2">
           <div className="mr-5 text-[17px] tracking-[2px] text-[#808fa6] uppercase">Complexity</div>
           {[1, 2, 3].map((lvl) => (
             <FilterButton
@@ -186,8 +186,8 @@ function HeroesPage() {
           ))}
         </div>
 
-        <div className="flex h-[50px] w-[250px] items-center" style={{ background: '#25282a' }}>
-          <img src="/search_icon.svg" alt="" className="mx-[10px] h-[26px] w-[26px]" />
+        <div className="flex h-[50px] w-full sm:w-[250px] items-center" style={{ background: '#25282a' }}>
+          <img src="/search_icon.svg" alt="" className="mx-[10px] h-[26px] w-[26px] shrink-0" />
           <input
             type="text"
             value={query}

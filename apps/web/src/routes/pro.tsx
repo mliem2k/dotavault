@@ -2,7 +2,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { Spinner } from '@/components/ui/spinner'
-import { countryFlagUrl } from '@/lib/leaderboard'
+import { countryFlagUrl, findLeaderboardPositions } from '@/lib/leaderboard'
 import { opendota } from '@/lib/opendota'
 import { usePageTitle } from '@/lib/title'
 import { formatDuration, formatTimeAgo } from '@/lib/utils'
@@ -234,6 +234,39 @@ function ProPlayers() {
     queryFn: () => opendota.proPlayers(),
     staleTime: 60 * 60 * 1000,
   })
+  const notable = useMemo(
+    () => (players.data ?? []).filter((p) => p.is_pro && p.team_name),
+    [players.data],
+  )
+
+  // Rank by live leaderboard position when we can (same source as the
+  // /leaderboards page and the profile rank badge), not OpenDota's own
+  // fame-ish default ordering: a top-5000 Immortal is more interesting
+  // here than a pro who hasn't queued ranked in months.
+  const ranks = useQuery({
+    queryKey: ['pro_players_leaderboard_ranks', notable.map((p) => p.account_id)],
+    queryFn: () =>
+      findLeaderboardPositions(
+        notable.map((p) => ({
+          key: String(p.account_id),
+          names: [p.personaname, p.name].filter((n): n is string => !!n),
+        })),
+      ),
+    enabled: notable.length > 0,
+    staleTime: 30 * 60 * 1000,
+  })
+
+  const sorted = useMemo(() => {
+    const rankMap = ranks.data
+    return [...notable].sort((a, b) => {
+      const ra = rankMap?.get(String(a.account_id))?.rank
+      const rb = rankMap?.get(String(b.account_id))?.rank
+      if (ra != null && rb != null) return ra - rb
+      if (ra != null) return -1
+      if (rb != null) return 1
+      return 0
+    })
+  }, [notable, ranks.data])
 
   return (
     <Panel title="Pro Players">
@@ -242,10 +275,9 @@ function ProPlayers() {
           <Spinner />
         </div>
       )}
-      {(players.data ?? [])
-        .filter((p) => p.is_pro && p.team_name)
-        .slice(0, 20)
-        .map((p, i) => (
+      {sorted.slice(0, 20).map((p, i) => {
+        const pos = ranks.data?.get(String(p.account_id))
+        return (
           <a
             key={p.account_id}
             href={`/player/${p.account_id}`}
@@ -266,6 +298,15 @@ function ProPlayers() {
                 {p.team_name}
               </div>
             </div>
+            {pos && (
+              <span
+                className="shrink-0 px-1.5 py-0.5 text-[12px] font-bold tabular-nums"
+                style={{ background: '#2a2410', color: '#f2c94c' }}
+                title={`Rank #${pos.rank} on Valve's leaderboard`}
+              >
+                #{pos.rank}
+              </span>
+            )}
             {p.loccountrycode && (
               <img
                 src={countryFlagUrl(p.loccountrycode.toLowerCase())}
@@ -277,7 +318,8 @@ function ProPlayers() {
               />
             )}
           </a>
-        ))}
+        )
+      })}
     </Panel>
   )
 }
