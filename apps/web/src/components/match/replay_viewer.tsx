@@ -456,19 +456,24 @@ export function ReplayViewer({
   idToName,
   itemConst,
   abilityConst,
+  initialTime,
 }: {
   match: Match
   heroStats: HeroStat[]
   idToName: Map<number, string>
   itemConst: Record<string, ItemConst>
   abilityConst: Record<string, AbilityConst>
+  // Seconds to open the timeline at, e.g. jumping in from a teamfight or
+  // kill in another tab. Only honored once on mount: switching to another
+  // tab and back shouldn't keep re-seeking to the same old moment.
+  initialTime?: number
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const mapImgRef = useRef<HTMLImageElement | null>(null)
   const iconImgsRef = useRef<Map<number, HTMLImageElement>>(new Map())
   const animRef = useRef<number | null>(null)
   const lastTsRef = useRef<number | null>(null)
-  const [time, setTime] = useState(0)
+  const [time, setTime] = useState(() => initialTime ?? 0)
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
   const [fullPlaybackState, setFullPlaybackState] = useState<'idle' | 'working' | 'unavailable' | 'error' | 'done'>('idle')

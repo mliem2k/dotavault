@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import type { HeroStat, Match } from 'types'
 import { RUNE_NAMES } from '@/lib/dotaconst'
@@ -252,11 +253,15 @@ export function MatchLog({ match, heroStats }: { match: Match; heroStats: HeroSt
         {shown.map((e, i) => {
           const hero = e.heroId != null ? heroMap.get(e.heroId) : undefined
           return (
-            <div
+            <Link
               // biome-ignore lint/suspicious/noArrayIndexKey: static list
               key={i}
-              className="flex items-center gap-2.5 px-4 py-1.5 text-[13px]"
+              to="/match/$matchId/$tab"
+              params={{ matchId: String(match.match_id), tab: 'replay' }}
+              search={{ t: Math.max(0, e.time) }}
+              className="flex items-center gap-2.5 px-4 py-1.5 text-[13px] hover:bg-white/[0.04]"
               style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+              title="Jump to this moment in the replay"
             >
               <span className="w-12 shrink-0 text-right tabular-nums" style={{ color: C.dim }}>
                 {formatClock(Math.max(0, e.time))}
@@ -276,7 +281,7 @@ export function MatchLog({ match, heroStats }: { match: Match; heroStats: HeroSt
                 />
               )}
               <span style={{ color: C.text }}>{e.text}</span>
-            </div>
+            </Link>
           )
         })}
         {shown.length === 0 && (

@@ -50,10 +50,14 @@ type Tab =
 
 export const Route = createFileRoute('/match/$matchId/$tab')({
   component: MatchPage,
+  validateSearch: (search: Record<string, unknown>): { t?: number } => ({
+    t: typeof search.t === 'number' ? search.t : Number(search.t) || undefined,
+  }),
 })
 
 function MatchPage() {
   const { matchId, tab } = Route.useParams()
+  const { t: jumpToTime } = Route.useSearch()
   usePageTitle(`Match ${matchId}`)
 
   const match = useQuery({
@@ -326,7 +330,14 @@ function MatchPage() {
 
       {activeTab === 'replay' &&
         (heroStats.data ? (
-          <ReplayViewer match={m} heroStats={heroStats.data} idToName={idToName} itemConst={itemConst} abilityConst={abilitiesData.data ?? {}} />
+          <ReplayViewer
+            match={m}
+            heroStats={heroStats.data}
+            idToName={idToName}
+            itemConst={itemConst}
+            abilityConst={abilitiesData.data ?? {}}
+            initialTime={jumpToTime}
+          />
         ) : loading)}
     </div>
   )

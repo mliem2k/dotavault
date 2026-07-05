@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import type { HeroStat, Match, MatchPlayer } from 'types'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { orderedTeams } from './match_roster'
@@ -197,7 +198,15 @@ function Teamfights({
           const winner = radGold >= direGold ? 'radiant' : 'dire'
           return (
             // biome-ignore lint/suspicious/noArrayIndexKey: static fight list
-            <div key={i} className="flex items-center gap-5 px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <Link
+              key={i}
+              to="/match/$matchId/$tab"
+              params={{ matchId: String(match.match_id), tab: 'replay' }}
+              search={{ t: f.start }}
+              className="flex items-center gap-5 px-4 py-3 hover:bg-white/[0.05] transition-colors"
+              style={{ background: 'rgba(255,255,255,0.03)' }}
+              title="Jump to this moment in the replay"
+            >
               <div className="w-32 shrink-0" style={{ fontFamily: 'var(--font-dota)' }}>
                 <div className="text-[17px] tabular-nums" style={{ color: C.white }}>
                   {fmtClock(f.start)} <span style={{ color: C.dim }}>–</span> {fmtClock(f.end)}
@@ -233,7 +242,7 @@ function Teamfights({
                   {winner === 'radiant' ? 'Radiant' : 'Dire'} +{Math.abs(radGold - direGold).toLocaleString()} <span style={{ color: C.gold }}>gold</span>
                 </div>
               </div>
-            </div>
+            </Link>
           )
         })}
       </div>
