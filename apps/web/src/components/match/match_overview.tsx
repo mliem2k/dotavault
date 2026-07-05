@@ -849,6 +849,18 @@ export function MatchOverview({
   const [selDire, setSelDire] = useState<number | null>(null)
   const [timeSec, setTimeSec] = useState<number>(match.duration)
 
+  // Scrolls whichever side is selected into view (see the selection-view
+  // render below): keeps Radiant/Dire always left/right without the
+  // selected detail panel getting stuck offscreen. Declared here,
+  // unconditionally, since the team-view branch below returns early and
+  // hooks can't follow a conditional return.
+  const direSelectedRef = useRef<HTMLDivElement>(null)
+  const radiantSelectedRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const target = selDire != null ? direSelectedRef.current : selRadiant != null ? radiantSelectedRef.current : null
+    target?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' })
+  }, [selRadiant, selDire])
+
   const anySelected = selRadiant != null || selDire != null
 
   function selectHero(player: MatchPlayer) {
@@ -1135,10 +1147,12 @@ export function MatchOverview({
   // The scrubber only makes sense when the match has per-time data to show.
   const scrubbable = hasTimeline(match)
 
-  // The selected side's detail panel is the important content and should
-  // never be the one that gets pushed offscreen by the other (fixed-width)
-  // team's portrait strip, so put whichever side is actually selected first.
-  const direOnly = selDire != null && selRadiant == null
+  // Radiant always renders left, Dire always right, same as the score
+  // header and every other team-vs-team view on the site. Selecting a Dire
+  // hero used to swap the two sides so its detail panel wouldn't scroll
+  // offscreen, but that made Dire jump to the left, which reads as broken
+  // rather than helpful. Scrolling the selected side into view (below)
+  // solves the same offscreen problem without breaking side order.
   const radiantSide = renderTeamSide(true, radiant, selRadiant, selRadiantPlayer)
   const direSide = renderTeamSide(false, dire, selDire, selDirePlayer)
 
@@ -1146,17 +1160,12 @@ export function MatchOverview({
     <div className="overflow-x-auto">
       <div className="space-y-6" style={{ minWidth: 1080 }}>
         <div className="flex items-start gap-8">
-          {direOnly ? (
-            <>
-              {direSide}
-              {radiantSide}
-            </>
-          ) : (
-            <>
-              {radiantSide}
-              {direSide}
-            </>
-          )}
+          <div ref={selRadiant != null ? radiantSelectedRef : undefined} className="contents">
+            {radiantSide}
+          </div>
+          <div ref={selDire != null ? direSelectedRef : undefined} className="contents">
+            {direSide}
+          </div>
         </div>
 
         {scrubbable && (
