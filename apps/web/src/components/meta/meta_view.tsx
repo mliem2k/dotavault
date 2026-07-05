@@ -14,7 +14,7 @@ import { heroIconUrl, heroSlug } from '@/lib/utils'
    by rank bracket, Turbo, and professional Captains Mode, with per-lane
    leaders on top. Data is OpenDota heroStats (this month's matches). */
 
-type Bracket = 'pub' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | 'turbo' | 'pro'
+type Bracket = 'pub' | '1' | '2' | '3' | '4' | '5' | '6' | '78' | 'turbo' | 'pro'
 
 const BRACKETS: { key: Bracket; label: string; medal?: number }[] = [
   { key: 'pub', label: 'All Ranks' },
@@ -24,26 +24,49 @@ const BRACKETS: { key: Bracket; label: string; medal?: number }[] = [
   { key: '4', label: RANK_NAMES[4], medal: 4 },
   { key: '5', label: RANK_NAMES[5], medal: 5 },
   { key: '6', label: RANK_NAMES[6], medal: 6 },
-  { key: '7', label: RANK_NAMES[7], medal: 7 },
-  { key: '8', label: RANK_NAMES[8], medal: 8 },
+  { key: '78', label: `${RANK_NAMES[7]} / ${RANK_NAMES[8]}`, medal: 8 },
   { key: 'turbo', label: 'Turbo' },
   { key: 'pro', label: 'Pro' },
 ]
 
 const raw = (h: HeroStat, key: string): number => (h as unknown as Record<string, number>)[key] ?? 0
 
+/* OpenDota has no separate Immortal bracket (8_pick is zero for every
+   hero); Divine and Immortal are one bucket, matching their own site. */
 function picksOf(h: HeroStat, b: Bracket): number {
-  if (b === 'pub') return [1, 2, 3, 4, 5, 6, 7, 8].reduce((s, i) => s + raw(h, `${i}_pick`), 0)
+  if (b === 'pub') return raw(h, 'pub_pick')
   if (b === 'turbo') return h.turbo_picks ?? 0
   if (b === 'pro') return h.pro_pick ?? 0
+  if (b === '78') return raw(h, '7_pick') + raw(h, '8_pick')
   return raw(h, `${b}_pick`)
 }
 
 function winsOf(h: HeroStat, b: Bracket): number {
-  if (b === 'pub') return [1, 2, 3, 4, 5, 6, 7, 8].reduce((s, i) => s + raw(h, `${i}_win`), 0)
+  if (b === 'pub') return raw(h, 'pub_win')
   if (b === 'turbo') return h.turbo_wins ?? 0
   if (b === 'pro') return h.pro_win ?? 0
+  if (b === '78') return raw(h, '7_win') + raw(h, '8_win')
   return raw(h, `${b}_win`)
+}
+
+/* Win-rate trend from OpenDota's daily trend arrays (pub and turbo only):
+   recent half of the window versus the earlier half, in percentage points. */
+function trendDelta(h: HeroStat, b: Bracket): number | null {
+  const picksKey = b === 'pub' ? 'pub_pick_trend' : b === 'turbo' ? 'turbo_picks_trend' : null
+  const winsKey = b === 'pub' ? 'pub_win_trend' : b === 'turbo' ? 'turbo_wins_trend' : null
+  if (!picksKey || !winsKey) return null
+  const picks = (h as unknown as Record<string, number[]>)[picksKey]
+  const wins = (h as unknown as Record<string, number[]>)[winsKey]
+  if (!Array.isArray(picks) || !Array.isArray(wins) || picks.length < 4) return null
+  const half = Math.floor(picks.length / 2)
+  const wr = (ps: number[], ws: number[]) => {
+    const p = ps.reduce((s, v) => s + v, 0)
+    return p > 0 ? (ws.reduce((s, v) => s + v, 0) / p) * 100 : null
+  }
+  const early = wr(picks.slice(0, half), wins.slice(0, half))
+  const late = wr(picks.slice(half), wins.slice(half))
+  if (early == null || late == null) return null
+  return late - early
 }
 
 const winPct = (h: HeroStat, b: Bracket): number => {
@@ -255,6 +278,7 @@ function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }
             {th('Picks', 'picks')}
             {th('Pick Rate', 'pickrate')}
             {th('Win Rate', 'winrate')}
+            {(bracket === 'pub' || bracket === 'turbo') && <th className="pb-2 px-2 text-right">Trend</th>}
             {bracket === 'pro' && th('Bans', 'banrate')}
           </tr>
         </thead>
@@ -289,6 +313,21 @@ function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }
                 >
                   {wr.toFixed(2)}%
                 </td>
+                {(bracket === 'pub' || bracket === 'turbo') && (() => {
+                  const delta = trendDelta(h, bracket)
+                  if (delta == null || Math.abs(delta) < 0.3) {
+                    return <td className="px-2 text-right text-[13px]" style={{ color: '#4a4436' }}>-</td>
+                  }
+                  return (
+                    <td
+                      className="px-2 text-right text-[13px] tabular-nums"
+                      title="Win rate, recent half of the window vs the earlier half"
+                      style={{ color: delta > 0 ? '#8ec63f' : '#d14a38' }}
+                    >
+                      {delta > 0 ? '\u25b2' : '\u25bc'} {Math.abs(delta).toFixed(1)}
+                    </td>
+                  )
+                })()}
                 {bracket === 'pro' && (
                   <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#d14a38' }}>
                     {(h.pro_ban ?? 0).toLocaleString()}
@@ -315,8 +354,8 @@ export const BRACKET_SLUGS: Record<string, Bracket> = {
   archon: '4',
   legend: '5',
   ancient: '6',
-  divine: '7',
-  immortal: '8',
+  divine: '78',
+  immortal: '78',
   turbo: 'turbo',
   pro: 'pro',
 }
