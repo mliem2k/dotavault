@@ -382,6 +382,39 @@ function RosterPanel({
     [proPlayers.data],
   )
 
+  // proPlayers only covers players OpenDota considers notable; plenty of
+  // real competitors (especially in qualifiers) aren't in it at all, so
+  // they'd otherwise show as "Player <id>". Their individual profile still
+  // has a personaname, so fetch that as a fallback for whoever's missing.
+  // Capped so a huge open-qualifier bracket (dozens of teams, mostly
+  // unlisted players) can't fire hundreds of individual requests at once;
+  // anyone past the cap just keeps the "Player <id>" fallback.
+  const missingIds = useMemo(() => {
+    if (!roster.data) return []
+    const ids = new Set<number>()
+    for (const r of roster.data) if (!proMap.has(r.account_id)) ids.add(r.account_id)
+    return [...ids].slice(0, 80)
+  }, [roster.data, proMap])
+
+  const fallbackNames = useQuery({
+    queryKey: ['league_roster_fallback_names', leagueId, missingIds],
+    queryFn: async () => {
+      const entries = await Promise.all(
+        missingIds.map(async (id) => {
+          try {
+            const p = await opendota.player(String(id))
+            return [id, p.profile?.personaname ?? null] as const
+          } catch {
+            return [id, null] as const
+          }
+        }),
+      )
+      return new Map(entries.filter((e): e is [number, string] => e[1] != null))
+    },
+    enabled: missingIds.length > 0,
+    staleTime: 60 * 60 * 1000,
+  })
+
   const byTeam = useMemo(() => {
     const groups = new Map<number, { account_id: number; games: number; wins: number }[]>()
     for (const r of roster.data ?? []) {
@@ -443,7 +476,7 @@ function RosterPanel({
                       className="flex items-center gap-2 py-0.5 hover:bg-white/[0.03]"
                     >
                       <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: '#c8c2b4', fontFamily: 'var(--font-dota)' }}>
-                        {pro?.name ?? pro?.personaname ?? `Player ${p.account_id}`}
+                        {pro?.name ?? pro?.personaname ?? fallbackNames.data?.get(p.account_id) ?? `Player ${p.account_id}`}
                       </span>
                       <span className="shrink-0 text-[12px] tabular-nums" style={{ color: '#5a5648', fontFamily: 'var(--font-dota)' }}>
                         {p.games}g
