@@ -253,6 +253,12 @@ function LeaderboardsPage() {
                   </span>
                   {pro && (
                     <>
+                      <span
+                        className="shrink-0 px-1 text-[10px] uppercase"
+                        style={{ color: '#c9a94a', border: '1px solid rgba(201,169,74,0.5)', letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
+                      >
+                        Pro
+                      </span>
                       {pro.name !== r.name && (
                         <span className="text-[13px] shrink-0" style={{ color: '#c9a94a', fontFamily: 'var(--font-dota)' }}>
                           [{pro.name}]
