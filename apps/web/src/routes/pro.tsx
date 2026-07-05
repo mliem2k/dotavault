@@ -155,16 +155,28 @@ function ProMatches() {
   )
 }
 
+// OpenDota's /teams has no season concept and its wins/losses/rating are
+// lifetime totals, so a plain top-by-rating list surfaces teams that
+// haven't played in years right alongside currently active ones. Limiting
+// to teams with a recent match keeps the list to this season's actual
+// contenders (the shown W/L and rating are still career totals, OpenDota
+// doesn't expose season-scoped aggregates).
+const ACTIVE_WINDOW_DAYS = 90
+
 function TopTeams() {
   const teams = useQuery({
     queryKey: ['teams_list'],
     queryFn: () => opendota.teamsList(),
     staleTime: 30 * 60 * 1000,
   })
-  const top = (teams.data ?? []).filter((t) => t.name).slice(0, 20)
+  const cutoff = Date.now() / 1000 - ACTIVE_WINDOW_DAYS * 86400
+  const top = (teams.data ?? [])
+    .filter((t) => t.name && t.last_match_time > cutoff)
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, 20)
 
   return (
-    <Panel title="Top Teams">
+    <Panel title="Top Teams This Season">
       {teams.isPending && (
         <div className="flex justify-center py-8">
           <Spinner />

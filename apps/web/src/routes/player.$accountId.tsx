@@ -8,6 +8,7 @@ import { Teammates } from '@/components/player/teammates'
 import { LifetimeStats, PlayStyleRadar } from '@/components/player/play_style_radar'
 import { RecentGames } from '@/components/player/recent_games'
 import { Spinner } from '@/components/ui/spinner'
+import { DIVISIONS, findLeaderboardPosition } from '@/lib/leaderboard'
 import { opendota } from '@/lib/opendota'
 import { RANK_NAMES, rankBadge, rankName } from '@/lib/rank'
 import { resolveVanitySteamId } from '@/lib/steam'
@@ -97,6 +98,22 @@ function PlayerPage() {
     queryFn: () => opendota.proPlayers(),
     staleTime: 60 * 60 * 1000,
     enabled: isNumeric,
+  })
+
+  // Immortal-tier players may be on Valve's live top-5000 leaderboard;
+  // OpenDota's own rank_tier field doesn't carry that distinction (only its
+  // separate, often-stale leaderboard_rank field does), so we check Valve's
+  // real leaderboard directly, same source and matching rule as our own
+  // /leaderboards page.
+  const rankTier = player.data?.player.rank_tier ?? null
+  const isImmortal = rankTier != null && Math.floor(rankTier / 10) === 8
+  const personaName = player.data?.player.profile.personaname
+  const proNameForAccount = proPlayers.data?.find((pp) => pp.account_id === Number(accountId) && pp.is_pro)?.name
+  const leaderboardPos = useQuery({
+    queryKey: ['leaderboard_position', accountId, personaName, proNameForAccount],
+    queryFn: () => findLeaderboardPosition([personaName, proNameForAccount].filter((n): n is string => !!n)),
+    enabled: isImmortal && !!personaName,
+    staleTime: 30 * 60 * 1000,
   })
 
   usePageTitle(player.data?.player.profile.personaname)
@@ -200,8 +217,17 @@ function PlayerPage() {
               </a>
             )}
           </div>
-          <div className="text-[13px] uppercase" style={{ color: C.green, letterSpacing: '2px' }}>
+          <div className="flex items-center gap-2 text-[13px] uppercase" style={{ color: C.green, letterSpacing: '2px' }}>
             {rankName(p.rank_tier)}
+            {leaderboardPos.data && (
+              <span
+                className="px-1.5 py-0.5 text-[12px]"
+                style={{ background: '#2a2410', color: '#f2c94c', letterSpacing: '1px' }}
+                title={`Rank #${leaderboardPos.data.rank} on Valve's ${DIVISIONS.find((d) => d.id === leaderboardPos.data?.division)?.label} leaderboard`}
+              >
+                #{leaderboardPos.data.rank}
+              </span>
+            )}
           </div>
         </div>
 
@@ -278,10 +304,25 @@ function PlayerPage() {
               <div className="relative group shrink-0">
                 <div
                   className="relative flex items-center justify-center rounded-full cursor-default"
-                  style={{ width: 84, height: 84, background: 'radial-gradient(circle, #23282c 0%, #101316 70%)', border: '2px solid #2c3236' }}
+                  style={{
+                    width: 84,
+                    height: 84,
+                    background: leaderboardPos.data
+                      ? 'radial-gradient(circle, #3a2f10 0%, #101316 70%)'
+                      : 'radial-gradient(circle, #23282c 0%, #101316 70%)',
+                    border: `2px solid ${leaderboardPos.data ? '#f2c94c' : '#2c3236'}`,
+                  }}
                 >
                   <img src={badge.medal} alt={rankName(p.rank_tier)} className="h-16 w-16 object-contain" />
                   {badge.stars && <img src={badge.stars} alt="" className="absolute h-16 w-16 object-contain" />}
+                  {leaderboardPos.data && (
+                    <span
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 text-[12px] font-bold tabular-nums"
+                      style={{ background: '#f2c94c', color: '#1a1608', letterSpacing: '0.5px' }}
+                    >
+                      #{leaderboardPos.data.rank}
+                    </span>
+                  )}
                 </div>
                 {/* Rank ladder tooltip: all tiers, current one highlighted */}
                 <div

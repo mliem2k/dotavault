@@ -23,7 +23,7 @@ export type LeaderboardResponse = {
   leaderboard: LeaderboardEntry[]
 }
 
-// Same-origin proxy (Cloudflare Pages Function in prod, Vite proxy in dev) —
+// Same-origin proxy (Cloudflare Pages Function in prod, Vite proxy in dev),
 // Valve's leaderboard webapi has no CORS headers of its own.
 export async function fetchLeaderboard(division: Division): Promise<LeaderboardResponse> {
   const res = await fetch(`/api/leaderboard?division=${division}`)
@@ -33,4 +33,29 @@ export async function fetchLeaderboard(division: Division): Promise<LeaderboardR
 
 export function countryFlagUrl(country: string): string {
   return `https://community.akamai.steamstatic.com/public/images/countryflags/${country}.gif`
+}
+
+export type LeaderboardPosition = { division: Division; rank: number }
+
+// Live top-5000 rank for a player, by exact case-insensitive name match
+// against all four divisions (same trust rule as the leaderboards page:
+// no fuzzy matching, a wrong match here would misidentify a real account).
+// OpenDota's own player.leaderboard_rank field is a stale cached copy of
+// this same data (confirmed against a real account: OpenDota said rank 2,
+// Valve's live leaderboard actually had them at rank 1), so this is worth
+// checking directly rather than trusting that field.
+export async function findLeaderboardPosition(names: string[]): Promise<LeaderboardPosition | null> {
+  const candidates = names.map((n) => n.toLowerCase()).filter(Boolean)
+  if (candidates.length === 0) return null
+
+  const results = await Promise.allSettled(DIVISIONS.map((d) => fetchLeaderboard(d.id)))
+  let best: LeaderboardPosition | null = null
+  results.forEach((res, i) => {
+    if (res.status !== 'fulfilled') return
+    for (const entry of res.value.leaderboard) {
+      if (!candidates.includes(entry.name.toLowerCase())) continue
+      if (!best || entry.rank < best.rank) best = { division: DIVISIONS[i].id, rank: entry.rank }
+    }
+  })
+  return best
 }
