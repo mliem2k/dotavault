@@ -10,8 +10,11 @@ export const Route = createFileRoute('/team/$teamId')({
   component: TeamPage,
 })
 
-const ROLE_SORT: Record<number, number> = { 4: 0, 1: 1, 2: 2 }
-const ROLE_LABEL: Record<number, string> = { 4: 'Carry', 1: 'Core', 2: 'Support' }
+// Valve's Fantasy_Roles enum (dota_shared_enums.proto): 0 undefined,
+// 1 core (i.e. carry), 2 support, 3 offlane, 4 mid. Sorted in standard
+// draft position order 1/2/3/4-5.
+const ROLE_SORT: Record<number, number> = { 1: 0, 4: 1, 3: 2, 2: 3 }
+const ROLE_LABEL: Record<number, string> = { 1: 'Carry', 4: 'Mid', 3: 'Offlane', 2: 'Support' }
 
 type TeamPlayer = {
   account_id: number
