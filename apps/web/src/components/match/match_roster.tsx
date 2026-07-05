@@ -242,7 +242,13 @@ export function PlayerIdentityCell({
         boxShadow: active ? 'inset 3px 0 0 #ffffff' : undefined,
       }}
     >
-      <PlayerAvatar accountId={accountId} active={active} size={avatarSize} />
+      {accountId && !linkless ? (
+        <a href={`/player/${accountId}`} className="shrink-0 hover:brightness-125" onClick={(e) => e.stopPropagation()}>
+          <PlayerAvatar accountId={accountId} active={active} size={avatarSize} />
+        </a>
+      ) : (
+        <PlayerAvatar accountId={accountId} active={active} size={avatarSize} />
+      )}
 
       {hero && !linkless ? (
         <a href={`/hero/${heroShort}`} className="shrink-0 hover:brightness-125">

@@ -713,7 +713,13 @@ function DetailPanel({
       <div className="flex-1 min-w-[300px] space-y-3" style={{ maxWidth: 360 }}>
         {/* Name panel — player avatar + profile link */}
         <div className="flex items-center gap-3 px-3 py-2.5" style={{ background: 'rgba(8,10,12,0.9)' }}>
-          <PlayerAvatar accountId={player.account_id} active={false} size={48} />
+          {player.account_id ? (
+            <a href={`/player/${player.account_id}`} className="shrink-0 hover:brightness-125">
+              <PlayerAvatar accountId={player.account_id} active={false} size={48} />
+            </a>
+          ) : (
+            <PlayerAvatar accountId={player.account_id} active={false} size={48} />
+          )}
           <div className="min-w-0">
             <PlayerNameLink
               player={player}
