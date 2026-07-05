@@ -1,4 +1,4 @@
-import { Pause, Play, RefreshCw } from 'lucide-react'
+import { Pause, Play, RefreshCw, SkipBack, SkipForward } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { opendota } from '@/lib/opendota'
@@ -957,11 +957,39 @@ export function ReplayViewer({
         <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
           <button
             type="button"
+            onClick={() => {
+              setPlaying(false)
+              const prev = [...events].reverse().find((e) => e.time < time - 0.5)
+              if (prev) setTime(Math.max(0, prev.time))
+            }}
+            disabled={!events.some((e) => e.time < time - 0.5)}
+            className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-30"
+            style={{ background: '#1a2024', border: '1px solid #2c3236', color: C.text }}
+            title="Previous event"
+          >
+            <SkipBack className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
             onClick={() => setPlaying((p) => !p)}
             className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125"
             style={{ background: '#1a2024', border: '1px solid #2c3236', color: C.text }}
           >
             {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPlaying(false)
+              const next = events.find((e) => e.time > time + 0.5)
+              if (next) setTime(Math.min(duration, next.time))
+            }}
+            disabled={!events.some((e) => e.time > time + 0.5)}
+            className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-30"
+            style={{ background: '#1a2024', border: '1px solid #2c3236', color: C.text }}
+            title="Next event"
+          >
+            <SkipForward className="h-4 w-4" />
           </button>
           <div className="flex items-center shrink-0" style={{ border: '1px solid #2c3236' }}>
             {SPEEDS.map((s) => (
