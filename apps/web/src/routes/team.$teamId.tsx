@@ -120,6 +120,19 @@ function TeamPage() {
       return b.games_played - a.games_played
     })
 
+  // Two players sharing a role isn't a bug: OpenDota tags stand-ins with
+  // the same fantasy_role as the regular starter they filled in for. Flag
+  // whoever has far fewer games than that role's top player instead of
+  // showing them as equal, undifferentiated "Carry"s.
+  const maxGamesByRole = new Map<number, number>()
+  for (const p of roster) {
+    maxGamesByRole.set(p.fantasy_role, Math.max(maxGamesByRole.get(p.fantasy_role) ?? 0, p.games_played))
+  }
+  const isStandIn = (p: (typeof roster)[number]) => {
+    const max = maxGamesByRole.get(p.fantasy_role) ?? 0
+    return max > 0 && p.games_played < max * 0.3
+  }
+
   return (
     <div className="space-y-6 py-4">
       {/* Team header */}
@@ -242,6 +255,15 @@ function TeamPage() {
                         style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
                       >
                         {ROLE_LABEL[p.fantasy_role] ?? ''}
+                        {isStandIn(p) && (
+                          <span
+                            className="ml-1.5 px-1 py-0.5 text-[10px] uppercase"
+                            style={{ background: 'rgba(255,255,255,0.06)', color: '#6a675e' }}
+                            title="Far fewer games than this role's regular starter, likely a stand-in"
+                          >
+                            Stand-in
+                          </span>
+                        )}
                       </td>
                       <td
                         className="py-1.5 text-right text-[13px] tabular-nums"
