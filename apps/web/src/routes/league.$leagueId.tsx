@@ -27,14 +27,23 @@ const TIER_LABELS: Record<string, string> = {
    same idea, built on OpenDota's SQL Explorer, same pattern as the Pro Only
    match filter). */
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({
+  title,
+  action,
+  children,
+}: {
+  title: string
+  action?: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
     <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
       <div
-        className="px-4 py-3 uppercase"
+        className="flex items-center justify-between gap-3 px-4 py-3 uppercase"
         style={{ color: '#c8c2b4', fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, letterSpacing: '3px', borderBottom: '1px solid #24222a' }}
       >
-        {title}
+        <span>{title}</span>
+        {action}
       </div>
       <div className="px-4 py-2">{children}</div>
     </div>
@@ -275,6 +284,91 @@ function buildSeries(matches: LeagueMatchRow[]): Series[] {
   return out.sort((a, b) => b.lastStartTime - a.lastStartTime)
 }
 
+// Valve/OpenDota don't expose a round or bracket-slot field, so there's no
+// way to know the *official* bracket shape. This infers a reasonable
+// approximation instead: walk series oldest-first, and a team's next
+// series happens one round after whatever round they were last seen in.
+// That's exact for a clean single-elimination bracket; for a Swiss stage
+// (round-robin-ish, no elimination) it degrades gracefully into "the Nth
+// time this team played", which still reads fine as a column layout even
+// though it isn't a true bracket tree, just an approximate one.
+function inferRounds(series: Series[]): Series[][] {
+  const roundOf = new Map<number, number>()
+  const rounds: Series[][] = []
+  const oldestFirst = [...series].sort((a, b) => a.lastStartTime - b.lastStartTime)
+  for (const s of oldestFirst) {
+    const rA = s.teamA != null ? (roundOf.get(s.teamA) ?? 0) : 0
+    const rB = s.teamB != null ? (roundOf.get(s.teamB) ?? 0) : 0
+    const round = Math.max(rA, rB)
+    if (!rounds[round]) rounds[round] = []
+    rounds[round].push(s)
+    if (s.teamA != null) roundOf.set(s.teamA, round + 1)
+    if (s.teamB != null) roundOf.set(s.teamB, round + 1)
+  }
+  return rounds
+}
+
+function BracketCard({
+  s,
+  teamMap,
+}: {
+  s: Series
+  teamMap: Map<number, { name: string | null; tag: string | null; logo_url: string | null }>
+}) {
+  const teamA = teamMap.get(s.teamA ?? -1)
+  const teamB = teamMap.get(s.teamB ?? -1)
+  const aWon = s.scoreA > s.scoreB
+  const row = (name: string, score: number, won: boolean) => (
+    <div className="flex items-center justify-between gap-2 px-2.5 py-1.5" style={{ background: won ? 'rgba(142,198,63,0.08)' : 'transparent' }}>
+      <span
+        className="truncate text-[13px]"
+        style={{ color: won ? '#8ec63f' : '#a09a8c', fontFamily: 'var(--font-dota)', fontWeight: won ? 600 : 400 }}
+      >
+        {name}
+      </span>
+      <span className="shrink-0 text-[13px] font-bold tabular-nums" style={{ color: won ? '#8ec63f' : '#5a5648' }}>
+        {score}
+      </span>
+    </div>
+  )
+  return (
+    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #1c1810', width: 220 }}>
+      {row(teamA?.name ?? (s.teamA ? `Team ${s.teamA}` : 'TBD'), s.scoreA, aWon)}
+      <div style={{ borderTop: '1px solid #1c1810' }}>{row(teamB?.name ?? (s.teamB ? `Team ${s.teamB}` : 'TBD'), s.scoreB, !aWon)}</div>
+    </div>
+  )
+}
+
+function BracketView({
+  series,
+  teamMap,
+}: {
+  series: Series[]
+  teamMap: Map<number, { name: string | null; tag: string | null; logo_url: string | null }>
+}) {
+  const rounds = useMemo(() => inferRounds(series), [series])
+  return (
+    <div>
+      <div className="pb-3 text-[12px]" style={{ color: '#5a5648' }}>
+        Approximate round grouping inferred from match order, Valve doesn't publish official bracket
+        positions through this data source.
+      </div>
+      <div className="flex items-start gap-6 overflow-x-auto pb-2">
+        {rounds.map((round, i) => (
+          <div key={i} className="flex shrink-0 flex-col gap-4">
+            <div className="text-[12px] font-bold uppercase tracking-widest" style={{ color: '#8a8474' }}>
+              Round {i + 1}
+            </div>
+            {round.map((s) => (
+              <BracketCard key={s.key} s={s} teamMap={teamMap} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function SeriesPanel({
   leagueId,
   teamMap,
@@ -287,17 +381,40 @@ function SeriesPanel({
     queryFn: () => opendota.leagueMatches(leagueId, 500, 0),
     staleTime: 5 * 60 * 1000,
   })
+  const [view, setView] = useState<'list' | 'bracket'>('list')
 
   const series = useMemo(() => buildSeries(matches.data ?? []), [matches.data])
 
   return (
-    <Panel title="Results">
+    <Panel
+      title="Results"
+      action={
+        <div className="flex items-center gap-1">
+          {(['list', 'bracket'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              className="px-2.5 py-1 text-[11px] font-bold uppercase cursor-pointer"
+              style={{
+                color: view === v ? '#0b0b0d' : '#8a8474',
+                background: view === v ? '#c9a94a' : 'rgba(255,255,255,0.05)',
+                letterSpacing: '1px',
+              }}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      }
+    >
       {matches.isPending && (
         <div className="flex justify-center py-8">
           <Spinner />
         </div>
       )}
-      {series.map((s, i) => {
+      {!matches.isPending && view === 'bracket' && <BracketView series={series} teamMap={teamMap} />}
+      {!matches.isPending && view === 'list' && series.map((s, i) => {
         const teamA = teamMap.get(s.teamA ?? -1)
         const teamB = teamMap.get(s.teamB ?? -1)
         const aWon = s.scoreA > s.scoreB
