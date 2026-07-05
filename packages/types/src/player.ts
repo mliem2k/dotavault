@@ -23,6 +23,7 @@ export type Player = {
   leaderboard_rank: number | null
   mmr_estimate: { estimate: number } | null
   profile: PlayerProfile
+  aliases?: { personaname: string; name_since: string }[]
 }
 
 export type PlayerWL = {

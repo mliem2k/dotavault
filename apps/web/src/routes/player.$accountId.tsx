@@ -153,6 +153,14 @@ function PlayerPage() {
   const wl = player.data.wl
   const totalGames = wl.win + wl.lose
   const proInfo = proPlayers.data?.find((pp) => pp.account_id === Number(accountId) && pp.is_pro)
+  // Most recent name first, current persona name excluded, deduplicated
+  // (Steam lets a name repeat across separate name-change events).
+  const previousNames = [...new Set(
+    (p.aliases ?? [])
+      .filter((a) => a.personaname && a.personaname !== p.profile.personaname)
+      .sort((a, b) => new Date(b.name_since).getTime() - new Date(a.name_since).getTime())
+      .map((a) => a.personaname),
+  )]
   const badge = rankBadge(p.rank_tier)
   const heroesPlayed = (playerHeroes.data ?? []).filter((h) => h.games > 0).length
   const heroMap = new Map((heroStats.data ?? []).map((h) => [h.id, h]))
@@ -235,6 +243,12 @@ function PlayerPage() {
               </span>
             )}
           </div>
+          {previousNames.length > 0 && (
+            <div className="text-[12px] truncate" style={{ color: C.text }} title={previousNames.join(', ')}>
+              Also known as: {previousNames.slice(0, 4).join(', ')}
+              {previousNames.length > 4 ? ` +${previousNames.length - 4} more` : ''}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-10 ml-auto pr-2">
