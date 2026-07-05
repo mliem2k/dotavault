@@ -1,11 +1,19 @@
 export type Division = 'americas' | 'europe' | 'se_asia' | 'china'
 
-export const DIVISIONS: { id: Division; label: string }[] = [
-  { id: 'americas', label: 'Americas' },
-  { id: 'europe', label: 'Europe' },
-  { id: 'se_asia', label: 'SE Asia' },
-  { id: 'china', label: 'China' },
+export const DIVISIONS: { id: Division; label: string; short: string }[] = [
+  { id: 'americas', label: 'Americas', short: 'AM' },
+  { id: 'europe', label: 'Europe', short: 'EU' },
+  { id: 'se_asia', label: 'SE Asia', short: 'SEA' },
+  { id: 'china', label: 'China', short: 'CN' },
 ]
+
+export function divisionLabel(division: Division): string {
+  return DIVISIONS.find((d) => d.id === division)?.label ?? division
+}
+
+export function divisionShort(division: Division): string {
+  return DIVISIONS.find((d) => d.id === division)?.short ?? division
+}
 
 export type LeaderboardEntry = {
   rank: number

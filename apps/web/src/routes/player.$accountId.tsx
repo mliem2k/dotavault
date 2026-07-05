@@ -8,7 +8,7 @@ import { Teammates } from '@/components/player/teammates'
 import { LifetimeStats, PlayStyleRadar } from '@/components/player/play_style_radar'
 import { RecentGames } from '@/components/player/recent_games'
 import { Spinner } from '@/components/ui/spinner'
-import { DIVISIONS, findLeaderboardPosition } from '@/lib/leaderboard'
+import { divisionLabel, divisionShort, findLeaderboardPosition } from '@/lib/leaderboard'
 import { opendota } from '@/lib/opendota'
 import { RANK_NAMES, rankBadge, rankName } from '@/lib/rank'
 import { resolveVanitySteamId } from '@/lib/steam'
@@ -223,9 +223,9 @@ function PlayerPage() {
               <span
                 className="px-1.5 py-0.5 text-[12px]"
                 style={{ background: '#2a2410', color: '#f2c94c', letterSpacing: '1px' }}
-                title={`Rank #${leaderboardPos.data.rank} on Valve's ${DIVISIONS.find((d) => d.id === leaderboardPos.data?.division)?.label} leaderboard`}
+                title={`Rank #${leaderboardPos.data.rank} on Valve's ${divisionLabel(leaderboardPos.data.division)} leaderboard`}
               >
-                #{leaderboardPos.data.rank}
+                #{leaderboardPos.data.rank} {divisionShort(leaderboardPos.data.division)}
               </span>
             )}
           </div>
@@ -317,10 +317,11 @@ function PlayerPage() {
                   {badge.stars && <img src={badge.stars} alt="" className="absolute h-16 w-16 object-contain" />}
                   {leaderboardPos.data && (
                     <span
-                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 text-[12px] font-bold tabular-nums"
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 text-[12px] font-bold tabular-nums whitespace-nowrap"
                       style={{ background: '#f2c94c', color: '#1a1608', letterSpacing: '0.5px' }}
+                      title={`Rank #${leaderboardPos.data.rank} on Valve's ${divisionLabel(leaderboardPos.data.division)} leaderboard`}
                     >
-                      #{leaderboardPos.data.rank}
+                      #{leaderboardPos.data.rank} {divisionShort(leaderboardPos.data.division)}
                     </span>
                   )}
                 </div>

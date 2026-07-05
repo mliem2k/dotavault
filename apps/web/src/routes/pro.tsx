@@ -2,7 +2,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { Spinner } from '@/components/ui/spinner'
-import { countryFlagUrl, findLeaderboardPositions } from '@/lib/leaderboard'
+import { countryFlagUrl, divisionLabel, divisionShort, findLeaderboardPositions } from '@/lib/leaderboard'
 import { opendota } from '@/lib/opendota'
 import { usePageTitle } from '@/lib/title'
 import { formatDuration, formatTimeAgo } from '@/lib/utils'
@@ -256,17 +256,23 @@ function ProPlayers() {
     staleTime: 30 * 60 * 1000,
   })
 
-  const sorted = useMemo(() => {
+  // Only a fraction of the ~470 notable pros are still actively queuing
+  // ranked, so sorting the whole list by rank alone crowded a fixed top-20
+  // out entirely with leaderboard hits and hid every other notable player.
+  // Reserve slots for both: ranked pros first (by rank), then fill the rest
+  // with everyone else in OpenDota's own order.
+  const { ranked, unranked } = useMemo(() => {
     const rankMap = ranks.data
-    return [...notable].sort((a, b) => {
-      const ra = rankMap?.get(String(a.account_id))?.rank
-      const rb = rankMap?.get(String(b.account_id))?.rank
-      if (ra != null && rb != null) return ra - rb
-      if (ra != null) return -1
-      if (rb != null) return 1
-      return 0
-    })
+    const withRank: typeof notable = []
+    const without: typeof notable = []
+    for (const p of notable) (rankMap?.has(String(p.account_id)) ? withRank : without).push(p)
+    withRank.sort((a, b) => (rankMap?.get(String(a.account_id))?.rank ?? 0) - (rankMap?.get(String(b.account_id))?.rank ?? 0))
+    return { ranked: withRank, unranked: without }
   }, [notable, ranks.data])
+
+  const RANKED_SLOTS = 12
+  const TOTAL_SLOTS = 20
+  const shown = [...ranked.slice(0, RANKED_SLOTS), ...unranked.slice(0, TOTAL_SLOTS - Math.min(ranked.length, RANKED_SLOTS))]
 
   return (
     <Panel title="Pro Players">
@@ -275,7 +281,7 @@ function ProPlayers() {
           <Spinner />
         </div>
       )}
-      {sorted.slice(0, 20).map((p, i) => {
+      {shown.map((p, i) => {
         const pos = ranks.data?.get(String(p.account_id))
         return (
           <a
@@ -302,9 +308,9 @@ function ProPlayers() {
               <span
                 className="shrink-0 px-1.5 py-0.5 text-[12px] font-bold tabular-nums"
                 style={{ background: '#2a2410', color: '#f2c94c' }}
-                title={`Rank #${pos.rank} on Valve's leaderboard`}
+                title={`Rank #${pos.rank} on Valve's ${divisionLabel(pos.division)} leaderboard`}
               >
-                #{pos.rank}
+                #{pos.rank} {divisionShort(pos.division)}
               </span>
             )}
             {p.loccountrycode && (
