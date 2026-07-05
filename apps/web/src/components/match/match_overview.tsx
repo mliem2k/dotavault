@@ -3,8 +3,6 @@ import { useQuery } from '@tanstack/react-query'
 import type { HeroBenchmarks, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { opendota } from '@/lib/opendota'
 import {
-  AGHS_SCEPTER_CDN,
-  AGHS_SHARD_CDN,
   cdnFallback,
   formatDuration,
   heroIconFromPath,
@@ -13,6 +11,7 @@ import {
   heroLandscapeUrl,
   heroVertCdn,
   heroVertUrl,
+  itemIconUrl,
 } from '@/lib/utils'
 import { ItemIcon } from './item_icon'
 import { PlayerAvatar, PlayerNameLink, usePlayerName } from './match_roster'
@@ -259,27 +258,38 @@ function HeroPortraitCard({
         </div>
       </button>
 
-      {/* Aghanim's Scepter/Shard badges under the card, like the client */}
+      {/* Aghanim's Scepter/Shard badges under the card, using the real shop
+          item icons (local asset first, Steam CDN fallback) */}
       {(hasScepter || hasShard) && (
         <div className="mt-1.5 flex items-center justify-center gap-1">
-          {hasScepter && (
+          {(
+            [
+              hasScepter ? { name: 'ultimate_scepter', label: "Aghanim's Scepter" } : null,
+              hasShard ? { name: 'aghanims_shard', label: "Aghanim's Shard" } : null,
+            ].filter(Boolean) as { name: string; label: string }[]
+          ).map(({ name, label }) => (
             <div
-              className="flex items-center justify-center"
-              style={{ width: 32, height: 32, background: 'rgba(13,16,18,0.9)', border: `1px solid ${C.panelBorder}` }}
-              title="Aghanim's Scepter"
+              key={name}
+              className="overflow-hidden"
+              style={{ width: 36, height: 27, background: 'rgba(13,16,18,0.9)', border: `1px solid ${C.panelBorder}` }}
+              title={label}
             >
-              <img src={AGHS_SCEPTER_CDN} alt="Aghanim's Scepter" style={{ width: 24, height: 24 }} />
+              <img
+                src={itemIconUrl(name)}
+                alt={label}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  const img = e.currentTarget
+                  if (!img.src.includes('cdn.cloudflare')) {
+                    img.src = `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/${name}.png`
+                  } else {
+                    img.onerror = null
+                    img.style.opacity = '0.12'
+                  }
+                }}
+              />
             </div>
-          )}
-          {hasShard && (
-            <div
-              className="flex items-center justify-center"
-              style={{ width: 32, height: 32, background: 'rgba(13,16,18,0.9)', border: `1px solid ${C.panelBorder}` }}
-              title="Aghanim's Shard"
-            >
-              <img src={AGHS_SHARD_CDN} alt="Aghanim's Shard" style={{ width: 24, height: 24 }} />
-            </div>
-          )}
+          ))}
         </div>
       )}
     </div>
