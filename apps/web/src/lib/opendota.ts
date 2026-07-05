@@ -123,6 +123,16 @@ export const opendota = {
       mid_game_items: Record<string, number>
       late_game_items: Record<string, number>
     }>(`/heroes/${id}/itemPopularity`),
+  // Win rate by lane role (1 safe, 2 mid, 3 off), last 60 days. heroId is
+  // always our own numeric hero.id, never free text, so string
+  // interpolation here can't be injected (same pattern as the league
+  // report's leagueid-scoped queries).
+  heroLaneRoles: (heroId: number) => {
+    const sql = `SELECT lane_role, count(*)::int as picks, sum(CASE WHEN (pm.player_slot < 128) = m.radiant_win THEN 1 ELSE 0 END)::int as wins FROM player_matches pm JOIN matches m ON pm.match_id = m.match_id WHERE pm.hero_id = ${heroId} AND lane_role IS NOT NULL AND m.start_time > extract(epoch from now() - interval '60 days') GROUP BY lane_role`
+    return get<{ rows: { lane_role: number; picks: number; wins: number }[] }>(
+      `/explorer?sql=${encodeURIComponent(sql)}`,
+    ).then((r) => r.rows)
+  },
   proMatches: (lessThan?: number) =>
     get<ProMatch[]>(`/proMatches${lessThan ? `?less_than_match_id=${lessThan}` : ''}`),
   teamsList: () =>

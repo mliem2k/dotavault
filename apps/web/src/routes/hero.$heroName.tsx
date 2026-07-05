@@ -203,6 +203,66 @@ function StatPanel({ title, children }: { title: string; children: React.ReactNo
   )
 }
 
+const LANE_LABELS: Record<number, string> = { 1: 'Safe Lane', 2: 'Mid Lane', 3: 'Off Lane' }
+const LANE_ORDER = [2, 1, 3]
+
+// Presence and win rate per lane role (Dotabuff's own "Lane Presence"
+// table uses this same 3-lane model, not a 5-position split, since that's
+// what OpenDota's lane_role field actually distinguishes cleanly; a
+// carry-vs-support split within a lane isn't reliably derivable from
+// public match data without a much fuzzier heuristic).
+function LanePresenceSection({ laneRoles }: { laneRoles: { lane_role: number; picks: number; wins: number }[] }) {
+  const total = laneRoles.reduce((s, l) => s + l.picks, 0)
+  if (total === 0) return null
+  const rows = LANE_ORDER.map((lr) => laneRoles.find((l) => l.lane_role === lr)).filter(
+    (l): l is { lane_role: number; picks: number; wins: number } => !!l,
+  )
+
+  return (
+    <StatPanel title="Lane Presence">
+      <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-dota)' }}>
+        <thead>
+          <tr className="text-[13px] font-bold uppercase tracking-widest" style={{ color: '#a8a294' }}>
+            <th className="pb-2 text-left">Lane</th>
+            <th className="pb-2 px-3 text-right">Presence</th>
+            <th className="pb-2 pl-3 text-right">Win Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((l) => {
+            const presence = (l.picks / total) * 100
+            const wr = l.picks > 0 ? (l.wins / l.picks) * 100 : 0
+            return (
+              <tr key={l.lane_role} style={{ borderTop: '1px solid #1c1810' }}>
+                <td className="py-2 text-[16px]" style={{ color: '#dcd6c8' }}>
+                  {LANE_LABELS[l.lane_role] ?? `Lane ${l.lane_role}`}
+                </td>
+                <td className="px-3 text-right text-[15px] tabular-nums" style={{ color: '#a8a294' }}>
+                  <div className="flex items-center justify-end gap-2">
+                    <div className="h-[6px] w-16" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                      <div style={{ width: `${presence}%`, height: '100%', background: '#c9a94a' }} />
+                    </div>
+                    {presence.toFixed(1)}%
+                  </div>
+                </td>
+                <td
+                  className="pl-3 text-right text-[16px] font-semibold tabular-nums"
+                  style={{ color: wr >= 52 ? '#8ec63f' : wr < 48 ? '#d14a38' : '#dcd6c8' }}
+                >
+                  {wr.toFixed(1)}%
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      <div className="mt-3 text-[13px]" style={{ color: '#7a7464' }}>
+        Last 60 days, {total.toLocaleString()} games.
+      </div>
+    </StatPanel>
+  )
+}
+
 // Best/worst matchups (min-games filtered so a hero with 40 total games
 // doesn't outrank one with 40,000 just from sample noise), same idea as
 // Dotabuff's Counters tab. OpenDota gives this hero's own win rate against
@@ -466,6 +526,12 @@ function HeroDetailPage() {
   const itemPopularity = useQuery({
     queryKey: ['hero_item_popularity', hero?.id],
     queryFn: () => opendota.heroItemPopularity(String(hero!.id)),
+    enabled: !!hero?.id,
+    staleTime: 60 * 60 * 1000,
+  })
+  const laneRoles = useQuery({
+    queryKey: ['hero_lane_roles', hero?.id],
+    queryFn: () => opendota.heroLaneRoles(hero!.id),
     enabled: !!hero?.id,
     staleTime: 60 * 60 * 1000,
   })
@@ -1288,6 +1354,7 @@ function HeroDetailPage() {
           charts read better at that narrower measure than stretched wide. */}
       {hero && (
         <div className="max-w-[1040px] mx-auto space-y-6">
+          {laneRoles.data && <LanePresenceSection laneRoles={laneRoles.data} />}
           {matchups.data && <MatchupsSection heroMap={heroMap} matchups={matchups.data} />}
           {durations.data && <DurationSection durations={durations.data} />}
           {itemPopularity.data && <ItemPopularitySection popularity={itemPopularity.data} idToName={itemIdToName} />}
