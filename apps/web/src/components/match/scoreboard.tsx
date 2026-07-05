@@ -303,7 +303,7 @@ function TeamTable({
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold tracking-wide" style={{ color: teamColor }}>{teamName}</span>
                 {isWinner && (
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest" style={{ background: `${teamColor}33`, color: teamColor, border: `1px solid ${teamColor}66` }}>
+                  <span className="text-[11px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest" style={{ background: `${teamColor}33`, color: teamColor, border: `1px solid ${teamColor}66` }}>
                     Winner
                   </span>
                 )}

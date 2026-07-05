@@ -213,7 +213,7 @@ export function MatchDamage({
               Score: <span style={{ color }}>{kills}</span>
             </span>
             {isWinner && (
-              <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ml-auto" style={{ background: '#123010', color: '#9fbf3f', border: '1px solid #9fbf3f44' }}>Winner</span>
+              <span className="text-[11px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ml-auto" style={{ background: '#123010', color: '#9fbf3f', border: '1px solid #9fbf3f44' }}>Winner</span>
             )}
           </div>
 

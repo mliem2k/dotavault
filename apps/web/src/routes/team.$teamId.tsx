@@ -181,7 +181,7 @@ function TeamPage() {
             ).map((stat) => (
               <div key={stat.label}>
                 <div
-                  className="text-[10px] uppercase tracking-widest mb-0.5"
+                  className="text-[11px] uppercase tracking-widest mb-0.5"
                   style={{ color: '#5a5446', fontFamily: 'var(--font-dota)' }}
                 >
                   {stat.label}

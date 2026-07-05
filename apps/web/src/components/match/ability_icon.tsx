@@ -45,7 +45,7 @@ function AbilityTooltip({ meta, isTalent, x, y }: { meta: AbilityConst; isTalent
           {isTalent ? cleanTalent(meta.dname ?? 'Talent') : (meta.dname ?? 'Ability')}
         </span>
         {isTalent && (
-          <span className="text-[9px] font-bold uppercase tracking-widest shrink-0" style={{ color: '#8ec63f' }}>
+          <span className="text-[11px] font-bold uppercase tracking-widest shrink-0" style={{ color: '#8ec63f' }}>
             Talent
           </span>
         )}

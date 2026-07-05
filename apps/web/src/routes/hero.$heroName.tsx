@@ -762,7 +762,7 @@ function HeroDetailPage() {
                           style={{
                             color: '#6a675e',
                             fontFamily: 'var(--font-dota)',
-                            fontSize: 10,
+                            fontSize: 11,
                             textTransform: 'uppercase',
                             letterSpacing: '2px',
                             marginBottom: attribs.length > 0 ? 6 : 0,
@@ -781,7 +781,7 @@ function HeroDetailPage() {
                             style={{
                               color: '#6a675e',
                               fontFamily: 'var(--font-dota)',
-                              fontSize: 10,
+                              fontSize: 11,
                               textTransform: 'uppercase',
                             }}
                           >
