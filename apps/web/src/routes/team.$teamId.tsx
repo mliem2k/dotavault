@@ -254,7 +254,7 @@ function TeamPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
         <Panel title="Roster">
           {players.isPending ? (
             <div className="flex justify-center py-8">
