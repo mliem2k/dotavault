@@ -112,7 +112,21 @@ export const opendota = {
   heroBenchmarks: (heroId: number) => get<HeroBenchmarks>(`/benchmarks?hero_id=${heroId}`),
   heroDurations: (id: string) => get<unknown[]>(`/heroes/${id}/durations`),
   heroItemTimings: (id: string) => get<unknown[]>(`/heroes/${id}/itemTimings`),
-  proMatches: () => get<ProMatch[]>('/proMatches'),
+  proMatches: (lessThan?: number) =>
+    get<ProMatch[]>(`/proMatches${lessThan ? `?less_than_match_id=${lessThan}` : ''}`),
+  teamsList: () =>
+    get<
+      {
+        team_id: number
+        rating: number
+        wins: number
+        losses: number
+        last_match_time: number
+        name: string | null
+        tag: string | null
+        logo_url: string | null
+      }[]
+    >('/teams'),
   proPlayers: () => get<ProPlayer[]>('/proPlayers'),
   search: (q: string) => get<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`),
   items: () => get<Record<string, ItemConst>>('/constants/items'),
