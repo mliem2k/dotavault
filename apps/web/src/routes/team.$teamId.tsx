@@ -81,6 +81,14 @@ function TeamPage() {
     staleTime: 5 * 60 * 1000,
   })
 
+  const currentAccountIds = (players.data ?? []).filter((p) => p.is_current_team_member).map((p) => p.account_id)
+  const roleSignal = useQuery({
+    queryKey: ['team_role_signal', teamId, currentAccountIds],
+    queryFn: () => opendota.teamRoleSignal(currentAccountIds),
+    enabled: currentAccountIds.length > 0,
+    staleTime: 10 * 60 * 1000,
+  })
+
   const recentMatches = useQuery({
     queryKey: ['team_matches', teamId],
     queryFn: () =>
@@ -131,6 +139,41 @@ function TeamPage() {
   const isStandIn = (p: (typeof roster)[number]) => {
     const max = maxGamesByRole.get(p.fantasy_role) ?? 0
     return max > 0 && p.games_played < max * 0.3
+  }
+
+  // Refines fantasy_role (Carry/Support/Offlane/Mid, no soft-vs-hard split)
+  // into the full 5 positions using two verified signals rather than
+  // guessing: among a roster's "Support"-tagged players, the one with
+  // lower average GPM is reliably the hard support (checked against a
+  // real known case: Team Falcons' Cr1t-, a well known hard support,
+  // scored lower than Sneyking, a soft support). A player with no
+  // fantasy_role at all but whose games are overwhelmingly lane_role 2
+  // is unambiguously a mid laner even without that field set. Anything
+  // else stays as-is rather than guessing carry vs offlane vs support
+  // from lane alone, which isn't reliable.
+  const gpmByAccount = new Map((roleSignal.data?.gpm ?? []).map((g) => [g.account_id, g.avg_gpm]))
+  const laneByAccount = new Map<number, { lane_role: number; games: number }[]>()
+  for (const l of roleSignal.data?.lane ?? []) {
+    if (!laneByAccount.has(l.account_id)) laneByAccount.set(l.account_id, [])
+    laneByAccount.get(l.account_id)?.push(l)
+  }
+  const supportAccounts = roster.filter((p) => p.fantasy_role === 2).map((p) => p.account_id)
+  const hardSupportAccount = supportAccounts.length >= 2
+    ? supportAccounts.reduce((lowest, id) =>
+        (gpmByAccount.get(id) ?? Number.POSITIVE_INFINITY) < (gpmByAccount.get(lowest) ?? Number.POSITIVE_INFINITY) ? id : lowest,
+      supportAccounts[0])
+    : null
+
+  const roleLabelFor = (p: (typeof roster)[number]): string => {
+    if (p.fantasy_role === 2 && supportAccounts.length >= 2) {
+      return p.account_id === hardSupportAccount ? 'Hard Support' : 'Soft Support'
+    }
+    if (ROLE_LABEL[p.fantasy_role]) return ROLE_LABEL[p.fantasy_role]
+    const laneGames = laneByAccount.get(p.account_id) ?? []
+    const totalLaneGames = laneGames.reduce((s, l) => s + l.games, 0)
+    const midGames = laneGames.find((l) => l.lane_role === 2)?.games ?? 0
+    if (totalLaneGames > 0 && midGames / totalLaneGames > 0.6) return 'Mid'
+    return ''
   }
 
   return (
@@ -254,7 +297,7 @@ function TeamPage() {
                         className="py-1.5 text-[12px]"
                         style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
                       >
-                        {ROLE_LABEL[p.fantasy_role] ?? ''}
+                        {roleLabelFor(p)}
                         {isStandIn(p) && (
                           <span
                             className="ml-1.5 px-1 py-0.5 text-[10px] uppercase"

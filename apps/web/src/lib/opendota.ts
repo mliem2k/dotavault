@@ -208,6 +208,30 @@ export const opendota = {
       `/explorer?sql=${encodeURIComponent(sql)}`,
     ).then((r) => r.rows)
   },
+  // Signal for refining a team roster's role display beyond OpenDota's own
+  // fantasy_role (which only distinguishes Carry/Support/Offlane/Mid, not
+  // soft vs hard support, and is sometimes just unset for a player):
+  // per-account average GPM (lower GPM among a team's two "Support"-tagged
+  // players reliably identifies the hard support, verified against a real
+  // known case) and lane_role distribution (a player whose games are
+  // overwhelmingly lane_role=2 is unambiguously a mid laner even with no
+  // fantasy_role set). accountIds always come from an already-fetched
+  // roster (never user input), coerced to integers before interpolation.
+  teamRoleSignal: (accountIds: number[]) => {
+    const ids = accountIds.map((id) => Math.trunc(id)).filter((id) => Number.isFinite(id))
+    if (ids.length === 0) {
+      return Promise.resolve({
+        gpm: [] as { account_id: number; avg_gpm: number }[],
+        lane: [] as { account_id: number; lane_role: number; games: number }[],
+      })
+    }
+    const gpmSql = `SELECT account_id, avg(gold_per_min)::int as avg_gpm FROM player_matches WHERE account_id IN (${ids.join(',')}) AND gold_per_min IS NOT NULL GROUP BY account_id`
+    const laneSql = `SELECT account_id, lane_role, count(*)::int as games FROM player_matches WHERE account_id IN (${ids.join(',')}) AND lane_role IS NOT NULL GROUP BY account_id, lane_role`
+    return Promise.all([
+      get<{ rows: { account_id: number; avg_gpm: number }[] }>(`/explorer?sql=${encodeURIComponent(gpmSql)}`),
+      get<{ rows: { account_id: number; lane_role: number; games: number }[] }>(`/explorer?sql=${encodeURIComponent(laneSql)}`),
+    ]).then(([gpm, lane]) => ({ gpm: gpm.rows, lane: lane.rows }))
+  },
   // Which of a batch of matches were tournament matches, and which league.
   // The plain /players/:id/matches REST endpoint has no leagueid field at
   // all (confirmed: requesting it via project= just comes back null even
