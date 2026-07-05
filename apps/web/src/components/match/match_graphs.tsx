@@ -12,10 +12,11 @@ import {
 
 const SIDEBAR_W = 252
 
-type Mode = 'team' | 'networth' | 'level' | 'lasthits' | 'items'
+type Mode = 'team' | 'winprob' | 'networth' | 'level' | 'lasthits' | 'items'
 
 const MODE_LABELS: Record<Mode, string> = {
   team: 'Team XP and Net Worth',
+  winprob: 'Win Probability (est.)',
   networth: 'Player Net Worth',
   level: 'Player Level',
   lasthits: 'Player Last Hits',
@@ -82,6 +83,83 @@ function TimeLabels({ minutes }: { minutes: number }) {
     )
   }
   return <div className="relative h-4 mt-1">{labels}</div>
+}
+
+/* Estimated win probability from the gold and XP advantage curves via a
+   logistic squash: NOT a trained model like Stratz's, just a transparent
+   heuristic (10k combined advantage is about 88% favored). */
+function WinProbChart({ match, vbH }: { match: Match; vbH: number }) {
+  const gold = match.radiant_gold_adv ?? []
+  const xp = match.radiant_xp_adv ?? []
+  const n = Math.max(gold.length, xp.length)
+  if (n < 2) return <Empty height={vbH} />
+
+  const prob = Array.from({ length: n }, (_, i) => {
+    const adv = (gold[i] ?? 0) + 0.5 * (xp[i] ?? 0)
+    return 1 / (1 + Math.exp(-adv / 5000))
+  })
+  const pad = 8
+  const xAt = (i: number) => (i / (n - 1)) * VB_W
+  const yAt = (p: number) => vbH - pad - p * (vbH - 2 * pad)
+  const mid = yAt(0.5)
+  const pts: [number, number][] = prob.map((p, i) => [xAt(i), yAt(p)])
+  const area = `${toPath(pts)} L${xAt(n - 1)} ${mid} L0 ${mid} Z`
+
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+  const onMove = (e: React.MouseEvent) => {
+    const el = wrapRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width))
+    setHoverIdx(Math.round(f * (n - 1)))
+  }
+  const hp = hoverIdx != null ? prob[Math.min(hoverIdx, prob.length - 1)] : null
+
+  return (
+    <div className="flex-1 min-w-0">
+      <div ref={wrapRef} className="relative" style={{ height: vbH }} onMouseMove={onMove} onMouseLeave={() => setHoverIdx(null)}>
+        <svg viewBox={`0 0 ${VB_W} ${vbH}`} preserveAspectRatio="none" className="w-full" style={{ height: vbH }}>
+          <defs>
+            <linearGradient id="wpFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#9fbf3f" stopOpacity="0.4" />
+              <stop offset={`${(mid / vbH) * 100}%`} stopColor="#9fbf3f" stopOpacity="0.05" />
+              <stop offset={`${(mid / vbH) * 100}%`} stopColor="#c94a38" stopOpacity="0.05" />
+              <stop offset="100%" stopColor="#c94a38" stopOpacity="0.4" />
+            </linearGradient>
+          </defs>
+          <GridAndAxis minutes={n} vbH={vbH} />
+          <line x1={0} y1={mid} x2={VB_W} y2={mid} stroke="#3a4147" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+          <path d={area} fill="url(#wpFill)" />
+          <path d={toPath(pts)} fill="none" stroke="#e8ecef" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+          {hoverIdx != null && (
+            <line x1={xAt(hoverIdx)} y1={0} x2={xAt(hoverIdx)} y2={vbH} stroke="#67757f" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+          )}
+        </svg>
+        {hp != null && hoverIdx != null && (
+          <div
+            className="absolute px-2 py-1 text-[12px] tabular-nums pointer-events-none"
+            style={{
+              left: `${(hoverIdx / (n - 1)) * 100}%`,
+              top: 6,
+              transform: 'translateX(-50%)',
+              background: 'rgba(8,10,12,0.9)',
+              border: '1px solid #2c3236',
+              color: hp >= 0.5 ? '#9fbf3f' : '#c94a38',
+              fontFamily: 'var(--font-dota)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {hoverIdx}:00 · {hp >= 0.5 ? 'Radiant' : 'Dire'} {Math.round((hp >= 0.5 ? hp : 1 - hp) * 100)}%
+          </div>
+        )}
+      </div>
+      <TimeLabels minutes={n} />
+      <p className="mt-1 text-[11px]" style={{ color: '#67757f', fontFamily: 'var(--font-dota)' }}>
+        Estimated from gold and XP advantage (logistic heuristic, not a trained model).
+      </p>
+    </div>
+  )
 }
 
 function TeamAdvantageChart({ match, vbH }: { match: Match; vbH: number }) {
@@ -430,7 +508,7 @@ export function MatchGraphs({
 }) {
   // All four client modes are always offered; modes without parsed data render
   // the "unparsed" placeholder in the chart area.
-  const available: Mode[] = ['team', 'networth', 'level', 'lasthits', 'items']
+  const available: Mode[] = ['team', 'winprob', 'networth', 'level', 'lasthits', 'items']
 
   const [mode, setMode] = useState<Mode>('team')
   const activeMode = mode
@@ -579,6 +657,7 @@ export function MatchGraphs({
             {/* Line charts render time labels (and a legend) below the plot,
                 so shrink their viewbox to keep the column at roster height. */}
             {activeMode === 'team' && <TeamAdvantageChart match={match} vbH={rosterH - 46} />}
+            {activeMode === 'winprob' && <WinProbChart match={match} vbH={rosterH - 46} />}
             {activeMode === 'networth' && <PlayerLinesChart match={match} heroStats={heroStats} metric="networth" visibleSlots={visibleSlots} vbH={rosterH - 22} />}
             {activeMode === 'level' && <PlayerLinesChart match={match} heroStats={heroStats} metric="level" visibleSlots={visibleSlots} vbH={rosterH - 22} />}
             {activeMode === 'lasthits' && <PlayerLinesChart match={match} heroStats={heroStats} metric="lasthits" visibleSlots={visibleSlots} vbH={rosterH - 22} />}

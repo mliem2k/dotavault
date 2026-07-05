@@ -5,7 +5,7 @@
 # small files we actually use.)
 set -e
 cd "$(dirname "$0")/.."
-for f in cluster region game_mode lobby_type player_colors; do
+for f in cluster region game_mode lobby_type player_colors order_types; do
   cp "node_modules/dotaconstants/build/$f.json" "src/lib/dotaconstants/$f.json"
 done
 echo "vendored dotaconstants files refreshed"

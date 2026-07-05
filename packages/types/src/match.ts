@@ -198,6 +198,17 @@ export type MatchPlayer = {
   runes_log?: { time: number; key: string }[] | null
   buyback_log?: { time: number; slot: number; player_slot: number }[] | null
   lane_pos?: Record<string, Record<string, number>> | null
+  actions?: Record<string, number> | null
+  damage_targets?: Record<string, Record<string, number>> | null
+  towers_killed?: number | null
+  roshans_killed?: number | null
+  firstblood_claimed?: number | null
+  cosmetics?: {
+    item_id: number
+    name: string | null
+    image_path?: string | null
+    item_rarity?: string | null
+  }[] | null
   ability_uses?: Record<string, number> | null
   item_uses?: Record<string, number> | null
   hero_hits?: Record<string, number> | null

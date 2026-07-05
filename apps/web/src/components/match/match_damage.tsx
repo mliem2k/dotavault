@@ -9,11 +9,12 @@ const IDENTITY_W = 236
 const HERO_COL_W = 76
 const TOTAL_W = 84
 
-type Mode = 'dealt' | 'taken' | 'sources'
+type Mode = 'dealt' | 'taken' | 'sources' | 'abilities'
 const MODE_LABELS: Record<Mode, string> = {
   dealt: 'Damage Dealt',
   taken: 'Damage Taken',
   sources: 'Damage Sources',
+  abilities: 'By Ability',
 }
 
 function fmtK(v: number): string {
@@ -84,6 +85,78 @@ function SourcesRow({
   )
 }
 
+/* Stratz Focus-style drill-down: for each damage source (ability, item, or
+   plain attacks), how much went into each enemy hero (damage_targets). */
+function AbilityTargetsRow({
+  player,
+  heroStats,
+  abilities,
+  itemConst,
+}: {
+  player: MatchPlayer
+  heroStats: HeroStat[]
+  abilities: Record<string, AbilityConst>
+  itemConst: Record<string, ItemConst>
+}) {
+  const heroByName = new Map(heroStats.map((h) => [h.name, h]))
+  const sources = Object.entries(player.damage_targets ?? {}).sort(
+    (a, b) =>
+      Object.values(b[1]).reduce((s, v) => s + v, 0) - Object.values(a[1]).reduce((s, v) => s + v, 0),
+  )
+  const label = (raw: string): string => {
+    if (raw === 'null') return 'Attacks'
+    if (raw.startsWith('item_')) return itemConst[raw.slice(5)]?.dname ?? raw.slice(5).replace(/_/g, ' ')
+    return abilities[raw]?.dname ?? raw.replace(/_/g, ' ')
+  }
+  if (sources.length === 0) {
+    return (
+      <div className="flex items-center px-3 text-[12px]" style={{ color: '#5a6066', fontFamily: 'var(--font-dota)' }}>
+        No per-target damage data.
+      </div>
+    )
+  }
+  return (
+    <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-3 py-1.5">
+      {sources.slice(0, 4).map(([srcName, targets]) => {
+        const total = Object.values(targets).reduce((s, v) => s + v, 0)
+        return (
+          <div key={srcName} className="flex items-center gap-2 text-[11px]" style={{ fontFamily: 'var(--font-dota)' }}>
+            <span className="w-[120px] shrink-0 truncate" style={{ color: '#a8b0b6' }} title={label(srcName)}>
+              {label(srcName)}
+            </span>
+            <span className="w-10 shrink-0 text-right tabular-nums" style={{ color: '#e8a070' }}>{fmtK(total)}</span>
+            <div className="flex min-w-0 flex-wrap gap-1">
+              {Object.entries(targets)
+                .sort((a, b) => b[1] - a[1])
+                .map(([victim, dmg]) => {
+                  const hero = heroByName.get(victim)
+                  return (
+                    <span
+                      key={victim}
+                      className="inline-flex items-center gap-1 px-1"
+                      style={{ background: 'rgba(8,10,12,0.6)', border: '1px solid #22282c' }}
+                      title={`${hero?.localized_name ?? victim}: ${dmg.toLocaleString()}`}
+                    >
+                      {hero && (
+                        <img
+                          src={heroIconUrl(hero.name)}
+                          alt=""
+                          style={{ width: 16, height: 16 }}
+                          onError={(e) => { const img = e.currentTarget; img.onerror = null; img.src = heroIconFromPath(hero.icon) }}
+                        />
+                      )}
+                      <span className="tabular-nums" style={{ color: '#cfd4d8' }}>{fmtK(dmg)}</span>
+                    </span>
+                  )
+                })}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export function MatchDamage({
   match,
   heroStats,
@@ -144,9 +217,9 @@ export function MatchDamage({
             )}
           </div>
 
-          {mode === 'sources' ? (
+          {mode === 'sources' || mode === 'abilities' ? (
             <div className="flex items-center px-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#67757f', fontFamily: 'var(--font-dota)' }}>
-              Top damage sources (share of total)
+              {mode === 'sources' ? 'Top damage sources (share of total)' : 'Damage per ability, per enemy hero'}
             </div>
           ) : (
             <>
@@ -179,6 +252,8 @@ export function MatchDamage({
               <PlayerIdentityCell player={p} hero={heroMap.get(p.hero_id)} width={IDENTITY_W} />
               {mode === 'sources' ? (
                 <SourcesRow player={p} abilities={abilities} itemConst={itemConst} />
+              ) : mode === 'abilities' ? (
+                <AbilityTargetsRow player={p} heroStats={heroStats} abilities={abilities} itemConst={itemConst} />
               ) : (
                 <>
                   {cells.map((v, i) => (

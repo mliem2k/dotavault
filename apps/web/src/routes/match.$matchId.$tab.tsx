@@ -7,7 +7,11 @@ import { MatchDamage } from '@/components/match/match_damage'
 import { MatchFarm } from '@/components/match/match_farm'
 import { MatchGraphs } from '@/components/match/match_graphs'
 import { MatchBuildings } from '@/components/match/match_buildings'
+import { MatchActions } from '@/components/match/match_actions'
 import { MatchCasts } from '@/components/match/match_casts'
+import { MatchCosmetics } from '@/components/match/match_cosmetics'
+import { MatchFantasy } from '@/components/match/match_fantasy'
+import { MatchStory } from '@/components/match/match_story'
 import { MatchLaning } from '@/components/match/match_laning'
 import { MatchLog } from '@/components/match/match_log'
 import { MatchObjectives } from '@/components/match/match_objectives'
@@ -35,6 +39,10 @@ type Tab =
   | 'objectives'
   | 'buildings'
   | 'log'
+  | 'actions'
+  | 'fantasy'
+  | 'story'
+  | 'cosmetics'
   | 'draft'
   | 'vision'
   | 'chat'
@@ -110,6 +118,10 @@ function MatchPage() {
   const hasDraft = (m.picks_bans?.length ?? 0) > 0
   const hasLaning = m.players.some((p) => p.lane_pos && Object.keys(p.lane_pos).length > 0)
   const hasCasts = m.players.some((p) => p.ability_uses && Object.keys(p.ability_uses).length > 0)
+  const hasActions = m.players.some((p) => p.actions && Object.keys(p.actions).length > 0)
+  const hasFantasy = m.players.some((p) => p.teamfight_participation != null)
+  const hasStory = m.players.some((p) => (p.kills_log?.length ?? 0) > 0)
+  const hasCosmetics = m.players.some((p) => (p.cosmetics?.length ?? 0) > 0)
   const hasLog = m.players.some((p) => (p.kills_log?.length ?? 0) > 0 || (p.obs_log?.length ?? 0) > 0)
   const hasBuildings =
     (m.objectives ?? []).some((o) => o.type === 'building_kill') || m.players.some((p) => p.damage != null)
@@ -130,6 +142,10 @@ function MatchPage() {
     ...(hasObjectives ? (['objectives'] as Tab[]) : []),
     ...(hasBuildings ? (['buildings'] as Tab[]) : []),
     ...(hasLog ? (['log'] as Tab[]) : []),
+    ...(hasActions ? (['actions'] as Tab[]) : []),
+    ...(hasFantasy ? (['fantasy'] as Tab[]) : []),
+    ...(hasStory ? (['story'] as Tab[]) : []),
+    ...(hasCosmetics ? (['cosmetics'] as Tab[]) : []),
     ...(hasDraft ? (['draft'] as Tab[]) : []),
     ...(hasVision ? (['vision'] as Tab[]) : []),
     ...(hasChat ? (['chat'] as Tab[]) : []),
@@ -223,6 +239,18 @@ function MatchPage() {
 
       {activeTab === 'log' &&
         (heroStats.data ? <MatchLog match={m} heroStats={heroStats.data} /> : loading)}
+
+      {activeTab === 'actions' &&
+        (heroStats.data ? <MatchActions match={m} heroStats={heroStats.data} /> : loading)}
+
+      {activeTab === 'fantasy' &&
+        (heroStats.data ? <MatchFantasy match={m} heroStats={heroStats.data} /> : loading)}
+
+      {activeTab === 'story' &&
+        (heroStats.data ? <MatchStory match={m} heroStats={heroStats.data} /> : loading)}
+
+      {activeTab === 'cosmetics' &&
+        (heroStats.data ? <MatchCosmetics match={m} heroStats={heroStats.data} /> : loading)}
 
       {activeTab === 'objectives' &&
         (heroStats.data ? <MatchObjectives match={m} heroStats={heroStats.data} /> : loading)}

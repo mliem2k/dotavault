@@ -7,6 +7,7 @@ import clusterMap from './dotaconstants/cluster.json'
 import gameModes from './dotaconstants/game_mode.json'
 import lobbyTypes from './dotaconstants/lobby_type.json'
 import playerColors from './dotaconstants/player_colors.json'
+import orderTypes from './dotaconstants/order_types.json'
 import regions from './dotaconstants/region.json'
 
 function titleCase(s: string): string {
@@ -43,6 +44,13 @@ export function lobbyTypeName(id: number | null | undefined): string | null {
 export function playerColor(playerSlot: number): string {
   const idx = playerSlot < 128 ? playerSlot : playerSlot - 128 + 5
   return (playerColors as Record<string, string>)[String(idx)] ?? '#8a97a0'
+}
+
+// Friendly label for an action/order type id (players[].actions keys).
+export function orderTypeName(id: string): string {
+  const raw = (orderTypes as Record<string, string>)[id]
+  if (!raw) return `Order ${id}`
+  return titleCase(raw.replace('DOTA_UNIT_ORDER_', '').replace(/_/g, ' '))
 }
 
 // Rune ids as used by OpenDota's runes_log keys.
