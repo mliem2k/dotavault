@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
-import { useMemo } from 'react'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useMemo, useState } from 'react'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
 import { usePageTitle } from '@/lib/title'
@@ -137,6 +137,7 @@ function StandingsPanel({
     queryFn: () => opendota.leagueTeamStandings(leagueId),
     staleTime: 10 * 60 * 1000,
   })
+  const navigate = useNavigate()
 
   return (
     <Panel title="Team Standings">
@@ -145,54 +146,136 @@ function StandingsPanel({
           <Spinner />
         </div>
       )}
-      {standings.data?.length === 0 && (
+      {standings.data?.length === 0 && !standings.isPending && (
         <div className="py-8 text-center text-[13px]" style={{ color: '#8a8474' }}>
           No team-attributed matches in this league.
         </div>
       )}
-      {(standings.data ?? []).map((s, i) => {
-        const team = teamMap.get(s.team_id)
-        const games = s.wins + s.losses
-        const wr = games > 0 ? (s.wins / games) * 100 : 0
-        return (
-          <a
-            key={s.team_id}
-            href={`/team/${s.team_id}`}
-            className="flex items-center gap-3 py-1.5 hover:bg-white/[0.03]"
-            style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
-          >
-            <span className="w-5 shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#4a4436', fontFamily: 'var(--font-dota)' }}>
-              {i + 1}
-            </span>
-            {team?.logo_url ? (
-              <img
-                src={team.logo_url}
-                alt=""
-                className="h-6 w-6 shrink-0 object-contain"
-                onError={(e) => {
-                  e.currentTarget.style.visibility = 'hidden'
-                }}
-              />
-            ) : (
-              <span className="h-6 w-6 shrink-0" />
-            )}
-            <span className="min-w-0 flex-1 truncate text-[15px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
-              {team?.name ?? `Team ${s.team_id}`}
-            </span>
-            <span className="shrink-0 text-[13px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
-              {s.wins}W {s.losses}L
-              <span className="ml-2" style={{ color: wr >= 55 ? '#8ec63f' : wr < 45 ? '#d14a38' : '#8a8474' }}>
-                {wr.toFixed(0)}%
-              </span>
-            </span>
-          </a>
-        )
-      })}
+      {standings.data && standings.data.length > 0 && (
+        <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-dota)' }}>
+          <thead>
+            <tr className="text-[12px] font-bold uppercase tracking-widest" style={{ color: '#8a8474' }}>
+              <th className="pb-2 pr-2 text-right w-8">#</th>
+              <th className="pb-2 text-left">Team</th>
+              <th className="pb-2 px-3 text-right">W</th>
+              <th className="pb-2 px-3 text-right">L</th>
+              <th className="pb-2 pl-3 text-right">Win Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            {standings.data.map((s, i) => {
+              const team = teamMap.get(s.team_id)
+              const games = s.wins + s.losses
+              const wr = games > 0 ? (s.wins / games) * 100 : 0
+              return (
+                <tr
+                  key={s.team_id}
+                  onClick={() => navigate({ to: '/team/$teamId', params: { teamId: String(s.team_id) } })}
+                  className="cursor-pointer hover:bg-white/[0.03]"
+                  style={{ borderTop: '1px solid #1c1810' }}
+                >
+                  <td className="py-2 pr-2 text-right text-[13px] tabular-nums" style={{ color: '#4a4436' }}>
+                    {i + 1}
+                  </td>
+                  <td className="py-2">
+                    <div className="flex items-center gap-2.5">
+                      {team?.logo_url ? (
+                        <img
+                          src={team.logo_url}
+                          alt=""
+                          className="h-7 w-7 shrink-0 object-contain"
+                          onError={(e) => {
+                            e.currentTarget.style.visibility = 'hidden'
+                          }}
+                        />
+                      ) : (
+                        <span className="h-7 w-7 shrink-0" />
+                      )}
+                      <span className="truncate text-[15px]" style={{ color: '#dcd6c8' }}>
+                        {team?.name ?? `Team ${s.team_id}`}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-3 text-right text-[14px] tabular-nums" style={{ color: '#8ec63f' }}>
+                    {s.wins}
+                  </td>
+                  <td className="px-3 text-right text-[14px] tabular-nums" style={{ color: '#d14a38' }}>
+                    {s.losses}
+                  </td>
+                  <td
+                    className="pl-3 text-right text-[14px] font-semibold tabular-nums"
+                    style={{ color: wr >= 55 ? '#8ec63f' : wr < 45 ? '#d14a38' : '#dcd6c8' }}
+                  >
+                    {wr.toFixed(0)}%
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )}
     </Panel>
   )
 }
 
-function MatchesPanel({
+type LeagueMatchRow = {
+  match_id: number
+  start_time: number
+  duration: number
+  radiant_team_id: number | null
+  dire_team_id: number | null
+  radiant_win: boolean
+  radiant_score: number | null
+  dire_score: number | null
+  series_id: number | null
+  series_type: number | null
+}
+
+type Series = {
+  key: string
+  teamA: number | null
+  teamB: number | null
+  scoreA: number
+  scoreB: number
+  bestOf: number
+  games: LeagueMatchRow[]
+  lastStartTime: number
+}
+
+// OpenDota gives per-game rows with a shared series_id but no fixed side
+// per team (radiant/dire can swap between games), so re-derive a stable
+// "team A vs team B" pairing and series score by walking the games in
+// order. A null/zero series_id (or one shared by unrelated pairings, which
+// happens) still gets its own single-game "series" via a per-team-pair key
+// so unrelated Bo1s never get merged together.
+function buildSeries(matches: LeagueMatchRow[]): Series[] {
+  const bySeriesId = new Map<string, LeagueMatchRow[]>()
+  for (const m of matches) {
+    const pairKey = [m.radiant_team_id, m.dire_team_id].sort((a, b) => (a ?? 0) - (b ?? 0)).join('-')
+    const key = m.series_id ? `s${m.series_id}-${pairKey}` : `m${m.match_id}`
+    if (!bySeriesId.has(key)) bySeriesId.set(key, [])
+    bySeriesId.get(key)?.push(m)
+  }
+  const out: Series[] = []
+  for (const [key, games] of bySeriesId) {
+    games.sort((a, b) => a.start_time - b.start_time)
+    const teamA = games[0].radiant_team_id
+    const teamB = games[0].dire_team_id
+    let scoreA = 0
+    let scoreB = 0
+    for (const g of games) {
+      const radiantIsA = g.radiant_team_id === teamA
+      const aWon = radiantIsA ? g.radiant_win : !g.radiant_win
+      if (aWon) scoreA++
+      else scoreB++
+    }
+    const bestOf = games[0].series_type === 2 ? 5 : games[0].series_type === 1 ? 3 : games.length > 1 ? games.length : 1
+    out.push({ key, teamA, teamB, scoreA, scoreB, bestOf, games, lastStartTime: games[games.length - 1].start_time })
+  }
+  return out.sort((a, b) => b.lastStartTime - a.lastStartTime)
+}
+
+function SeriesPanel({
   leagueId,
   teamMap,
 }: {
@@ -201,64 +284,200 @@ function MatchesPanel({
 }) {
   const matches = useQuery({
     queryKey: ['league_matches', leagueId],
-    queryFn: () => opendota.leagueMatches(leagueId, 50, 0),
+    queryFn: () => opendota.leagueMatches(leagueId, 500, 0),
     staleTime: 5 * 60 * 1000,
   })
 
+  const series = useMemo(() => buildSeries(matches.data ?? []), [matches.data])
+
   return (
-    <Panel title="Matches">
+    <Panel title="Results">
       {matches.isPending && (
         <div className="flex justify-center py-8">
           <Spinner />
         </div>
       )}
-      {(matches.data ?? []).map((m, i) => {
-        const rad = teamMap.get(m.radiant_team_id ?? -1)
-        const dire = teamMap.get(m.dire_team_id ?? -1)
+      {series.map((s, i) => {
+        const teamA = teamMap.get(s.teamA ?? -1)
+        const teamB = teamMap.get(s.teamB ?? -1)
+        const aWon = s.scoreA > s.scoreB
         return (
-          <a
-            key={m.match_id}
-            href={`/match/${m.match_id}`}
-            className="flex items-center gap-3 py-2 hover:bg-white/[0.03]"
-            style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
-          >
-            <div className="min-w-0 flex-1">
-              <div className="flex min-w-0 items-center gap-2">
-                <span
-                  className="truncate text-[15px]"
-                  style={{ color: m.radiant_win ? '#8ec63f' : '#a09a8c', fontFamily: 'var(--font-dota)', fontWeight: m.radiant_win ? 600 : 400 }}
-                >
-                  {rad?.name ?? (m.radiant_team_id ? `Team ${m.radiant_team_id}` : 'Radiant')}
-                </span>
-                <span className="shrink-0 px-1.5 text-[13px] tabular-nums" style={{ color: '#dcd6c8', background: 'rgba(255,255,255,0.05)', fontFamily: 'var(--font-dota)' }}>
-                  {m.radiant_score ?? '?'} : {m.dire_score ?? '?'}
-                </span>
-                <span
-                  className="truncate text-[15px]"
-                  style={{ color: !m.radiant_win ? '#8ec63f' : '#a09a8c', fontFamily: 'var(--font-dota)', fontWeight: !m.radiant_win ? 600 : 400 }}
-                >
-                  {dire?.name ?? (m.dire_team_id ? `Team ${m.dire_team_id}` : 'Dire')}
-                </span>
+          <div key={s.key} className="py-2.5" style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}>
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="truncate text-[15px]"
+                    style={{ color: aWon ? '#8ec63f' : '#a09a8c', fontFamily: 'var(--font-dota)', fontWeight: aWon ? 600 : 400 }}
+                  >
+                    {teamA?.name ?? (s.teamA ? `Team ${s.teamA}` : 'TBD')}
+                  </span>
+                  <span
+                    className="shrink-0 px-2 py-0.5 text-[14px] font-bold tabular-nums"
+                    style={{ color: '#dcd6c8', background: 'rgba(255,255,255,0.06)', fontFamily: 'var(--font-dota)' }}
+                  >
+                    {s.scoreA} : {s.scoreB}
+                  </span>
+                  <span
+                    className="truncate text-[15px]"
+                    style={{ color: !aWon ? '#8ec63f' : '#a09a8c', fontFamily: 'var(--font-dota)', fontWeight: !aWon ? 600 : 400 }}
+                  >
+                    {teamB?.name ?? (s.teamB ? `Team ${s.teamB}` : 'TBD')}
+                  </span>
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="text-[12px] uppercase tracking-wider" style={{ color: '#5a5648', fontFamily: 'var(--font-dota)' }}>
+                  Bo{s.bestOf}
+                </div>
+                <div className="text-[12px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+                  {formatTimeAgo(s.lastStartTime)}
+                </div>
               </div>
             </div>
-            <div className="shrink-0 text-right">
-              <div className="text-[13px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
-                {formatTimeAgo(m.start_time)}
-              </div>
-              <div className="mt-0.5 text-[13px] tabular-nums" style={{ color: '#4a4436', fontFamily: 'var(--font-dota)' }}>
-                {formatDuration(m.duration)}
-              </div>
+            <div className="mt-1.5 flex flex-wrap gap-1.5 pl-0.5">
+              {s.games.map((g) => {
+                const radiantIsA = g.radiant_team_id === s.teamA
+                const aWonGame = radiantIsA ? g.radiant_win : !g.radiant_win
+                return (
+                  <a
+                    key={g.match_id}
+                    href={`/match/${g.match_id}`}
+                    className="px-2 py-1 text-[12px] tabular-nums hover:bg-white/[0.05]"
+                    style={{ background: 'rgba(255,255,255,0.03)', color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                    title={`${formatDuration(g.duration)} · ${g.radiant_score ?? '?'}-${g.dire_score ?? '?'}`}
+                  >
+                    <span style={{ color: aWonGame ? '#8ec63f' : '#d14a38' }}>{aWonGame ? 'W' : 'L'}</span>{' '}
+                    {formatDuration(g.duration)}
+                  </a>
+                )
+              })}
             </div>
-          </a>
+          </div>
         )
       })}
     </Panel>
   )
 }
 
+function RosterPanel({
+  leagueId,
+  teamMap,
+}: {
+  leagueId: number
+  teamMap: Map<number, { name: string | null; tag: string | null; logo_url: string | null }>
+}) {
+  const roster = useQuery({
+    queryKey: ['league_roster', leagueId],
+    queryFn: () => opendota.leagueRoster(leagueId),
+    staleTime: 10 * 60 * 1000,
+  })
+  const proPlayers = useQuery({
+    queryKey: ['pro_players'],
+    queryFn: () => opendota.proPlayers(),
+    staleTime: 60 * 60 * 1000,
+  })
+  const proMap = useMemo(
+    () => new Map((proPlayers.data ?? []).map((p) => [p.account_id, p])),
+    [proPlayers.data],
+  )
+
+  const byTeam = useMemo(() => {
+    const groups = new Map<number, { account_id: number; games: number; wins: number }[]>()
+    for (const r of roster.data ?? []) {
+      if (r.team_id == null) continue
+      if (!groups.has(r.team_id)) groups.set(r.team_id, [])
+      groups.get(r.team_id)?.push(r)
+    }
+    return [...groups.entries()]
+      .map(([teamId, players]) => ({
+        teamId,
+        players: players.sort((a, b) => b.games - a.games),
+        totalGames: Math.max(...players.map((p) => p.games)),
+      }))
+      .sort((a, b) => b.totalGames - a.totalGames)
+  }, [roster.data])
+
+  return (
+    <Panel title="Participants">
+      {(roster.isPending || proPlayers.isPending) && (
+        <div className="flex justify-center py-8">
+          <Spinner />
+        </div>
+      )}
+      {byTeam.length === 0 && !roster.isPending && (
+        <div className="py-8 text-center text-[13px]" style={{ color: '#8a8474' }}>
+          No team-attributed rosters in this league.
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {byTeam.map((g) => {
+          const team = teamMap.get(g.teamId)
+          return (
+            <div key={g.teamId}>
+              <a href={`/team/${g.teamId}`} className="flex items-center gap-2 py-1 hover:opacity-80">
+                {team?.logo_url ? (
+                  <img
+                    src={team.logo_url}
+                    alt=""
+                    className="h-5 w-5 shrink-0 object-contain"
+                    onError={(e) => {
+                      e.currentTarget.style.visibility = 'hidden'
+                    }}
+                  />
+                ) : (
+                  <span className="h-5 w-5 shrink-0" />
+                )}
+                <span className="truncate text-[14px] font-semibold" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+                  {team?.name ?? `Team ${g.teamId}`}
+                </span>
+              </a>
+              <div className="ml-7">
+                {g.players.map((p) => {
+                  const pro = proMap.get(p.account_id)
+                  const wr = p.games > 0 ? (p.wins / p.games) * 100 : 0
+                  return (
+                    <a
+                      key={p.account_id}
+                      href={`/player/${p.account_id}`}
+                      className="flex items-center gap-2 py-0.5 hover:bg-white/[0.03]"
+                    >
+                      <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: '#c8c2b4', fontFamily: 'var(--font-dota)' }}>
+                        {pro?.name ?? pro?.personaname ?? `Player ${p.account_id}`}
+                      </span>
+                      <span className="shrink-0 text-[12px] tabular-nums" style={{ color: '#5a5648', fontFamily: 'var(--font-dota)' }}>
+                        {p.games}g
+                      </span>
+                      <span
+                        className="shrink-0 text-[12px] font-semibold tabular-nums"
+                        style={{ color: wr >= 55 ? '#8ec63f' : wr < 45 ? '#d14a38' : '#8a8474', fontFamily: 'var(--font-dota)' }}
+                      >
+                        {wr.toFixed(0)}%
+                      </span>
+                    </a>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </Panel>
+  )
+}
+
+type LeagueTab = 'standings' | 'results' | 'draft' | 'participants'
+const LEAGUE_TABS: { key: LeagueTab; label: string }[] = [
+  { key: 'standings', label: 'Standings' },
+  { key: 'results', label: 'Results' },
+  { key: 'draft', label: 'Draft' },
+  { key: 'participants', label: 'Participants' },
+]
+
 function LeaguePage() {
   const { leagueId } = Route.useParams()
   const id = Number(leagueId)
+  const [tab, setTab] = useState<LeagueTab>('standings')
 
   const summary = useQuery({
     queryKey: ['league_summary', id],
@@ -368,12 +587,32 @@ function LeaguePage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <div className="xl:col-span-1">
-            <DraftPanel leagueId={id} heroMap={heroMap} />
+        <div>
+          <div
+            className="flex items-center flex-wrap gap-1 mb-4 px-1 py-1"
+            style={{ fontFamily: 'var(--font-dota)', background: 'rgba(8,10,12,0.55)', border: '1px solid #24222a' }}
+          >
+            {LEAGUE_TABS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTab(t.key)}
+                className="px-4 py-2 text-[14px] font-semibold uppercase cursor-pointer whitespace-nowrap"
+                style={{
+                  color: tab === t.key ? '#0b0b0d' : '#a8a294',
+                  background: tab === t.key ? '#c9a94a' : 'transparent',
+                  letterSpacing: '2px',
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
-          <StandingsPanel leagueId={id} teamMap={teamMap} />
-          <MatchesPanel leagueId={id} teamMap={teamMap} />
+
+          {tab === 'standings' && <StandingsPanel leagueId={id} teamMap={teamMap} />}
+          {tab === 'results' && <SeriesPanel leagueId={id} teamMap={teamMap} />}
+          {tab === 'draft' && <DraftPanel leagueId={id} heroMap={heroMap} />}
+          {tab === 'participants' && <RosterPanel leagueId={id} teamMap={teamMap} />}
         </div>
       )}
     </div>

@@ -159,9 +159,9 @@ export const opendota = {
     ).then((r) => r.rows)
   },
   leagueMatches: (id: number, limit = 50, offset = 0) => {
-    const lim = Math.min(200, Math.max(1, Math.trunc(limit)))
+    const lim = Math.min(500, Math.max(1, Math.trunc(limit)))
     const off = Math.max(0, Math.trunc(offset))
-    const sql = `SELECT match_id, start_time, duration, radiant_team_id, dire_team_id, radiant_win, radiant_score, dire_score FROM matches WHERE leagueid = ${id} ORDER BY start_time DESC LIMIT ${lim} OFFSET ${off}`
+    const sql = `SELECT match_id, start_time, duration, radiant_team_id, dire_team_id, radiant_win, radiant_score, dire_score, series_id, series_type FROM matches WHERE leagueid = ${id} ORDER BY start_time ASC LIMIT ${lim} OFFSET ${off}`
     return get<{
       rows: {
         match_id: number
@@ -172,8 +172,20 @@ export const opendota = {
         radiant_win: boolean
         radiant_score: number | null
         dire_score: number | null
+        series_id: number | null
+        series_type: number | null
       }[]
     }>(`/explorer?sql=${encodeURIComponent(sql)}`).then((r) => r.rows)
+  },
+  // Which players actually competed for which team in a given league (not
+  // just a team's current roster, which drifts as rosters change): derived
+  // straight from player_matches so it reflects who played, at the time
+  // they played it.
+  leagueRoster: (id: number) => {
+    const sql = `SELECT pm.account_id, CASE WHEN pm.player_slot < 128 THEN m.radiant_team_id ELSE m.dire_team_id END as team_id, count(*)::int as games, sum(CASE WHEN (pm.player_slot < 128) = m.radiant_win THEN 1 ELSE 0 END)::int as wins FROM player_matches pm JOIN matches m ON pm.match_id = m.match_id WHERE m.leagueid = ${id} AND pm.account_id IS NOT NULL GROUP BY pm.account_id, team_id ORDER BY team_id, games DESC`
+    return get<{ rows: { account_id: number; team_id: number | null; games: number; wins: number }[] }>(
+      `/explorer?sql=${encodeURIComponent(sql)}`,
+    ).then((r) => r.rows)
   },
   search: (q: string) => get<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`),
   items: () => get<Record<string, ItemConst>>('/constants/items'),
