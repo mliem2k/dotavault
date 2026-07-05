@@ -108,6 +108,74 @@ function buildEvents(match: Match, heroStats: HeroStat[]): LogEvent[] {
   return events.sort((a, b) => a.time - b.time)
 }
 
+/* Dotabuff-style aggregate: how many of each rune type each player took. */
+function RunesSummary({ match, heroMap }: { match: Match; heroMap: Map<number, HeroStat> }) {
+  const counts = new Map<number, Record<string, number>>()
+  const runeIds = new Set<string>()
+  for (const p of match.players) {
+    for (const r of p.runes_log ?? []) {
+      runeIds.add(r.key)
+      const rec = counts.get(p.player_slot) ?? {}
+      rec[r.key] = (rec[r.key] ?? 0) + 1
+      counts.set(p.player_slot, rec)
+    }
+  }
+  if (runeIds.size === 0) return null
+  const cols = [...runeIds].sort((a, b) => Number(a) - Number(b))
+  const players = match.players.filter((p) => (counts.get(p.player_slot) ? true : false))
+
+  return (
+    <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="mb-2 text-[12px] uppercase" style={{ color: C.dim, letterSpacing: '2px' }}>
+        Runes Taken
+      </div>
+      <div className="overflow-x-auto">
+        <table className="border-collapse">
+          <thead>
+            <tr>
+              <th />
+              {cols.map((id) => (
+                <th key={id} className="px-2 pb-1 text-[11px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
+                  {RUNE_NAMES[id] ?? id}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {players.map((p) => {
+              const hero = heroMap.get(p.hero_id)
+              const rec = counts.get(p.player_slot) ?? {}
+              return (
+                <tr key={p.player_slot}>
+                  <td className="py-0.5 pr-2">
+                    <img
+                      src={hero ? heroIconUrl(hero.name) : ''}
+                      alt=""
+                      title={hero?.localized_name}
+                      style={{ width: 22, height: 22 }}
+                      onError={(e) => {
+                        if (!hero) return
+                        const img = e.currentTarget
+                        img.onerror = null
+                        img.src = heroIconFromPath(hero.icon)
+                      }}
+                    />
+                  </td>
+                  {cols.map((id) => (
+                    <td key={id} className="px-2 text-center text-[12px] tabular-nums" style={{ color: rec[id] ? C.text : '#3a4147' }}>
+                      {rec[id] ?? ''}
+                    </td>
+                  ))}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 export function MatchLog({ match, heroStats }: { match: Match; heroStats: HeroStat[] }) {
   const heroMap = useMemo(() => new Map(heroStats.map((h) => [h.id, h])), [heroStats])
   const all = useMemo(() => buildEvents(match, heroStats), [match, heroStats])
@@ -177,6 +245,8 @@ export function MatchLog({ match, heroStats }: { match: Match; heroStats: HeroSt
           </div>
         </div>
       </div>
+
+      <RunesSummary match={match} heroMap={heroMap} />
 
       <div className="max-h-[70vh] overflow-y-auto">
         {shown.map((e, i) => {

@@ -2,7 +2,7 @@ import type { HeroStat, Match, MatchPlayer } from 'types'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { PlayerNameLink, TeamHeader, orderedTeams } from './match_roster'
 
-/* Performance tab — lanes, efficiency, APM, teamfight participation, stuns,
+/* Performance tab - lanes, efficiency, APM, teamfight participation, stuns,
    camps, runes, buybacks, and per-metric benchmark percentiles. */
 
 const C = {
@@ -30,6 +30,12 @@ function pctColor(p: number): string {
   if (p >= 0.75) return C.green
   if (p >= 0.4) return C.gold
   return C.red
+}
+
+/* Largest key of a count map (e.g. multi_kills {"2":5,"3":3} → 3). */
+function maxKey(rec: Record<string, number> | null | undefined): number | null {
+  const keys = Object.keys(rec ?? {}).map(Number).filter(Number.isFinite)
+  return keys.length ? Math.max(...keys) : null
 }
 
 function Row({ p, hero }: { p: MatchPlayer; hero: HeroStat | undefined }) {
@@ -60,14 +66,17 @@ function Row({ p, hero }: { p: MatchPlayer; hero: HeroStat | undefined }) {
           <PlayerNameLink player={p} className="block text-[12px] truncate" style={{ color: C.dim }} />
         </div>
       </div>
-      {cell(p.lane_role ? LANES[p.lane_role] ?? '—' : '—', 84)}
-      {cell(eff != null ? `${eff}%` : '—', 84, eff != null ? pctColor(eff / 100) : C.dim)}
-      {cell(p.actions_per_min ?? '—', 84)}
-      {cell(tfp != null ? `${Math.round(tfp * 100)}%` : '—', 84)}
-      {cell(p.stuns != null ? p.stuns.toFixed(1) : '—', 84)}
-      {cell(p.camps_stacked ?? '—', 84)}
-      {cell(p.rune_pickups ?? '—', 84)}
-      {cell(p.buyback_count ?? '—', 70)}
+      {cell(p.lane_role ? LANES[p.lane_role] ?? '-' : '-', 84)}
+      {cell(eff != null ? `${eff}%` : '-', 84, eff != null ? pctColor(eff / 100) : C.dim)}
+      {cell(p.actions_per_min ?? '-', 84)}
+      {cell(tfp != null ? `${Math.round(tfp * 100)}%` : '-', 84)}
+      {cell(p.stuns != null ? p.stuns.toFixed(1) : '-', 84)}
+      {cell(p.camps_stacked ?? '-', 84)}
+      {cell(p.rune_pickups ?? '-', 84)}
+      {cell(p.buyback_count ?? '-', 70)}
+      {cell(maxKey(p.multi_kills) != null ? `${maxKey(p.multi_kills)}x` : '-', 70)}
+      {cell(maxKey(p.kill_streaks) ?? '-', 70)}
+      {cell(p.pings ?? '-', 70)}
       {/* benchmark percentile bars */}
       <div className="flex items-center gap-4 pl-4">
         {BENCH_KEYS.map(({ key, label }) => {
@@ -78,7 +87,7 @@ function Row({ p, hero }: { p: MatchPlayer; hero: HeroStat | undefined }) {
               <div className="flex justify-between text-[11px] uppercase" style={{ color: C.dim, fontFamily: 'var(--font-dota)' }}>
                 <span>{label}</span>
                 <span className="tabular-nums" style={{ color: pct != null ? pctColor(pct) : C.dim }}>
-                  {pct != null ? `${Math.round(pct * 100)}` : '—'}
+                  {pct != null ? `${Math.round(pct * 100)}` : '-'}
                 </span>
               </div>
               <div style={{ height: 6, background: '#2c3236', marginTop: 2 }}>
@@ -105,11 +114,11 @@ export function MatchPerformance({
   const header = (
     <div className="flex items-center" style={{ height: 40 }}>
       <div className="shrink-0" style={{ width: 240 }} />
-      {['Lane', 'Lane Eff', 'APM', 'TF Part', 'Stuns', 'Camps', 'Runes', 'BB'].map((l, i) => (
+      {['Lane', 'Lane Eff', 'APM', 'TF Part', 'Stuns', 'Camps', 'Runes', 'BB', 'Multi', 'Streak', 'Pings'].map((l, i) => (
         <div
           key={l}
           className="shrink-0 text-center text-[13px] uppercase"
-          style={{ width: i === 7 ? 70 : 84, color: C.label, letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
+          style={{ width: i >= 7 ? 70 : 84, color: C.label, letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
         >
           {l}
         </div>
@@ -138,7 +147,7 @@ export function MatchPerformance({
 
   return (
     <div className="overflow-x-auto">
-      <div style={{ background: C.panel, minWidth: 1300 }}>
+      <div style={{ background: C.panel, minWidth: 1510 }}>
         {section(radiant, true)}
         {section(dire, false)}
       </div>

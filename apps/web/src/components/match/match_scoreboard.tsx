@@ -256,6 +256,21 @@ export function MatchScoreboard({
       render: (p) =>
         num('#e8ecef')(p.hero_healing != null ? fmtK(damageHealAtTime(match, p, timeSec).healing) : '—'),
     },
+    {
+      label: 'BLD',
+      width: 62,
+      render: (p) => num('#c9a94a')(p.tower_damage != null ? fmtK(p.tower_damage) : '-'),
+    },
+    {
+      label: 'WARDS',
+      width: 66,
+      render: (p) => {
+        // Ward placements are timestamped, so this column follows the slider.
+        const obs = p.obs_log ? p.obs_log.filter((w) => w.time <= timeSec).length : p.obs_placed
+        const sen = p.sen_log ? p.sen_log.filter((w) => w.time <= timeSec).length : p.sen_placed
+        return num('#e8ecef')(obs || sen ? `${obs ?? 0}/${sen ?? 0}` : '-')
+      },
+    },
     { label: 'MMR', width: 84, render: () => num('#67757f')('—') },
   ]
 

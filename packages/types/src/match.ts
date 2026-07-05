@@ -197,6 +197,12 @@ export type MatchPlayer = {
   total_gold?: number | null
   runes_log?: { time: number; key: string }[] | null
   buyback_log?: { time: number; slot: number; player_slot: number }[] | null
+  lane_pos?: Record<string, Record<string, number>> | null
+  ability_uses?: Record<string, number> | null
+  item_uses?: Record<string, number> | null
+  hero_hits?: Record<string, number> | null
+  multi_kills?: Record<string, number> | null
+  kill_streaks?: Record<string, number> | null
 }
 
 export type Match = {

@@ -7,6 +7,8 @@ import { MatchDamage } from '@/components/match/match_damage'
 import { MatchFarm } from '@/components/match/match_farm'
 import { MatchGraphs } from '@/components/match/match_graphs'
 import { MatchBuildings } from '@/components/match/match_buildings'
+import { MatchCasts } from '@/components/match/match_casts'
+import { MatchLaning } from '@/components/match/match_laning'
 import { MatchLog } from '@/components/match/match_log'
 import { MatchObjectives } from '@/components/match/match_objectives'
 import { MatchOverview } from '@/components/match/match_overview'
@@ -26,6 +28,8 @@ type Tab =
   | 'combat'
   | 'damage'
   | 'performance'
+  | 'laning'
+  | 'casts'
   | 'farm'
   | 'purchases'
   | 'objectives'
@@ -104,6 +108,8 @@ function MatchPage() {
   const hasPurchases = m.players.some((p) => (p.purchase_log?.length ?? 0) > 0)
   const hasObjectives = (m.objectives?.length ?? 0) > 0
   const hasDraft = (m.picks_bans?.length ?? 0) > 0
+  const hasLaning = m.players.some((p) => p.lane_pos && Object.keys(p.lane_pos).length > 0)
+  const hasCasts = m.players.some((p) => p.ability_uses && Object.keys(p.ability_uses).length > 0)
   const hasLog = m.players.some((p) => (p.kills_log?.length ?? 0) > 0 || (p.obs_log?.length ?? 0) > 0)
   const hasBuildings =
     (m.objectives ?? []).some((o) => o.type === 'building_kill') || m.players.some((p) => p.damage != null)
@@ -117,6 +123,8 @@ function MatchPage() {
     ...(hasCombat ? (['combat'] as Tab[]) : []),
     ...(hasDamage ? (['damage'] as Tab[]) : []),
     ...(hasPerformance ? (['performance'] as Tab[]) : []),
+    ...(hasLaning ? (['laning'] as Tab[]) : []),
+    ...(hasCasts ? (['casts'] as Tab[]) : []),
     ...(hasFarm ? (['farm'] as Tab[]) : []),
     ...(hasPurchases ? (['purchases'] as Tab[]) : []),
     ...(hasObjectives ? (['objectives'] as Tab[]) : []),
@@ -204,6 +212,14 @@ function MatchPage() {
 
       {activeTab === 'buildings' &&
         (heroStats.data ? <MatchBuildings match={m} heroStats={heroStats.data} /> : loading)}
+
+      {activeTab === 'laning' &&
+        (heroStats.data ? <MatchLaning match={m} heroStats={heroStats.data} /> : loading)}
+
+      {activeTab === 'casts' &&
+        (heroStats.data ? (
+          <MatchCasts match={m} heroStats={heroStats.data} abilityConst={abilitiesData.data ?? {}} itemConst={itemConst} />
+        ) : loading)}
 
       {activeTab === 'log' &&
         (heroStats.data ? <MatchLog match={m} heroStats={heroStats.data} /> : loading)}
