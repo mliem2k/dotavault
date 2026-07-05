@@ -5,6 +5,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { countryFlagUrl, divisionLabel, divisionShort, findLeaderboardPositions } from '@/lib/leaderboard'
 import { opendota } from '@/lib/opendota'
 import { usePageTitle } from '@/lib/title'
+import { tiChampionships } from '@/lib/ti_champions'
 import { formatDuration, formatTimeAgo } from '@/lib/utils'
 
 export const Route = createFileRoute('/pro')({
@@ -208,8 +209,21 @@ function TopTeams() {
               <span className="h-7 w-7 shrink-0" />
             )}
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[16px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
-                {t.name}
+              <div className="flex items-center gap-1.5">
+                <span className="truncate text-[16px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+                  {t.name}
+                </span>
+                {tiChampionships(t.team_id).length > 0 && (
+                  <span
+                    className="shrink-0 px-1.5 py-0.5 text-[11px] font-bold uppercase"
+                    style={{ background: '#3a2f10', color: '#f2c94c', letterSpacing: '0.5px' }}
+                    title={`The International Champion: ${tiChampionships(t.team_id)
+                      .map((c) => (c.wonAs ? `TI${c.year} as ${c.wonAs}` : `TI${c.year}`))
+                      .join(', ')}`}
+                  >
+                    TI {tiChampionships(t.team_id).map((c) => c.year).join('/')}
+                  </span>
+                )}
               </div>
               <div className="text-[13px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
                 {t.wins}W · {t.losses}L

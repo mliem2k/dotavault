@@ -3,6 +3,7 @@ import { usePageTitle } from '@/lib/title'
 import { createFileRoute } from '@tanstack/react-router'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
+import { tiChampionships } from '@/lib/ti_champions'
 import { formatTimeAgo, winRate } from '@/lib/utils'
 
 export const Route = createFileRoute('/team/$teamId')({
@@ -133,12 +134,25 @@ function TeamPage() {
             />
           )}
           <div className="min-w-0">
-            <h1
-              className="text-[32px] font-bold leading-tight uppercase truncate"
-              style={{ color: '#f0eae0', fontFamily: 'var(--font-display)', letterSpacing: '2px' }}
-            >
-              {t.name}
-            </h1>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1
+                className="text-[32px] font-bold leading-tight uppercase truncate"
+                style={{ color: '#f0eae0', fontFamily: 'var(--font-display)', letterSpacing: '2px' }}
+              >
+                {t.name}
+              </h1>
+              {tiChampionships(t.team_id).length > 0 && (
+                <span
+                  className="shrink-0 px-2 py-0.5 text-[13px] font-bold uppercase"
+                  style={{ background: '#3a2f10', color: '#f2c94c', letterSpacing: '1px' }}
+                  title={`The International Champion: ${tiChampionships(t.team_id)
+                    .map((c) => (c.wonAs ? `TI${c.year} as ${c.wonAs}` : `TI${c.year}`))
+                    .join(', ')}`}
+                >
+                  TI Champion {tiChampionships(t.team_id).map((c) => c.year).join('/')}
+                </span>
+              )}
+            </div>
             {t.tag && (
               <div
                 className="text-[13px] uppercase tracking-widest mt-0.5"
