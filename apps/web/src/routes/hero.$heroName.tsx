@@ -271,52 +271,57 @@ function MatchupsSection({
 // Win rate by game-length bucket, the closest thing OpenDota exposes to
 // Dotabuff's win-rate-trend chart (theirs buckets by hero level, this
 // buckets by match duration, both read the same way as a shape).
+// A flat games-played floor (rather than a % of peak) so a hero with a
+// naturally spread-out duration distribution doesn't get its own tail cut
+// more aggressively than one with a sharp peak. 50 was picked by looking
+// at the real data: it cleanly separates the meaningful 10-65 minute range
+// from one-off games at 70+ minutes whose win rate is just noise (a single
+// game is either 0% or 100%).
+const DURATION_MIN_GAMES = 50
+
 function DurationSection({ durations }: { durations: { duration_bin: number; games_played: number; wins: number }[] }) {
   const rows = useMemo(
     () =>
       [...durations]
-        .filter((d) => d.games_played > 0)
+        .filter((d) => d.games_played >= DURATION_MIN_GAMES)
         .sort((a, b) => a.duration_bin - b.duration_bin)
         .map((d) => ({ ...d, wr: (d.wins / d.games_played) * 100 })),
     [durations],
   )
   if (rows.length === 0) return null
-  const maxGames = Math.max(1, ...rows.map((r) => r.games_played))
+
+  const minWr = Math.min(...rows.map((r) => r.wr))
+  const maxWr = Math.max(...rows.map((r) => r.wr))
+  const span = Math.max(1, maxWr - minWr)
+  const BAR_MAX = 96
+  const BAR_MIN = 18
+  const heightFor = (wr: number) => BAR_MIN + ((wr - minWr) / span) * (BAR_MAX - BAR_MIN)
 
   return (
     <StatPanel title="Win Rate by Game Length">
-      <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-dota)' }}>
-        <thead>
-          <tr className="text-[12px] font-bold uppercase tracking-widest" style={{ color: '#8a8474' }}>
-            <th className="pb-2 text-left">Duration</th>
-            <th className="pb-2 px-2 text-right">Games</th>
-            <th className="pb-2 pl-2 text-right">Win Rate</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.duration_bin} style={{ borderTop: '1px solid #1c1810' }}>
-              <td className="py-1.5 text-[14px]" style={{ color: '#dcd6c8' }}>
-                {Math.round(r.duration_bin / 60)} min
-              </td>
-              <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#8a8474' }}>
-                <div className="flex items-center justify-end gap-2">
-                  <div className="h-[6px]" style={{ width: 50, background: 'rgba(255,255,255,0.06)' }}>
-                    <div style={{ width: `${(r.games_played / maxGames) * 100}%`, height: '100%', background: '#5a8fc2' }} />
-                  </div>
-                  {r.games_played.toLocaleString()}
-                </div>
-              </td>
-              <td
-                className="pl-2 text-right text-[14px] font-semibold tabular-nums"
-                style={{ color: r.wr >= 52 ? '#8ec63f' : r.wr < 48 ? '#d14a38' : '#dcd6c8' }}
-              >
-                {r.wr.toFixed(1)}%
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="flex items-end justify-center gap-2 sm:gap-3 overflow-x-auto py-2" style={{ maxWidth: 720, margin: '0 auto' }}>
+        {rows.map((r) => (
+          <div key={r.duration_bin} className="flex shrink-0 flex-col items-center" style={{ width: 44 }}>
+            <div
+              className="text-[12px] font-semibold tabular-nums mb-1"
+              style={{ color: r.wr >= 52 ? '#8ec63f' : r.wr < 48 ? '#d14a38' : '#8a8474', fontFamily: 'var(--font-dota)' }}
+            >
+              {r.wr.toFixed(0)}%
+            </div>
+            <div
+              className="w-full rounded-t-sm"
+              style={{ height: heightFor(r.wr), background: r.wr >= 52 ? '#8ec63f' : r.wr < 48 ? '#d14a38' : '#5a8fc2' }}
+              title={`${r.games_played.toLocaleString()} games`}
+            />
+            <div className="mt-1.5 text-[11px]" style={{ color: '#5a5648', fontFamily: 'var(--font-dota)' }}>
+              {Math.round(r.duration_bin / 60)}m
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="text-center text-[12px] mt-1" style={{ color: '#5a5648' }}>
+        Minimum {DURATION_MIN_GAMES} games in that duration bucket.
+      </div>
     </StatPanel>
   )
 }
