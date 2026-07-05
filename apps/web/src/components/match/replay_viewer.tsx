@@ -1089,7 +1089,7 @@ export function ReplayViewer({
                     }}
                   />
                 )}
-                <span className="text-[13px] truncate" style={{ color: C.text }}>{e.text}</span>
+                <span className="text-[13px] line-clamp-2" style={{ color: C.text }}>{e.text}</span>
               </button>
             )
           })}
