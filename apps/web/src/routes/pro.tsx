@@ -230,6 +230,11 @@ function TopTeams() {
                 <span className="ml-2" style={{ color: wr >= 55 ? '#8ec63f' : wr < 45 ? '#d14a38' : '#8a8474' }}>
                   {wr.toFixed(0)}%
                 </span>
+                {t.last_match_time && (
+                  <span className="ml-2" style={{ color: '#5a5648' }}>
+                    · Last played {formatTimeAgo(t.last_match_time)}
+                  </span>
+                )}
               </div>
             </div>
             <span className="shrink-0 text-[15px] tabular-nums" style={{ color: '#c9a94a', fontFamily: 'var(--font-dota)' }}>
