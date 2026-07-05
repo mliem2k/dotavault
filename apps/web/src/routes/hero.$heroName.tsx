@@ -228,7 +228,12 @@ function MatchupsSection({
   const row = (m: { hero_id: number; games_played: number; wr: number }, good: boolean) => {
     const h = heroMap.get(m.hero_id)
     return (
-      <div key={m.hero_id} className="flex items-center gap-2.5 py-1.5" style={{ borderTop: '1px solid #1c1810' }}>
+      <a
+        key={m.hero_id}
+        href={h ? `/hero/${heroSlug(h.localized_name)}` : undefined}
+        className="flex items-center gap-2.5 py-1.5 hover:bg-white/[0.03]"
+        style={{ borderTop: '1px solid #1c1810' }}
+      >
         {h && <img src={heroIconUrl(h.name)} alt="" className="h-8 w-8 shrink-0 rounded" />}
         <span className="min-w-0 flex-1 truncate text-[14px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
           {h?.localized_name ?? `Hero ${m.hero_id}`}
@@ -239,7 +244,7 @@ function MatchupsSection({
         >
           {m.wr.toFixed(1)}%
         </span>
-      </div>
+      </a>
     )
   }
 
