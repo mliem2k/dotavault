@@ -296,7 +296,7 @@ function PlayerRow({
       <img
         src={hero ? heroIconUrl(hero.name) : ''}
         alt=""
-        style={{ width: 30, height: 30, filter: dead ? 'grayscale(1)' : undefined }}
+        style={{ width: 34, height: 34, filter: dead ? 'grayscale(1)' : undefined }}
         onError={(e) => {
           if (!hero) return
           const img = e.currentTarget
@@ -305,17 +305,33 @@ function PlayerRow({
         }}
       />
       <span
-        className="absolute -bottom-1 -right-1 flex items-center justify-center text-[9px] tabular-nums leading-none"
+        className="absolute -bottom-1 -right-1 flex items-center justify-center text-[10px] tabular-nums leading-none"
         style={{
-          minWidth: 13,
-          height: 13,
+          minWidth: 14,
+          height: 14,
           background: '#0d1012',
           border: '1px solid #2c3236',
           color: C.gold,
         }}
+        title="Level"
       >
         {level}
       </span>
+      {stats.deaths > 0 && (
+        <span
+          className="absolute -top-1 -left-1 flex items-center justify-center text-[10px] font-bold tabular-nums leading-none"
+          style={{
+            minWidth: 14,
+            height: 14,
+            background: '#3a1210',
+            border: '1px solid #6b2622',
+            color: '#ff8f7a',
+          }}
+          title="Deaths"
+        >
+          {stats.deaths}
+        </span>
+      )}
     </div>
   )
 
@@ -330,17 +346,17 @@ function PlayerRow({
           portrait
         )}
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[11px] leading-tight">
+          <div className="truncate text-[13px] leading-tight">
             <PlayerNameLink player={player} style={{ color: C.text }} />
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] tabular-nums leading-tight">
+          <div className="flex items-center gap-1.5 text-[13px] tabular-nums leading-tight">
             <span style={{ color: C.white }}>{stats.kills}</span>
             <span style={{ color: '#4a5157' }}>/</span>
             <span style={{ color: C.red }}>{stats.deaths}</span>
             <span style={{ color: '#4a5157' }}>/</span>
             <span style={{ color: C.label }}>{stats.assists}</span>
             <span className="ml-auto inline-flex items-center gap-0.5" style={{ color: C.gold }}>
-              <GoldIcon size={9} />
+              <GoldIcon size={10} />
               {stats.netWorth >= 1000 ? `${(stats.netWorth / 1000).toFixed(1)}k` : stats.netWorth}
             </span>
           </div>
