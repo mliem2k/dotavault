@@ -142,6 +142,28 @@ function sampleAt(points: PositionPoint[] | undefined, t: number): PositionPoint
   return points[lo]
 }
 
+/* Seconds remaining until this hero's next respawn, or null if not
+   currently dead. Scans forward from the current 1Hz sample to the first
+   later sample with hp > 0 (respawn), rather than computing Dota's
+   level/time respawn formula, since the parsed position data already
+   captures the real moment they come back. */
+function respawnCountdown(points: PositionPoint[] | undefined, t: number): number | null {
+  if (!points?.length) return null
+  let lo = 0
+  let hi = points.length - 1
+  if (t < points[0].t) return null
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2)
+    if (points[mid].t <= t) lo = mid
+    else hi = mid - 1
+  }
+  if (points[lo].hp > 0) return null
+  for (let i = lo + 1; i < points.length; i++) {
+    if (points[i].hp > 0) return Math.max(0, Math.round(points[i].t - t))
+  }
+  return null
+}
+
 function extractKillEvents(
   match: Match,
   heroMap: Map<number, HeroStat>,
@@ -289,6 +311,7 @@ function PlayerRow({
   const sample = sampleAt(dense, timeSec)
   const level = sample?.lvl || stats.level
   const dead = sample != null && sample.hp === 0
+  const respawnIn = dead ? respawnCountdown(dense, timeSec) : null
   const items = itemsAtTime(player, idToName, timeSec, match.duration, itemConst)
 
   const portrait = (
@@ -317,7 +340,7 @@ function PlayerRow({
       >
         {level}
       </span>
-      {stats.deaths > 0 && (
+      {respawnIn != null && (
         <span
           className="absolute -top-1 -left-1 flex items-center justify-center text-[10px] font-bold tabular-nums leading-none"
           style={{
@@ -327,9 +350,9 @@ function PlayerRow({
             border: '1px solid #6b2622',
             color: '#ff8f7a',
           }}
-          title="Deaths"
+          title="Respawns in"
         >
-          {stats.deaths}
+          {respawnIn}
         </span>
       )}
     </div>
