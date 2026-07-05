@@ -1,12 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { AbilityDetails } from '@/components/heroes/ability_details'
 import { Spinner } from '@/components/ui/spinner'
 import { datafeed } from '@/lib/datafeed'
 import { usePageTitle } from '@/lib/title'
 import { opendota } from '@/lib/opendota'
-import { INNATE_ICON_CDN, TALENTS_ICON_CDN, abilityIconCdn, abilityIconUrl, heroLandscapeCdn, heroSlug } from '@/lib/utils'
+import {
+  INNATE_ICON_CDN,
+  ITEM_CDN_FALLBACK,
+  TALENTS_ICON_CDN,
+  abilityIconCdn,
+  abilityIconUrl,
+  heroIconUrl,
+  heroLandscapeCdn,
+  heroSlug,
+  itemIconUrl,
+} from '@/lib/utils'
 
 export const Route = createFileRoute('/hero/$heroName')({
   component: HeroDetailPage,
@@ -179,6 +189,206 @@ function TotalBar({ fill, value, gain }: { fill: string; value: number; gain: nu
   )
 }
 
+function StatPanel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+      <div
+        className="px-4 py-3 uppercase"
+        style={{ color: '#c8c2b4', fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, letterSpacing: '3px', borderBottom: '1px solid #24222a' }}
+      >
+        {title}
+      </div>
+      <div className="px-4 py-3">{children}</div>
+    </div>
+  )
+}
+
+// Best/worst matchups (min-games filtered so a hero with 40 total games
+// doesn't outrank one with 40,000 just from sample noise), same idea as
+// Dotabuff's Counters tab. OpenDota gives this hero's own win rate against
+// each opponent directly, no aggregation needed.
+const MATCHUP_MIN_GAMES = 100
+function MatchupsSection({
+  heroMap,
+  matchups,
+}: {
+  heroMap: Map<number, { localized_name: string; name: string }>
+  matchups: { hero_id: number; games_played: number; wins: number }[]
+}) {
+  const rated = useMemo(
+    () =>
+      matchups
+        .filter((m) => m.games_played >= MATCHUP_MIN_GAMES)
+        .map((m) => ({ ...m, wr: (m.wins / m.games_played) * 100 })),
+    [matchups],
+  )
+  const best = useMemo(() => [...rated].sort((a, b) => b.wr - a.wr).slice(0, 5), [rated])
+  const worst = useMemo(() => [...rated].sort((a, b) => a.wr - b.wr).slice(0, 5), [rated])
+
+  const row = (m: { hero_id: number; games_played: number; wr: number }, good: boolean) => {
+    const h = heroMap.get(m.hero_id)
+    return (
+      <div key={m.hero_id} className="flex items-center gap-2.5 py-1.5" style={{ borderTop: '1px solid #1c1810' }}>
+        {h && <img src={heroIconUrl(h.name)} alt="" className="h-8 w-8 shrink-0 rounded" />}
+        <span className="min-w-0 flex-1 truncate text-[14px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+          {h?.localized_name ?? `Hero ${m.hero_id}`}
+        </span>
+        <span
+          className="shrink-0 text-[14px] font-bold tabular-nums"
+          style={{ color: good ? '#8ec63f' : '#d14a38', fontFamily: 'var(--font-dota)' }}
+        >
+          {m.wr.toFixed(1)}%
+        </span>
+      </div>
+    )
+  }
+
+  if (rated.length === 0) return null
+
+  return (
+    <StatPanel title="Matchups">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div>
+          <div className="text-[12px] font-bold uppercase tracking-widest mb-1" style={{ color: '#8ec63f' }}>
+            Best Against
+          </div>
+          {best.map((m) => row(m, true))}
+        </div>
+        <div>
+          <div className="text-[12px] font-bold uppercase tracking-widest mb-1" style={{ color: '#d14a38' }}>
+            Worst Against
+          </div>
+          {worst.map((m) => row(m, false))}
+        </div>
+      </div>
+      <div className="mt-3 text-[12px]" style={{ color: '#5a5648' }}>
+        Minimum {MATCHUP_MIN_GAMES.toLocaleString()} games played against that hero.
+      </div>
+    </StatPanel>
+  )
+}
+
+// Win rate by game-length bucket, the closest thing OpenDota exposes to
+// Dotabuff's win-rate-trend chart (theirs buckets by hero level, this
+// buckets by match duration, both read the same way as a shape).
+function DurationSection({ durations }: { durations: { duration_bin: number; games_played: number; wins: number }[] }) {
+  const rows = useMemo(
+    () =>
+      [...durations]
+        .filter((d) => d.games_played > 0)
+        .sort((a, b) => a.duration_bin - b.duration_bin)
+        .map((d) => ({ ...d, wr: (d.wins / d.games_played) * 100 })),
+    [durations],
+  )
+  if (rows.length === 0) return null
+  const maxGames = Math.max(1, ...rows.map((r) => r.games_played))
+
+  return (
+    <StatPanel title="Win Rate by Game Length">
+      <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-dota)' }}>
+        <thead>
+          <tr className="text-[12px] font-bold uppercase tracking-widest" style={{ color: '#8a8474' }}>
+            <th className="pb-2 text-left">Duration</th>
+            <th className="pb-2 px-2 text-right">Games</th>
+            <th className="pb-2 pl-2 text-right">Win Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.duration_bin} style={{ borderTop: '1px solid #1c1810' }}>
+              <td className="py-1.5 text-[14px]" style={{ color: '#dcd6c8' }}>
+                {Math.round(r.duration_bin / 60)} min
+              </td>
+              <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#8a8474' }}>
+                <div className="flex items-center justify-end gap-2">
+                  <div className="h-[6px]" style={{ width: 50, background: 'rgba(255,255,255,0.06)' }}>
+                    <div style={{ width: `${(r.games_played / maxGames) * 100}%`, height: '100%', background: '#5a8fc2' }} />
+                  </div>
+                  {r.games_played.toLocaleString()}
+                </div>
+              </td>
+              <td
+                className="pl-2 text-right text-[14px] font-semibold tabular-nums"
+                style={{ color: r.wr >= 52 ? '#8ec63f' : r.wr < 48 ? '#d14a38' : '#dcd6c8' }}
+              >
+                {r.wr.toFixed(1)}%
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </StatPanel>
+  )
+}
+
+const ITEM_PHASES: { key: 'start_game_items' | 'early_game_items' | 'mid_game_items' | 'late_game_items'; label: string }[] = [
+  { key: 'start_game_items', label: 'Starting' },
+  { key: 'early_game_items', label: 'Early Game' },
+  { key: 'mid_game_items', label: 'Mid Game' },
+  { key: 'late_game_items', label: 'Late Game' },
+]
+
+// Most-purchased items per game phase. OpenDota's itemPopularity endpoint
+// gives purchase counts only, not a per-item win rate for this breakdown,
+// so this reads as "what's commonly bought", not "what wins".
+function ItemPopularitySection({
+  popularity,
+  idToName,
+}: {
+  popularity: {
+    start_game_items: Record<string, number>
+    early_game_items: Record<string, number>
+    mid_game_items: Record<string, number>
+    late_game_items: Record<string, number>
+  }
+  idToName: Map<number, string>
+}) {
+  return (
+    <StatPanel title="Popular Items">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {ITEM_PHASES.map((phase) => {
+          const counts = popularity[phase.key] ?? {}
+          const top = Object.entries(counts)
+            .map(([id, count]) => ({ id: Number(id), count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 6)
+          if (top.length === 0) return null
+          const maxCount = Math.max(1, ...top.map((t) => t.count))
+          return (
+            <div key={phase.key}>
+              <div className="text-[12px] font-bold uppercase tracking-widest mb-2" style={{ color: '#8a8474' }}>
+                {phase.label}
+              </div>
+              {top.map((t) => {
+                const name = idToName.get(t.id)
+                return (
+                  <div key={t.id} className="flex items-center gap-2 py-1">
+                    {name && (
+                      <img
+                        src={itemIconUrl(name)}
+                        alt=""
+                        data-item-name={name}
+                        onError={(e) => {
+                          const img = e.currentTarget
+                          if (!img.src.includes(ITEM_CDN_FALLBACK)) img.src = `${ITEM_CDN_FALLBACK}/${name}.png`
+                        }}
+                        className="h-7 w-11 shrink-0 rounded-sm object-cover"
+                      />
+                    )}
+                    <div className="h-[4px] flex-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                      <div style={{ width: `${(t.count / maxCount) * 100}%`, height: '100%', background: '#c9a94a' }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })}
+      </div>
+    </StatPanel>
+  )
+}
+
 function HeroDetailPage() {
   const { heroName } = Route.useParams()
   const heroStats = useQuery({ queryKey: ['heroes'], queryFn: () => opendota.heroStats() })
@@ -202,6 +412,11 @@ function HeroDetailPage() {
     queryFn: () => opendota.aghsDesc(),
     staleTime: Number.POSITIVE_INFINITY,
   })
+  const items = useQuery({
+    queryKey: ['items_constants'],
+    queryFn: () => opendota.items(),
+    staleTime: Number.POSITIVE_INFINITY,
+  })
 
   const hero = heroStats.data?.find(
     (h) =>
@@ -210,12 +425,39 @@ function HeroDetailPage() {
   )
   usePageTitle(hero?.localized_name)
 
+  const heroMap = useMemo(
+    () => new Map((heroStats.data ?? []).map((h) => [h.id, { localized_name: h.localized_name, name: h.name }])),
+    [heroStats.data],
+  )
+  const itemIdToName = useMemo(
+    () => new Map(Object.entries(items.data ?? {}).map(([name, v]) => [v.id, name])),
+    [items.data],
+  )
+
   // Live tagline / complexity / exact stats from Valve's datafeed (via /df proxy).
   const heroData = useQuery({
     queryKey: ['hero_datafeed', hero?.id],
     queryFn: () => datafeed.heroData(hero!.id),
     enabled: !!hero?.id,
     staleTime: Number.POSITIVE_INFINITY,
+  })
+  const matchups = useQuery({
+    queryKey: ['hero_matchups', hero?.id],
+    queryFn: () => opendota.heroMatchups(String(hero!.id)),
+    enabled: !!hero?.id,
+    staleTime: 60 * 60 * 1000,
+  })
+  const durations = useQuery({
+    queryKey: ['hero_durations', hero?.id],
+    queryFn: () => opendota.heroDurations(String(hero!.id)),
+    enabled: !!hero?.id,
+    staleTime: 60 * 60 * 1000,
+  })
+  const itemPopularity = useQuery({
+    queryKey: ['hero_item_popularity', hero?.id],
+    queryFn: () => opendota.heroItemPopularity(String(hero!.id)),
+    enabled: !!hero?.id,
+    staleTime: 60 * 60 * 1000,
   })
   // Whether the header's lore is expanded to its full history inline.
   const [loreOpen, setLoreOpen] = useState(false)
@@ -1027,6 +1269,15 @@ function HeroDetailPage() {
               onSelectIdx={setSelectedAbilityIdx}
             />
           </div>
+        </div>
+      )}
+
+      {/* Meta stats: matchups, win rate by game length, popular item builds */}
+      {hero && (
+        <div className="space-y-6">
+          {matchups.data && <MatchupsSection heroMap={heroMap} matchups={matchups.data} />}
+          {durations.data && <DurationSection durations={durations.data} />}
+          {itemPopularity.data && <ItemPopularitySection popularity={itemPopularity.data} idToName={itemIdToName} />}
         </div>
       )}
 

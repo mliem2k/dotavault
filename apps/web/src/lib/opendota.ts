@@ -110,8 +110,19 @@ export const opendota = {
   match: (id: string) => get<Match>(`/matches/${id}`),
   heroStats: () => get<HeroStat[]>('/heroStats'),
   heroBenchmarks: (heroId: number) => get<HeroBenchmarks>(`/benchmarks?hero_id=${heroId}`),
-  heroDurations: (id: string) => get<unknown[]>(`/heroes/${id}/durations`),
-  heroItemTimings: (id: string) => get<unknown[]>(`/heroes/${id}/itemTimings`),
+  // Win rate by game-length bucket (duration_bin is in seconds).
+  heroDurations: (id: string) => get<{ duration_bin: number; games_played: number; wins: number }[]>(`/heroes/${id}/durations`),
+  // Win rate against every other hero, from this hero's own matches.
+  heroMatchups: (id: string) => get<{ hero_id: number; games_played: number; wins: number }[]>(`/heroes/${id}/matchups`),
+  // Most-purchased items per game phase (counts, not win rates; OpenDota
+  // doesn't expose a per-item win rate for this breakdown).
+  heroItemPopularity: (id: string) =>
+    get<{
+      start_game_items: Record<string, number>
+      early_game_items: Record<string, number>
+      mid_game_items: Record<string, number>
+      late_game_items: Record<string, number>
+    }>(`/heroes/${id}/itemPopularity`),
   proMatches: (lessThan?: number) =>
     get<ProMatch[]>(`/proMatches${lessThan ? `?less_than_match_id=${lessThan}` : ''}`),
   teamsList: () =>
