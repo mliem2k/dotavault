@@ -235,11 +235,11 @@ function MatchupsSection({
         style={{ borderTop: '1px solid #1c1810' }}
       >
         {h && <img src={heroIconUrl(h.name)} alt="" className="h-8 w-8 shrink-0 rounded" />}
-        <span className="min-w-0 flex-1 truncate text-[14px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+        <span className="min-w-0 flex-1 truncate text-[16px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
           {h?.localized_name ?? `Hero ${m.hero_id}`}
         </span>
         <span
-          className="shrink-0 text-[14px] font-bold tabular-nums"
+          className="shrink-0 text-[16px] font-bold tabular-nums"
           style={{ color: good ? '#8ec63f' : '#d14a38', fontFamily: 'var(--font-dota)' }}
         >
           {m.wr.toFixed(1)}%
@@ -254,19 +254,19 @@ function MatchupsSection({
     <StatPanel title="Matchups">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
-          <div className="text-[12px] font-bold uppercase tracking-widest mb-1" style={{ color: '#8ec63f' }}>
+          <div className="text-[13px] font-bold uppercase tracking-widest mb-1" style={{ color: '#8ec63f' }}>
             Best Against
           </div>
           {best.map((m) => row(m, true))}
         </div>
         <div>
-          <div className="text-[12px] font-bold uppercase tracking-widest mb-1" style={{ color: '#d14a38' }}>
+          <div className="text-[13px] font-bold uppercase tracking-widest mb-1" style={{ color: '#d14a38' }}>
             Worst Against
           </div>
           {worst.map((m) => row(m, false))}
         </div>
       </div>
-      <div className="mt-3 text-[12px]" style={{ color: '#5a5648' }}>
+      <div className="mt-3 text-[13px]" style={{ color: '#7a7464' }}>
         Minimum {MATCHUP_MIN_GAMES.toLocaleString()} games played against that hero.
       </div>
     </StatPanel>
@@ -304,12 +304,12 @@ function DurationSection({ durations }: { durations: { duration_bin: number; gam
 
   return (
     <StatPanel title="Win Rate by Game Length">
-      <div className="flex items-end justify-center gap-2 sm:gap-3 overflow-x-auto py-2" style={{ maxWidth: 720, margin: '0 auto' }}>
+      <div className="flex items-end justify-center gap-2 sm:gap-3 overflow-x-auto py-2">
         {rows.map((r) => (
-          <div key={r.duration_bin} className="flex shrink-0 flex-col items-center" style={{ width: 44 }}>
+          <div key={r.duration_bin} className="flex shrink-0 flex-col items-center" style={{ width: 48 }}>
             <div
-              className="text-[12px] font-semibold tabular-nums mb-1"
-              style={{ color: r.wr >= 52 ? '#8ec63f' : r.wr < 48 ? '#d14a38' : '#8a8474', fontFamily: 'var(--font-dota)' }}
+              className="text-[14px] font-semibold tabular-nums mb-1"
+              style={{ color: r.wr >= 52 ? '#8ec63f' : r.wr < 48 ? '#d14a38' : '#a8a294', fontFamily: 'var(--font-dota)' }}
             >
               {r.wr.toFixed(0)}%
             </div>
@@ -318,13 +318,13 @@ function DurationSection({ durations }: { durations: { duration_bin: number; gam
               style={{ height: heightFor(r.wr), background: r.wr >= 52 ? '#8ec63f' : r.wr < 48 ? '#d14a38' : '#5a8fc2' }}
               title={`${r.games_played.toLocaleString()} games`}
             />
-            <div className="mt-1.5 text-[11px]" style={{ color: '#5a5648', fontFamily: 'var(--font-dota)' }}>
+            <div className="mt-1.5 text-[13px]" style={{ color: '#7a7464', fontFamily: 'var(--font-dota)' }}>
               {Math.round(r.duration_bin / 60)}m
             </div>
           </div>
         ))}
       </div>
-      <div className="text-center text-[12px] mt-1" style={{ color: '#5a5648' }}>
+      <div className="text-center text-[13px] mt-1" style={{ color: '#7a7464' }}>
         Minimum {DURATION_MIN_GAMES} games in that duration bucket.
       </div>
     </StatPanel>
@@ -355,7 +355,7 @@ function ItemPopularitySection({
 }) {
   return (
     <StatPanel title="Popular Items">
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {ITEM_PHASES.map((phase) => {
           const counts = popularity[phase.key] ?? {}
           const top = Object.entries(counts)
@@ -366,7 +366,7 @@ function ItemPopularitySection({
           const maxCount = Math.max(1, ...top.map((t) => t.count))
           return (
             <div key={phase.key}>
-              <div className="text-[12px] font-bold uppercase tracking-widest mb-2" style={{ color: '#8a8474' }}>
+              <div className="text-[13px] font-bold uppercase tracking-widest mb-2" style={{ color: '#a8a294' }}>
                 {phase.label}
               </div>
               {top.map((t) => {
@@ -1282,9 +1282,12 @@ function HeroDetailPage() {
         </div>
       )}
 
-      {/* Meta stats: matchups, win rate by game length, popular item builds */}
+      {/* Meta stats: matchups, win rate by game length, popular item builds.
+          Capped at the same width as the header's text column (max-w-[740px]
+          above) rather than the page's usual full-bleed width, tables and
+          charts read better at that narrower measure than stretched wide. */}
       {hero && (
-        <div className="space-y-6">
+        <div className="max-w-[740px] space-y-6">
           {matchups.data && <MatchupsSection heroMap={heroMap} matchups={matchups.data} />}
           {durations.data && <DurationSection durations={durations.data} />}
           {itemPopularity.data && <ItemPopularitySection popularity={itemPopularity.data} idToName={itemIdToName} />}
