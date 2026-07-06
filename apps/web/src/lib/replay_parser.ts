@@ -50,6 +50,20 @@ function isResult(v: unknown): v is ReplayPositions {
   return typeof v === 'object' && v !== null && 'positions' in v
 }
 
+// The API scales to zero when idle (Fly.io min_machines_running: 0), so the
+// first request after a quiet period wakes a stopped machine, which took
+// ~6s in testing. Cloudflare's proxy can give up on that wait and return a
+// 521/522 (or the fetch can throw outright) before the machine is actually
+// up, so a request that fails this way almost always succeeds a couple
+// seconds later once the machine has finished booting from the first
+// attempt. Genuine 4xx-style API responses aren't retried, only the
+// gateway/network failures a cold start produces.
+const TRANSIENT_STATUSES = new Set([0, 502, 503, 504, 521, 522, 523, 524])
+
+function isTransientStatus(status: unknown): boolean {
+  return typeof status === 'number' && TRANSIENT_STATUSES.has(status)
+}
+
 function toStatus(data: unknown, error: { status: unknown; value: unknown } | null): ReplayStatus {
   const body = (error?.value ?? data) as
     | ReplayPositions
@@ -64,6 +78,24 @@ function toStatus(data: unknown, error: { status: unknown; value: unknown } | nu
   return { kind: 'none' }
 }
 
+async function withColdStartRetry<T>(
+  call: () => Promise<{ data: unknown; error: { status: unknown; value: unknown } | null }>,
+  attempts = 4,
+  delayMs = 1500,
+): Promise<{ data: unknown; error: { status: unknown; value: unknown } | null }> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await call()
+      if (i === attempts - 1 || !isTransientStatus(res.error?.status)) return res
+    } catch {
+      if (i === attempts - 1) throw new Error('replay API unreachable')
+    }
+    await new Promise((r) => setTimeout(r, delayMs))
+  }
+  // Unreachable, the loop above always returns or throws on the last attempt.
+  return { data: null, error: null }
+}
+
 // Start (or re-attach to) the server-side parse job. Pass cluster/salt when
 // the match already knows them so the server can skip the OpenDota wait.
 export async function startReplayParse(
@@ -72,11 +104,11 @@ export async function startReplayParse(
   salt?: number | null,
 ): Promise<ReplayStatus> {
   const body = cluster != null && salt != null ? { cluster, salt } : undefined
-  const { data, error } = await api.replay({ matchId: String(matchId) }).parse.post(body)
+  const { data, error } = await withColdStartRetry(() => api.replay({ matchId: String(matchId) }).parse.post(body))
   return toStatus(data, error)
 }
 
 export async function getReplayStatus(matchId: number): Promise<ReplayStatus> {
-  const { data, error } = await api.replay({ matchId: String(matchId) }).get()
+  const { data, error } = await withColdStartRetry(() => api.replay({ matchId: String(matchId) }).get())
   return toStatus(data, error)
 }
