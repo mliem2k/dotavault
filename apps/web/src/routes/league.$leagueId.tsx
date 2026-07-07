@@ -3,7 +3,7 @@ import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { opendota } from '@/lib/opendota'
 import { usePageTitle } from '@/lib/title'
-import { formatTimeAgo } from '@/lib/utils'
+import { formatDate, formatTimeAgo } from '@/lib/utils'
 
 export const Route = createFileRoute('/league/$leagueId')({
   component: LeaguePage,
@@ -79,7 +79,7 @@ function LeaguePage() {
           {summary.data
             ? `${summary.data.total_matches.toLocaleString()} matches${
                 summary.data.first_match
-                  ? ` · ${formatTimeAgo(summary.data.first_match)} to ${formatTimeAgo(summary.data.last_match ?? summary.data.first_match)}`
+                  ? ` · ${formatDate(summary.data.first_match)} (${formatTimeAgo(summary.data.first_match)}) to ${formatDate(summary.data.last_match ?? summary.data.first_match)} (${formatTimeAgo(summary.data.last_match ?? summary.data.first_match)})`
                   : ''
               }`
             : 'Loading match history...'}

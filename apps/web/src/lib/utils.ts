@@ -77,6 +77,10 @@ export function formatTimeAgo(unixTimestamp: number): string {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
+export function formatDate(unixTimestamp: number): string {
+  return new Date(unixTimestamp * 1000).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
 export function winRate(wins: number, total: number): string {
   if (total === 0) return '0%'
   return `${((wins / total) * 100).toFixed(1)}%`
