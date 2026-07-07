@@ -175,10 +175,14 @@ Flat by default. Panels and cards sit directly against the void background, diff
 - **Style:** no visible grid lines; rows separated by a `1px` top hairline border (`#1c1810`), alternating rows optionally tinted `rgba(255,255,255,0.02)` for scan-ability in long lists.
 - **Hover:** `rgba(255,255,255,0.03-0.05)` background wash on the whole row when the row itself is a navigation target.
 - **Numeric columns:** always right-aligned, always `tabular-nums`.
-- **Content width:** the page shell is `max-w-[1800px]`, sized for wide layouts like the bracket view's horizontally-scrolling columns. A narrow, few-column table (standings, draft stats, a simple name+badge list) does not inherit that width; it gets its own `max-w-[720px]` cap so columns stay close together rather than spreading edge to edge. Wide multi-column grids (a responsive card grid, the meta hero table with 7-8 columns) can use the full shell width since they have enough content to fill it usefully. When in doubt: does this content have enough columns/cards to make the full width feel intentional, or would it just stretch gaps between a handful of values? The latter gets the `720px` cap.
+- **Content width:** the page shell is `max-w-[1800px]`, sized for wide layouts like the bracket view's horizontally-scrolling columns. Almost nothing else should inherit that width directly. Two narrower tiers instead:
+  - **`max-w-[720px]`** for sparse 3-5 column tables and simple name+badge lists (standings, draft stats, the leagues browser, league match results).
+  - **`max-w-[1100px]`** for moderately dense 6-10 column tables (the meta hero win-rate table, the player all-matches table).
+  - Full shell width is reserved for content that genuinely has enough of it: a responsive card grid (the league Participants panel), the bracket's horizontally-scrolling columns, or a match-detail table with 12+ real data columns (the scoreboard, performance tabs).
+  - When in doubt: does this content have enough columns/cards to make the width feel intentional, or would it just stretch gaps between a handful of values? The latter gets one of the two caps.
 
 ### Named Rules
-**The Narrow-Table Rule.** A table or list with 3-5 sparse columns is capped at `max-w-[720px]`, never left to stretch across the full page shell. Width should match how much content there actually is, not how much viewport happens to be available.
+**The Narrow-Table Rule.** A table or list is capped at `max-w-[720px]` (sparse, 3-5 columns) or `max-w-[1100px]` (moderately dense, 6-10 columns), never left to stretch across the full `max-w-[1800px]` page shell by default. Width should match how much content there actually is, not how much viewport happens to be available.
 
 ### Avatars / Icons
 - **Team logos, hero icons, item icons:** square or lightly-rounded (`rounded-sm`, `2px`), never fully rounded, matching the game's own icon geometry.

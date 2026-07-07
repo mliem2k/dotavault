@@ -489,7 +489,7 @@ export function AllMatches({
         </span>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="max-w-[1100px] overflow-x-auto">
         <div className="min-w-[900px]">
           {/* Header row */}
           <div

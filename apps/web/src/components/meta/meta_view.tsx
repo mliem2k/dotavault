@@ -434,7 +434,9 @@ export function MetaView({ bracket }: { bracket: Bracket }) {
         ))}
       </div>
 
-      <HeroTable heroes={data} bracket={bracket} />
+      <div className="max-w-[1100px]">
+        <HeroTable heroes={data} bracket={bracket} />
+      </div>
     </div>
   )
 }
