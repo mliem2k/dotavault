@@ -1063,7 +1063,7 @@ export function MatchOverview({
           Parse queued at OpenDota — full stats usually appear within a few minutes. Refresh to check.
         </div>
       )}
-      <div className="flex items-center gap-10">
+      <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-2">
         <div className="flex items-baseline gap-3">
           <span className="text-[13px] uppercase" style={{ color: '#4d6f85', letterSpacing: '2px' }}>Match ID</span>
           <span className="text-[15px] tabular-nums" style={{ color: '#7fa8c4' }}>{match.match_id}</span>

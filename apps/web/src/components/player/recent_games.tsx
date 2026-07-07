@@ -5,12 +5,23 @@ import { applySort, useSort } from '@/lib/sortable'
 import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl, heroSlug } from '@/lib/utils'
 
 const GAME_MODES: Record<number, string> = {
-  1: 'All Pick', 2: 'Captains Mode', 3: 'Random Draft', 4: 'Single Draft',
-  5: 'All Random', 16: 'Captains Draft', 22: 'Ranked', 23: 'Turbo',
+  1: 'All Pick',
+  2: 'Captains Mode',
+  3: 'Random Draft',
+  4: 'Single Draft',
+  5: 'All Random',
+  16: 'Captains Draft',
+  22: 'Ranked',
+  23: 'Turbo',
 }
 
 const LOBBY_TYPES: Record<number, string> = {
-  0: 'Normal', 1: 'Practice', 5: 'Team', 6: 'Tournament', 7: 'Ranked', 9: 'Battle Cup',
+  0: 'Normal',
+  1: 'Practice',
+  5: 'Team',
+  6: 'Tournament',
+  7: 'Ranked',
+  9: 'Battle Cup',
 }
 
 function isWin(m: PlayerMatch): boolean {
@@ -67,102 +78,157 @@ export function RecentGames({
   })
 
   return (
-    <div className="overflow-x-auto" style={{ background: 'rgba(16,19,22,0.72)', fontFamily: 'var(--font-dota)' }}>
-      <div className="min-w-[640px]">
-        {/* header */}
-        <div
-          className="flex items-center px-3 py-2.5 text-[12px] uppercase"
-          style={{ color: '#8a97a0', letterSpacing: '1px', background: 'rgba(8,10,12,0.7)' }}
-        >
-          <SortHeader label="Date / Time" sortKey="date" active={sortKey === 'date'} dir={sortDir} onClick={onSort} className="w-[150px] shrink-0" />
-          <SortHeader label="Hero Played" sortKey="hero" active={sortKey === 'hero'} dir={sortDir} onClick={onSort} className="flex-1 min-w-0" />
-          <SortHeader label="Result" sortKey="result" active={sortKey === 'result'} dir={sortDir} onClick={onSort} className="w-[110px] shrink-0 justify-center" />
-          <SortHeader label="Duration" sortKey="duration" active={sortKey === 'duration'} dir={sortDir} onClick={onSort} className="w-[80px] shrink-0 justify-end" />
-          <div className="hidden sm:flex w-[90px] shrink-0 justify-end pr-2">
-            <SortHeader label="Type" sortKey="type" active={sortKey === 'type'} dir={sortDir} onClick={onSort} className="justify-end" />
-          </div>
+    <div style={{ background: 'rgba(16,19,22,0.72)', fontFamily: 'var(--font-dota)' }}>
+      {/* header */}
+      <div
+        className="flex items-center px-3 py-2.5 text-[12px] uppercase"
+        style={{ color: '#8a97a0', letterSpacing: '1px', background: 'rgba(8,10,12,0.7)' }}
+      >
+        <div className="hidden sm:flex w-[150px] shrink-0">
+          <SortHeader
+            label="Date / Time"
+            sortKey="date"
+            active={sortKey === 'date'}
+            dir={sortDir}
+            onClick={onSort}
+          />
         </div>
-
-        {sorted.map((m, i) => {
-          const hero = heroMap.get(m.hero_id)
-          const won = isWin(m)
-          const { d, t } = fmtDate(m.start_time)
-          const type = LOBBY_TYPES[m.lobby_type] ?? GAME_MODES[m.game_mode] ?? '—'
-          const goToMatch = () => navigate({ to: '/match/$matchId', params: { matchId: String(m.match_id) } })
-
-          return (
-            <div
-              key={m.match_id}
-              role="button"
-              tabIndex={0}
-              onClick={goToMatch}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  goToMatch()
-                }
-              }}
-              className="flex items-center px-3 hover:bg-white/[0.05] transition-colors cursor-pointer"
-              style={{ height: 46, background: i % 2 ? 'rgba(255,255,255,0.02)' : 'transparent' }}
-            >
-              <div className="w-[150px] shrink-0 text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
-                {d} <span style={{ color: '#8a97a0' }}>{t}</span>
-              </div>
-
-              <div className="flex-1 min-w-0 flex items-center gap-2.5">
-                {hero && (
-                  <a href={`/hero/${heroSlug(hero.localized_name)}`} onClick={(e) => e.stopPropagation()} className="shrink-0 block">
-                    <img
-                      src={heroLandscapeUrl(hero.name)}
-                      alt=""
-                      className="object-cover"
-                      style={{ width: 58, height: 33 }}
-                      onError={cdnFallback(heroLandscapeCdn(hero.name))}
-                    />
-                  </a>
-                )}
-                {hero ? (
-                  <a
-                    href={`/hero/${heroSlug(hero.localized_name)}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-[14px] truncate hover:underline"
-                    style={{ color: '#e8ecef' }}
-                  >
-                    {hero.localized_name}
-                  </a>
-                ) : (
-                  <span className="text-[14px] truncate" style={{ color: '#e8ecef' }}>
-                    {`Hero ${m.hero_id}`}
-                  </span>
-                )}
-                {leagueByMatchId.get(m.match_id) && (
-                  <span
-                    className="shrink-0 px-1.5 py-0.5 text-[11px] font-bold uppercase truncate max-w-[220px]"
-                    style={{ background: 'rgba(201,169,74,0.12)', color: '#c9a94a', letterSpacing: '0.5px' }}
-                    title={leagueByMatchId.get(m.match_id)?.league_name ?? undefined}
-                  >
-                    {leagueByMatchId.get(m.match_id)?.league_name ?? 'Tournament'}
-                  </span>
-                )}
-              </div>
-
-              <div className="w-[110px] shrink-0 text-center">
-                <span className="text-[14px] uppercase" style={{ color: won ? '#8fbf3f' : '#d14a38', letterSpacing: '1px' }}>
-                  {won ? 'Won' : 'Lost'}
-                </span>
-              </div>
-
-              <div className="w-[80px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
-                {fmtDur(m.duration)}
-              </div>
-
-              <div className="hidden sm:block w-[90px] shrink-0 text-right text-[13px] pr-2" style={{ color: '#cfd4d8' }}>
-                {type}
-              </div>
-            </div>
-          )
-        })}
+        <SortHeader
+          label="Hero Played"
+          sortKey="hero"
+          active={sortKey === 'hero'}
+          dir={sortDir}
+          onClick={onSort}
+          className="flex-1 min-w-0"
+        />
+        <SortHeader
+          label="Result"
+          sortKey="result"
+          active={sortKey === 'result'}
+          dir={sortDir}
+          onClick={onSort}
+          className="w-[80px] sm:w-[110px] shrink-0 justify-center"
+        />
+        <SortHeader
+          label="Duration"
+          sortKey="duration"
+          active={sortKey === 'duration'}
+          dir={sortDir}
+          onClick={onSort}
+          className="w-[60px] sm:w-[80px] shrink-0 justify-end"
+        />
+        <div className="hidden sm:flex w-[90px] shrink-0 justify-end pr-2">
+          <SortHeader
+            label="Type"
+            sortKey="type"
+            active={sortKey === 'type'}
+            dir={sortDir}
+            onClick={onSort}
+            className="justify-end"
+          />
+        </div>
       </div>
+
+      {sorted.map((m, i) => {
+        const hero = heroMap.get(m.hero_id)
+        const won = isWin(m)
+        const { d, t } = fmtDate(m.start_time)
+        const type = LOBBY_TYPES[m.lobby_type] ?? GAME_MODES[m.game_mode] ?? '—'
+        const goToMatch = () =>
+          navigate({ to: '/match/$matchId', params: { matchId: String(m.match_id) } })
+
+        return (
+          <div
+            key={m.match_id}
+            role="button"
+            tabIndex={0}
+            onClick={goToMatch}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                goToMatch()
+              }
+            }}
+            className="flex items-center px-3 hover:bg-white/[0.05] transition-colors cursor-pointer"
+            style={{ height: 46, background: i % 2 ? 'rgba(255,255,255,0.02)' : 'transparent' }}
+          >
+            <div
+              className="hidden sm:block w-[150px] shrink-0 text-[13px] tabular-nums"
+              style={{ color: '#e8ecef' }}
+            >
+              {d} <span style={{ color: '#8a97a0' }}>{t}</span>
+            </div>
+
+            <div className="flex-1 min-w-0 flex items-center gap-2.5">
+              {hero && (
+                <a
+                  href={`/hero/${heroSlug(hero.localized_name)}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="shrink-0 block"
+                >
+                  <img
+                    src={heroLandscapeUrl(hero.name)}
+                    alt=""
+                    className="object-cover"
+                    style={{ width: 58, height: 33 }}
+                    onError={cdnFallback(heroLandscapeCdn(hero.name))}
+                  />
+                </a>
+              )}
+              {hero ? (
+                <a
+                  href={`/hero/${heroSlug(hero.localized_name)}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-[14px] truncate hover:underline"
+                  style={{ color: '#e8ecef' }}
+                >
+                  {hero.localized_name}
+                </a>
+              ) : (
+                <span className="text-[14px] truncate" style={{ color: '#e8ecef' }}>
+                  {`Hero ${m.hero_id}`}
+                </span>
+              )}
+              {leagueByMatchId.get(m.match_id) && (
+                <span
+                  className="shrink-0 px-1.5 py-0.5 text-[11px] font-bold uppercase truncate max-w-[220px]"
+                  style={{
+                    background: 'rgba(201,169,74,0.12)',
+                    color: '#c9a94a',
+                    letterSpacing: '0.5px',
+                  }}
+                  title={leagueByMatchId.get(m.match_id)?.league_name ?? undefined}
+                >
+                  {leagueByMatchId.get(m.match_id)?.league_name ?? 'Tournament'}
+                </span>
+              )}
+            </div>
+
+            <div className="w-[80px] sm:w-[110px] shrink-0 text-center">
+              <span
+                className="text-[14px] uppercase"
+                style={{ color: won ? '#8fbf3f' : '#d14a38', letterSpacing: '1px' }}
+              >
+                {won ? 'Won' : 'Lost'}
+              </span>
+            </div>
+
+            <div
+              className="w-[60px] sm:w-[80px] shrink-0 text-right text-[13px] tabular-nums"
+              style={{ color: '#e8ecef' }}
+            >
+              {fmtDur(m.duration)}
+            </div>
+
+            <div
+              className="hidden sm:block w-[90px] shrink-0 text-right text-[13px] pr-2"
+              style={{ color: '#cfd4d8' }}
+            >
+              {type}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

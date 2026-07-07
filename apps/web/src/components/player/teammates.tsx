@@ -74,10 +74,16 @@ export function Teammates({ peers }: { peers: Peer[] }) {
         style={{ color: C.label, letterSpacing: '1px', background: C.panelDark }}
       >
         <SortHeader label="Player" sortKey="player" active={sortKey === 'player'} dir={sortDir} onClick={onSort} className="flex-1 min-w-0" />
-        <SortHeader label="Games" sortKey="games" active={sortKey === 'games'} dir={sortDir} onClick={onSort} className="w-[110px] shrink-0 justify-center" />
-        <SortHeader label="Wins" sortKey="wins" active={sortKey === 'wins'} dir={sortDir} onClick={onSort} className="w-[110px] shrink-0 justify-center" />
-        <SortHeader label="Win Rate" sortKey="winrate" active={sortKey === 'winrate'} dir={sortDir} onClick={onSort} className="w-[110px] shrink-0 justify-center" />
-        <SortHeader label="Last Played" sortKey="last" active={sortKey === 'last'} dir={sortDir} onClick={onSort} className="w-[130px] shrink-0 justify-end pr-2" />
+        <div className="hidden sm:flex w-[110px] shrink-0 justify-center">
+          <SortHeader label="Games" sortKey="games" active={sortKey === 'games'} dir={sortDir} onClick={onSort} className="justify-center" />
+        </div>
+        <div className="hidden md:flex w-[110px] shrink-0 justify-center">
+          <SortHeader label="Wins" sortKey="wins" active={sortKey === 'wins'} dir={sortDir} onClick={onSort} className="justify-center" />
+        </div>
+        <SortHeader label="Win Rate" sortKey="winrate" active={sortKey === 'winrate'} dir={sortDir} onClick={onSort} className="w-[80px] sm:w-[110px] shrink-0 justify-center" />
+        <div className="hidden md:flex w-[130px] shrink-0 justify-end pr-2">
+          <SortHeader label="Last Played" sortKey="last" active={sortKey === 'last'} dir={sortDir} onClick={onSort} className="justify-end" />
+        </div>
       </div>
 
       {rows.map((peer, i) => {
@@ -113,16 +119,16 @@ export function Teammates({ peers }: { peers: Peer[] }) {
               </span>
             </div>
 
-            <span className="w-[110px] shrink-0 text-center text-[15px] tabular-nums" style={{ color: C.text }}>
+            <span className="hidden sm:block w-[110px] shrink-0 text-center text-[15px] tabular-nums" style={{ color: C.text }}>
               {peer.with_games}
             </span>
-            <span className="w-[110px] shrink-0 text-center text-[15px] tabular-nums" style={{ color: C.text }}>
+            <span className="hidden md:block w-[110px] shrink-0 text-center text-[15px] tabular-nums" style={{ color: C.text }}>
               {peer.with_win}
             </span>
-            <span className="w-[110px] shrink-0 text-center text-[15px] tabular-nums" style={{ color: wrColor(pct) }}>
+            <span className="w-[80px] sm:w-[110px] shrink-0 text-center text-[15px] tabular-nums" style={{ color: wrColor(pct) }}>
               {pct.toFixed(1)}%
             </span>
-            <span className="w-[130px] shrink-0 text-right pr-2 text-[13px] tabular-nums" style={{ color: C.dim }}>
+            <span className="hidden md:block w-[130px] shrink-0 text-right pr-2 text-[13px] tabular-nums" style={{ color: C.dim }}>
               {fmtDate(peer.last_played)}
             </span>
           </a>
