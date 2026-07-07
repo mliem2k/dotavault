@@ -23,7 +23,12 @@ import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
 import { Route as LeagueLeagueIdRouteImport } from './routes/league.$leagueId'
 import { Route as HeroHeroNameRouteImport } from './routes/hero.$heroName'
 import { Route as MatchMatchIdIndexRouteImport } from './routes/match.$matchId.index'
+import { Route as LeagueLeagueIdIndexRouteImport } from './routes/league.$leagueId.index'
 import { Route as MatchMatchIdTabRouteImport } from './routes/match.$matchId.$tab'
+import { Route as LeagueLeagueIdResultsRouteImport } from './routes/league.$leagueId.results'
+import { Route as LeagueLeagueIdTabRouteImport } from './routes/league.$leagueId.$tab'
+import { Route as LeagueLeagueIdResultsIndexRouteImport } from './routes/league.$leagueId.results.index'
+import { Route as LeagueLeagueIdResultsViewRouteImport } from './routes/league.$leagueId.results.$view'
 
 const ProRoute = ProRouteImport.update({
   id: '/pro',
@@ -95,11 +100,38 @@ const MatchMatchIdIndexRoute = MatchMatchIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MatchMatchIdRoute,
 } as any)
+const LeagueLeagueIdIndexRoute = LeagueLeagueIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LeagueLeagueIdRoute,
+} as any)
 const MatchMatchIdTabRoute = MatchMatchIdTabRouteImport.update({
   id: '/$tab',
   path: '/$tab',
   getParentRoute: () => MatchMatchIdRoute,
 } as any)
+const LeagueLeagueIdResultsRoute = LeagueLeagueIdResultsRouteImport.update({
+  id: '/results',
+  path: '/results',
+  getParentRoute: () => LeagueLeagueIdRoute,
+} as any)
+const LeagueLeagueIdTabRoute = LeagueLeagueIdTabRouteImport.update({
+  id: '/$tab',
+  path: '/$tab',
+  getParentRoute: () => LeagueLeagueIdRoute,
+} as any)
+const LeagueLeagueIdResultsIndexRoute =
+  LeagueLeagueIdResultsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => LeagueLeagueIdResultsRoute,
+  } as any)
+const LeagueLeagueIdResultsViewRoute =
+  LeagueLeagueIdResultsViewRouteImport.update({
+    id: '/$view',
+    path: '/$view',
+    getParentRoute: () => LeagueLeagueIdResultsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -109,14 +141,19 @@ export interface FileRoutesByFullPath {
   '/meta': typeof MetaRouteWithChildren
   '/pro': typeof ProRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
-  '/league/$leagueId': typeof LeagueLeagueIdRoute
+  '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
   '/match/$matchId': typeof MatchMatchIdRouteWithChildren
   '/meta/$bracket': typeof MetaBracketRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
   '/team/$teamId': typeof TeamTeamIdRoute
   '/meta/': typeof MetaIndexRoute
+  '/league/$leagueId/$tab': typeof LeagueLeagueIdTabRoute
+  '/league/$leagueId/results': typeof LeagueLeagueIdResultsRouteWithChildren
   '/match/$matchId/$tab': typeof MatchMatchIdTabRoute
+  '/league/$leagueId/': typeof LeagueLeagueIdIndexRoute
   '/match/$matchId/': typeof MatchMatchIdIndexRoute
+  '/league/$leagueId/results/$view': typeof LeagueLeagueIdResultsViewRoute
+  '/league/$leagueId/results/': typeof LeagueLeagueIdResultsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -125,13 +162,16 @@ export interface FileRoutesByTo {
   '/leagues': typeof LeaguesRoute
   '/pro': typeof ProRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
-  '/league/$leagueId': typeof LeagueLeagueIdRoute
   '/meta/$bracket': typeof MetaBracketRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
   '/team/$teamId': typeof TeamTeamIdRoute
   '/meta': typeof MetaIndexRoute
+  '/league/$leagueId/$tab': typeof LeagueLeagueIdTabRoute
   '/match/$matchId/$tab': typeof MatchMatchIdTabRoute
+  '/league/$leagueId': typeof LeagueLeagueIdIndexRoute
   '/match/$matchId': typeof MatchMatchIdIndexRoute
+  '/league/$leagueId/results/$view': typeof LeagueLeagueIdResultsViewRoute
+  '/league/$leagueId/results': typeof LeagueLeagueIdResultsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -142,14 +182,19 @@ export interface FileRoutesById {
   '/meta': typeof MetaRouteWithChildren
   '/pro': typeof ProRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
-  '/league/$leagueId': typeof LeagueLeagueIdRoute
+  '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
   '/match/$matchId': typeof MatchMatchIdRouteWithChildren
   '/meta/$bracket': typeof MetaBracketRoute
   '/player/$accountId': typeof PlayerAccountIdRoute
   '/team/$teamId': typeof TeamTeamIdRoute
   '/meta/': typeof MetaIndexRoute
+  '/league/$leagueId/$tab': typeof LeagueLeagueIdTabRoute
+  '/league/$leagueId/results': typeof LeagueLeagueIdResultsRouteWithChildren
   '/match/$matchId/$tab': typeof MatchMatchIdTabRoute
+  '/league/$leagueId/': typeof LeagueLeagueIdIndexRoute
   '/match/$matchId/': typeof MatchMatchIdIndexRoute
+  '/league/$leagueId/results/$view': typeof LeagueLeagueIdResultsViewRoute
+  '/league/$leagueId/results/': typeof LeagueLeagueIdResultsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -167,8 +212,13 @@ export interface FileRouteTypes {
     | '/player/$accountId'
     | '/team/$teamId'
     | '/meta/'
+    | '/league/$leagueId/$tab'
+    | '/league/$leagueId/results'
     | '/match/$matchId/$tab'
+    | '/league/$leagueId/'
     | '/match/$matchId/'
+    | '/league/$leagueId/results/$view'
+    | '/league/$leagueId/results/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,13 +227,16 @@ export interface FileRouteTypes {
     | '/leagues'
     | '/pro'
     | '/hero/$heroName'
-    | '/league/$leagueId'
     | '/meta/$bracket'
     | '/player/$accountId'
     | '/team/$teamId'
     | '/meta'
+    | '/league/$leagueId/$tab'
     | '/match/$matchId/$tab'
+    | '/league/$leagueId'
     | '/match/$matchId'
+    | '/league/$leagueId/results/$view'
+    | '/league/$leagueId/results'
   id:
     | '__root__'
     | '/'
@@ -199,8 +252,13 @@ export interface FileRouteTypes {
     | '/player/$accountId'
     | '/team/$teamId'
     | '/meta/'
+    | '/league/$leagueId/$tab'
+    | '/league/$leagueId/results'
     | '/match/$matchId/$tab'
+    | '/league/$leagueId/'
     | '/match/$matchId/'
+    | '/league/$leagueId/results/$view'
+    | '/league/$leagueId/results/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -211,7 +269,7 @@ export interface RootRouteChildren {
   MetaRoute: typeof MetaRouteWithChildren
   ProRoute: typeof ProRoute
   HeroHeroNameRoute: typeof HeroHeroNameRoute
-  LeagueLeagueIdRoute: typeof LeagueLeagueIdRoute
+  LeagueLeagueIdRoute: typeof LeagueLeagueIdRouteWithChildren
   MatchMatchIdRoute: typeof MatchMatchIdRouteWithChildren
   PlayerAccountIdRoute: typeof PlayerAccountIdRoute
   TeamTeamIdRoute: typeof TeamTeamIdRoute
@@ -317,12 +375,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatchMatchIdIndexRouteImport
       parentRoute: typeof MatchMatchIdRoute
     }
+    '/league/$leagueId/': {
+      id: '/league/$leagueId/'
+      path: '/'
+      fullPath: '/league/$leagueId/'
+      preLoaderRoute: typeof LeagueLeagueIdIndexRouteImport
+      parentRoute: typeof LeagueLeagueIdRoute
+    }
     '/match/$matchId/$tab': {
       id: '/match/$matchId/$tab'
       path: '/$tab'
       fullPath: '/match/$matchId/$tab'
       preLoaderRoute: typeof MatchMatchIdTabRouteImport
       parentRoute: typeof MatchMatchIdRoute
+    }
+    '/league/$leagueId/results': {
+      id: '/league/$leagueId/results'
+      path: '/results'
+      fullPath: '/league/$leagueId/results'
+      preLoaderRoute: typeof LeagueLeagueIdResultsRouteImport
+      parentRoute: typeof LeagueLeagueIdRoute
+    }
+    '/league/$leagueId/$tab': {
+      id: '/league/$leagueId/$tab'
+      path: '/$tab'
+      fullPath: '/league/$leagueId/$tab'
+      preLoaderRoute: typeof LeagueLeagueIdTabRouteImport
+      parentRoute: typeof LeagueLeagueIdRoute
+    }
+    '/league/$leagueId/results/': {
+      id: '/league/$leagueId/results/'
+      path: '/'
+      fullPath: '/league/$leagueId/results/'
+      preLoaderRoute: typeof LeagueLeagueIdResultsIndexRouteImport
+      parentRoute: typeof LeagueLeagueIdResultsRoute
+    }
+    '/league/$leagueId/results/$view': {
+      id: '/league/$leagueId/results/$view'
+      path: '/$view'
+      fullPath: '/league/$leagueId/results/$view'
+      preLoaderRoute: typeof LeagueLeagueIdResultsViewRouteImport
+      parentRoute: typeof LeagueLeagueIdResultsRoute
     }
   }
 }
@@ -338,6 +431,37 @@ const MetaRouteChildren: MetaRouteChildren = {
 }
 
 const MetaRouteWithChildren = MetaRoute._addFileChildren(MetaRouteChildren)
+
+interface LeagueLeagueIdResultsRouteChildren {
+  LeagueLeagueIdResultsViewRoute: typeof LeagueLeagueIdResultsViewRoute
+  LeagueLeagueIdResultsIndexRoute: typeof LeagueLeagueIdResultsIndexRoute
+}
+
+const LeagueLeagueIdResultsRouteChildren: LeagueLeagueIdResultsRouteChildren = {
+  LeagueLeagueIdResultsViewRoute: LeagueLeagueIdResultsViewRoute,
+  LeagueLeagueIdResultsIndexRoute: LeagueLeagueIdResultsIndexRoute,
+}
+
+const LeagueLeagueIdResultsRouteWithChildren =
+  LeagueLeagueIdResultsRoute._addFileChildren(
+    LeagueLeagueIdResultsRouteChildren,
+  )
+
+interface LeagueLeagueIdRouteChildren {
+  LeagueLeagueIdTabRoute: typeof LeagueLeagueIdTabRoute
+  LeagueLeagueIdResultsRoute: typeof LeagueLeagueIdResultsRouteWithChildren
+  LeagueLeagueIdIndexRoute: typeof LeagueLeagueIdIndexRoute
+}
+
+const LeagueLeagueIdRouteChildren: LeagueLeagueIdRouteChildren = {
+  LeagueLeagueIdTabRoute: LeagueLeagueIdTabRoute,
+  LeagueLeagueIdResultsRoute: LeagueLeagueIdResultsRouteWithChildren,
+  LeagueLeagueIdIndexRoute: LeagueLeagueIdIndexRoute,
+}
+
+const LeagueLeagueIdRouteWithChildren = LeagueLeagueIdRoute._addFileChildren(
+  LeagueLeagueIdRouteChildren,
+)
 
 interface MatchMatchIdRouteChildren {
   MatchMatchIdTabRoute: typeof MatchMatchIdTabRoute
@@ -361,7 +485,7 @@ const rootRouteChildren: RootRouteChildren = {
   MetaRoute: MetaRouteWithChildren,
   ProRoute: ProRoute,
   HeroHeroNameRoute: HeroHeroNameRoute,
-  LeagueLeagueIdRoute: LeagueLeagueIdRoute,
+  LeagueLeagueIdRoute: LeagueLeagueIdRouteWithChildren,
   MatchMatchIdRoute: MatchMatchIdRouteWithChildren,
   PlayerAccountIdRoute: PlayerAccountIdRoute,
   TeamTeamIdRoute: TeamTeamIdRoute,
