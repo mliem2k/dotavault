@@ -45,7 +45,12 @@ function PickCard({ hero, order }: { hero: HeroStat | undefined; order: number }
 function BanThumb({ hero, order }: { hero: HeroStat | undefined; order: number }) {
   if (!hero) return <div style={{ width: 92, height: 52, background: '#14181b' }} />
   return (
-    <div className="relative shrink-0" title={`${hero.localized_name} (ban #${order})`} style={{ width: 92 }}>
+    <a
+      href={`/hero/${heroSlug(hero.localized_name)}`}
+      className="relative shrink-0 block hover:brightness-125"
+      title={`${hero.localized_name} (ban #${order})`}
+      style={{ width: 92 }}
+    >
       <img
         src={heroLandscapeUrl(hero.name)}
         alt={hero.localized_name}
@@ -63,7 +68,7 @@ function BanThumb({ hero, order }: { hero: HeroStat | undefined; order: number }
       >
         {order}
       </span>
-    </div>
+    </a>
   )
 }
 

@@ -7,7 +7,7 @@ import { useTeamMap } from '@/components/league/use_team_map'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
 import { fetchSteamProfile } from '@/lib/steam'
-import { heroIconUrl } from '@/lib/utils'
+import { heroIconUrl, heroSlug } from '@/lib/utils'
 
 type FallbackProfile = { name: string; avatar: string | null; isPrivate: boolean }
 
@@ -68,12 +68,20 @@ function DraftPanel({
             return (
               <tr key={h.hero_id} style={{ borderTop: '1px solid #1c1810' }}>
                 <td className="py-1.5">
-                  <div className="flex items-center gap-2">
-                    {hero && <img src={heroIconUrl(hero.name)} alt="" className="h-6 w-6 rounded" />}
-                    <span className="truncate text-[14px]" style={{ color: '#dcd6c8' }}>
-                      {hero?.localized_name ?? `Hero ${h.hero_id}`}
-                    </span>
-                  </div>
+                  {hero ? (
+                    <a href={`/hero/${heroSlug(hero.localized_name)}`} className="flex items-center gap-2 hover:underline">
+                      <img src={heroIconUrl(hero.name)} alt="" className="h-6 w-6 rounded" />
+                      <span className="truncate text-[14px]" style={{ color: '#dcd6c8' }}>
+                        {hero.localized_name}
+                      </span>
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-[14px]" style={{ color: '#dcd6c8' }}>
+                        {`Hero ${h.hero_id}`}
+                      </span>
+                    </div>
+                  )}
                 </td>
                 <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#dcd6c8' }}>
                   <div className="flex items-center justify-end gap-2">

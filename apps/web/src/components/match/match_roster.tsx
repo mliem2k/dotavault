@@ -291,12 +291,13 @@ export function PlayerIdentityCell({
             {levelOverride ?? player.level}
           </span>
           {hero && (
-            <span
-              className={`${small ? 'text-[10px]' : 'text-[11px]'} uppercase truncate`}
+            <a
+              href={`/hero/${heroShort}`}
+              className={`${small ? 'text-[10px]' : 'text-[11px]'} uppercase truncate hover:underline`}
               style={{ color: active ? '#3c444a' : '#8a97a0', letterSpacing: '1px' }}
             >
               {hero.localized_name}
-            </span>
+            </a>
           )}
         </div>
       </div>

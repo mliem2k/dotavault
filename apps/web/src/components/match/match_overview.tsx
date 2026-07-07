@@ -12,6 +12,7 @@ import {
   heroLandscapeCdn,
   heroLandscapeUrl,
   heroVertCdn,
+  heroSlug,
   heroVertUrl,
   itemIconUrl,
 } from '@/lib/utils'
@@ -415,20 +416,26 @@ function HeroIconRow({ players, heroMap }: { players: MatchPlayer[]; heroMap: Ma
     <div className="flex gap-1">
       {players.map((p) => {
         const hero = heroMap.get(p.hero_id)
-        return (
+        const img = (
           <img
-            key={p.player_slot}
             src={hero ? heroIconUrl(hero.name) : ''}
             alt=""
             title={hero?.localized_name}
             style={{ width: 28, height: 28 }}
             onError={(e) => {
               if (!hero) return
-              const img = e.currentTarget
-              img.onerror = null
-              img.src = heroIconFromPath(hero.icon)
+              const el = e.currentTarget
+              el.onerror = null
+              el.src = heroIconFromPath(hero.icon)
             }}
           />
+        )
+        return hero ? (
+          <a key={p.player_slot} href={`/hero/${heroSlug(hero.localized_name)}`} className="block">
+            {img}
+          </a>
+        ) : (
+          <span key={p.player_slot}>{img}</span>
         )
       })}
     </div>
@@ -521,18 +528,20 @@ function KillBreakdown({ match, heroMap }: { match: Match; heroMap: Map<number, 
           const total = buckets.reduce((s, v) => s + v, 0)
           return (
             <div key={p.player_slot} className="flex items-center gap-2 px-3 py-1" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-              <img
-                src={hero ? heroIconUrl(hero.name) : ''}
-                alt=""
-                title={hero?.localized_name}
-                style={{ width: 22, height: 22 }}
-                onError={(e) => {
-                  if (!hero) return
-                  const img = e.currentTarget
-                  img.onerror = null
-                  img.src = heroIconFromPath(hero.icon)
-                }}
-              />
+              <a href={hero ? `/hero/${heroSlug(hero.localized_name)}` : '#'} className="block shrink-0">
+                <img
+                  src={hero ? heroIconUrl(hero.name) : ''}
+                  alt=""
+                  title={hero?.localized_name}
+                  style={{ width: 22, height: 22 }}
+                  onError={(e) => {
+                    if (!hero) return
+                    const img = e.currentTarget
+                    img.onerror = null
+                    img.src = heroIconFromPath(hero.icon)
+                  }}
+                />
+              </a>
               <span className="w-6 shrink-0 text-right text-[12px] tabular-nums" style={{ color: '#fff' }}>{total}</span>
               <div className="flex flex-1 gap-1">
                 {buckets.map((v, i) => (
@@ -663,7 +672,11 @@ function VsAveragesBox({
             className="absolute -translate-x-1/2 overflow-hidden"
             style={{ left: `${pct * 100}%`, bottom: 2, width: 26, height: 26, filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.8))' }}
           >
-            {hero && <img src={heroIconUrl(hero.name)} alt="" className="w-full h-full object-cover" />}
+            {hero && (
+              <a href={`/hero/${heroSlug(hero.localized_name)}`} className="block h-full w-full">
+                <img src={heroIconUrl(hero.name)} alt="" className="w-full h-full object-cover" />
+              </a>
+            )}
           </div>
         </div>
         <div className="text-center text-[10px] uppercase mt-1" style={{ color: C.labelBright, fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}>
@@ -727,7 +740,12 @@ function DetailPanel({
               style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}
             />
             <div className="text-[12px] uppercase" style={{ color: '#86a34c', fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}>
-              Lvl {stats.level} {hero?.localized_name ?? ''}
+              Lvl {stats.level}{' '}
+              {hero && (
+                <a href={`/hero/${heroSlug(hero.localized_name)}`} className="hover:underline">
+                  {hero.localized_name}
+                </a>
+              )}
             </div>
           </div>
         </div>

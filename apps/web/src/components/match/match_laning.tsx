@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { HeroStat, Match, MatchPlayer } from 'types'
 import { MAP_MAX, MAP_MIN } from '@/lib/buildings'
 import { playerColor } from '@/lib/dotaconst'
-import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
 
 /* Laning tab (OpenDota-style): where each hero actually stood during the
    laning phase (players[].lane_pos, a position-count heatmap over the first
@@ -106,18 +106,20 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
         <td className="px-2 py-1.5">
           <div className="flex items-center gap-2">
             <span style={{ width: 3, height: 20, background: playerColor(p.player_slot) }} />
-            <img
-              src={hero ? heroIconUrl(hero.name) : ''}
-              alt=""
-              title={hero?.localized_name}
-              style={{ width: 24, height: 24 }}
-              onError={(e) => {
-                if (!hero) return
-                const img = e.currentTarget
-                img.onerror = null
-                img.src = heroIconFromPath(hero.icon)
-              }}
-            />
+            <a href={hero ? `/hero/${heroSlug(hero.localized_name)}` : '#'} className="block shrink-0">
+              <img
+                src={hero ? heroIconUrl(hero.name) : ''}
+                alt=""
+                title={hero?.localized_name}
+                style={{ width: 24, height: 24 }}
+                onError={(e) => {
+                  if (!hero) return
+                  const img = e.currentTarget
+                  img.onerror = null
+                  img.src = heroIconFromPath(hero.icon)
+                }}
+              />
+            </a>
             <span className="max-w-[120px] truncate text-[13px]" style={{ color: isRadiant ? C.green : C.red }}>
               {p.personaname ?? 'Anonymous'}
             </span>

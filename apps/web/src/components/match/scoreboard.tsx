@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { HeroStat, MatchPlayer } from 'types'
 import { usePlayerProName } from './match_roster'
-import { itemIconUrl, ITEM_CDN_FALLBACK } from '@/lib/utils'
+import { heroSlug, itemIconUrl, ITEM_CDN_FALLBACK } from '@/lib/utils'
 
 /* Local asset first (itemIconUrl), Steam CDN only if the local file 404s. */
 function onItemError(e: React.SyntheticEvent<HTMLImageElement>) {
@@ -113,12 +113,13 @@ function PlayerRow({
     <tr className="border-b border-[#1a2d3d]/60 hover:bg-[#142030]/50 transition-colors group">
       {/* Hero portrait + player info */}
       <td className="py-1 pr-2">
-        <a
-          href={player.account_id ? `/player/${player.account_id}` : '#'}
-          className="flex items-center gap-2 group-hover:opacity-90"
-        >
-          {/* Landscape portrait with level badge */}
-          <div className="relative flex-shrink-0" style={{ width: 88, height: 50 }}>
+        <div className="flex items-center gap-2 group-hover:opacity-90">
+          {/* Landscape portrait with level badge, links to the hero */}
+          <a
+            href={hero ? `/hero/${heroSlug(hero.localized_name)}` : '#'}
+            className="relative flex-shrink-0 block"
+            style={{ width: 88, height: 50 }}
+          >
             {hero ? (
               <img
                 src={heroSbUrl(hero.name)}
@@ -140,19 +141,23 @@ function PlayerRow({
             >
               {player.level}
             </div>
-          </div>
+          </a>
           {/* Name + hero + rank */}
           <div className="min-w-0 w-[110px]">
-            <div className="flex items-center gap-1 min-w-0">
+            <a href={player.account_id ? `/player/${player.account_id}` : '#'} className="flex items-center gap-1 min-w-0">
               {rankMedal && <img src={rankMedal} alt="" className="h-3.5 w-3.5 flex-shrink-0 object-contain" />}
               <span className="text-[11px] text-[#c8d6e5] truncate font-medium leading-tight">
                 {personaName}
                 {proName && <span className="opacity-70"> [{proName}]</span>}
               </span>
-            </div>
-            {hero && <div className="text-[10px] text-[#4a7090] truncate leading-tight">{hero.localized_name}</div>}
+            </a>
+            {hero && (
+              <a href={`/hero/${heroSlug(hero.localized_name)}`} className="block text-[10px] text-[#4a7090] truncate leading-tight hover:underline">
+                {hero.localized_name}
+              </a>
+            )}
           </div>
-        </a>
+        </div>
       </td>
 
       {/* K */}

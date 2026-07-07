@@ -1,5 +1,5 @@
 import type { HeroStat, Match, MatchPlayer } from 'types'
-import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
 import { PlayerNameLink, TeamHeader, orderedTeams } from './match_roster'
 
 /* Performance tab - lanes, efficiency, APM, teamfight participation, stuns,
@@ -50,19 +50,27 @@ function Row({ p, hero }: { p: MatchPlayer; hero: HeroStat | undefined }) {
     <div className="flex items-center" style={{ height: 66, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
       <div className="flex items-center gap-2.5 shrink-0 px-3" style={{ width: 240 }}>
         {hero && (
-          <img
-            src={heroIconUrl(hero.name)}
-            alt=""
-            style={{ width: 44, height: 44 }}
-            onError={(e) => {
-              const img = e.currentTarget
-              img.onerror = null
-              img.src = heroIconFromPath(hero.icon)
-            }}
-          />
+          <a href={`/hero/${heroSlug(hero.localized_name)}`} className="shrink-0 block">
+            <img
+              src={heroIconUrl(hero.name)}
+              alt=""
+              style={{ width: 44, height: 44 }}
+              onError={(e) => {
+                const img = e.currentTarget
+                img.onerror = null
+                img.src = heroIconFromPath(hero.icon)
+              }}
+            />
+          </a>
         )}
         <div className="min-w-0" style={{ fontFamily: 'var(--font-dota)' }}>
-          <div className="text-[15px] truncate" style={{ color: C.white }}>{hero?.localized_name}</div>
+          {hero ? (
+            <a href={`/hero/${heroSlug(hero.localized_name)}`} className="block text-[15px] truncate hover:underline" style={{ color: C.white }}>
+              {hero.localized_name}
+            </a>
+          ) : (
+            <div className="text-[15px] truncate" style={{ color: C.white }} />
+          )}
           <PlayerNameLink player={p} className="block text-[12px] truncate" style={{ color: C.dim }} />
         </div>
       </div>

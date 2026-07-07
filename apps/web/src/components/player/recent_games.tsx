@@ -1,7 +1,8 @@
+import { useNavigate } from '@tanstack/react-router'
 import type { HeroStat, PlayerMatch } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
 import { applySort, useSort } from '@/lib/sortable'
-import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl } from '@/lib/utils'
+import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl, heroSlug } from '@/lib/utils'
 
 const GAME_MODES: Record<number, string> = {
   1: 'All Pick', 2: 'Captains Mode', 3: 'Random Draft', 4: 'Single Draft',
@@ -44,6 +45,7 @@ export function RecentGames({
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const leagueByMatchId = new Map((leagueInfo ?? []).map((l) => [l.match_id, l]))
   const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('date', 'desc')
+  const navigate = useNavigate()
 
   const sorted = applySort(matches, sortDir, (a, b) => {
     switch (sortKey) {
@@ -86,10 +88,10 @@ export function RecentGames({
         const type = LOBBY_TYPES[m.lobby_type] ?? GAME_MODES[m.game_mode] ?? '—'
 
         return (
-          <a
+          <div
             key={m.match_id}
-            href={`/match/${m.match_id}`}
-            className="flex items-center px-3 hover:bg-white/[0.05] transition-colors"
+            onClick={() => navigate({ to: '/match/$matchId', params: { matchId: String(m.match_id) } })}
+            className="flex items-center px-3 hover:bg-white/[0.05] transition-colors cursor-pointer"
             style={{ height: 46, background: i % 2 ? 'rgba(255,255,255,0.02)' : 'transparent' }}
           >
             <div className="w-[150px] shrink-0 text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
@@ -98,17 +100,30 @@ export function RecentGames({
 
             <div className="flex-1 min-w-0 flex items-center gap-2.5">
               {hero && (
-                <img
-                  src={heroLandscapeUrl(hero.name)}
-                  alt=""
-                  className="shrink-0 object-cover"
-                  style={{ width: 58, height: 33 }}
-                  onError={cdnFallback(heroLandscapeCdn(hero.name))}
-                />
+                <a href={`/hero/${heroSlug(hero.localized_name)}`} onClick={(e) => e.stopPropagation()} className="shrink-0 block">
+                  <img
+                    src={heroLandscapeUrl(hero.name)}
+                    alt=""
+                    className="object-cover"
+                    style={{ width: 58, height: 33 }}
+                    onError={cdnFallback(heroLandscapeCdn(hero.name))}
+                  />
+                </a>
               )}
-              <span className="text-[14px] truncate" style={{ color: '#e8ecef' }}>
-                {hero?.localized_name ?? `Hero ${m.hero_id}`}
-              </span>
+              {hero ? (
+                <a
+                  href={`/hero/${heroSlug(hero.localized_name)}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-[14px] truncate hover:underline"
+                  style={{ color: '#e8ecef' }}
+                >
+                  {hero.localized_name}
+                </a>
+              ) : (
+                <span className="text-[14px] truncate" style={{ color: '#e8ecef' }}>
+                  {`Hero ${m.hero_id}`}
+                </span>
+              )}
               {leagueByMatchId.get(m.match_id) && (
                 <span
                   className="shrink-0 px-1.5 py-0.5 text-[11px] font-bold uppercase truncate max-w-[220px]"
@@ -134,7 +149,7 @@ export function RecentGames({
               {type}
             </div>
             <div className="w-[24px] shrink-0" />
-          </a>
+          </div>
         )
       })}
     </div>

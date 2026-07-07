@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { HeroStat, PlayerMatch } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
@@ -6,7 +7,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { opendota, type ProMatchRow } from '@/lib/opendota'
 import { rankBadge, rankName } from '@/lib/rank'
 import { applySort, useSort } from '@/lib/sortable'
-import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl } from '@/lib/utils'
+import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl, heroSlug } from '@/lib/utils'
 
 const PAGE_SIZE = 30
 
@@ -169,6 +170,7 @@ export function AllMatches({
   const [withPlayerFilter, setWithPlayerFilter] = useState<NumOrAll>('all')
   const [proOnly, setProOnly] = useState(false)
   const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('date', 'desc')
+  const navigate = useNavigate()
 
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const heroOptions = [...heroStats].sort((a, b) => a.localized_name.localeCompare(b.localized_name))
@@ -551,10 +553,10 @@ export function AllMatches({
           const badge = rankBadge(m.average_rank)
 
           return (
-            <a
+            <div
               key={m.match_id}
-              href={`/match/${m.match_id}`}
-              className="flex items-center px-3 hover:bg-white/[0.05] transition-colors"
+              onClick={() => navigate({ to: '/match/$matchId', params: { matchId: String(m.match_id) } })}
+              className="flex items-center px-3 hover:bg-white/[0.05] transition-colors cursor-pointer"
               style={{ height: 46, background: i % 2 ? 'rgba(255,255,255,0.02)' : 'transparent' }}
             >
               <div className="w-[150px] shrink-0 text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
@@ -563,17 +565,30 @@ export function AllMatches({
 
               <div className="flex-1 min-w-0 flex items-center gap-2.5">
                 {hero && (
-                  <img
-                    src={heroLandscapeUrl(hero.name)}
-                    alt=""
-                    className="shrink-0 object-cover"
-                    style={{ width: 58, height: 33 }}
-                    onError={cdnFallback(heroLandscapeCdn(hero.name))}
-                  />
+                  <a href={`/hero/${heroSlug(hero.localized_name)}`} onClick={(e) => e.stopPropagation()} className="shrink-0 block">
+                    <img
+                      src={heroLandscapeUrl(hero.name)}
+                      alt=""
+                      className="object-cover"
+                      style={{ width: 58, height: 33 }}
+                      onError={cdnFallback(heroLandscapeCdn(hero.name))}
+                    />
+                  </a>
                 )}
-                <span className="text-[14px] truncate" style={{ color: '#e8ecef' }}>
-                  {hero?.localized_name ?? `Hero ${m.hero_id}`}
-                </span>
+                {hero ? (
+                  <a
+                    href={`/hero/${heroSlug(hero.localized_name)}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-[14px] truncate hover:underline"
+                    style={{ color: '#e8ecef' }}
+                  >
+                    {hero.localized_name}
+                  </a>
+                ) : (
+                  <span className="text-[14px] truncate" style={{ color: '#e8ecef' }}>
+                    {`Hero ${m.hero_id}`}
+                  </span>
+                )}
               </div>
 
               <div className="w-[70px] shrink-0 flex items-center justify-center" title={rankName(m.average_rank)}>
@@ -616,7 +631,7 @@ export function AllMatches({
               <div className="w-[90px] shrink-0 text-right text-[13px] pr-2 truncate" style={{ color: '#cfd4d8' }} title={m.typeLabel}>
                 {m.typeLabel}
               </div>
-            </a>
+            </div>
           )
         })
       )}

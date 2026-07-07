@@ -1,6 +1,6 @@
 import { type JSX, useState } from 'react'
 import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
-import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
 import { AbilityIcon } from './ability_icon'
 import { ItemIcon } from './item_icon'
 import { MatchRosterSidebar, orderedTeams, useRosterMetrics } from './match_roster'
@@ -53,7 +53,12 @@ function HeroKillsGroup({
       {enemies.map((h) => {
         const n = killCount(h.name)
         return (
-          <div key={h.id} className="relative shrink-0" style={{ opacity: n > 0 ? 1 : 0.25 }}>
+          <a
+            key={h.id}
+            href={`/hero/${heroSlug(h.localized_name)}`}
+            className="relative shrink-0 block"
+            style={{ opacity: n > 0 ? 1 : 0.25 }}
+          >
             <img
               src={heroIconUrl(h.name)}
               alt={h.localized_name}
@@ -73,7 +78,7 @@ function HeroKillsGroup({
                 x{n}
               </span>
             )}
-          </div>
+          </a>
         )
       })}
       <div
