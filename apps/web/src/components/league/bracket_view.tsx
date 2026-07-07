@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { formatDuration } from '@/lib/utils'
 import { inferBracket, isAdjacentRound, isWinningContinuation } from './infer_bracket'
 import type { Series } from './series'
@@ -29,7 +29,7 @@ function TeamLabel({ id, name }: { id: number | null; name: string }) {
   )
 }
 
-function BracketCard({
+const BracketCard = memo(function BracketCard({
   s,
   teamMap,
   cardRef,
@@ -45,7 +45,7 @@ function BracketCard({
 
   const row = (id: number | null, name: string, score: number, won: boolean) => (
     <div className="flex items-center justify-between gap-2 px-2.5 py-1.5" style={{ background: won ? 'rgba(142,198,63,0.08)' : 'transparent' }}>
-      <span style={{ color: won ? '#8ec63f' : '#a09a8c', fontWeight: won ? 600 : 400, minWidth: 0 }}>
+      <span style={{ color: won ? '#8ec63f' : '#8a8474', fontWeight: won ? 600 : 400, minWidth: 0 }}>
         <TeamLabel id={id} name={name} />
       </span>
       <span className="shrink-0 text-[13px] font-bold tabular-nums" style={{ color: won ? '#8ec63f' : '#5a5648' }}>
@@ -58,6 +58,15 @@ function BracketCard({
     <div
       ref={cardRef}
       onClick={() => setExpanded((v) => !v)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          setExpanded((v) => !v)
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-expanded={expanded}
       className="w-[160px] cursor-pointer sm:w-[220px]"
       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #1c1810' }}
     >
@@ -77,7 +86,7 @@ function BracketCard({
                 style={{ background: 'rgba(255,255,255,0.03)', color: '#8a8474', fontFamily: 'var(--font-dota)' }}
                 title={`${formatDuration(g.duration)} · ${g.radiant_score ?? '?'}-${g.dire_score ?? '?'}`}
               >
-                <span style={{ color: aWonGame ? '#8ec63f' : '#d14a38' }}>{aWonGame ? 'W' : 'L'}</span> {formatDuration(g.duration)}
+                <span style={{ color: aWonGame ? '#8ec63f' : '#c73f2d' }}>{aWonGame ? 'W' : 'L'}</span> {formatDuration(g.duration)}
               </a>
             )
           })}
@@ -85,7 +94,7 @@ function BracketCard({
       )}
     </div>
   )
-}
+})
 
 function ConnectorLines({
   rounds,
@@ -135,7 +144,7 @@ function ConnectorLines({
     }
   }
   return (
-    <svg className="absolute inset-0" width={width} height={height} style={{ pointerEvents: 'none' }}>
+    <svg className="absolute inset-0" width={width} height={height} style={{ pointerEvents: 'none' }} aria-hidden="true">
       {paths.map((p) => (
         <path key={p.key} d={p.d} stroke={p.color} strokeWidth={1.5} fill="none" />
       ))}
@@ -147,7 +156,7 @@ export function BracketView({ series, teamMap }: { series: Series[]; teamMap: Ma
   const { rounds, parentOf } = useMemo(() => inferBracket(series), [series])
   const seriesByKey = useMemo(() => new Map(series.map((s) => [s.key, s])), [series])
   const seriesKeys = useMemo(() => rounds.flat().map((s) => s.key), [rounds])
-  const { containerRef, registerCard, positions, contentSize } = useBracketLayout(seriesKeys)
+  const { containerRef, getCardRef, positions, contentSize } = useBracketLayout(seriesKeys)
 
   return (
     <div>
@@ -171,7 +180,7 @@ export function BracketView({ series, teamMap }: { series: Series[]; teamMap: Ma
                 Round {i + 1}
               </div>
               {round.map((s) => (
-                <BracketCard key={s.key} s={s} teamMap={teamMap} cardRef={(el) => registerCard(s.key, el)} />
+                <BracketCard key={s.key} s={s} teamMap={teamMap} cardRef={getCardRef(s.key)} />
               ))}
             </div>
           ))}

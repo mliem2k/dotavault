@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { usePageTitle } from '@/lib/title'
 import { createFileRoute } from '@tanstack/react-router'
+import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
 import { tiChampionships } from '@/lib/ti_champions'
@@ -43,6 +44,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
       <div
         className="px-4 py-3 uppercase"
         style={{
+          background: 'rgba(8,10,12,0.85)',
           color: '#c8c2b4',
           fontFamily: 'var(--font-display)',
           fontSize: 20,
@@ -188,6 +190,9 @@ function TeamPage() {
             <img
               src={t.logo_url}
               alt={t.name}
+              width={64}
+              height={64}
+              loading="lazy"
               className="h-16 w-16 object-contain shrink-0"
               style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.7))' }}
             />
@@ -196,14 +201,14 @@ function TeamPage() {
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1
                 className="text-[32px] font-bold leading-tight uppercase truncate"
-                style={{ color: '#f0eae0', fontFamily: 'var(--font-display)', letterSpacing: '2px' }}
+                style={{ color: '#dcd6c8', fontFamily: 'var(--font-display)', letterSpacing: '2px' }}
               >
                 {t.name}
               </h1>
               {tiChampionships(t.team_id).length > 0 && (
                 <span
                   className="shrink-0 px-2 py-0.5 text-[13px] font-bold uppercase"
-                  style={{ background: '#3a2f10', color: '#f2c94c', letterSpacing: '1px' }}
+                  style={{ background: 'transparent', border: '1px solid rgba(242,201,76,0.5)', color: '#f2c94c', letterSpacing: '1px' }}
                   title={`The International Champion: ${tiChampionships(t.team_id)
                     .map((c) => (c.wonAs ? `TI${c.year} as ${c.wonAs}` : `TI${c.year}`))
                     .join(', ')}`}
@@ -222,7 +227,7 @@ function TeamPage() {
             )}
           </div>
 
-          <div className="flex items-center gap-8 ml-auto">
+          <div className="flex items-center flex-wrap gap-4 sm:gap-8 ml-auto">
             {(
               [
                 { value: t.wins.toLocaleString(), label: 'Wins', color: '#8ec63f' },
@@ -268,7 +273,7 @@ function TeamPage() {
                     <th
                       key={h}
                       className={`pb-2 text-[11px] font-bold uppercase tracking-widest ${i >= 2 ? 'text-right' : 'text-left'}`}
-                      style={{ color: '#4a4436', fontFamily: 'var(--font-dota)' }}
+                      style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
                     >
                       {h}
                     </th>
@@ -299,13 +304,13 @@ function TeamPage() {
                       >
                         {roleLabelFor(p)}
                         {isStandIn(p) && (
-                          <span
-                            className="ml-1.5 px-1 py-0.5 text-[10px] uppercase"
-                            style={{ background: 'rgba(255,255,255,0.06)', color: '#6a675e' }}
+                          <Badge
+                            variant="default"
+                            className="ml-1.5"
                             title="Far fewer games than this role's regular starter, likely a stand-in"
                           >
                             Stand-in
-                          </span>
+                          </Badge>
                         )}
                       </td>
                       <td
@@ -318,7 +323,7 @@ function TeamPage() {
                         className="py-1.5 text-right text-[13px] font-semibold tabular-nums"
                         style={{
                           color:
-                            pwr == null ? '#4a4436' : Number(pwr) >= 50 ? '#8ec63f' : '#d14a38',
+                            pwr == null ? '#8a8474' : Number(pwr) >= 50 ? '#8ec63f' : '#d14a38',
                           fontFamily: 'var(--font-dota)',
                         }}
                       >

@@ -64,7 +64,8 @@ function RegionPage() {
             setPage(() => 0)
           }}
           placeholder="Search player or team tag…"
-          className="text-[14px] px-3 py-1.5 outline-none flex-1 min-w-[200px]"
+          aria-label="Search player or team"
+          className="text-[14px] px-3 py-1.5 flex-1 min-w-[200px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#c9a94a]"
           style={{
             background: '#14181b',
             color: '#dcd6c8',
@@ -73,7 +74,7 @@ function RegionPage() {
           }}
         />
         {query.data && (
-          <div className="text-[12px] text-right shrink-0" style={{ color: '#4a4436', fontFamily: 'var(--font-dota)' }}>
+          <div className="text-[12px] text-right shrink-0" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
             Updated {fmtTime(query.data.time_posted)}
             <br />
             Next {fmtTime(query.data.next_scheduled_post_time)}
@@ -110,7 +111,7 @@ function RegionPage() {
             >
               <span
                 className="w-10 shrink-0 text-right text-[16px] tabular-nums"
-                style={{ color: RANK_COLORS[r.rank] ?? '#4a4436', fontFamily: 'var(--font-display)', fontWeight: 600 }}
+                style={{ color: RANK_COLORS[r.rank] ?? '#8a8474', fontFamily: 'var(--font-display)', fontWeight: 600 }}
               >
                 {r.rank}
               </span>
@@ -134,7 +135,7 @@ function RegionPage() {
                     </span>
                   )
                 ) : null}
-                <span className="text-[16px] truncate" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+                <span className="text-[14px] truncate" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
                   {r.name}
                 </span>
                 {pro && (
@@ -146,19 +147,19 @@ function RegionPage() {
                       Pro
                     </span>
                     {pro.name !== r.name && (
-                      <span className="text-[13px] shrink-0" style={{ color: '#c9a94a', fontFamily: 'var(--font-dota)' }}>
+                      <span className="hidden sm:inline-block truncate max-w-[140px] text-[13px]" style={{ color: '#c9a94a', fontFamily: 'var(--font-dota)' }}>
                         [{pro.name}]
                       </span>
                     )}
                     {pro.personaname && pro.personaname !== r.name && pro.personaname !== pro.name && (
-                      <span className="text-[13px] shrink-0" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+                      <span className="hidden md:inline-block truncate max-w-[120px] text-[13px]" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
                         {pro.personaname}
                       </span>
                     )}
                   </>
                 )}
                 {r.sponsor && (
-                  <span className="text-[13px] shrink-0" style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}>
+                  <span className="hidden md:inline-block truncate max-w-[100px] text-[13px]" style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}>
                     .{r.sponsor}
                   </span>
                 )}
@@ -167,6 +168,9 @@ function RegionPage() {
                 <img
                   src={countryFlagUrl(r.country)}
                   alt={r.country}
+                  width={16}
+                  height={11}
+                  loading="lazy"
                   className="shrink-0"
                   onError={(e) => {
                     e.currentTarget.style.visibility = 'hidden'
@@ -189,7 +193,7 @@ function RegionPage() {
             type="button"
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={clampedPage === 0}
-            className="px-4 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-40"
+            className="min-h-11 px-4 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-40"
             style={{ background: '#1a2024', border: '1px solid #2c3236', color: '#cfd4d8', letterSpacing: '1px' }}
           >
             Prev
@@ -201,7 +205,7 @@ function RegionPage() {
             type="button"
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={clampedPage >= totalPages - 1}
-            className="px-4 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-40"
+            className="min-h-11 px-4 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-40"
             style={{ background: '#1a2024', border: '1px solid #2c3236', color: '#cfd4d8', letterSpacing: '1px' }}
           >
             Next

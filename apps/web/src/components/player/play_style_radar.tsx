@@ -56,8 +56,17 @@ export function PlayStyleRadar({
       })
       .join(' ') + ' Z'
 
+  const pct = values.map((v) => Math.round(v * 100))
+  const summary = AXES.map((label, i) => `${label} ${pct[i]}%`).join(', ')
+
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} className="w-full" style={{ maxWidth: 280, overflow: 'visible' }}>
+    <svg
+      viewBox={`0 0 ${size} ${size}`}
+      className="w-full"
+      style={{ maxWidth: 280, overflow: 'visible' }}
+      role="img"
+      aria-label={summary}
+    >
       {/* grid rings */}
       {[0.25, 0.5, 0.75, 1].map((f) => (
         <path key={f} d={ringPath(f)} fill="none" stroke="#3a4147" strokeWidth={1} />
@@ -68,10 +77,10 @@ export function PlayStyleRadar({
         return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#3a4147" strokeWidth={1} />
       })}
       {/* data polygon */}
-      <path d={dataPath} fill="rgba(215,143,40,0.3)" stroke="#d78f28" strokeWidth={2} />
+      <path d={dataPath} fill="rgba(201,169,74,0.3)" stroke="#c9a94a" strokeWidth={2} />
       {values.map((v, i) => {
         const [x, y] = pointAt(i, R * Math.max(0.04, v))
-        return <circle key={i} cx={x} cy={y} r={2.5} fill="#e8b04c" />
+        return <circle key={i} cx={x} cy={y} r={2.5} fill="#c9a94a" />
       })}
       {/* labels */}
       {AXES.map((label, i) => {
@@ -111,7 +120,7 @@ export function LifetimeStats({ totals }: { totals: Total[] }) {
     <div key={label} className="flex items-center gap-3">
       <span
         className="w-16 shrink-0 text-right text-[15px] tabular-nums"
-        style={{ color: '#cb9b25', fontFamily: 'var(--font-dota)' }}
+        style={{ color: '#c9a94a', fontFamily: 'var(--font-dota)' }}
       >
         {value}
       </span>

@@ -7,10 +7,10 @@ import { PlayerNameLink, TeamHeader, orderedTeams } from './match_roster'
 
 const C = {
   label: '#8a97a0',
-  dim: '#67757f',
+  dim: '#8a8474',
   text: '#cfd4d8',
   white: '#ffffff',
-  green: '#9fbf3f',
+  green: '#8fbf3f',
   red: '#c94a38',
   gold: '#f2c94c',
   panel: 'rgba(16,19,22,0.72)',
@@ -54,6 +54,7 @@ function Row({ p, hero }: { p: MatchPlayer; hero: HeroStat | undefined }) {
             <img
               src={heroIconUrl(hero.name)}
               alt=""
+              loading="lazy"
               style={{ width: 44, height: 44 }}
               onError={(e) => {
                 const img = e.currentTarget

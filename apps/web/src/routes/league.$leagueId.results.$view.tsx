@@ -51,7 +51,7 @@ function ResultsViewPage() {
                 <div className="flex min-w-0 items-center gap-2">
                   <span
                     className="truncate text-[15px]"
-                    style={{ color: aWon ? '#8ec63f' : '#a09a8c', fontFamily: 'var(--font-dota)', fontWeight: aWon ? 600 : 400 }}
+                    style={{ color: aWon ? '#8ec63f' : '#8a8474', fontFamily: 'var(--font-dota)', fontWeight: aWon ? 600 : 400 }}
                   >
                     {teamA?.name ?? (s.teamA ? `Team ${s.teamA}` : 'TBD')}
                   </span>
@@ -63,14 +63,14 @@ function ResultsViewPage() {
                   </span>
                   <span
                     className="truncate text-[15px]"
-                    style={{ color: !aWon ? '#8ec63f' : '#a09a8c', fontFamily: 'var(--font-dota)', fontWeight: !aWon ? 600 : 400 }}
+                    style={{ color: !aWon ? '#8ec63f' : '#8a8474', fontFamily: 'var(--font-dota)', fontWeight: !aWon ? 600 : 400 }}
                   >
                     {teamB?.name ?? (s.teamB ? `Team ${s.teamB}` : 'TBD')}
                   </span>
                 </div>
               </div>
               <div className="shrink-0 text-right">
-                <div className="text-[12px] uppercase tracking-wider" style={{ color: '#5a5648', fontFamily: 'var(--font-dota)' }}>
+                <div className="text-[12px] uppercase tracking-wider" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
                   Bo{s.bestOf}
                 </div>
                 <div className="text-[12px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
@@ -90,7 +90,7 @@ function ResultsViewPage() {
                     style={{ background: 'rgba(255,255,255,0.03)', color: '#8a8474', fontFamily: 'var(--font-dota)' }}
                     title={`${formatDuration(g.duration)} · ${g.radiant_score ?? '?'}-${g.dire_score ?? '?'}`}
                   >
-                    <span style={{ color: aWonGame ? '#8ec63f' : '#d14a38' }}>{aWonGame ? 'W' : 'L'}</span>{' '}
+                    <span style={{ color: aWonGame ? '#8ec63f' : '#c73f2d' }}>{aWonGame ? 'W' : 'L'}</span>{' '}
                     {formatDuration(g.duration)}
                   </a>
                 )

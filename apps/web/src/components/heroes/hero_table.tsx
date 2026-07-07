@@ -74,15 +74,21 @@ export function HeroTable({ heroes }: { heroes: HeroStat[] }) {
             {(['name', 'winrate', 'pickrate', 'banrate'] as SortKey[]).map((key) => (
               <th
                 key={key}
-                onClick={() => handleSort(key)}
-                className={`cursor-pointer select-none pb-2 font-normal ${
-                  key === 'name' ? '' : 'text-right'
-                } ${sort === key ? 'text-foreground' : 'hover:text-foreground transition-colors'}`}
+                aria-sort={sort === key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className={`pb-2 font-normal ${key === 'name' ? '' : 'text-right'}`}
               >
-                {SORT_LABELS[key]}
-                {sort === key && (
-                  <span className="ml-0.5 opacity-60">{sortDir === 'desc' ? '↓' : '↑'}</span>
-                )}
+                <button
+                  type="button"
+                  onClick={() => handleSort(key)}
+                  className={`cursor-pointer select-none bg-transparent font-normal ${
+                    sort === key ? 'text-foreground' : 'text-muted hover:text-foreground transition-colors'
+                  }`}
+                >
+                  {SORT_LABELS[key]}
+                  {sort === key && (
+                    <span className="ml-0.5 opacity-60">{sortDir === 'desc' ? '↓' : '↑'}</span>
+                  )}
+                </button>
               </th>
             ))}
             <th className="pb-2 font-normal text-right">Roles</th>

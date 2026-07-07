@@ -139,7 +139,7 @@ function StatGroup({ title, children }: { title: string; children: React.ReactNo
     <div className="flex flex-col">
       <div
         className="text-[16px] font-bold uppercase mb-2"
-        style={{ color: '#969696', letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
+        style={{ color: '#8a8474', letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
       >
         {title}
       </div>
@@ -159,7 +159,7 @@ function AttrRow({ attrKey, base, gain }: { attrKey: string; base: number; gain:
       >
         {base}
       </span>
-      <span className="text-[15px] tabular-nums" style={{ color: '#999999' }}>
+      <span className="text-[15px] tabular-nums" style={{ color: '#8a8474' }}>
         +{gain.toFixed(1)}
       </span>
     </div>
@@ -222,7 +222,7 @@ function LanePresenceSection({ laneRoles }: { laneRoles: { lane_role: number; pi
     <StatPanel title="Lane Presence">
       <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-dota)' }}>
         <thead>
-          <tr className="text-[13px] font-bold uppercase tracking-widest" style={{ color: '#a8a294' }}>
+          <tr className="text-[13px] font-bold uppercase tracking-widest" style={{ color: '#8a8474' }}>
             <th className="pb-2 text-left">Lane</th>
             <th className="pb-2 px-3 text-right">Presence</th>
             <th className="pb-2 pl-3 text-right">Win Rate</th>
@@ -237,7 +237,7 @@ function LanePresenceSection({ laneRoles }: { laneRoles: { lane_role: number; pi
                 <td className="py-2 text-[16px]" style={{ color: '#dcd6c8' }}>
                   {LANE_LABELS[l.lane_role] ?? `Lane ${l.lane_role}`}
                 </td>
-                <td className="px-3 text-right text-[15px] tabular-nums" style={{ color: '#a8a294' }}>
+                <td className="px-3 text-right text-[15px] tabular-nums" style={{ color: '#8a8474' }}>
                   <div className="flex items-center justify-end gap-2">
                     <div className="h-[6px] w-16" style={{ background: 'rgba(255,255,255,0.06)' }}>
                       <div style={{ width: `${presence}%`, height: '100%', background: '#c9a94a' }} />
@@ -256,7 +256,7 @@ function LanePresenceSection({ laneRoles }: { laneRoles: { lane_role: number; pi
           })}
         </tbody>
       </table>
-      <div className="mt-3 text-[13px]" style={{ color: '#7a7464' }}>
+      <div className="mt-3 text-[13px]" style={{ color: '#5a5648' }}>
         Last 60 days, {total.toLocaleString()} games.
       </div>
     </StatPanel>
@@ -326,7 +326,7 @@ function MatchupsSection({
           {worst.map((m) => row(m, false))}
         </div>
       </div>
-      <div className="mt-3 text-[13px]" style={{ color: '#7a7464' }}>
+      <div className="mt-3 text-[13px]" style={{ color: '#5a5648' }}>
         Minimum {MATCHUP_MIN_GAMES.toLocaleString()} games played against that hero.
       </div>
     </StatPanel>
@@ -369,7 +369,7 @@ function DurationSection({ durations }: { durations: { duration_bin: number; gam
           <div key={r.duration_bin} className="flex shrink-0 flex-col items-center" style={{ width: 48 }}>
             <div
               className="text-[14px] font-semibold tabular-nums mb-1"
-              style={{ color: r.wr >= 52 ? '#8ec63f' : r.wr < 48 ? '#d14a38' : '#a8a294', fontFamily: 'var(--font-dota)' }}
+              style={{ color: r.wr >= 52 ? '#8ec63f' : r.wr < 48 ? '#d14a38' : '#8a8474', fontFamily: 'var(--font-dota)' }}
             >
               {r.wr.toFixed(0)}%
             </div>
@@ -378,13 +378,13 @@ function DurationSection({ durations }: { durations: { duration_bin: number; gam
               style={{ height: heightFor(r.wr), background: r.wr >= 52 ? '#8ec63f' : r.wr < 48 ? '#d14a38' : '#c9a94a' }}
               title={`${r.games_played.toLocaleString()} games`}
             />
-            <div className="mt-1.5 text-[13px]" style={{ color: '#7a7464', fontFamily: 'var(--font-dota)' }}>
+            <div className="mt-1.5 text-[13px]" style={{ color: '#5a5648', fontFamily: 'var(--font-dota)' }}>
               {Math.round(r.duration_bin / 60)}m
             </div>
           </div>
         ))}
       </div>
-      <div className="text-center text-[13px] mt-1" style={{ color: '#7a7464' }}>
+      <div className="text-center text-[13px] mt-1" style={{ color: '#5a5648' }}>
         Minimum {DURATION_MIN_GAMES} games in that duration bucket.
       </div>
     </StatPanel>
@@ -426,7 +426,7 @@ function ItemPopularitySection({
           const maxCount = Math.max(1, ...top.map((t) => t.count))
           return (
             <div key={phase.key}>
-              <div className="text-[13px] font-bold uppercase tracking-widest mb-2" style={{ color: '#a8a294' }}>
+              <div className="text-[13px] font-bold uppercase tracking-widest mb-2" style={{ color: '#8a8474' }}>
                 {phase.label}
               </div>
               {top.map((t) => {
@@ -502,6 +502,11 @@ function HeroDetailPage() {
   const itemIdToName = useMemo(
     () => new Map(Object.entries(items.data ?? {}).map(([name, v]) => [v.id, name])),
     [items.data],
+  )
+  // Prev / next hero (alphabetical), used by the top-right nav and the footer.
+  const sortedHeroes = useMemo(
+    () => [...(heroStats.data ?? [])].sort((a, b) => a.localized_name.localeCompare(b.localized_name)),
+    [heroStats.data],
   )
 
   // Live tagline / complexity / exact stats from Valve's datafeed (via /df proxy).
@@ -619,10 +624,6 @@ function HeroDetailPage() {
             right: abilities.data?.[pair[1]?.name ?? '']?.dname ?? '',
           }))
           .filter((r) => r.left || r.right)
-  // Prev / next hero (alphabetical), used by the top-right nav and the footer.
-  const sortedHeroes = [...(heroStats.data ?? [])].sort((a, b) =>
-    a.localized_name.localeCompare(b.localized_name),
-  )
   const heroIdx = sortedHeroes.findIndex((h) => h.name === hero.name)
   // Wraps around like dota2.com (Abaddon's previous hero is Zeus).
   const prevHero = sortedHeroes[(heroIdx - 1 + sortedHeroes.length) % sortedHeroes.length]
@@ -728,10 +729,11 @@ function HeroDetailPage() {
             <a
               href={`/hero/${heroSlug(prevHero.localized_name)}`}
               title={prevHero.localized_name}
+              aria-label="Previous hero"
               className="flex items-center justify-center hover:bg-white/10"
               style={{
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 border: '1px solid rgba(255,255,255,0.5)',
                 color: '#fff',
                 fontSize: 20,
@@ -762,10 +764,11 @@ function HeroDetailPage() {
             <a
               href={`/hero/${heroSlug(nextHero.localized_name)}`}
               title={nextHero.localized_name}
+              aria-label="Next hero"
               className="flex items-center justify-center hover:bg-white/10"
               style={{
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 border: '1px solid rgba(255,255,255,0.5)',
                 color: '#fff',
                 fontSize: 20,
@@ -798,13 +801,15 @@ function HeroDetailPage() {
             </span>
           </div>
           <h1
-            className="text-[80px] font-bold uppercase"
+            className="font-bold uppercase"
             style={{
               fontFamily: 'var(--font-display)',
               color: '#fff',
-              lineHeight: '88px',
+              fontSize: 'clamp(2.5rem, 8vw, 5rem)',
+              lineHeight: 1.1,
               letterSpacing: '2px',
               marginTop: 12,
+              overflowWrap: 'break-word',
             }}
           >
             {hero.localized_name}
@@ -813,7 +818,7 @@ function HeroDetailPage() {
             <div
               className="mt-2 text-[18px] font-bold uppercase"
               style={{
-                color: '#a5e0f3',
+                color: '#5a8fc2',
                 fontFamily: 'var(--font-dota)',
                 letterSpacing: '2px',
                 textShadow: '0 1px 6px rgba(0,0,0,0.9)',
@@ -827,7 +832,7 @@ function HeroDetailPage() {
               <p
                 className="text-[24px]"
                 style={{
-                  color: '#eeeeee',
+                  color: '#dcd6c8',
                   fontFamily: 'var(--font-dota)',
                   fontWeight: 200,
                   lineHeight: 1.5,
@@ -841,9 +846,10 @@ function HeroDetailPage() {
                 <button
                   type="button"
                   onClick={() => setLoreOpen((v) => !v)}
+                  aria-expanded={loreOpen}
                   className="inline-block mt-2 text-[18px] underline cursor-pointer hover:text-white"
                   style={{
-                    color: '#8a8a8a',
+                    color: '#8a8474',
                     fontWeight: 200,
                     fontFamily: 'var(--font-dota)',
                     textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)',
@@ -856,7 +862,7 @@ function HeroDetailPage() {
           )}
           <div
             className="text-[17px] font-bold uppercase"
-            style={{ color: '#959595', fontFamily: 'var(--font-dota)', letterSpacing: '2px', marginTop: 30 }}
+            style={{ color: '#8a8474', fontFamily: 'var(--font-dota)', letterSpacing: '2px', marginTop: 30 }}
           >
             Attack Type
           </div>
@@ -877,11 +883,15 @@ function HeroDetailPage() {
             <>
               <div
                 className="text-[17px] font-bold uppercase"
-                style={{ color: '#959595', fontFamily: 'var(--font-dota)', letterSpacing: '2px', marginTop: 30 }}
+                style={{ color: '#8a8474', fontFamily: 'var(--font-dota)', letterSpacing: '2px', marginTop: 30 }}
               >
                 Complexity
               </div>
-              <div className="flex" style={{ gap: 12, marginTop: 8, marginLeft: 4 }}>
+              <div
+                className="flex"
+                style={{ gap: 12, marginTop: 8, marginLeft: 4 }}
+                aria-label={`Complexity ${meta.complexity} of 3`}
+              >
                 {[1, 2, 3].map((n) => (
                   <span
                     key={n}
@@ -914,15 +924,20 @@ function HeroDetailPage() {
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               {talents.length > 0 && abilities.data && (
-                <div className="relative group shrink-0" style={{ width: 72, height: 72 }}>
+                <div
+                  className="relative group shrink-0"
+                  style={{ width: 72, height: 72 }}
+                  tabIndex={0}
+                >
                   <img
                     src={TALENTS_ICON_CDN}
                     alt="Talents"
                     style={{ width: 72, height: 72, cursor: 'default' }}
                   />
-                  {/* Talent tree tooltip on hover, styled like dota2.com */}
+                  {/* Talent tree tooltip on hover, or on keyboard focus of the
+                      trigger above, styled like dota2.com */}
                   <div
-                    className="absolute bottom-full mb-2 hidden group-hover:block z-50 pointer-events-none"
+                    className="absolute bottom-full mb-2 hidden group-hover:block group-focus-within:block z-50 pointer-events-none"
                     style={{
                       left: '50%',
                       transform: 'translateX(-50%)',
@@ -998,7 +1013,7 @@ function HeroDetailPage() {
                   (x) => x.header && x.value != null && x.value !== '' && !x.generated,
                 )
                 return (
-                  <div key={name} className="relative group shrink-0">
+                  <div key={name} className="relative group shrink-0" tabIndex={0}>
                     <img
                       src={INNATE_ICON_CDN}
                       alt={ab?.dname ?? name}
@@ -1013,7 +1028,7 @@ function HeroDetailPage() {
                       }}
                     />
                     <div
-                      className="absolute bottom-full mb-2 hidden group-hover:block z-50 pointer-events-none"
+                      className="absolute bottom-full mb-2 hidden group-hover:block group-focus-within:block z-50 pointer-events-none"
                       style={{
                         left: '50%',
                         transform: 'translateX(-20%)',
@@ -1078,7 +1093,7 @@ function HeroDetailPage() {
                       {beh && (
                         <div
                           style={{
-                            color: '#6a675e',
+                            color: '#5a5648',
                             fontFamily: 'var(--font-dota)',
                             fontSize: 11,
                             textTransform: 'uppercase',
@@ -1097,7 +1112,7 @@ function HeroDetailPage() {
                         >
                           <span
                             style={{
-                              color: '#6a675e',
+                              color: '#5a5648',
                               fontFamily: 'var(--font-dota)',
                               fontSize: 11,
                               textTransform: 'uppercase',
@@ -1162,7 +1177,7 @@ function HeroDetailPage() {
       {/* Header stat bar — portrait, attributes, roles and Attack/Defense/Mobility (dota2.com layout).
           Sections are flex-col with justify-between so their labels share the same baseline. */}
       <div
-        className="-mx-6 -mt-4 pl-[4.3%] pr-[4.3%] pt-5 pb-4 flex gap-x-9 gap-y-4"
+        className="-mx-6 -mt-4 pl-[4.3%] pr-[4.3%] pt-5 pb-4 flex flex-wrap gap-x-9 gap-y-4"
         style={{
           background: 'linear-gradient(80deg, rgb(37,39,40) 0%, rgb(16,20,21) 100%)',
           borderTop: '2px solid rgb(40,40,40)',
@@ -1208,7 +1223,7 @@ function HeroDetailPage() {
           </div>
           <span
             className="text-[18px] uppercase text-center"
-            style={{ color: '#969696', fontFamily: 'var(--font-dota)', letterSpacing: '2px', fontWeight: 400 }}
+            style={{ color: '#8a8474', fontFamily: 'var(--font-dota)', letterSpacing: '2px', fontWeight: 400 }}
           >
             Attributes
           </span>
@@ -1225,7 +1240,7 @@ function HeroDetailPage() {
                   <span
                     className="text-[15px] font-bold"
                     style={{
-                      color: active ? '#ffffff' : '#5c584e',
+                      color: active ? '#ffffff' : '#8a8474',
                       letterSpacing: '1px',
                       fontFamily: 'var(--font-dota)',
                     }}
@@ -1250,7 +1265,7 @@ function HeroDetailPage() {
           </div>
           <span
             className="text-[18px] uppercase text-center"
-            style={{ color: '#969696', fontFamily: 'var(--font-dota)', letterSpacing: '2px', fontWeight: 400 }}
+            style={{ color: '#8a8474', fontFamily: 'var(--font-dota)', letterSpacing: '2px', fontWeight: 400 }}
           >
             Roles
           </span>
@@ -1294,7 +1309,7 @@ function HeroDetailPage() {
           </div>
           <span
             className="text-[18px] uppercase text-center"
-            style={{ color: '#969696', fontFamily: 'var(--font-dota)', letterSpacing: '2px', fontWeight: 400 }}
+            style={{ color: '#8a8474', fontFamily: 'var(--font-dota)', letterSpacing: '2px', fontWeight: 400 }}
           >
             Stats
           </span>
@@ -1377,6 +1392,7 @@ function HeroDetailPage() {
         const nameStyle: React.CSSProperties = {
           fontSize: 28, fontWeight: 700, color: '#fff', textTransform: 'uppercase',
           letterSpacing: '1px', fontFamily: 'var(--font-display)',
+          maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }
         const labelStyle: React.CSSProperties = {
           fontSize: 15, color: '#9f9f9f', textTransform: 'uppercase',
@@ -1405,7 +1421,7 @@ function HeroDetailPage() {
                 style={{ ...linkBase, justifyContent: 'flex-end' }}
               >
                 <img src={cropUrl(prevHero.name)} alt={prevHero.localized_name} style={{ ...cropStyle, left: 0 }} />
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={labelStyle}>Previous Hero</div>
                   <div style={nameStyle}>{prevHero.localized_name}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
@@ -1441,7 +1457,7 @@ function HeroDetailPage() {
                 className="hover:brightness-125"
                 style={{ ...linkBase, justifyContent: 'flex-start' }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={labelStyle}>Next Hero</div>
                   <div style={nameStyle}>{nextHero.localized_name}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>

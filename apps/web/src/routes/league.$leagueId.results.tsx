@@ -26,7 +26,8 @@ function ResultsLayout() {
             <Link
               to="/league/$leagueId/results/$view"
               params={{ leagueId, view: 'list' }}
-              className="px-2.5 py-1 text-[11px] font-bold uppercase cursor-pointer"
+              aria-current={activeView === 'list' ? 'page' : undefined}
+              className="px-2.5 py-3 text-[11px] font-bold uppercase cursor-pointer"
               style={btnStyle('list')}
             >
               list
@@ -34,7 +35,8 @@ function ResultsLayout() {
             <Link
               to="/league/$leagueId/results/$view"
               params={{ leagueId, view: 'bracket' }}
-              className="px-2.5 py-1 text-[11px] font-bold uppercase cursor-pointer"
+              aria-current={activeView === 'bracket' ? 'page' : undefined}
+              className="px-2.5 py-3 text-[11px] font-bold uppercase cursor-pointer"
               style={btnStyle('bracket')}
             >
               bracket

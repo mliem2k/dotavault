@@ -82,16 +82,15 @@ function LeaderboardsPage() {
       <div className="text-center mb-2">
         <h1
           className="text-[44px] leading-none font-bold uppercase"
-          style={{ fontFamily: 'var(--font-display)', color: '#fff', letterSpacing: '2px' }}
+          style={{ fontFamily: 'var(--font-display)', color: '#dcd6c8', letterSpacing: '2px' }}
         >
           World Leaderboards
         </h1>
         <p
           className="mt-2 text-[13px] uppercase tracking-[0.2em]"
           style={{
-            color: '#fff',
+            color: '#dcd6c8',
             fontFamily: 'var(--font-dota)',
-            textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)',
           }}
         >
           Top 5,000 players by solo ranked MMR, per region
@@ -99,7 +98,7 @@ function LeaderboardsPage() {
       </div>
 
       {/* Region tabs */}
-      <div className="flex items-center justify-center gap-2 py-1">
+      <div className="flex items-center justify-center gap-2 py-1" role="tablist">
         {DIVISIONS.map((d) => (
           <Link
             key={d.id}
@@ -109,7 +108,8 @@ function LeaderboardsPage() {
               setSearch('')
               setPage(0)
             }}
-            className="px-5 py-2 text-[14px] uppercase cursor-pointer transition-colors"
+            role="tab"
+            className="min-h-11 inline-flex items-center justify-center px-5 py-2 text-[14px] uppercase cursor-pointer transition-colors"
             activeOptions={{ exact: true }}
             style={{
               fontFamily: 'var(--font-display)',
@@ -118,9 +118,9 @@ function LeaderboardsPage() {
               background: 'rgba(12,11,14,0.72)',
               color: '#dcd6c8',
               border: '1px solid #24222a',
-              textShadow: '0 1px 3px rgba(0,0,0,0.9)',
             }}
             activeProps={{
+              'aria-current': 'page',
               style: {
                 background: 'rgba(201,169,74,0.18)',
                 color: '#c9a94a',

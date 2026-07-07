@@ -7,7 +7,7 @@ import { useTeamMap } from '@/components/league/use_team_map'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
 import { fetchSteamProfile } from '@/lib/steam'
-import { heroIconUrl, heroSlug } from '@/lib/utils'
+import { heroIconUrl, heroSlug, winRateColor } from '@/lib/utils'
 
 type FallbackProfile = { name: string; avatar: string | null; isPrivate: boolean }
 
@@ -70,7 +70,7 @@ function DraftPanel({
                 <td className="py-1.5">
                   {hero ? (
                     <a href={`/hero/${heroSlug(hero.localized_name)}`} className="flex items-center gap-2 hover:underline">
-                      <img src={heroIconUrl(hero.name)} alt="" className="h-6 w-6 rounded" />
+                      <img src={heroIconUrl(hero.name)} alt="" loading="lazy" className="h-6 w-6 rounded-sm" />
                       <span className="truncate text-[14px]" style={{ color: '#dcd6c8' }}>
                         {hero.localized_name}
                       </span>
@@ -93,11 +93,11 @@ function DraftPanel({
                 </td>
                 <td
                   className="px-2 text-right text-[13px] font-semibold tabular-nums"
-                  style={{ color: wr >= 52 ? '#8ec63f' : wr < 48 ? '#d14a38' : '#dcd6c8' }}
+                  style={{ color: winRateColor(wr) }}
                 >
                   {wr.toFixed(1)}%
                 </td>
-                <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#d14a38' }}>
+                <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#c73f2d' }}>
                   {bans || '-'}
                 </td>
               </tr>
@@ -151,10 +151,18 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
                 <tr
                   key={s.team_id}
                   onClick={() => navigate({ to: '/team/$teamId', params: { teamId: String(s.team_id) } })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      navigate({ to: '/team/$teamId', params: { teamId: String(s.team_id) } })
+                    }
+                  }}
+                  role="link"
+                  tabIndex={0}
                   className="cursor-pointer hover:bg-white/[0.03]"
                   style={{ borderTop: '1px solid #1c1810' }}
                 >
-                  <td className="py-2 pr-2 text-right text-[13px] tabular-nums" style={{ color: '#4a4436' }}>
+                  <td className="py-2 pr-2 text-right text-[13px] tabular-nums" style={{ color: '#8a8474' }}>
                     {i + 1}
                   </td>
                   <td className="py-2">
@@ -163,6 +171,7 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
                         <img
                           src={team.logo_url}
                           alt=""
+                          loading="lazy"
                           className="h-7 w-7 shrink-0 object-contain"
                           onError={(e) => {
                             e.currentTarget.style.visibility = 'hidden'
@@ -179,12 +188,12 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
                   <td className="px-3 text-right text-[14px] tabular-nums" style={{ color: '#8ec63f' }}>
                     {s.wins}
                   </td>
-                  <td className="px-3 text-right text-[14px] tabular-nums" style={{ color: '#d14a38' }}>
+                  <td className="px-3 text-right text-[14px] tabular-nums" style={{ color: '#c73f2d' }}>
                     {s.losses}
                   </td>
                   <td
                     className="pl-3 text-right text-[14px] font-semibold tabular-nums"
-                    style={{ color: wr >= 55 ? '#8ec63f' : wr < 45 ? '#d14a38' : '#dcd6c8' }}
+                    style={{ color: winRateColor(wr) }}
                   >
                     {wr.toFixed(0)}%
                   </td>
@@ -298,6 +307,7 @@ function RosterPanel({ leagueId }: { leagueId: number }) {
                   <img
                     src={team.logo_url}
                     alt=""
+                    loading="lazy"
                     className="h-5 w-5 shrink-0 object-contain"
                     onError={(e) => {
                       e.currentTarget.style.visibility = 'hidden'
@@ -319,28 +329,28 @@ function RosterPanel({ leagueId }: { leagueId: number }) {
                     <a
                       key={p.account_id}
                       href={`/player/${p.account_id}`}
-                      className="flex items-center gap-2 py-0.5 hover:bg-white/[0.03]"
+                      className="flex items-center gap-2 py-1.5 hover:bg-white/[0.03]"
                     >
                       {!pro && fallback?.avatar && (
-                        <img src={fallback.avatar} alt="" className="h-4 w-4 shrink-0 rounded-sm" />
+                        <img src={fallback.avatar} alt="" loading="lazy" className="h-4 w-4 shrink-0 rounded-full" />
                       )}
-                      <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: '#c8c2b4', fontFamily: 'var(--font-dota)' }}>
+                      <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
                         {pro?.name ?? pro?.personaname ?? fallback?.name ?? `Player ${p.account_id}`}
                       </span>
                       {!pro && fallback?.isPrivate && (
                         <span
                           className="shrink-0 px-1 text-[10px] uppercase"
-                          style={{ color: '#8a8474', border: '1px solid #3a352a', letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
+                          style={{ color: '#8a8474', border: '1px solid #8a8474', letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
                         >
                           Private
                         </span>
                       )}
-                      <span className="shrink-0 text-[12px] tabular-nums" style={{ color: '#5a5648', fontFamily: 'var(--font-dota)' }}>
+                      <span className="shrink-0 text-[12px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
                         {p.games}g
                       </span>
                       <span
                         className="shrink-0 text-[12px] font-semibold tabular-nums"
-                        style={{ color: wr >= 55 ? '#8ec63f' : wr < 45 ? '#d14a38' : '#8a8474', fontFamily: 'var(--font-dota)' }}
+                        style={{ color: winRateColor(wr, '#8a8474'), fontFamily: 'var(--font-dota)' }}
                       >
                         {wr.toFixed(0)}%
                       </span>
@@ -365,6 +375,7 @@ function LeagueTabPage() {
     queryKey: ['heroes'],
     queryFn: () => opendota.heroStats(),
     staleTime: 60 * 60 * 1000,
+    enabled: activeTab === 'draft',
   })
   const heroMap = useMemo(() => new Map((heroStats.data ?? []).map((h) => [h.id, h])), [heroStats.data])
 

@@ -20,8 +20,9 @@ function Panel({ title, children, right }: { title: string; children: React.Reac
   return (
     <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
       <div
-        className="flex items-center justify-between px-4 py-3 uppercase"
+        className="flex items-center justify-between gap-2 px-4 py-3 uppercase flex-wrap"
         style={{
+          background: 'rgba(8,10,12,0.85)',
           color: '#c8c2b4',
           fontFamily: 'var(--font-display)',
           fontSize: 20,
@@ -41,7 +42,7 @@ function Panel({ title, children, right }: { title: string; children: React.Reac
 function TeamName({ name, won }: { name: string; won: boolean }) {
   return (
     <span
-      className="truncate text-[16px]"
+      className="truncate text-[14px]"
       style={{
         color: won ? '#8ec63f' : '#a09a8c',
         fontFamily: 'var(--font-dota)',
@@ -77,7 +78,8 @@ function ProMatches() {
           value={league}
           onChange={(e) => setLeague(e.target.value)}
           placeholder="Filter league..."
-          className="px-2 py-1 text-[13px] normal-case outline-none"
+          aria-label="Search league name"
+          className="px-2 py-1 text-[13px] normal-case focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#c9a94a]"
           style={{
             background: 'rgba(8,10,12,0.7)',
             border: '1px solid #24222a',
@@ -85,6 +87,7 @@ function ProMatches() {
             fontFamily: 'var(--font-dota)',
             letterSpacing: 'normal',
             width: 170,
+            maxWidth: '100%',
           }}
         />
       }
@@ -125,7 +128,7 @@ function ProMatches() {
                 <div className="text-[13px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
                   {formatTimeAgo(m.start_time)}
                 </div>
-                <div className="mt-0.5 text-[13px] tabular-nums" style={{ color: '#4a4436', fontFamily: 'var(--font-dota)' }}>
+                <div className="mt-0.5 text-[13px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
                   {formatDuration(m.duration)}
                 </div>
               </div>
@@ -139,7 +142,7 @@ function ProMatches() {
             type="button"
             onClick={() => query.fetchNextPage()}
             disabled={query.isFetchingNextPage}
-            className="px-5 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:opacity-50"
+            className="min-h-11 px-5 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:opacity-50"
             style={{
               background: '#1a2024',
               border: '1px solid #2c3236',
@@ -193,13 +196,16 @@ function TopTeams() {
             className="flex items-center gap-3 py-2 hover:bg-white/[0.03]"
             style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
           >
-            <span className="w-5 text-right text-[13px] tabular-nums" style={{ color: '#4a4436', fontFamily: 'var(--font-dota)' }}>
+            <span className="w-5 text-right text-[13px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
               {i + 1}
             </span>
             {t.logo_url ? (
               <img
                 src={t.logo_url}
                 alt=""
+                width={28}
+                height={28}
+                loading="lazy"
                 className="h-7 w-7 shrink-0 object-contain"
                 onError={(e) => {
                   e.currentTarget.style.visibility = 'hidden'
@@ -210,13 +216,13 @@ function TopTeams() {
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="truncate text-[16px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+                <span className="truncate text-[14px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
                   {t.name}
                 </span>
                 {tiChampionships(t.team_id).length > 0 && (
                   <span
                     className="shrink-0 px-1.5 py-0.5 text-[11px] font-bold uppercase"
-                    style={{ background: '#3a2f10', color: '#f2c94c', letterSpacing: '0.5px' }}
+                    style={{ background: 'transparent', border: '1px solid rgba(242,201,76,0.5)', color: '#f2c94c', letterSpacing: '0.5px' }}
                     title={`The International Champion: ${tiChampionships(t.team_id)
                       .map((c) => (c.wonAs ? `TI${c.year} as ${c.wonAs}` : `TI${c.year}`))
                       .join(', ')}`}
@@ -312,11 +318,14 @@ function ProPlayers() {
             <img
               src={p.avatarmedium}
               alt={p.name ?? p.personaname ?? ''}
+              width={28}
+              height={28}
+              loading="lazy"
               className="h-7 w-7 shrink-0 rounded-full"
               style={{ border: '1px solid #2c2820' }}
             />
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[16px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+              <div className="truncate text-[14px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
                 {p.name ?? p.personaname}
               </div>
               <div className="truncate text-[13px]" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
@@ -326,7 +335,7 @@ function ProPlayers() {
             {pos && (
               <span
                 className="shrink-0 px-1.5 py-0.5 text-[12px] font-bold tabular-nums"
-                style={{ background: '#2a2410', color: '#f2c94c' }}
+                style={{ background: 'transparent', border: '1px solid rgba(242,201,76,0.5)', color: '#f2c94c' }}
                 title={`Rank #${pos.rank} on Valve's ${divisionLabel(pos.division)} leaderboard`}
               >
                 #{pos.rank} {divisionShort(pos.division)}
@@ -336,6 +345,9 @@ function ProPlayers() {
               <img
                 src={countryFlagUrl(p.loccountrycode.toLowerCase())}
                 alt={p.loccountrycode}
+                width={16}
+                height={11}
+                loading="lazy"
                 className="shrink-0"
                 onError={(e) => {
                   e.currentTarget.style.visibility = 'hidden'
@@ -357,13 +369,13 @@ function ProPage() {
       <div>
         <h1
           className="text-[44px] leading-none font-bold uppercase"
-          style={{ color: '#e8e2d4', fontFamily: 'var(--font-display)', letterSpacing: '2px', textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}
+          style={{ color: '#dcd6c8', fontFamily: 'var(--font-display)', letterSpacing: '2px' }}
         >
           Pro Scene
         </h1>
         <p
           className="mt-2 text-[13px] uppercase tracking-[0.2em]"
-          style={{ color: '#fff', fontFamily: 'var(--font-dota)', textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)' }}
+          style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
         >
           Recent professional matches, team ratings, and players
         </p>

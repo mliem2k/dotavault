@@ -83,6 +83,7 @@ export function SearchBar() {
   const [vanityResult, setVanityResult] = useState<string | null>(null)
   const [resolving, setResolving] = useState(false)
   const [open, setOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
   const navigate = useNavigate()
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const vanityDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -98,11 +99,42 @@ export function SearchBar() {
   const trimmed = query.trim()
   const parsed = trimmed ? parseInput(trimmed) : null
 
+  function go(dest: Destination) {
+    setOpen(false)
+    setQuery('')
+    setResults([])
+    setVanityResult(null)
+    setActiveIndex(-1)
+    if (dest.kind === 'match') {
+      navigate({ to: '/match/$matchId', params: { matchId: dest.id } })
+    } else {
+      navigate({ to: '/player/$accountId', params: { accountId: dest.id } })
+    }
+  }
+
+  // Flattened, ordered list of the entries actually rendered in the dropdown,
+  // so arrow-key navigation and aria-activedescendant can address them by index.
+  type Option = { id: string; select: () => void }
+  const options: Option[] = []
+  if (parsed?.type === 'resolved') {
+    options.push({ id: 'search-option-resolved', select: () => go(parsed.dest) })
+  }
+  if (parsed?.type === 'vanity' && vanityResult) {
+    options.push({ id: 'search-option-vanity', select: () => go({ kind: 'player', id: vanityResult }) })
+  }
+  for (const r of results) {
+    options.push({
+      id: `search-option-result-${r.account_id}`,
+      select: () => go({ kind: 'player', id: String(r.account_id) }),
+    })
+  }
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value
     setQuery(val)
     setVanityResult(null)
     setResults([])
+    setActiveIndex(-1)
     if (searchDebounce.current) clearTimeout(searchDebounce.current)
     if (vanityDebounce.current) clearTimeout(vanityDebounce.current)
 
@@ -144,21 +176,26 @@ export function SearchBar() {
     }
   }
 
-  function go(dest: Destination) {
-    setOpen(false)
-    setQuery('')
-    setResults([])
-    setVanityResult(null)
-    if (dest.kind === 'match') {
-      navigate({ to: '/match/$matchId', params: { matchId: dest.id } })
-    } else {
-      navigate({ to: '/player/$accountId', params: { accountId: dest.id } })
-    }
-  }
-
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'ArrowDown') {
+      if (options.length === 0) return
+      e.preventDefault()
+      setActiveIndex((i) => (i + 1) % options.length)
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      if (options.length === 0) return
+      e.preventDefault()
+      setActiveIndex((i) => (i <= 0 ? options.length - 1 : i - 1))
+      return
+    }
     if (e.key === 'Escape') { setOpen(false); return }
     if (e.key !== 'Enter' || !trimmed) return
+
+    if (activeIndex >= 0 && activeIndex < options.length) {
+      options[activeIndex].select()
+      return
+    }
     if (!parsed) return
 
     if (parsed.type === 'resolved') {
@@ -170,13 +207,14 @@ export function SearchBar() {
     }
   }
 
+  const activeOptionId = activeIndex >= 0 && activeIndex < options.length ? options[activeIndex].id : undefined
+
   return (
     <div className="relative w-full max-w-3xl">
       <div
-        className="flex items-center gap-3 px-5"
+        className="flex items-center gap-3 px-5 border border-[#24222a] transition-colors focus-within:border-[#c9a94a]"
         style={{
-          background: 'rgba(8,8,12,0.9)',
-          border: '1px solid rgba(255,255,255,0.12)',
+          background: 'rgba(12,11,14,0.72)',
           boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.6)',
           height: 64,
         }}
@@ -187,39 +225,51 @@ export function SearchBar() {
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder="Search by name, Steam ID, match ID, or profile URL"
+          aria-label="Search by name, Steam ID, match ID, or profile URL"
+          role="combobox"
+          aria-expanded={open}
+          aria-controls="search-results-listbox"
+          aria-autocomplete="list"
+          aria-activedescendant={activeOptionId}
           className="w-full bg-transparent outline-none"
           style={{
             fontFamily: 'Radiance, "Noto Sans", sans-serif',
             fontSize: 17,
-            color: '#e8e4d8',
+            color: '#dcd6c8',
             letterSpacing: '0.01em',
           }}
         />
         {resolving
-          ? <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" style={{ color: '#5a6070' }} />
-          : <kbd style={{ fontFamily: 'inherit', fontSize: 11, color: '#4a4a50', border: '1px solid #2a2a30', padding: '2px 6px', borderRadius: 3, flexShrink: 0 }}>Enter</kbd>
+          ? <Loader2 className="h-4 w-4 motion-safe:animate-spin flex-shrink-0" style={{ color: '#5a6070' }} />
+          : <kbd style={{ fontFamily: 'inherit', fontSize: 11, color: '#8a8474', border: '1px solid #2a2a30', padding: '2px 6px', borderRadius: 3, flexShrink: 0 }}>Enter</kbd>
         }
       </div>
 
       {open && (
         <div
+          id="search-results-listbox"
+          role="listbox"
           className="absolute top-full z-50 mt-1 w-full py-1"
-          style={{ background: '#08080c', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 48px rgba(0,0,0,0.8)' }}
+          style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a', boxShadow: '0 16px 48px rgba(0,0,0,0.8)' }}
         >
           {/* Deterministic resolved entry */}
           {parsed?.type === 'resolved' && (
             <button
+              id="search-option-resolved"
+              role="option"
+              aria-selected={activeOptionId === 'search-option-resolved'}
               onClick={() => go(parsed.dest)}
               className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-white/[0.04]"
+              style={activeOptionId === 'search-option-resolved' ? { background: 'rgba(255,255,255,0.06)' } : undefined}
             >
               {parsed.dest.kind === 'match'
                 ? <Swords className="h-4 w-4 flex-shrink-0" style={{ color: '#c9a94a' }} />
                 : <User className="h-4 w-4 flex-shrink-0" style={{ color: '#c9a94a' }} />}
               <div>
-                <div style={{ fontSize: 14, color: '#e8e4d8', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>
+                <div style={{ fontSize: 14, color: '#dcd6c8', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>
                   {parsed.dest.kind === 'match' ? 'View Match' : 'View Player'}
                 </div>
-                <div className="font-mono" style={{ fontSize: 12, color: '#5a6070', marginTop: 1 }}>#{parsed.dest.id}</div>
+                <div className="font-mono" style={{ fontSize: 12, color: '#8a8474', marginTop: 1 }}>#{parsed.dest.id}</div>
               </div>
             </button>
           )}
@@ -227,37 +277,50 @@ export function SearchBar() {
           {/* Vanity URL resolved entry */}
           {parsed?.type === 'vanity' && vanityResult && (
             <button
+              id="search-option-vanity"
+              role="option"
+              aria-selected={activeOptionId === 'search-option-vanity'}
               onClick={() => go({ kind: 'player', id: vanityResult })}
               className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-white/[0.04]"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+              style={{
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                ...(activeOptionId === 'search-option-vanity' ? { background: 'rgba(255,255,255,0.06)' } : undefined),
+              }}
             >
               <User className="h-4 w-4 flex-shrink-0" style={{ color: '#c9a94a' }} />
               <div>
-                <div style={{ fontSize: 14, color: '#e8e4d8', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>Steam Profile</div>
-                <div className="font-mono" style={{ fontSize: 12, color: '#5a6070', marginTop: 1 }}>#{vanityResult} · {parsed.url}</div>
+                <div style={{ fontSize: 14, color: '#dcd6c8', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>Steam Profile</div>
+                <div className="font-mono" style={{ fontSize: 12, color: '#8a8474', marginTop: 1 }}>#{vanityResult} · {parsed.url}</div>
               </div>
             </button>
           )}
 
           {/* Name search results */}
-          {results.map((r) => (
-            <button
-              key={r.account_id}
-              onClick={() => go({ kind: 'player', id: String(r.account_id) })}
-              className="flex w-full items-center gap-3 px-5 py-2.5 text-left hover:bg-white/[0.04]"
-            >
-              <img
-                src={r.avatarfull}
-                alt=""
-                className="h-8 w-8 rounded-full object-cover flex-shrink-0"
-              />
-              <span style={{ fontSize: 15, color: '#e8e4d8', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>{r.personaname}</span>
-            </button>
-          ))}
+          {results.map((r) => {
+            const id = `search-option-result-${r.account_id}`
+            return (
+              <button
+                key={r.account_id}
+                id={id}
+                role="option"
+                aria-selected={activeOptionId === id}
+                onClick={() => go({ kind: 'player', id: String(r.account_id) })}
+                className="flex w-full items-center gap-3 px-5 py-2.5 text-left hover:bg-white/[0.04]"
+                style={activeOptionId === id ? { background: 'rgba(255,255,255,0.06)' } : undefined}
+              >
+                <img
+                  src={r.avatarfull}
+                  alt=""
+                  className="h-8 w-8 rounded-full object-cover flex-shrink-0"
+                />
+                <span style={{ fontSize: 15, color: '#dcd6c8', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>{r.personaname}</span>
+              </button>
+            )
+          })}
 
           {/* Vanity resolving state with no results yet */}
           {parsed?.type === 'vanity' && resolving && !vanityResult && results.length === 0 && (
-            <div className="px-5 py-3" style={{ fontSize: 13, color: '#5a6070', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>Resolving Steam ID…</div>
+            <div className="px-5 py-3" style={{ fontSize: 13, color: '#8a8474', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>Resolving Steam ID…</div>
           )}
         </div>
       )}

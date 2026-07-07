@@ -8,10 +8,10 @@ import { PlayerNameLink } from './match_roster'
 
 const C = {
   label: '#8a97a0',
-  dim: '#67757f',
+  dim: '#8a8474',
   text: '#cfd4d8',
   white: '#ffffff',
-  green: '#9fbf3f',
+  green: '#8fbf3f',
   red: '#c94a38',
   panel: 'rgba(16,19,22,0.72)',
   panelDark: 'rgba(8,10,12,0.7)',
@@ -41,6 +41,7 @@ function PlayerColumn({
           <img
             src={heroIconUrl(hero.name)}
             alt=""
+            loading="lazy"
             style={{ width: 38, height: 38 }}
             onError={(e) => {
               const img = e.currentTarget
@@ -110,12 +111,12 @@ export function MatchPurchases({
         style={{
           color: isRadiant ? C.green : C.red,
           fontFamily: 'var(--font-dota)',
-          textShadow: `0 1px 3px rgba(0,0,0,0.9), 0 0 10px ${isRadiant ? C.green : C.red}44`,
+          textShadow: '0 1px 3px rgba(0,0,0,0.9)',
         }}
       >
         {isRadiant ? 'The Radiant' : 'The Dire'}
       </div>
-      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
         {team.map((p) => (
           <PlayerColumn key={p.player_slot} player={p} hero={heroMap.get(p.hero_id)} itemConst={itemConst} />
         ))}

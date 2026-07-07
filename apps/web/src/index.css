@@ -82,7 +82,7 @@ body {
   background-image: url('/backgrounds/greyfade.jpg');
   background-size: cover;
   background-position: top center;
-  background-attachment: fixed;
+  background-attachment: scroll;
   background-repeat: no-repeat;
   color: var(--color-foreground);
   font-family: var(--font-sans);

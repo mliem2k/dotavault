@@ -80,6 +80,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
       <div
         className="px-4 py-3 uppercase"
         style={{
+          background: 'rgba(8,10,12,0.85)',
           color: '#c8c2b4',
           fontFamily: 'var(--font-display)',
           fontSize: 20,
@@ -133,11 +134,15 @@ const LANES = [
 const minPicks = (b: Bracket): number => (b === 'pro' ? 10 : 100)
 
 function LaneCard({ lane, heroes, bracket }: { lane: (typeof LANES)[0]; heroes: HeroStat[]; bracket: Bracket }) {
-  const top = [...heroes]
-    .filter(lane.filter)
-    .filter((h) => picksOf(h, bracket) >= minPicks(bracket))
-    .sort((a, b) => winPct(b, bracket) - winPct(a, bracket))
-    .slice(0, 8)
+  const top = useMemo(
+    () =>
+      [...heroes]
+        .filter(lane.filter)
+        .filter((h) => picksOf(h, bracket) >= minPicks(bracket))
+        .sort((a, b) => winPct(b, bracket) - winPct(a, bracket))
+        .slice(0, 8),
+    [heroes, lane, bracket],
+  )
 
   return (
     <Panel title={lane.label}>
@@ -160,11 +165,16 @@ function LaneCard({ lane, heroes, bracket }: { lane: (typeof LANES)[0]; heroes: 
             >
               <span
                 className="w-4 text-right tabular-nums text-[12px]"
-                style={{ color: '#4a4436', fontFamily: 'var(--font-dota)' }}
+                style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
               >
                 {i + 1}
               </span>
-              <img src={heroIconUrl(h.name)} alt={h.localized_name} className="h-6 w-6 rounded shrink-0" />
+              <img
+                src={heroIconUrl(h.name)}
+                alt={h.localized_name}
+                loading="lazy"
+                className="h-6 w-6 rounded-sm shrink-0"
+              />
               <span className="flex-1 text-[14px] truncate" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
                 {h.localized_name}
               </span>
@@ -225,11 +235,15 @@ function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }
     return applySort(list, dir, cmp[key])
   }, [heroes, bracket, attr, search, key, dir])
 
-  const th = (label: string, k: SortKey, align: 'left' | 'right' = 'right') => (
-    <th className={`pb-2 ${align === 'left' ? 'text-left' : 'text-right'} px-2`}>
-      <SortHeader label={label} sortKey={k} active={key === k} dir={dir} onClick={(sk) => onSort(sk as SortKey)} />
-    </th>
-  )
+  const th = (label: string, k: SortKey, align: 'left' | 'right' = 'right') => {
+    const active = key === k
+    const ariaSort: 'ascending' | 'descending' | 'none' = active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'
+    return (
+      <th aria-sort={ariaSort} className={`pb-2 ${align === 'left' ? 'text-left' : 'text-right'} px-2`}>
+        <SortHeader label={label} sortKey={k} active={active} dir={dir} onClick={(sk) => onSort(sk as SortKey)} />
+      </th>
+    )
+  }
 
   return (
     <Panel title={`Hero Win Rates: ${BRACKETS.find((b) => b.key === bracket)?.label ?? ''}`}>
@@ -238,7 +252,8 @@ function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search hero..."
-          className="px-3 py-1.5 text-[13px] outline-none"
+          aria-label="Search heroes"
+          className="px-3 py-1.5 text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#c9a94a]"
           style={{
             background: 'rgba(8,10,12,0.7)',
             border: '1px solid #24222a',
@@ -253,7 +268,8 @@ function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }
               key={a.key}
               type="button"
               onClick={() => setAttr(a.key)}
-              className="px-2.5 py-1.5 text-[12px] uppercase cursor-pointer"
+              aria-pressed={attr === a.key}
+              className="min-h-11 px-2.5 py-1.5 text-[12px] uppercase cursor-pointer"
               style={{
                 background: attr === a.key ? '#24222a' : 'transparent',
                 color: attr === a.key ? '#dcd6c8' : '#8a8474',
@@ -269,78 +285,80 @@ function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }
           {rows.length} heroes
         </span>
       </div>
-      <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-dota)' }}>
-        <thead>
-          <tr className="text-[12px] font-bold uppercase tracking-widest" style={{ color: '#8a8474' }}>
-            <th className="pb-2 pr-2 text-right" style={{ width: 30 }}>#</th>
-            {th('Hero', 'name', 'left')}
-            <th className="pb-2 px-2 text-left">Attr</th>
-            {th('Picks', 'picks')}
-            {th('Pick Rate', 'pickrate')}
-            {th('Win Rate', 'winrate')}
-            {(bracket === 'pub' || bracket === 'turbo') && <th className="pb-2 px-2 text-right">Trend</th>}
-            {bracket === 'pro' && th('Bans', 'banrate')}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((h, i) => {
-            const picks = picksOf(h, bracket)
-            const wr = winPct(h, bracket)
-            const pickRate = totalMatches > 0 ? (picks / totalMatches) * 100 : 0
-            return (
-              <tr key={h.id} className="hover:bg-white/[0.03]" style={{ borderTop: '1px solid #1c1810' }}>
-                <td className="py-1.5 pr-2 text-right text-[12px] tabular-nums" style={{ color: '#4a4436' }}>
-                  {i + 1}
-                </td>
-                <td className="px-2 py-1.5">
-                  <a href={`/hero/${heroSlug(h.localized_name)}`} className="flex items-center gap-2 hover:underline">
-                    <img src={heroIconUrl(h.name)} alt="" className="h-6 w-6 rounded" />
-                    <span className="text-[14px]" style={{ color: '#dcd6c8' }}>{h.localized_name}</span>
-                  </a>
-                </td>
-                <td className="px-2 text-[12px] uppercase" style={{ color: '#8a8474' }}>
-                  {h.primary_attr === 'all' ? 'uni' : h.primary_attr}
-                </td>
-                <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#dcd6c8' }}>
-                  {picks.toLocaleString()}
-                </td>
-                <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#c9a94a' }}>
-                  {pickRate.toFixed(1)}%
-                </td>
-                <td
-                  className="px-2 text-right text-[13px] font-semibold tabular-nums"
-                  style={{ color: wr >= 52 ? '#8ec63f' : wr < 48 ? '#d14a38' : '#dcd6c8' }}
-                >
-                  {wr.toFixed(2)}%
-                </td>
-                {(bracket === 'pub' || bracket === 'turbo') && (() => {
-                  const delta = trendDelta(h, bracket)
-                  if (delta == null || Math.abs(delta) < 0.3) {
-                    return <td className="px-2 text-right text-[13px]" style={{ color: '#4a4436' }}>-</td>
-                  }
-                  return (
-                    <td
-                      className="px-2 text-right text-[13px] tabular-nums"
-                      title="Win rate, recent half of the window vs the earlier half"
-                      style={{ color: delta > 0 ? '#8ec63f' : '#d14a38' }}
-                    >
-                      {delta > 0 ? '\u25b2' : '\u25bc'} {Math.abs(delta).toFixed(1)}
-                    </td>
-                  )
-                })()}
-                {bracket === 'pro' && (
-                  <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#d14a38' }}>
-                    {(h.pro_ban ?? 0).toLocaleString()}
-                    <span className="ml-1 text-[12px]" style={{ color: '#8a8474' }}>
-                      ({(((h.pro_ban ?? 0) / totalProMatchesForBans) * 100).toFixed(0)}%)
-                    </span>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-dota)' }}>
+          <thead>
+            <tr className="text-[12px] font-bold uppercase tracking-widest" style={{ color: '#8a8474' }}>
+              <th className="pb-2 pr-2 text-right" style={{ width: 30 }}>#</th>
+              {th('Hero', 'name', 'left')}
+              <th className="pb-2 px-2 text-left">Attr</th>
+              {th('Picks', 'picks')}
+              {th('Pick Rate', 'pickrate')}
+              {th('Win Rate', 'winrate')}
+              {(bracket === 'pub' || bracket === 'turbo') && <th className="pb-2 px-2 text-right">Trend</th>}
+              {bracket === 'pro' && th('Bans', 'banrate')}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((h, i) => {
+              const picks = picksOf(h, bracket)
+              const wr = winPct(h, bracket)
+              const pickRate = totalMatches > 0 ? (picks / totalMatches) * 100 : 0
+              return (
+                <tr key={h.id} className="hover:bg-white/[0.03]" style={{ borderTop: '1px solid #1c1810' }}>
+                  <td className="py-1.5 pr-2 text-right text-[12px] tabular-nums" style={{ color: '#8a8474' }}>
+                    {i + 1}
                   </td>
-                )}
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+                  <td className="px-2 py-1.5">
+                    <a href={`/hero/${heroSlug(h.localized_name)}`} className="flex items-center gap-2 hover:underline">
+                      <img src={heroIconUrl(h.name)} alt="" loading="lazy" className="h-6 w-6 rounded-sm" />
+                      <span className="text-[14px]" style={{ color: '#dcd6c8' }}>{h.localized_name}</span>
+                    </a>
+                  </td>
+                  <td className="px-2 text-[12px] uppercase" style={{ color: '#8a8474' }}>
+                    {h.primary_attr === 'all' ? 'uni' : h.primary_attr}
+                  </td>
+                  <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#dcd6c8' }}>
+                    {picks.toLocaleString()}
+                  </td>
+                  <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#c9a94a' }}>
+                    {pickRate.toFixed(1)}%
+                  </td>
+                  <td
+                    className="px-2 text-right text-[13px] font-semibold tabular-nums"
+                    style={{ color: wr >= 52 ? '#8ec63f' : wr < 48 ? '#d14a38' : '#dcd6c8' }}
+                  >
+                    {wr.toFixed(2)}%
+                  </td>
+                  {(bracket === 'pub' || bracket === 'turbo') && (() => {
+                    const delta = trendDelta(h, bracket)
+                    if (delta == null || Math.abs(delta) < 0.3) {
+                      return <td className="px-2 text-right text-[13px]" style={{ color: '#8a8474' }}>-</td>
+                    }
+                    return (
+                      <td
+                        className="px-2 text-right text-[13px] tabular-nums"
+                        title="Win rate, recent half of the window vs the earlier half"
+                        style={{ color: delta > 0 ? '#8ec63f' : '#d14a38' }}
+                      >
+                        {delta > 0 ? '\u25b2' : '\u25bc'} {Math.abs(delta).toFixed(1)}
+                      </td>
+                    )
+                  })()}
+                  {bracket === 'pro' && (
+                    <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#d14a38' }}>
+                      {(h.pro_ban ?? 0).toLocaleString()}
+                      <span className="ml-1 text-[12px]" style={{ color: '#8a8474' }}>
+                        ({(((h.pro_ban ?? 0) / totalProMatchesForBans) * 100).toFixed(0)}%)
+                      </span>
+                    </td>
+                  )}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </Panel>
   )
 }
@@ -384,7 +402,7 @@ export function MetaView({ bracket }: { bracket: Bracket }) {
   return (
     <div className="space-y-6 py-4">
       {/* Bracket selector, one URL per bracket */}
-      <div className="flex flex-wrap items-center gap-1" style={{ fontFamily: 'var(--font-dota)' }}>
+      <div className="flex flex-wrap items-center gap-1" style={{ fontFamily: 'var(--font-dota)' }} role="tablist">
         {BRACKETS.map((b) => {
           const active = bracket === b.key
           const slug = slugOf(b.key)
@@ -393,7 +411,9 @@ export function MetaView({ bracket }: { bracket: Bracket }) {
               key={b.key}
               to={slug ? '/meta/$bracket' : '/meta'}
               params={slug ? { bracket: slug } : undefined}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125"
+              role="tab"
+              aria-current={active ? 'page' : undefined}
+              className="min-h-11 flex items-center gap-1.5 px-3 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125"
               style={{
                 background: active ? '#24222a' : 'rgba(12,11,14,0.72)',
                 border: `1px solid ${active ? '#c9a94a' : '#24222a'}`,
@@ -401,7 +421,7 @@ export function MetaView({ bracket }: { bracket: Bracket }) {
                 letterSpacing: '1px',
               }}
             >
-              {b.medal && <img src={`/ranks/rank_icon_${b.medal}.webp`} alt="" style={{ width: 20, height: 20 }} />}
+              {b.medal && <img src={`/ranks/rank_icon_${b.medal}.webp`} alt="" loading="lazy" style={{ width: 20, height: 20 }} />}
               {b.label}
             </Link>
           )

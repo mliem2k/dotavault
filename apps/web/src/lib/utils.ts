@@ -86,6 +86,18 @@ export function winRate(wins: number, total: number): string {
   return `${((wins / total) * 100).toFixed(1)}%`
 }
 
+// Shared win-rate color thresholds so the "hot"/"cold" cutoff reads the same
+// across every league panel (draft, standings, roster) instead of drifting
+// per-panel.
+export const WIN_RATE_HIGH_THRESHOLD = 55
+export const WIN_RATE_LOW_THRESHOLD = 45
+
+export function winRateColor(winRatePercent: number, neutralColor = '#dcd6c8'): string {
+  if (winRatePercent >= WIN_RATE_HIGH_THRESHOLD) return '#8ec63f'
+  if (winRatePercent < WIN_RATE_LOW_THRESHOLD) return '#d14a38'
+  return neutralColor
+}
+
 // The double cast is required because template literal keys like `1_${field}` cannot
 // be statically resolved by TypeScript against the HeroStat type's numeric string keys.
 export function heroBracketTotal(h: HeroStat, field: 'pick' | 'win'): number {

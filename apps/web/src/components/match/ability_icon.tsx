@@ -119,15 +119,19 @@ export function AbilityIcon({
           background: isTalent ? '#1a2810' : '#12100c',
           border: `1px solid ${isTalent ? '#3a5a1a' : '#241f16'}`,
         }}
+        tabIndex={0}
         onMouseEnter={(e) => setPos({ x: e.clientX, y: e.clientY })}
         onMouseMove={(e) => setPos({ x: e.clientX, y: e.clientY })}
         onMouseLeave={() => setPos(null)}
+        onFocus={(e) => setPos({ x: e.currentTarget.getBoundingClientRect().left, y: e.currentTarget.getBoundingClientRect().bottom })}
+        onBlur={() => setPos(null)}
       >
         {img ? (
           <img
             src={img}
             alt={name}
             className="w-full h-full object-cover"
+            loading="lazy"
             onError={(e) => {
               const el = e.currentTarget
               const step = el.dataset.step ?? '0'
@@ -141,6 +145,7 @@ export function AbilityIcon({
           <img
             src={TALENTS_ICON_CDN}
             alt="Talent"
+            loading="lazy"
             style={{ width: '78%', height: '78%', objectFit: 'contain' }}
           />
         )}

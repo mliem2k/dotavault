@@ -3,7 +3,7 @@ import { applySort, useSort } from '@/lib/sortable'
 
 const C = {
   label: '#8a97a0',
-  dim: '#67757f',
+  dim: '#8a8474',
   text: '#cfd4d8',
   white: '#ffffff',
   green: '#8fbf3f',
@@ -94,7 +94,7 @@ export function Teammates({ peers }: { peers: Peer[] }) {
                 <img
                   src={peer.avatarfull}
                   alt=""
-                  className="shrink-0 object-cover"
+                  className="shrink-0 object-cover rounded-full"
                   style={{ width: 36, height: 36, border: '1px solid #2c3236' }}
                   onError={(e) => {
                     e.currentTarget.style.display = 'none'
@@ -102,7 +102,7 @@ export function Teammates({ peers }: { peers: Peer[] }) {
                 />
               ) : (
                 <div
-                  className="shrink-0 flex items-center justify-center"
+                  className="shrink-0 flex items-center justify-center rounded-full"
                   style={{ width: 36, height: 36, background: '#20262a', border: '1px solid #2c3236' }}
                 >
                   <span style={{ fontSize: 16, color: C.dim }}>?</span>

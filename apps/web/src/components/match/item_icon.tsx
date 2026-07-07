@@ -107,15 +107,19 @@ export function ItemIcon({
     <div
       className={`rounded-sm overflow-hidden shrink-0 ${className}`}
       style={{ width, height, background: '#12100c', border: '1px solid #241f16', ...style }}
+      tabIndex={name ? 0 : undefined}
       onMouseEnter={name ? (e) => setPos({ x: e.clientX, y: e.clientY }) : undefined}
       onMouseMove={name ? (e) => setPos({ x: e.clientX, y: e.clientY }) : undefined}
       onMouseLeave={() => setPos(null)}
+      onFocus={name ? (e) => setPos({ x: e.currentTarget.getBoundingClientRect().left, y: e.currentTarget.getBoundingClientRect().bottom }) : undefined}
+      onBlur={() => setPos(null)}
     >
       {name ? (
         <img
           src={itemIconUrl(name)}
           alt={meta?.dname ?? name}
           className="w-full h-full object-cover"
+          loading="lazy"
           onError={(e) => {
             // Local asset first, Steam CDN if it 404s, dim if both fail.
             const img = e.currentTarget

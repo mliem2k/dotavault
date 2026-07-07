@@ -7,7 +7,7 @@ import { applySort, useSort } from '@/lib/sortable'
 
 const C = {
   label: '#8a97a0',
-  dim: '#67757f',
+  dim: '#8a8474',
   text: '#cfd4d8',
   white: '#ffffff',
   gold: '#f2c94c',

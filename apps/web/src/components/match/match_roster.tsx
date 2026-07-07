@@ -32,7 +32,7 @@ export function useRosterMetrics(reserve = 36): {
       const avail = window.innerHeight - el.getBoundingClientRect().top - window.scrollY - reserve
       // 10 rows + 2 headers, header = row - 4  →  total = 12·row − 8
       const fit = Math.floor((avail + 8) / 12)
-      setRowH(Math.max(36, Math.min(ROW_H, fit)))
+      setRowH(Math.max(44, Math.min(ROW_H, fit)))
     }
     compute()
     window.addEventListener('resize', compute)
@@ -170,7 +170,8 @@ export function PlayerAvatar({
       <img
         src={url}
         alt=""
-        className="shrink-0 object-cover"
+        loading="lazy"
+        className="shrink-0 object-cover rounded-full overflow-hidden"
         style={{ width: size, height: size, border: '1px solid #2c3236' }}
         onError={(e) => {
           e.currentTarget.style.display = 'none'
@@ -180,10 +181,10 @@ export function PlayerAvatar({
   }
   return (
     <div
-      className="shrink-0 flex items-center justify-center"
+      className="shrink-0 flex items-center justify-center rounded-full overflow-hidden"
       style={{ width: size, height: size, background: active ? '#2c3236' : '#20262a', border: '1px solid #2c3236' }}
     >
-      <span style={{ fontSize: size * 0.45, color: '#67757f', fontFamily: 'var(--font-dota)' }}>?</span>
+      <span style={{ fontSize: size * 0.45, color: '#8a8474', fontFamily: 'var(--font-dota)' }}>?</span>
     </div>
   )
 }
@@ -224,6 +225,7 @@ export function PlayerIdentityCell({
       src={heroLandscapeUrl(hero.name)}
       alt={hero.localized_name}
       className="object-cover"
+      loading="lazy"
       style={{ width: heroW, height: heroH }}
       onError={cdnFallback(heroLandscapeCdn(hero.name))}
     />
@@ -318,7 +320,7 @@ export function TeamHeader({
   width: number
   headerH?: number
 }) {
-  const color = isRadiant ? '#9fbf3f' : '#c94a38'
+  const color = isRadiant ? '#8fbf3f' : '#c94a38'
   const name = isRadiant ? 'The Radiant' : 'The Dire'
   const small = headerH < 50
   return (
@@ -334,19 +336,19 @@ export function TeamHeader({
     >
       {small ? (
         <div className="min-w-0 flex items-baseline gap-2">
-          <span className="text-[16px] leading-tight truncate" style={{ color, textShadow: `0 0 10px ${color}44` }}>
+          <span className="text-[16px] leading-tight truncate" style={{ color }}>
             {name}
           </span>
-          <span className="text-[10px] uppercase leading-tight" style={{ color: '#67757f', letterSpacing: '1px' }}>
+          <span className="text-[10px] uppercase leading-tight" style={{ color: '#8a8474', letterSpacing: '1px' }}>
             Score: <span className="text-[12px]" style={{ color: '#ffffff' }}>{score}</span>
           </span>
         </div>
       ) : (
         <div className="min-w-0">
-          <div className="text-[20px] leading-tight truncate" style={{ color, textShadow: `0 0 10px ${color}44` }}>
+          <div className="text-[20px] leading-tight truncate" style={{ color }}>
             {name}
           </div>
-          <div className="text-[11px] uppercase leading-tight" style={{ color: '#67757f', letterSpacing: '1px' }}>
+          <div className="text-[11px] uppercase leading-tight" style={{ color: '#8a8474', letterSpacing: '1px' }}>
             Score: <span className="text-[13px]" style={{ color: '#ffffff' }}>{score}</span>
           </div>
         </div>

@@ -21,21 +21,37 @@ const ATTRS = [
   { label: 'Universal', filterIcon: '/filter-uni-active.png', symbol: `${ICON_CDN}/hero_universal.png` },
 ]
 
-/* dota2.com grid metrics at its fixed 1200px column: 225x127 cards, 5 per
-   row, 243.75px column pitch, 15px row gap. Kept as fractions so the grid
-   scales below 1200px. */
-const COLS = 5
-const CARD_W = 225 / 1200
-const COL_PITCH = 243.75 / 1200
+/* dota2.com grid metrics at its fixed 1200px column: 225x127 cards, 15px
+   row/column gap. COLS drops on narrow viewports so cards stay identifiable
+   on phones instead of shrinking to ~60x34px at a fixed 5-wide layout. */
 const CARD_RATIO = 127 / 225
 const ROW_GAP = 15
+const GRID_GAP = 15
+function colsForWidth(w: number): number {
+  if (w < 480) return 2
+  if (w < 700) return 3
+  if (w < 960) return 4
+  return 5
+}
 
-function FilterButton({ icon, active, onClick }: { icon: string; active: boolean; onClick: () => void }) {
+function FilterButton({
+  icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: string
+  label: string
+  active: boolean
+  onClick: () => void
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`-ml-1 h-[34px] w-[44px] cursor-pointer bg-cover bg-no-repeat transition-[filter] duration-100 ease-in-out ${
+      aria-label={label}
+      aria-pressed={active}
+      className={`-ml-1 h-[44px] w-[44px] cursor-pointer bg-cover bg-no-repeat transition-[filter] duration-100 ease-in-out ${
         active
           ? '[filter:brightness(1)_saturate(1)]'
           : '[filter:brightness(0.5)_saturate(0)] hover:[filter:brightness(0.8)_saturate(0)]'
@@ -68,7 +84,7 @@ function HeroCard({
         height: hidden ? 0 : size.h,
         opacity: hidden ? 0 : 1,
         boxShadow: '1px 1px 4px #000',
-        background: '#0d0d10',
+        background: '#0b0b0d',
       }}
     >
       {/* background-size 110% -> 100% on hover, like the real card */}
@@ -83,8 +99,10 @@ function HeroCard({
         className="absolute inset-0 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100"
         style={{ backgroundImage: 'linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.73) 75%, #000 100%)' }}
       />
-      {/* name bar slides up from below the card on hover */}
-      <div className="absolute inset-x-0 -bottom-10 flex h-[50px] items-center gap-1.5 pl-1.5 opacity-0 transition-[opacity,bottom] duration-200 ease-out group-hover:bottom-0 group-hover:opacity-100">
+      {/* Name bar: always visible on touch devices so heroes stay identifiable
+          without a hover; on mouse/trackpad (pointer: fine) devices it slides
+          up from below the card on hover, matching the real dota2.com. */}
+      <div className="absolute inset-x-0 bottom-0 flex h-[50px] items-center gap-1.5 pl-1.5 opacity-100 transition-[opacity,bottom] duration-200 ease-out pointer-fine:-bottom-10 pointer-fine:opacity-0 pointer-fine:group-hover:bottom-0 pointer-fine:group-hover:opacity-100">
         <img
           src={attr.symbol}
           alt={attr.label}
@@ -127,8 +145,10 @@ function HeroesPage() {
     (complexity === null || h.complexity === complexity) &&
     (!q || h.name_loc.toLowerCase().includes(q))
 
-  const size = { w: gridW * CARD_W, h: gridW * CARD_W * CARD_RATIO }
-  const colPitch = gridW * COL_PITCH
+  const COLS = colsForWidth(gridW)
+  const cardW = (gridW - (COLS - 1) * GRID_GAP) / COLS
+  const size = { w: cardW, h: cardW * CARD_RATIO }
+  const colPitch = cardW + GRID_GAP
   const rowPitch = size.h + ROW_GAP
   let visIndex = 0
   const cards = sorted.map((h) => {
@@ -168,6 +188,7 @@ function HeroesPage() {
             <FilterButton
               key={a.label}
               icon={a.filterIcon}
+              label={a.label}
               active={attr === i}
               onClick={() => setAttr(attr === i ? null : i)}
             />
@@ -180,6 +201,7 @@ function HeroesPage() {
             <FilterButton
               key={lvl}
               icon="/filter-diamond.png"
+              label={`Complexity ${lvl}`}
               active={complexity !== null && lvl <= complexity}
               onClick={() => setComplexity(complexity === lvl ? null : lvl)}
             />
@@ -192,6 +214,8 @@ function HeroesPage() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search heroes"
+            placeholder="Search heroes"
             className="mr-[10px] h-[30px] w-full border-0 bg-transparent p-1 text-[18px] text-white outline-none"
           />
         </div>

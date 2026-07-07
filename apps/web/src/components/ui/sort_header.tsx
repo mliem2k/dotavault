@@ -25,11 +25,14 @@ export function SortHeader<K extends string>({
     <button
       type="button"
       onClick={() => onClick(sortKey)}
-      className={`inline-flex items-center gap-1 uppercase cursor-pointer hover:text-white transition-colors ${className ?? ''}`}
+      className={`inline-flex items-center gap-1 uppercase cursor-pointer hover:text-white transition-colors min-h-[44px] ${className ?? ''}`}
       style={{ color: active ? '#ffffff' : 'inherit', ...style }}
     >
       <span>{label}</span>
-      <span style={{ opacity: active ? 1 : 0.3, fontSize: 9, lineHeight: 1 }}>
+      <span
+        aria-label={active ? (dir === 'asc' ? 'sorted ascending' : 'sorted descending') : undefined}
+        style={{ opacity: active ? 1 : 0.3, fontSize: 9, lineHeight: 1 }}
+      >
         {active && dir === 'asc' ? '▲' : '▼'}
       </span>
     </button>

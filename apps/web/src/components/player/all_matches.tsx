@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
+import { useRef, useState } from 'react'
 import type { HeroStat, PlayerMatch } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
 import { Spinner } from '@/components/ui/spinner'
@@ -293,6 +294,16 @@ export function AllMatches({
     }
   })
 
+  // Windows the row list instead of rendering every loaded match's DOM node —
+  // heavy users can load thousands of rows across "Load More" clicks.
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const rowVirtualizer = useVirtualizer({
+    count: sorted.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 46,
+    overscan: 8,
+  })
+
   return (
     <div style={{ background: 'rgba(16,19,22,0.72)', fontFamily: 'var(--font-dota)' }}>
       {/* Filter toolbar */}
@@ -303,7 +314,7 @@ export function AllMatches({
         <select
           value={heroFilter}
           onChange={(e) => setHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
+          className="text-[13px] px-2 py-1.5 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
           style={selectStyle()}
         >
           <option value="all">My Hero</option>
@@ -318,7 +329,7 @@ export function AllMatches({
           value={withHeroFilter}
           disabled={proOnly}
           onChange={(e) => setWithHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 outline-none"
+          className="text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
           style={selectStyle(proOnly)}
         >
           <option value="all">With Hero</option>
@@ -333,7 +344,7 @@ export function AllMatches({
           value={againstHeroFilter}
           disabled={proOnly}
           onChange={(e) => setAgainstHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 outline-none"
+          className="text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
           style={selectStyle(proOnly)}
         >
           <option value="all">Against Hero</option>
@@ -348,7 +359,7 @@ export function AllMatches({
           value={withPlayerFilter}
           disabled={proOnly}
           onChange={(e) => setWithPlayerFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 outline-none"
+          className="text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
           style={selectStyle(proOnly)}
         >
           <option value="all">With Player</option>
@@ -363,7 +374,7 @@ export function AllMatches({
           value={gameModeFilter}
           disabled={proOnly}
           onChange={(e) => setGameModeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 outline-none"
+          className="text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
           style={selectStyle(proOnly)}
         >
           <option value="all">All Modes</option>
@@ -378,7 +389,7 @@ export function AllMatches({
           value={lobbyTypeFilter}
           disabled={proOnly}
           onChange={(e) => setLobbyTypeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 outline-none"
+          className="text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
           style={selectStyle(proOnly)}
         >
           <option value="all">All Lobbies</option>
@@ -393,7 +404,7 @@ export function AllMatches({
           value={laneRoleFilter}
           disabled={proOnly}
           onChange={(e) => setLaneRoleFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 outline-none"
+          className="text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
           style={selectStyle(proOnly)}
         >
           <option value="all">All Roles</option>
@@ -408,7 +419,7 @@ export function AllMatches({
           value={sideFilter}
           disabled={proOnly}
           onChange={(e) => setSideFilter(e.target.value as SideFilter)}
-          className="text-[13px] px-2 py-1.5 outline-none"
+          className="text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
           style={selectStyle(proOnly)}
         >
           <option value="all">Any Side</option>
@@ -419,7 +430,7 @@ export function AllMatches({
         <select
           value={dateFilter}
           onChange={(e) => setDateFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 cursor-pointer outline-none"
+          className="text-[13px] px-2 py-1.5 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
           style={selectStyle()}
         >
           <option value="all">All Time</option>
@@ -478,163 +489,176 @@ export function AllMatches({
         </span>
       </div>
 
-      {/* Header row */}
-      <div
-        className="flex items-center px-3 py-2.5 text-[12px] uppercase"
-        style={{ color: '#8a97a0', letterSpacing: '1px', background: 'rgba(8,10,12,0.55)' }}
-      >
-        <SortHeader
-          label="Date / Time"
-          sortKey="date"
-          active={sortKey === 'date'}
-          dir={sortDir}
-          onClick={onSort}
-          className="w-[150px] shrink-0"
-        />
-        <span className="flex-1 min-w-0">Hero Played</span>
-        <span className="w-[70px] shrink-0 text-center">Rank</span>
-        <span className="w-[90px] shrink-0 text-center">Result</span>
-        <SortHeader
-          label="K / D / A"
-          sortKey="kda"
-          active={sortKey === 'kda'}
-          dir={sortDir}
-          onClick={onSort}
-          className="w-[110px] shrink-0 justify-end"
-        />
-        <SortHeader
-          label="GPM"
-          sortKey="gpm"
-          active={sortKey === 'gpm'}
-          dir={sortDir}
-          onClick={onSort}
-          className="w-[60px] shrink-0 justify-end"
-        />
-        <SortHeader
-          label="XPM"
-          sortKey="xpm"
-          active={sortKey === 'xpm'}
-          dir={sortDir}
-          onClick={onSort}
-          className="w-[60px] shrink-0 justify-end"
-        />
-        <SortHeader
-          label="LH"
-          sortKey="lh"
-          active={sortKey === 'lh'}
-          dir={sortDir}
-          onClick={onSort}
-          className="w-[50px] shrink-0 justify-end"
-        />
-        <SortHeader
-          label="Duration"
-          sortKey="duration"
-          active={sortKey === 'duration'}
-          dir={sortDir}
-          onClick={onSort}
-          className="w-[80px] shrink-0 justify-end"
-        />
-        <span className="w-[90px] shrink-0 text-right pr-2">Type</span>
-      </div>
+      <div className="overflow-x-auto">
+        <div className="min-w-[900px]">
+          {/* Header row */}
+          <div
+            className="flex items-center px-3 py-2.5 text-[12px] uppercase"
+            style={{ color: '#8a97a0', letterSpacing: '1px', background: 'rgba(8,10,12,0.55)' }}
+          >
+            <SortHeader
+              label="Date / Time"
+              sortKey="date"
+              active={sortKey === 'date'}
+              dir={sortDir}
+              onClick={onSort}
+              className="w-[150px] shrink-0"
+            />
+            <span className="flex-1 min-w-0">Hero Played</span>
+            <span className="w-[70px] shrink-0 text-center">Rank</span>
+            <span className="w-[90px] shrink-0 text-center">Result</span>
+            <SortHeader
+              label="K / D / A"
+              sortKey="kda"
+              active={sortKey === 'kda'}
+              dir={sortDir}
+              onClick={onSort}
+              className="w-[110px] shrink-0 justify-end"
+            />
+            <div className="hidden sm:flex w-[60px] shrink-0 justify-end">
+              <SortHeader label="GPM" sortKey="gpm" active={sortKey === 'gpm'} dir={sortDir} onClick={onSort} className="justify-end" />
+            </div>
+            <div className="hidden sm:flex w-[60px] shrink-0 justify-end">
+              <SortHeader label="XPM" sortKey="xpm" active={sortKey === 'xpm'} dir={sortDir} onClick={onSort} className="justify-end" />
+            </div>
+            <div className="hidden md:flex w-[50px] shrink-0 justify-end">
+              <SortHeader label="LH" sortKey="lh" active={sortKey === 'lh'} dir={sortDir} onClick={onSort} className="justify-end" />
+            </div>
+            <SortHeader
+              label="Duration"
+              sortKey="duration"
+              active={sortKey === 'duration'}
+              dir={sortDir}
+              onClick={onSort}
+              className="w-[80px] shrink-0 justify-end"
+            />
+            <span className="hidden sm:block w-[90px] shrink-0 text-right pr-2">Type</span>
+          </div>
 
-      {query.isPending ? (
-        <div className="flex justify-center py-12">
-          <Spinner />
-        </div>
-      ) : sorted.length === 0 ? (
-        <div className="py-12 text-center text-[13px]" style={{ color: '#67757f' }}>
-          No matches found for this filter.
-        </div>
-      ) : (
-        sorted.map((m, i) => {
-          const hero = heroMap.get(m.hero_id)
-          const won = isWin(m)
-          const { d, t } = fmtDate(m.start_time)
-          const badge = rankBadge(m.average_rank)
+          {query.isPending ? (
+            <div className="flex justify-center py-12">
+              <Spinner />
+            </div>
+          ) : sorted.length === 0 ? (
+            <div className="py-12 text-center text-[13px]" style={{ color: '#67757f' }}>
+              No matches found for this filter.
+            </div>
+          ) : (
+            // Virtualized row list — windows the DOM to the visible rows so
+            // repeated "Load More" clicks don't grow the page linearly.
+            <div ref={scrollRef} className="overflow-y-auto" style={{ maxHeight: 640 }}>
+              <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
+                {rowVirtualizer.getVirtualItems().map((vRow) => {
+                  const m = sorted[vRow.index]
+                  const hero = heroMap.get(m.hero_id)
+                  const won = isWin(m)
+                  const { d, t } = fmtDate(m.start_time)
+                  const badge = rankBadge(m.average_rank)
+                  const goToMatch = () => navigate({ to: '/match/$matchId', params: { matchId: String(m.match_id) } })
 
-          return (
-            <div
-              key={m.match_id}
-              onClick={() => navigate({ to: '/match/$matchId', params: { matchId: String(m.match_id) } })}
-              className="flex items-center px-3 hover:bg-white/[0.05] transition-colors cursor-pointer"
-              style={{ height: 46, background: i % 2 ? 'rgba(255,255,255,0.02)' : 'transparent' }}
-            >
-              <div className="w-[150px] shrink-0 text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
-                {d} <span style={{ color: '#8a97a0' }}>{t}</span>
-              </div>
+                  return (
+                    <div
+                      key={m.match_id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={goToMatch}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          goToMatch()
+                        }
+                      }}
+                      className="flex items-center px-3 hover:bg-white/[0.05] transition-colors cursor-pointer"
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: vRow.size,
+                        transform: `translateY(${vRow.start}px)`,
+                        background: vRow.index % 2 ? 'rgba(255,255,255,0.02)' : 'transparent',
+                      }}
+                    >
+                      <div className="w-[150px] shrink-0 text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
+                        {d} <span style={{ color: '#8a97a0' }}>{t}</span>
+                      </div>
 
-              <div className="flex-1 min-w-0 flex items-center gap-2.5">
-                {hero && (
-                  <a href={`/hero/${heroSlug(hero.localized_name)}`} onClick={(e) => e.stopPropagation()} className="shrink-0 block">
-                    <img
-                      src={heroLandscapeUrl(hero.name)}
-                      alt=""
-                      className="object-cover"
-                      style={{ width: 58, height: 33 }}
-                      onError={cdnFallback(heroLandscapeCdn(hero.name))}
-                    />
-                  </a>
-                )}
-                {hero ? (
-                  <a
-                    href={`/hero/${heroSlug(hero.localized_name)}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-[14px] truncate hover:underline"
-                    style={{ color: '#e8ecef' }}
-                  >
-                    {hero.localized_name}
-                  </a>
-                ) : (
-                  <span className="text-[14px] truncate" style={{ color: '#e8ecef' }}>
-                    {`Hero ${m.hero_id}`}
-                  </span>
-                )}
-              </div>
+                      <div className="flex-1 min-w-0 flex items-center gap-2.5">
+                        {hero && (
+                          <a href={`/hero/${heroSlug(hero.localized_name)}`} onClick={(e) => e.stopPropagation()} className="shrink-0 block">
+                            <img
+                              src={heroLandscapeUrl(hero.name)}
+                              alt=""
+                              className="object-cover"
+                              style={{ width: 58, height: 33 }}
+                              onError={cdnFallback(heroLandscapeCdn(hero.name))}
+                            />
+                          </a>
+                        )}
+                        {hero ? (
+                          <a
+                            href={`/hero/${heroSlug(hero.localized_name)}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[14px] truncate hover:underline"
+                            style={{ color: '#e8ecef' }}
+                          >
+                            {hero.localized_name}
+                          </a>
+                        ) : (
+                          <span className="text-[14px] truncate" style={{ color: '#e8ecef' }}>
+                            {`Hero ${m.hero_id}`}
+                          </span>
+                        )}
+                      </div>
 
-              <div className="w-[70px] shrink-0 flex items-center justify-center" title={rankName(m.average_rank)}>
-                {badge ? (
-                  <img src={badge.medal} alt="" style={{ width: 24, height: 24 }} className="object-contain" />
-                ) : (
-                  <span style={{ color: '#4d565c' }}>—</span>
-                )}
-              </div>
+                      <div className="w-[70px] shrink-0 flex items-center justify-center" title={rankName(m.average_rank)}>
+                        {badge ? (
+                          <img src={badge.medal} alt="" style={{ width: 24, height: 24 }} className="object-contain" />
+                        ) : (
+                          <span style={{ color: '#4d565c' }}>—</span>
+                        )}
+                      </div>
 
-              <div className="w-[90px] shrink-0 text-center">
-                <span
-                  className="text-[14px] uppercase"
-                  style={{ color: won ? '#8fbf3f' : '#c94a38', letterSpacing: '1px' }}
-                >
-                  {won ? 'Won' : 'Lost'}
-                </span>
-              </div>
+                      <div className="w-[90px] shrink-0 text-center">
+                        <span
+                          className="text-[14px] uppercase"
+                          style={{ color: won ? '#8fbf3f' : '#d14a38', letterSpacing: '1px' }}
+                        >
+                          {won ? 'Won' : 'Lost'}
+                        </span>
+                      </div>
 
-              <div className="w-[110px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
-                {m.kills} / {m.deaths} / {m.assists}
-              </div>
+                      <div className="w-[110px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
+                        {m.kills} / {m.deaths} / {m.assists}
+                      </div>
 
-              <div className="w-[60px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#cfd4d8' }}>
-                {m.gold_per_min ?? '—'}
-              </div>
+                      <div className="hidden sm:block w-[60px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#cfd4d8' }}>
+                        {m.gold_per_min ?? '—'}
+                      </div>
 
-              <div className="w-[60px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#cfd4d8' }}>
-                {m.xp_per_min ?? '—'}
-              </div>
+                      <div className="hidden sm:block w-[60px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#cfd4d8' }}>
+                        {m.xp_per_min ?? '—'}
+                      </div>
 
-              <div className="w-[50px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#cfd4d8' }}>
-                {m.last_hits ?? '—'}
-              </div>
+                      <div className="hidden md:block w-[50px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#cfd4d8' }}>
+                        {m.last_hits ?? '—'}
+                      </div>
 
-              <div className="w-[80px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
-                {fmtDur(m.duration)}
-              </div>
+                      <div className="w-[80px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
+                        {fmtDur(m.duration)}
+                      </div>
 
-              <div className="w-[90px] shrink-0 text-right text-[13px] pr-2 truncate" style={{ color: '#cfd4d8' }} title={m.typeLabel}>
-                {m.typeLabel}
+                      <div className="hidden sm:block w-[90px] shrink-0 text-right text-[13px] pr-2 truncate" style={{ color: '#cfd4d8' }} title={m.typeLabel}>
+                        {m.typeLabel}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
-          )
-        })
-      )}
+          )}
+        </div>
+      </div>
 
       {query.hasNextPage && (
         <div className="flex justify-center py-4">
@@ -642,7 +666,7 @@ export function AllMatches({
             type="button"
             onClick={() => query.fetchNextPage()}
             disabled={query.isFetchingNextPage}
-            className="px-6 py-2 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-50"
+            className="inline-flex items-center justify-center min-h-[44px] px-6 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-50"
             style={{ background: '#1a2024', border: '1px solid #2c3236', color: '#cfd4d8', letterSpacing: '1px' }}
           >
             {query.isFetchingNextPage ? 'Loading…' : 'Load More'}

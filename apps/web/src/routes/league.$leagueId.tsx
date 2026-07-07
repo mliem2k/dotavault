@@ -67,8 +67,14 @@ function LeaguePage() {
     <div className="space-y-6 py-4">
       <div>
         <h1
-          className="text-[36px] leading-tight font-bold uppercase"
-          style={{ color: '#e8e2d4', fontFamily: 'var(--font-display)', letterSpacing: '1px', textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}
+          className="leading-tight font-bold uppercase"
+          style={{
+            color: '#dcd6c8',
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(1.5rem, 4vw, 2.75rem)',
+            letterSpacing: '1px',
+            textShadow: '0 2px 10px rgba(0,0,0,0.8)',
+          }}
         >
           {league?.name ?? (leagues.isPending ? 'Loading...' : `League ${id}`)}
         </h1>
@@ -114,7 +120,7 @@ function LeaguePage() {
                   {l.tier && (
                     <span
                       className="shrink-0 px-2 py-0.5 text-[12px] uppercase"
-                      style={{ background: 'rgba(255,255,255,0.05)', color: '#8a8474', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}
+                      style={{ background: 'rgba(255,255,255,0.05)', color: '#c9a94a', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}
                     >
                       {TIER_LABELS[l.tier] ?? l.tier}
                     </span>

@@ -11,7 +11,7 @@ const C = {
   labelBright: '#8a97a0',
   text: '#cfd4d8',
   white: '#ffffff',
-  gold: '#cb9b25',
+  gold: '#c9a94a',
   panel: 'rgba(16,19,22,0.72)',
 }
 
@@ -48,7 +48,7 @@ function ProfileLayout() {
             })}
           </div>
           {badge && (
-            <div className="relative group shrink-0">
+            <div className="relative group shrink-0" tabIndex={0}>
               <div
                 className="relative flex items-center justify-center rounded-full cursor-default"
                 style={{
@@ -74,7 +74,7 @@ function ProfileLayout() {
               </div>
               {/* Rank ladder tooltip: all tiers, current one highlighted */}
               <div
-                className="absolute right-0 top-full mt-2 hidden group-hover:block z-50 pointer-events-none"
+                className="absolute right-0 top-full mt-2 hidden group-hover:block group-focus-within:block z-50 pointer-events-none"
                 style={{
                   background: 'rgba(10,13,15,0.97)',
                   border: '1px solid #3a4147',
@@ -147,7 +147,7 @@ function ProfileLayout() {
           </div>
           {/* Legend strip */}
           <div className="flex items-center justify-end gap-2 px-3 py-1.5" style={{ background: 'rgba(8,10,12,0.8)' }}>
-            <span className="inline-block" style={{ width: 10, height: 10, background: '#d78f28' }} />
+            <span className="inline-block" style={{ width: 10, height: 10, background: '#c9a94a' }} />
             <span className="text-[12px]" style={{ color: C.text }}>{p.profile.personaname}</span>
           </div>
         </div>
@@ -155,29 +155,32 @@ function ProfileLayout() {
 
       {/* ---- Right column ---- */}
       <div className="min-w-0">
-        {/* Feed tabs */}
-        <div className="flex items-center pb-2 pl-1">
+        {/* Feed tabs — DESIGN.md tab-active/tab-inactive: gold fill vs muted/transparent */}
+        <div className="flex items-center gap-1 pb-2">
           <Link
             to="/player/$accountId/profile/$feed"
             params={{ accountId, feed: 'recent' }}
-            className="text-[13px] uppercase cursor-pointer"
+            className={`inline-flex items-center justify-center min-h-[44px] text-[12px] uppercase transition-colors px-3 ${
+              activeFeed === 'recent' ? '' : 'hover:bg-white/[0.03] hover:text-foreground'
+            }`}
             style={{
-              color: activeFeed === 'recent' ? '#ffffff' : '#7d8b95',
-              letterSpacing: '2px',
-              textShadow: '0 1px 2px rgba(0,0,0,0.9)',
+              background: activeFeed === 'recent' ? '#c9a94a' : 'transparent',
+              color: activeFeed === 'recent' ? '#0b0b0d' : '#8a8474',
+              letterSpacing: '1.5px',
             }}
           >
             Recent Games
           </Link>
-          <span className="mx-2.5 text-[13px]" style={{ color: '#3f464d' }}>/</span>
           <Link
             to="/player/$accountId/profile/$feed"
             params={{ accountId, feed: 'teammates' }}
-            className="text-[13px] uppercase cursor-pointer"
+            className={`inline-flex items-center justify-center min-h-[44px] text-[12px] uppercase transition-colors px-3 ${
+              activeFeed === 'teammates' ? '' : 'hover:bg-white/[0.03] hover:text-foreground'
+            }`}
             style={{
-              color: activeFeed === 'teammates' ? '#ffffff' : '#7d8b95',
-              letterSpacing: '2px',
-              textShadow: '0 1px 2px rgba(0,0,0,0.9)',
+              background: activeFeed === 'teammates' ? '#c9a94a' : 'transparent',
+              color: activeFeed === 'teammates' ? '#0b0b0d' : '#8a8474',
+              letterSpacing: '1.5px',
             }}
           >
             Teammates

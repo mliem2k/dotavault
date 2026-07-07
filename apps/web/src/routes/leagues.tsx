@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
 import { usePageTitle } from '@/lib/title'
@@ -23,7 +23,15 @@ const TIER_ORDER: Record<string, number> = { premium: 0, professional: 1, minor:
 function LeaguesPage() {
   usePageTitle('Leagues')
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [tier, setTier] = useState<string>('all')
+
+  // Debounce so every keystroke doesn't re-filter/re-sort the full leagues
+  // list (up to 300 rows deep); only the settled value feeds the memo below.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 200)
+    return () => clearTimeout(id)
+  }, [search])
 
   const leagues = useQuery({
     queryKey: ['leagues_list'],
@@ -34,7 +42,7 @@ function LeaguesPage() {
   const rows = useMemo(() => {
     let list = leagues.data ?? []
     if (tier !== 'all') list = list.filter((l) => (l.tier ?? '') === tier)
-    const q = search.trim().toLowerCase()
+    const q = debouncedSearch.trim().toLowerCase()
     if (q) list = list.filter((l) => l.name?.toLowerCase().includes(q))
     return [...list]
       .sort((a, b) => {
@@ -44,14 +52,20 @@ function LeaguesPage() {
         return b.leagueid - a.leagueid
       })
       .slice(0, 300)
-  }, [leagues.data, search, tier])
+  }, [leagues.data, debouncedSearch, tier])
 
   return (
     <div className="space-y-6 py-4">
       <div>
         <h1
-          className="text-[44px] leading-none font-bold uppercase"
-          style={{ color: '#e8e2d4', fontFamily: 'var(--font-display)', letterSpacing: '2px', textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}
+          className="leading-none font-bold uppercase"
+          style={{
+            color: '#dcd6c8',
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(1.5rem, 4vw, 2.75rem)',
+            letterSpacing: '2px',
+            textShadow: '0 2px 10px rgba(0,0,0,0.8)',
+          }}
         >
           Leagues
         </h1>
@@ -68,8 +82,9 @@ function LeaguesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search league name..."
-          className="px-3 py-2 text-[14px] outline-none"
-          style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a', color: '#dcd6c8', fontFamily: 'var(--font-dota)', width: 280 }}
+          aria-label="Search league name"
+          className="w-full px-3 py-2 text-[14px] outline-none focus-visible:ring-2 focus-visible:ring-[#c9a94a] sm:w-[280px]"
+          style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a', color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
         />
         <div className="flex items-center" style={{ border: '1px solid #24222a' }}>
           {['all', 'premium', 'professional', 'minor', 'amateur'].map((t) => (
@@ -104,7 +119,7 @@ function LeaguesPage() {
         )}
         {!leagues.isPending && rows.length === 0 && (
           <div className="py-16 text-center text-[14px]" style={{ color: '#8a8474' }}>
-            No leagues match "{search}".
+            No leagues match "{debouncedSearch}".
           </div>
         )}
         {rows.map((l, i) => (

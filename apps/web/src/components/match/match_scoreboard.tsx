@@ -1,4 +1,4 @@
-import { type JSX, useState } from 'react'
+import { type JSX, memo, useCallback, useEffect, useMemo, useState } from 'react'
 import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
 import { AbilityIcon } from './ability_icon'
@@ -7,6 +7,23 @@ import { MatchRosterSidebar, orderedTeams, useRosterMetrics } from './match_rost
 import { GameTimeSlider, damageHealAtTime, hasTimeline, itemsAtTime, statsAtTime, teamScoreAtTime, type TimedStats } from './match_time'
 
 const SIDEBAR_W = 272
+const SIDEBAR_W_MOBILE = 140
+const MOBILE_QUERY = '(max-width: 640px)'
+
+/* Responsive sidebar width: the roster sidebar sits outside the stats pane's
+   own horizontal scroll, so on narrow viewports it must shrink instead of
+   permanently eating most of the screen. */
+function useSidebarWidth(): number {
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches)
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_QUERY)
+    const update = () => setNarrow(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+  return narrow ? SIDEBAR_W_MOBILE : SIDEBAR_W
+}
 
 type Abilities = Record<string, AbilityConst>
 type AbilityIds = Record<string, string>
@@ -29,6 +46,10 @@ function fmtK(v: number | null | undefined): string {
   const n = v ?? 0
   return n.toLocaleString()
 }
+
+const num = (color: string, size = 16, weight = 400) => (v: number | string) => (
+  <span className="tabular-nums" style={{ color, fontSize: size, fontWeight: weight, fontFamily: 'var(--font-dota)' }}>{v}</span>
+)
 
 /* Enemy heroes this player killed, aligned to the fixed enemy roster order. */
 function HeroKillsGroup({
@@ -58,11 +79,13 @@ function HeroKillsGroup({
             href={`/hero/${heroSlug(h.localized_name)}`}
             className="relative shrink-0 block"
             style={{ opacity: n > 0 ? 1 : 0.25 }}
+            onClick={(e) => e.stopPropagation()}
           >
             <img
               src={heroIconUrl(h.name)}
               alt={h.localized_name}
               title={`${h.localized_name}: ${n}`}
+              loading="lazy"
               style={{ width: 32, height: 32, filter: n > 0 ? 'none' : 'grayscale(1)' }}
               onError={(e) => {
                 const img = e.currentTarget
@@ -196,6 +219,104 @@ function ItemsCell({
   )
 }
 
+/* One player row: rendered per side, memoized so selecting a row doesn't
+   force every other row to recompute its stats. The row itself is the
+   interactive toggle target, but it must not be a real <button> — it
+   contains HeroKillsGroup's own <a> hero-kill links as descendants, and an
+   interactive <a> nested inside an interactive <button> is invalid HTML. A
+   div with role="row" (for table semantics), tabIndex, aria-pressed, and
+   manual key handling gives the same keyboard/AT behavior without that
+   nesting problem. */
+const PlayerRow = memo(function PlayerRow({
+  player,
+  active,
+  onSelect,
+  cols,
+  enemyHeroes,
+  heroMap,
+  allPlayers,
+  timeSec,
+  duration,
+  hasKillLogs,
+  hasPurchases,
+  maxAbilities,
+  itemConst,
+  abilities,
+  abilityIds,
+  rowH,
+}: {
+  player: MatchPlayer
+  active: boolean
+  onSelect: (slot: number) => void
+  cols: Col[]
+  enemyHeroes: HeroStat[]
+  heroMap: Map<number, HeroStat>
+  allPlayers: MatchPlayer[]
+  timeSec: number
+  duration: number
+  hasKillLogs: boolean
+  hasPurchases: boolean
+  maxAbilities: number
+  itemConst: Record<string, ItemConst>
+  abilities: Abilities
+  abilityIds: AbilityIds
+  rowH: number
+}) {
+  const timed = statsAtTime(player, allPlayers, heroMap.get(player.hero_id)?.name ?? '', timeSec, duration)
+
+  const toggle = () => onSelect(player.player_slot)
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      toggle()
+    }
+  }
+
+  return (
+    <div
+      role="row"
+      tabIndex={0}
+      aria-pressed={active}
+      onClick={toggle}
+      onKeyDown={onKeyDown}
+      className="flex items-stretch w-full text-left cursor-pointer hover:bg-white/[0.04]"
+      style={{ height: rowH, background: active ? 'rgba(255,255,255,0.13)' : undefined, borderBottom: '1px solid rgba(255,255,255,0.03)' }}
+    >
+      {cols.map((c, i) => (
+        <div
+          key={i}
+          role="cell"
+          className={`shrink-0 flex items-center ${i === 4 ? 'justify-start pl-1' : 'justify-center'}`}
+          style={{ width: c.width }}
+        >
+          {c.render(player, timed)}
+        </div>
+      ))}
+      {hasKillLogs && (
+        <div role="cell" className="flex items-center shrink-0">
+          <HeroKillsGroup
+            player={player}
+            enemies={enemyHeroes}
+            timeSec={timeSec}
+            duration={duration}
+            totalKills={timed.kills}
+          />
+        </div>
+      )}
+      {hasPurchases && (
+        <div role="cell" className="flex items-center shrink-0">
+          <SupportItemsGroup player={player} itemConst={itemConst} timeSec={timeSec} duration={duration} />
+        </div>
+      )}
+      {maxAbilities > 0 && (
+        <div role="cell" className="flex items-center shrink-0">
+          <AbilityBuildGroup player={player} abilities={abilities} abilityIds={abilityIds} maxLevel={timed.level} />
+        </div>
+      )}
+    </div>
+  )
+})
+
 export function MatchScoreboard({
   match,
   heroStats,
@@ -213,71 +334,74 @@ export function MatchScoreboard({
 }) {
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
   const [timeSec, setTimeSec] = useState<number>(match.duration)
+  const sidebarW = useSidebarWidth()
 
-  const heroMap = new Map(heroStats.map((h) => [h.id, h]))
-  const { radiant, dire } = orderedTeams(match)
+  const heroMap = useMemo(() => new Map(heroStats.map((h) => [h.id, h])), [heroStats])
+  const { radiant, dire } = useMemo(() => orderedTeams(match), [match])
   const scrubbable = hasTimeline(match)
   // Shrink rows so scoreboard + timeline fit the viewport without scrolling.
   const { ref: fitRef, rowH, headerH } = useRosterMetrics(scrubbable ? 82 : 36)
 
-  const num = (color: string, size = 16, weight = 400) => (v: number | string) => (
-    <span className="tabular-nums" style={{ color, fontSize: size, fontWeight: weight, fontFamily: 'var(--font-dota)' }}>{v}</span>
-  )
+  const handleSelect = useCallback((slot: number) => {
+    setSelectedSlot((prev) => (prev === slot ? null : slot))
+  }, [])
 
-  const cols: Col[] = [
-    { label: 'K', width: 44, render: (_p, t) => num('#ffffff', 18, 700)(t.kills) },
-    { label: 'D', width: 44, render: (_p, t) => num('#cfd4d8')(t.deaths) },
-    { label: 'A', width: 44, render: (_p, t) => num('#cfd4d8')(t.assists) },
-    {
-      label: (<span className="inline-flex items-center gap-1"><GoldPip />NET</span>),
-      width: 84,
-      render: (_p, t) => num('#f2c94c', 16)(t.netWorth.toLocaleString()),
-    },
-    {
-      label: 'Items',
-      width: 6 * 36 + 5 * 3,
-      render: (p) => <ItemsCell player={p} idToName={idToName} itemConst={itemConst} timeSec={timeSec} duration={match.duration} />,
-    },
-    {
-      label: 'LH / DN',
-      width: 80,
-      render: (_p, t) => (
-        <span className="text-[15px] tabular-nums" style={{ color: '#e8ecef', fontFamily: 'var(--font-dota)' }}>
-          {t.lastHits}<span style={{ color: '#5a6066' }}> / </span>{t.denies}
-        </span>
-      ),
-    },
-    { label: 'GPM', width: 58, render: (_p, t) => num('#f2c94c')(t.gpm) },
-    { label: 'XPM', width: 58, render: (_p, t) => num('#e8ecef')(t.xpm) },
-    {
-      label: 'DMG',
-      width: 72,
-      render: (p) =>
-        num('#e8ecef')(p.hero_damage != null ? fmtK(damageHealAtTime(match, p, timeSec).damage) : '—'),
-    },
-    {
-      label: 'HEAL',
-      width: 62,
-      render: (p) =>
-        num('#e8ecef')(p.hero_healing != null ? fmtK(damageHealAtTime(match, p, timeSec).healing) : '—'),
-    },
-    {
-      label: 'BLD',
-      width: 62,
-      render: (p) => num('#c9a94a')(p.tower_damage != null ? fmtK(p.tower_damage) : '-'),
-    },
-    {
-      label: 'WARDS',
-      width: 66,
-      render: (p) => {
-        // Ward placements are timestamped, so this column follows the slider.
-        const obs = p.obs_log ? p.obs_log.filter((w) => w.time <= timeSec).length : p.obs_placed
-        const sen = p.sen_log ? p.sen_log.filter((w) => w.time <= timeSec).length : p.sen_placed
-        return num('#e8ecef')(obs || sen ? `${obs ?? 0}/${sen ?? 0}` : '-')
+  const cols: Col[] = useMemo(
+    () => [
+      { label: 'K', width: 44, render: (_p, t) => num('#ffffff', 18, 700)(t.kills) },
+      { label: 'D', width: 44, render: (_p, t) => num('#cfd4d8')(t.deaths) },
+      { label: 'A', width: 44, render: (_p, t) => num('#cfd4d8')(t.assists) },
+      {
+        label: (<span className="inline-flex items-center gap-1"><GoldPip />NET</span>),
+        width: 84,
+        render: (_p, t) => num('#f2c94c', 16)(t.netWorth.toLocaleString()),
       },
-    },
-    { label: 'MMR', width: 84, render: () => num('#67757f')('—') },
-  ]
+      {
+        label: 'Items',
+        width: 6 * 36 + 5 * 3,
+        render: (p) => <ItemsCell player={p} idToName={idToName} itemConst={itemConst} timeSec={timeSec} duration={match.duration} />,
+      },
+      {
+        label: 'LH / DN',
+        width: 80,
+        render: (_p, t) => (
+          <span className="text-[15px] tabular-nums" style={{ color: '#e8ecef', fontFamily: 'var(--font-dota)' }}>
+            {t.lastHits}<span style={{ color: '#5a6066' }}> / </span>{t.denies}
+          </span>
+        ),
+      },
+      { label: 'GPM', width: 58, render: (_p, t) => num('#f2c94c')(t.gpm) },
+      { label: 'XPM', width: 58, render: (_p, t) => num('#e8ecef')(t.xpm) },
+      {
+        label: 'DMG',
+        width: 72,
+        render: (p) =>
+          num('#e8ecef')(p.hero_damage != null ? fmtK(damageHealAtTime(match, p, timeSec).damage) : '—'),
+      },
+      {
+        label: 'HEAL',
+        width: 62,
+        render: (p) =>
+          num('#e8ecef')(p.hero_healing != null ? fmtK(damageHealAtTime(match, p, timeSec).healing) : '—'),
+      },
+      {
+        label: 'BLD',
+        width: 62,
+        render: (p) => num('#c9a94a')(p.tower_damage != null ? fmtK(p.tower_damage) : '-'),
+      },
+      {
+        label: 'WARDS',
+        width: 66,
+        render: (p) => {
+          // Ward placements are timestamped, so this column follows the slider.
+          const obs = p.obs_log ? p.obs_log.filter((w) => w.time <= timeSec).length : p.obs_placed
+          const sen = p.sen_log ? p.sen_log.filter((w) => w.time <= timeSec).length : p.sen_placed
+          return num('#e8ecef')(obs || sen ? `${obs ?? 0}/${sen ?? 0}` : '-')
+        },
+      },
+    ],
+    [idToName, itemConst, timeSec, match],
+  )
 
   // Time-aware sidebar data: levels and team scores at the scrub position.
   const levelBySlot = new Map(
@@ -293,8 +417,20 @@ export function MatchScoreboard({
   const hasPurchases = match.players.some((p) => (p.purchase_log?.length ?? 0) > 0)
   const maxAbilities = Math.max(0, ...match.players.map((p) => p.ability_upgrades_arr?.length ?? 0))
 
+  // Enemy-hero lists for HeroKillsGroup are identical for every player on the
+  // same side, so compute them once per side instead of once per row.
+  const direHeroesForRadiant = useMemo(
+    () => dire.map((e) => heroMap.get(e.hero_id)).filter((h): h is HeroStat => !!h),
+    [dire, heroMap],
+  )
+  const radiantHeroesForDire = useMemo(
+    () => radiant.map((e) => heroMap.get(e.hero_id)).filter((h): h is HeroStat => !!h),
+    [radiant, heroMap],
+  )
+
   const label = (content: string | JSX.Element, width?: number, extraClass = '') => (
     <div
+      role="columnheader"
       className={`shrink-0 flex items-center justify-center text-[13px] uppercase ${extraClass}`}
       style={{ width, height: headerH, color: '#8a97a0', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}
     >
@@ -305,10 +441,10 @@ export function MatchScoreboard({
   const headerRow = (isRadiant: boolean) => {
     const enemies = isRadiant ? dire : radiant
     return (
-      <div className="flex items-stretch" style={{ height: headerH }}>
+      <div role="row" className="flex items-stretch" style={{ height: headerH }}>
         {cols.map((c, i) => label(c.label as string | JSX.Element, c.width, i === 4 ? 'justify-start pl-1' : ''))}
         {hasKillLogs && (
-          <div className="flex items-center shrink-0 pl-2" style={{ width: enemies.length * 38 + 60 }}>
+          <div role="columnheader" className="flex items-center shrink-0 pl-2" style={{ width: enemies.length * 38 + 60 }}>
             <span className="text-[13px] uppercase flex-1" style={{ color: '#8a97a0', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}>
               {isRadiant ? 'Dire' : 'Radiant'} Heroes Killed
             </span>
@@ -318,7 +454,7 @@ export function MatchScoreboard({
           </div>
         )}
         {hasPurchases && (
-          <div className="flex items-center shrink-0 pl-2" style={{ minWidth: 266 }}>
+          <div role="columnheader" className="flex items-center shrink-0 pl-2" style={{ minWidth: 266 }}>
             <span className="text-[13px] uppercase flex-1" style={{ color: '#8a97a0', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}>
               Support Items
             </span>
@@ -327,7 +463,7 @@ export function MatchScoreboard({
           </div>
         )}
         {maxAbilities > 0 && (
-          <div className="flex items-center gap-[3px] px-2 shrink-0">
+          <div role="columnheader" className="flex items-center gap-[3px] px-2 shrink-0">
             {Array.from({ length: maxAbilities }, (_, i) => (
               <span
                 key={i}
@@ -343,60 +479,13 @@ export function MatchScoreboard({
     )
   }
 
-  const playerRow = (p: MatchPlayer, isRadiant: boolean) => {
-    const active = selectedSlot === p.player_slot
-    const enemies = isRadiant ? dire : radiant
-    const enemyHeroes = enemies.map((e) => heroMap.get(e.hero_id)).filter((h): h is HeroStat => !!h)
-    const timed = statsAtTime(p, match.players, heroMap.get(p.hero_id)?.name ?? '', timeSec, match.duration)
-    return (
-      <button
-        key={p.player_slot}
-        type="button"
-        onClick={() => setSelectedSlot(active ? null : p.player_slot)}
-        className="flex items-stretch w-full text-left cursor-pointer hover:bg-white/[0.04]"
-        style={{ height: rowH, background: active ? 'rgba(255,255,255,0.13)' : undefined, borderBottom: '1px solid rgba(255,255,255,0.03)' }}
-      >
-        {cols.map((c, i) => (
-          <div
-            key={i}
-            className={`shrink-0 flex items-center ${i === 4 ? 'justify-start pl-1' : 'justify-center'}`}
-            style={{ width: c.width }}
-          >
-            {c.render(p, timed)}
-          </div>
-        ))}
-        {hasKillLogs && (
-          <div className="flex items-center shrink-0">
-            <HeroKillsGroup
-              player={p}
-              enemies={enemyHeroes}
-              timeSec={timeSec}
-              duration={match.duration}
-              totalKills={timed.kills}
-            />
-          </div>
-        )}
-        {hasPurchases && (
-          <div className="flex items-center shrink-0">
-            <SupportItemsGroup player={p} itemConst={itemConst} timeSec={timeSec} duration={match.duration} />
-          </div>
-        )}
-        {maxAbilities > 0 && (
-          <div className="flex items-center shrink-0">
-            <AbilityBuildGroup player={p} abilities={abilities} abilityIds={abilityIds} maxLevel={timed.level} />
-          </div>
-        )}
-      </button>
-    )
-  }
-
   return (
     <div ref={fitRef}>
       <div className="flex items-start" style={{ background: 'rgba(12,15,17,0.55)' }}>
         <MatchRosterSidebar
           match={match}
           heroStats={heroStats}
-          width={SIDEBAR_W}
+          width={sidebarW}
           selectedSlot={selectedSlot}
           rowH={rowH}
           headerH={headerH}
@@ -406,11 +495,51 @@ export function MatchScoreboard({
         />
         {/* Stats pane — scrolls horizontally, rows aligned with the sidebar */}
         <div className="flex-1 min-w-0 overflow-x-auto">
-          <div className="inline-block min-w-full">
+          <div className="inline-block min-w-full" role="table">
             {headerRow(true)}
-            {radiant.map((p) => playerRow(p, true))}
+            {radiant.map((p) => (
+              <PlayerRow
+                key={p.player_slot}
+                player={p}
+                active={selectedSlot === p.player_slot}
+                onSelect={handleSelect}
+                cols={cols}
+                enemyHeroes={direHeroesForRadiant}
+                heroMap={heroMap}
+                allPlayers={match.players}
+                timeSec={timeSec}
+                duration={match.duration}
+                hasKillLogs={hasKillLogs}
+                hasPurchases={hasPurchases}
+                maxAbilities={maxAbilities}
+                itemConst={itemConst}
+                abilities={abilities}
+                abilityIds={abilityIds}
+                rowH={rowH}
+              />
+            ))}
             {headerRow(false)}
-            {dire.map((p) => playerRow(p, false))}
+            {dire.map((p) => (
+              <PlayerRow
+                key={p.player_slot}
+                player={p}
+                active={selectedSlot === p.player_slot}
+                onSelect={handleSelect}
+                cols={cols}
+                enemyHeroes={radiantHeroesForDire}
+                heroMap={heroMap}
+                allPlayers={match.players}
+                timeSec={timeSec}
+                duration={match.duration}
+                hasKillLogs={hasKillLogs}
+                hasPurchases={hasPurchases}
+                maxAbilities={maxAbilities}
+                itemConst={itemConst}
+                abilities={abilities}
+                abilityIds={abilityIds}
+                rowH={rowH}
+              />
+            ))}
           </div>
         </div>
       </div>

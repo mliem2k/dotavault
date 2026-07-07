@@ -10,12 +10,25 @@ export type CardRect = { top: number; bottom: number; left: number; right: numbe
 export function useBracketLayout(seriesKeys: string[]) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const cardRefs = useRef(new Map<string, HTMLDivElement>())
+  const cardRefCallbacks = useRef(new Map<string, (el: HTMLDivElement | null) => void>())
   const [positions, setPositions] = useState<Record<string, CardRect>>({})
   const [contentSize, setContentSize] = useState({ width: 0, height: 0 })
 
   const registerCard = (key: string, el: HTMLDivElement | null) => {
     if (el) cardRefs.current.set(key, el)
     else cardRefs.current.delete(key)
+  }
+
+  // Returns a stable ref callback per card key instead of a fresh closure on
+  // every render, so BracketCard (wrapped in React.memo) doesn't re-render
+  // just because its `cardRef` prop identity changed.
+  const getCardRef = (key: string) => {
+    let cb = cardRefCallbacks.current.get(key)
+    if (!cb) {
+      cb = (el: HTMLDivElement | null) => registerCard(key, el)
+      cardRefCallbacks.current.set(key, cb)
+    }
+    return cb
   }
 
   useLayoutEffect(() => {
@@ -48,5 +61,5 @@ export function useBracketLayout(seriesKeys: string[]) {
     return () => observer.disconnect()
   }, [seriesKeys])
 
-  return { containerRef, registerCard, positions, contentSize }
+  return { containerRef, registerCard, getCardRef, positions, contentSize }
 }

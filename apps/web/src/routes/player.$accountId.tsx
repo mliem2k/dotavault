@@ -16,11 +16,11 @@ export const Route = createFileRoute('/player/$accountId')({
 
 // Client palette shared with the match screens.
 const C = {
-  label: '#67757f',
+  label: '#8a8474',
   labelBright: '#8a97a0',
   text: '#cfd4d8',
   white: '#ffffff',
-  gold: '#cb9b25',
+  gold: '#c9a94a',
   green: '#8fbf3f',
   panel: 'rgba(16,19,22,0.72)',
 }
@@ -197,12 +197,16 @@ function PlayerPage() {
     </div>
   )
 
+  // DESIGN.md's tab-active/tab-inactive components: solid Aegis Gold fill +
+  // near-black text when active, transparent + muted text otherwise.
+  const tabLinkClass = (active: boolean) =>
+    `inline-flex items-center justify-center min-h-[44px] text-[13px] font-semibold uppercase transition-colors px-4 ${
+      active ? '' : 'hover:bg-white/[0.03] hover:text-foreground'
+    }`
   const tabLinkStyle = (active: boolean) => ({
-    color: active ? '#ffffff' : '#7d8b95',
-    letterSpacing: '3px',
-    textShadow: '0 1px 2px rgba(0,0,0,0.9)',
-    borderBottom: active ? '1px solid #ffffff' : '1px solid transparent',
-    paddingBottom: 2,
+    background: active ? '#c9a94a' : 'transparent',
+    color: active ? '#0b0b0d' : '#8a8474',
+    letterSpacing: '1.5px',
   })
 
   return (
@@ -227,32 +231,24 @@ function PlayerPage() {
     >
       <div className="flex flex-col gap-0" style={{ fontFamily: 'var(--font-dota)' }}>
         {/* Tab strip — PROFILE / MATCHES / STATS */}
-        <div className="flex items-center mt-3 mb-3 px-3 py-2.5" style={{ background: 'rgba(8,10,12,0.55)' }}>
-          <span className="flex items-center">
-            <Link to="/player/$accountId/profile" params={{ accountId }} className="text-[16px] font-semibold uppercase cursor-pointer" style={tabLinkStyle(activeTab === 'profile')}>
-              Profile
-            </Link>
-          </span>
-          <span className="mx-3 text-[15px]" style={{ color: '#3f464d' }}>/</span>
-          <span className="flex items-center">
-            <Link to="/player/$accountId/matches" params={{ accountId }} className="text-[16px] font-semibold uppercase cursor-pointer" style={tabLinkStyle(activeTab === 'matches')}>
-              Matches
-            </Link>
-          </span>
-          <span className="mx-3 text-[15px]" style={{ color: '#3f464d' }}>/</span>
-          <span className="flex items-center">
-            <Link to="/player/$accountId/stats" params={{ accountId }} className="text-[16px] font-semibold uppercase cursor-pointer" style={tabLinkStyle(activeTab === 'stats')}>
-              Stats
-            </Link>
-          </span>
+        <div className="flex items-center gap-1 flex-wrap mt-3 mb-3 px-3 py-2.5" style={{ background: 'rgba(8,10,12,0.55)' }}>
+          <Link to="/player/$accountId/profile" params={{ accountId }} className={tabLinkClass(activeTab === 'profile')} style={tabLinkStyle(activeTab === 'profile')}>
+            Profile
+          </Link>
+          <Link to="/player/$accountId/matches" params={{ accountId }} className={tabLinkClass(activeTab === 'matches')} style={tabLinkStyle(activeTab === 'matches')}>
+            Matches
+          </Link>
+          <Link to="/player/$accountId/stats" params={{ accountId }} className={tabLinkClass(activeTab === 'stats')} style={tabLinkStyle(activeTab === 'stats')}>
+            Stats
+          </Link>
         </div>
 
         {/* Header bar */}
-        <div className="flex items-center gap-4 px-4 py-3" style={{ background: 'rgba(8,10,12,0.9)' }}>
+        <div className="flex items-center flex-wrap gap-4 px-4 py-3" style={{ background: 'rgba(8,10,12,0.9)' }}>
           <img
             src={resolvedProfile.avatarfull}
             alt={resolvedProfile.personaname}
-            className="h-16 w-16 shrink-0"
+            className="h-16 w-16 shrink-0 rounded-full"
             style={{ border: '1px solid #2c3236' }}
           />
           <div className="min-w-0">
@@ -304,7 +300,7 @@ function PlayerPage() {
             )}
           </div>
 
-          <div className="flex items-center gap-10 ml-auto pr-2">
+          <div className="flex items-center flex-wrap gap-6 sm:gap-10 sm:ml-auto pr-2">
             {bigStat('Matches', totalGames.toLocaleString())}
             {bigStat('Win Rate', winRate(wl.win, totalGames))}
             <div className="flex flex-col items-end">
