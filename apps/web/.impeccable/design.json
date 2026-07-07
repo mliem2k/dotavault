@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-07T00:00:00.000Z",
+  "title": "Design System: DotaVault",
+  "extensions": {
+    "colorMeta": {
+      "gold": {
+        "role": "primary",
+        "displayName": "Aegis Gold",
+        "canonical": "#c9a94a",
+        "tonalRamp": ["#3a2f16", "#5c4b22", "#7e672f", "#a1863c", "#c9a94a", "#d6bd72", "#e3d19b", "#f0e6c4"]
+      },
+      "gold-bright": {
+        "role": "primary",
+        "displayName": "Immortal Gold",
+        "canonical": "#f2c94c",
+        "tonalRamp": ["#4a3a10", "#705819", "#967621", "#bd9531", "#f2c94c", "#f5d670", "#f8e299", "#fbefc2"]
+      },
+      "radiant-win": {
+        "role": "secondary",
+        "displayName": "Radiant Green",
+        "canonical": "#8ec63f",
+        "tonalRamp": ["#233210", "#365019", "#496e22", "#5f8f2e", "#8ec63f", "#a8d466", "#c2e18f", "#dcefb8"]
+      },
+      "radiant-win-alt": {
+        "role": "secondary",
+        "displayName": "Radiant Green (match-side)",
+        "canonical": "#8fbf3f",
+        "tonalRamp": ["#233010", "#374c19", "#4a6822", "#61862e", "#8fbf3f", "#a9cf66", "#c3df8f", "#ddefb8"]
+      },
+      "dire-loss": {
+        "role": "secondary",
+        "displayName": "Dire Red",
+        "canonical": "#d14a38",
+        "tonalRamp": ["#3d150e", "#5f2116", "#82301f", "#a83c29", "#d14a38", "#dd7364", "#e89c90", "#f3c5bd"]
+      },
+      "dire-loss-alt": {
+        "role": "secondary",
+        "displayName": "Dire Red (match-side)",
+        "canonical": "#c94a38",
+        "tonalRamp": ["#3a150e", "#5b2116", "#7d301f", "#a23c29", "#c94a38", "#d87364", "#e79c90", "#f6c5bd"]
+      },
+      "attr-strength": { "role": "tertiary", "displayName": "Strength Red", "canonical": "#e24b3a", "tonalRamp": ["#421710", "#651f18", "#8a2921", "#b1372a", "#e24b3a", "#e97465", "#f19c92", "#f9c5bf"] },
+      "attr-agility": { "role": "tertiary", "displayName": "Agility Green", "canonical": "#a2d240", "tonalRamp": ["#2b3510", "#425019", "#5a6c22", "#7fa02f", "#a2d240", "#b7dc68", "#cde690", "#e3f1b8"] },
+      "attr-intelligence": { "role": "tertiary", "displayName": "Intelligence Blue", "canonical": "#4fb0e0", "tonalRamp": ["#123240", "#1c4d61", "#276882", "#3a8ab3", "#4fb0e0", "#78c2e7", "#a1d4ee", "#cae7f5"] },
+      "attr-universal": { "role": "tertiary", "displayName": "Universal Purple", "canonical": "#c47adf", "tonalRamp": ["#37204a", "#54306f", "#714094", "#9c5cbe", "#c47adf", "#d29ce7", "#e0beef", "#eee0f7"] },
+      "accent-info": { "role": "tertiary", "displayName": "Scouting Blue", "canonical": "#5a8fc2", "tonalRamp": ["#182a3a", "#254159", "#325778", "#446f9d", "#5a8fc2", "#80a8d1", "#a6c2e0", "#ccdcef"] },
+      "bg-void": { "role": "neutral", "displayName": "Void Black", "canonical": "#0b0b0d", "tonalRamp": ["#000000", "#08080a", "#0b0b0d", "#1a1a1d", "#2c2c30", "#454549", "#6a6a6e", "#a0a0a3"] },
+      "bg-card": { "role": "neutral", "displayName": "Ember Card", "canonical": "#16130f", "tonalRamp": ["#000000", "#0d0b08", "#16130f", "#251f18", "#3a3226", "#584d3b", "#7f7157", "#b0a084"] },
+      "border-default": { "role": "neutral", "displayName": "Panel Border", "canonical": "#2a2620", "tonalRamp": ["#0a0908", "#161310", "#2a2620", "#443d32", "#645a49", "#8c8066", "#b6a888", "#ddd0b3"] },
+      "text-muted": { "role": "neutral", "displayName": "Muted Parchment", "canonical": "#8a8474", "tonalRamp": ["#1f1d19", "#332f28", "#4a453a", "#655e4f", "#8a8474", "#a49e8e", "#c1bcae", "#dedbd2"] },
+      "text-foreground": { "role": "neutral", "displayName": "Foreground Cream", "canonical": "#dcd6c8", "tonalRamp": ["#2c2a24", "#484338", "#655e4d", "#8a8163", "#b0a586", "#dcd6c8", "#e8e4da", "#f4f2ec"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page titles only (league name, match ID). The one place Reaver appears." },
+      "title": { "displayName": "Panel Title", "purpose": "Section header inside a Panel, uppercase, wide tracking." },
+      "body": { "displayName": "Body", "purpose": "Table cells, names, list rows. The workhorse text style." },
+      "label": { "displayName": "Label", "purpose": "Column headers, tab text, badges, round labels." },
+      "mono": { "displayName": "Numeric/Tabular", "purpose": "Scores, win rates, ranks, durations; always tabular-nums." }
+    },
+    "shadows": [
+      { "name": "tooltip-float", "value": "0 6px 24px rgba(0,0,0,0.7)", "purpose": "Ability tooltips and hovering detail panels that need to read as above the layout." },
+      { "name": "portrait-glow", "value": "0 0 32px 8px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)", "purpose": "Ambient separation for a hero/ability image sitting over busy background art." },
+      { "name": "active-row-inset", "value": "inset 3px 0 0 var(--accent)", "purpose": "Marks the selected row in a roster or timeline list via a colored inset edge, not a lift." },
+      { "name": "text-legibility", "value": "0 1px 3px rgba(0,0,0,0.9)", "purpose": "Applied to text over background artwork or team logos as a contrast fix, not decoration." }
+    ],
+    "motion": [],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Active Tab Pill",
+      "kind": "nav",
+      "refersTo": "tab-active",
+      "description": "The selected tab in a sub-navigation row (league/player/leaderboard tabs).",
+      "html": "<a class=\"ds-tab ds-tab-active\" href=\"#\">Results</a>",
+      "css": ".ds-tab { display: inline-flex; align-items: center; padding: 8px 16px; font-family: Radiance, sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; border-radius: 0; transition: background-color 0.15s, color 0.15s; } .ds-tab-active { background-color: #c9a94a; color: #0b0b0d; }"
+    },
+    {
+      "name": "Inactive Tab Pill",
+      "kind": "nav",
+      "refersTo": "tab-inactive",
+      "description": "An unselected tab, hoverable.",
+      "html": "<a class=\"ds-tab ds-tab-inactive\" href=\"#\">Bracket</a>",
+      "css": ".ds-tab { display: inline-flex; align-items: center; padding: 8px 16px; font-family: Radiance, sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; border-radius: 0; transition: background-color 0.15s, color 0.15s; } .ds-tab-inactive { background-color: transparent; color: #8a8474; } .ds-tab-inactive:hover { background-color: rgba(255,255,255,0.05); color: #dcd6c8; }"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "The standard container: dark body, darker title strip, square corners, 1px border.",
+      "html": "<section class=\"ds-panel\"><header class=\"ds-panel-header\">Team Standings</header><div class=\"ds-panel-body\">Panel content goes here.</div></section>",
+      "css": ".ds-panel { background-color: rgba(12,11,14,0.72); border: 1px solid #24222a; border-radius: 0; color: #dcd6c8; font-family: Radiance, sans-serif; } .ds-panel-header { background-color: rgba(8,10,12,0.7); padding: 10px 16px; font-family: Reaver, serif; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 3px; border-bottom: 1px solid #24222a; } .ds-panel-body { padding: 16px; }"
+    },
+    {
+      "name": "Private Badge",
+      "kind": "chip",
+      "refersTo": "badge-private",
+      "description": "Marks a player profile that couldn't be publicly resolved. Muted, not alarming.",
+      "html": "<span class=\"ds-badge ds-badge-private\">Private</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; padding: 2px 6px; font-family: Radiance, sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; border-radius: 0; border: 1px solid; } .ds-badge-private { color: #8a8474; border-color: #8a8474; background: transparent; }"
+    },
+    {
+      "name": "Pro Badge",
+      "kind": "chip",
+      "refersTo": "badge-pro",
+      "description": "Marks a player known to be a professional competitor.",
+      "html": "<span class=\"ds-badge ds-badge-pro\">Pro</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; padding: 2px 6px; font-family: Radiance, sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; border-radius: 0; border: 1px solid; } .ds-badge-pro { color: #c9a94a; border-color: rgba(201,169,74,0.5); background: transparent; }"
+    },
+    {
+      "name": "Data Table Row",
+      "kind": "custom",
+      "refersTo": "table-row",
+      "description": "A row in a stats table: hairline top border, tabular numeric columns, optional hover wash when the row is a navigation target.",
+      "html": "<div class=\"ds-row\"><span class=\"ds-row-name\">Anti-Mage</span><span class=\"ds-row-num\">312</span><span class=\"ds-row-num\">54.2%</span></div>",
+      "css": ".ds-row { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-top: 1px solid #1c1810; font-family: Radiance, sans-serif; font-size: 13px; color: #dcd6c8; transition: background-color 0.15s; } .ds-row:hover { background-color: rgba(255,255,255,0.04); cursor: pointer; } .ds-row-num { margin-left: auto; font-variant-numeric: tabular-nums; text-align: right; min-width: 56px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Client Overlay",
+    "overview": "DotaVault is built to feel like a panel that could have shipped inside the Dota 2 client itself, not a third-party website bolted on top of the game. It self-hosts Valve's actual web fonts (Radiance for UI text, Reaver for display headings) and borrows the game's own semantic vocabulary directly: Radiant green for wins, Dire red for losses, a muted gold for emphasis. Nothing here is a generic dashboard skin wearing esports colors; every choice traces back to something the audience already recognizes from hundreds of hours inside the game's own UI. The audience is competitive and hardcore players who arrive with a specific lookup already in mind. The design serves that: dense tables, compact rows, minimal chrome, zero onboarding copy. It explicitly rejects the generic SaaS/AI dashboard aesthetic (cream backgrounds, gradient text, card-grid-everything, tiny uppercase eyebrow labels above every section) in favor of the flat, near-black, sharp-edged surface Dota 2's own interface already uses.",
+    "keyCharacteristics": [
+      "Near-black void background, never a light theme",
+      "Valve's own Radiance and Reaver fonts, self-hosted, not a lookalike",
+      "Sharp corners everywhere except circular avatars, matching Dota 2's own UI geometry",
+      "Color carries meaning (win/loss, radiant/dire, hero attribute) before it carries decoration",
+      "Data honesty: incomplete or approximate data is labeled as such, never hidden or faked"
+    ],
+    "rules": [
+      { "name": "The Named-Color Rule", "body": "Every color in this system either comes from Dota 2's own UI/lore vocabulary (Radiant, Dire, Aegis Gold, the four attribute colors) or is a deliberately restrained neutral. If a new color is ever needed, ask first whether Dota 2 already has a name for it before inventing one.", "section": "colors" },
+      { "name": "The Uppercase-Label Rule", "body": "Any text acting as a label rather than content (section titles, column headers, tab text, badges) is uppercase with positive letter-spacing. Body content (names, values) is never uppercased.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Nothing gets a drop shadow just for being a card. Shadow is a functional answer to \"this needs to read as above something else,\" never a default treatment for containers.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do name colors after Dota 2's own vocabulary first (Radiant, Dire, Aegis Gold, the attribute quartet) before inventing a new descriptive name.",
+      "Do keep corners square (0px radius) for every panel, card, button, and badge; reserve full rounding for player avatars only.",
+      "Do label incomplete or inferred data honestly (Player <id>, Team <id>, a Private badge, an Approximate round grouping disclaimer) rather than hiding the gap or fabricating a value.",
+      "Do use uppercase with positive letter-spacing for labels (section titles, column headers, tab text, badges); leave body content in normal case.",
+      "Do keep tables dense: compact row height, right-aligned tabular numbers, hairline dividers, no card-per-row treatment."
+    ],
+    "donts": [
+      "Don't use a cream, off-white, or light theme background anywhere. The void background (#0b0b0d / #08080a) is non-negotiable.",
+      "Don't use gradient text, card-grid-everything layouts, or tiny uppercase eyebrow labels above every section, the generic SaaS/AI dashboard aesthetic this project explicitly rejects.",
+      "Don't add a drop shadow to a panel or card just because it's a container; shadow is reserved for tooltips, floating portraits, and active-row accents (see Elevation).",
+      "Don't round panel, card, or button corners. Square corners are the default; only player avatars break this rule.",
+      "Don't draw a bracket connector line (or any inferred relationship) across data the underlying source can't actually confirm; skip the line rather than mislead."
+    ]
+  }
+}
