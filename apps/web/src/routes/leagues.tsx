@@ -77,7 +77,7 @@ function LeaguesPage() {
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="max-w-[720px] flex flex-wrap items-center gap-2">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -111,7 +111,7 @@ function LeaguesPage() {
         )}
       </div>
 
-      <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+      <div className="max-w-[720px]" style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
         {leagues.isPending && (
           <div className="flex justify-center py-16">
             <Spinner className="h-8 w-8" />

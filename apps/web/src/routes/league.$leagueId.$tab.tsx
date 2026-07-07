@@ -382,8 +382,16 @@ function LeagueTabPage() {
   return (
     <div>
       <LeagueTabBar leagueId={leagueId} active={activeTab} />
-      {activeTab === 'standings' && <StandingsPanel leagueId={id} />}
-      {activeTab === 'draft' && <DraftPanel leagueId={id} heroMap={heroMap} />}
+      {activeTab === 'standings' && (
+        <div className="max-w-[720px]">
+          <StandingsPanel leagueId={id} />
+        </div>
+      )}
+      {activeTab === 'draft' && (
+        <div className="max-w-[720px]">
+          <DraftPanel leagueId={id} heroMap={heroMap} />
+        </div>
+      )}
       {activeTab === 'participants' && <RosterPanel leagueId={id} />}
     </div>
   )
