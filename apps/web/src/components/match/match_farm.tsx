@@ -1,4 +1,6 @@
 import type { HeroStat, Match, MatchPlayer } from 'types'
+import { SortHeader } from '@/components/ui/sort_header'
+import { applySort, useSort } from '@/lib/sortable'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { TeamHeader, orderedTeams } from './match_roster'
 
@@ -28,6 +30,31 @@ const GOLD_REASONS: { id: string; label: string; color: string }[] = [
   { id: '0', label: 'Passive', color: '#5c666c' },
 ]
 
+type SortKey = 'earned' | 'spent' | 'lh10' | 'dn'
+
+function earnedGold(p: MatchPlayer): number {
+  return p.total_gold ?? p.net_worth
+}
+
+function lhAt10(p: MatchPlayer): number | null {
+  return p.lh_t && p.lh_t.length > 10 ? p.lh_t[10] : null
+}
+
+function compareFarm(sortKey: SortKey) {
+  return (a: MatchPlayer, b: MatchPlayer): number => {
+    switch (sortKey) {
+      case 'spent':
+        return (a.gold_spent ?? 0) - (b.gold_spent ?? 0)
+      case 'lh10':
+        return (lhAt10(a) ?? 0) - (lhAt10(b) ?? 0)
+      case 'dn':
+        return (a.denies ?? 0) - (b.denies ?? 0)
+      default:
+        return earnedGold(a) - earnedGold(b)
+    }
+  }
+}
+
 function GoldBar({ p }: { p: MatchPlayer }) {
   const reasons = p.gold_reasons ?? {}
   const parts = GOLD_REASONS.map((r) => ({ ...r, value: Math.max(0, reasons[r.id] ?? 0) }))
@@ -55,25 +82,30 @@ export function MatchFarm({
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const { radiant, dire } = orderedTeams(match)
   const maxEarned = Math.max(1, ...match.players.map((p) => p.total_gold ?? p.net_worth))
+  // One shared sort control drives both team sections independently — each
+  // team's 5 rows are sorted on their own, never merged into one list of 10.
+  const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('earned', 'desc')
+  const radiantSorted = applySort(radiant, sortDir, compareFarm(sortKey))
+  const direSorted = applySort(dire, sortDir, compareFarm(sortKey))
 
   const header = (
-    <div className="flex items-center px-2" style={{ height: 38 }}>
+    <div
+      className="flex items-center px-2 py-2 text-[13px] uppercase"
+      style={{ color: C.label, letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
+    >
       <div className="shrink-0" style={{ width: 240 }} />
-      <div className="flex-1 text-[13px] uppercase" style={{ color: C.label, letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}>
-        Gold Sources
-      </div>
-      {['Earned', 'Spent', 'LH @10', 'DN'].map((l) => (
-        <div key={l} className="shrink-0 text-right text-[13px] uppercase pr-2" style={{ width: 100, color: C.label, letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}>
-          {l}
-        </div>
-      ))}
+      <div className="flex-1">Gold Sources</div>
+      <SortHeader label="Earned" sortKey="earned" active={sortKey === 'earned'} dir={sortDir} onClick={onSort} className="w-[100px] shrink-0 justify-end pr-2" />
+      <SortHeader label="Spent" sortKey="spent" active={sortKey === 'spent'} dir={sortDir} onClick={onSort} className="w-[100px] shrink-0 justify-end pr-2" />
+      <SortHeader label="LH @10" sortKey="lh10" active={sortKey === 'lh10'} dir={sortDir} onClick={onSort} className="w-[100px] shrink-0 justify-end pr-2" />
+      <SortHeader label="DN" sortKey="dn" active={sortKey === 'dn'} dir={sortDir} onClick={onSort} className="w-[100px] shrink-0 justify-end pr-2" />
     </div>
   )
 
   const row = (p: MatchPlayer) => {
     const hero = heroMap.get(p.hero_id)
-    const earned = p.total_gold ?? p.net_worth
-    const lh10 = p.lh_t && p.lh_t.length > 10 ? p.lh_t[10] : null
+    const earned = earnedGold(p)
+    const lh10 = lhAt10(p)
     return (
       <div key={p.player_slot} className="flex items-center px-2" style={{ height: 60, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="flex items-center gap-2.5 shrink-0" style={{ width: 240 }}>
@@ -131,8 +163,8 @@ export function MatchFarm({
   return (
     <div className="space-y-3">
       <div style={{ background: C.panel }}>
-        {section(radiant, true)}
-        {section(dire, false)}
+        {section(radiantSorted, true)}
+        {section(direSorted, false)}
       </div>
       {/* legend */}
       <div className="flex items-center gap-5 flex-wrap px-1 pt-1">

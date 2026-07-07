@@ -1,9 +1,11 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
+import { SortHeader } from '@/components/ui/sort_header'
 import { Spinner } from '@/components/ui/spinner'
 import { countryFlagUrl, divisionLabel, divisionShort, findLeaderboardPositions } from '@/lib/leaderboard'
 import { opendota } from '@/lib/opendota'
+import { applySort, useSort } from '@/lib/sortable'
 import { usePageTitle } from '@/lib/title'
 import { tiChampionships } from '@/lib/ti_champions'
 import { formatDuration, formatTimeAgo } from '@/lib/utils'
@@ -167,23 +169,65 @@ function ProMatches() {
 // doesn't expose season-scoped aggregates).
 const ACTIVE_WINDOW_DAYS = 90
 
+type TeamSortKey = 'wins' | 'losses' | 'winrate' | 'rating' | 'name'
+
 function TopTeams() {
   const teams = useQuery({
     queryKey: ['teams_list'],
     queryFn: () => opendota.teamsList(),
     staleTime: 30 * 60 * 1000,
   })
+  const { key: sortKey, dir: sortDir, onSort } = useSort<TeamSortKey>('rating', 'desc')
   const cutoff = Date.now() / 1000 - ACTIVE_WINDOW_DAYS * 86400
-  const top = (teams.data ?? [])
-    .filter((t) => t.name && t.last_match_time > cutoff)
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 20)
+  const active = (teams.data ?? []).filter((t) => t.name && t.last_match_time > cutoff)
+  const top = applySort(active, sortDir, (a, b) => {
+    switch (sortKey) {
+      case 'wins':
+        return a.wins - b.wins
+      case 'losses':
+        return a.losses - b.losses
+      case 'winrate': {
+        const aGames = a.wins + a.losses
+        const bGames = b.wins + b.losses
+        const aWr = aGames > 0 ? a.wins / aGames : 0
+        const bWr = bGames > 0 ? b.wins / bGames : 0
+        return aWr - bWr
+      }
+      case 'name':
+        return (a.name ?? '').localeCompare(b.name ?? '')
+      default:
+        return a.rating - b.rating
+    }
+  }).slice(0, 20)
 
   return (
     <Panel title="Top Teams This Season">
       {teams.isPending && (
         <div className="flex justify-center py-8">
           <Spinner />
+        </div>
+      )}
+      {top.length > 0 && (
+        <div
+          className="flex items-center gap-3 py-2 text-[12px] uppercase"
+          style={{ color: '#8a8474', letterSpacing: '1px', fontFamily: 'var(--font-dota)', borderBottom: '1px solid #1c1810' }}
+        >
+          <span className="w-5 shrink-0" />
+          <span className="h-7 w-7 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <SortHeader label="Team" sortKey="name" active={sortKey === 'name'} dir={sortDir} onClick={onSort} />
+          </div>
+          <SortHeader label="W" sortKey="wins" active={sortKey === 'wins'} dir={sortDir} onClick={onSort} className="w-10 shrink-0 justify-end" />
+          <SortHeader label="L" sortKey="losses" active={sortKey === 'losses'} dir={sortDir} onClick={onSort} className="w-10 shrink-0 justify-end" />
+          <SortHeader label="Win%" sortKey="winrate" active={sortKey === 'winrate'} dir={sortDir} onClick={onSort} className="w-14 shrink-0 justify-end" />
+          <SortHeader
+            label="Rating"
+            sortKey="rating"
+            active={sortKey === 'rating'}
+            dir={sortDir}
+            onClick={onSort}
+            className="w-16 shrink-0 justify-end"
+          />
         </div>
       )}
       {top.map((t, i) => {

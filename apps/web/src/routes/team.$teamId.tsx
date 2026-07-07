@@ -2,10 +2,14 @@ import { useQuery } from '@tanstack/react-query'
 import { usePageTitle } from '@/lib/title'
 import { createFileRoute } from '@tanstack/react-router'
 import { Badge } from '@/components/ui/badge'
+import { SortHeader } from '@/components/ui/sort_header'
 import { Spinner } from '@/components/ui/spinner'
+import { applySort, useSort } from '@/lib/sortable'
 import { opendota } from '@/lib/opendota'
 import { tiChampionships } from '@/lib/ti_champions'
 import { formatTimeAgo, winRate } from '@/lib/utils'
+
+type SortKey = 'player' | 'role' | 'games' | 'winrate'
 
 export const Route = createFileRoute('/team/$teamId')({
   component: TeamPage,
@@ -63,6 +67,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 function TeamPage() {
   usePageTitle('Team')
   const { teamId } = Route.useParams()
+  const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('games', 'desc')
 
   const team = useQuery({
     queryKey: ['team', Number(teamId)],
@@ -178,6 +183,22 @@ function TeamPage() {
     return ''
   }
 
+  const sortedRoster = applySort(roster, sortDir, (a, b) => {
+    switch (sortKey) {
+      case 'player':
+        return (a.name ?? `Player ${a.account_id}`).localeCompare(b.name ?? `Player ${b.account_id}`)
+      case 'role':
+        return (ROLE_SORT[a.fantasy_role] ?? 9) - (ROLE_SORT[b.fantasy_role] ?? 9)
+      case 'winrate':
+        return (
+          (a.games_played > 0 ? a.wins / a.games_played : -1) -
+          (b.games_played > 0 ? b.wins / b.games_played : -1)
+        )
+      default:
+        return a.games_played - b.games_played
+    }
+  })
+
   return (
     <div className="space-y-6 py-4">
       {/* Team header */}
@@ -269,19 +290,52 @@ function TeamPage() {
             <table className="w-full">
               <thead>
                 <tr>
-                  {(['Player', 'Role', 'Games', 'Win%'] as string[]).map((h, i) => (
-                    <th
-                      key={h}
-                      className={`pb-2 text-[11px] font-bold uppercase tracking-widest ${i >= 2 ? 'text-right' : 'text-left'}`}
+                  <th className="pb-2 text-[11px] font-bold uppercase tracking-widest text-left">
+                    <SortHeader
+                      label="Player"
+                      sortKey="player"
+                      active={sortKey === 'player'}
+                      dir={sortDir}
+                      onClick={onSort}
                       style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
-                    >
-                      {h}
-                    </th>
-                  ))}
+                    />
+                  </th>
+                  <th className="pb-2 text-[11px] font-bold uppercase tracking-widest text-left">
+                    <SortHeader
+                      label="Role"
+                      sortKey="role"
+                      active={sortKey === 'role'}
+                      dir={sortDir}
+                      onClick={onSort}
+                      style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                    />
+                  </th>
+                  <th className="pb-2 text-[11px] font-bold uppercase tracking-widest text-right">
+                    <SortHeader
+                      label="Games"
+                      sortKey="games"
+                      active={sortKey === 'games'}
+                      dir={sortDir}
+                      onClick={onSort}
+                      className="justify-end"
+                      style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                    />
+                  </th>
+                  <th className="pb-2 text-[11px] font-bold uppercase tracking-widest text-right">
+                    <SortHeader
+                      label="Win%"
+                      sortKey="winrate"
+                      active={sortKey === 'winrate'}
+                      dir={sortDir}
+                      onClick={onSort}
+                      className="justify-end"
+                      style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                    />
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {roster.map((p, i) => {
+                {sortedRoster.map((p, i) => {
                   const pwr =
                     p.games_played > 0 ? ((p.wins / p.games_played) * 100).toFixed(1) : null
                   return (

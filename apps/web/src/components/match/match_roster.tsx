@@ -382,6 +382,8 @@ export function MatchRosterSidebar({
   scoreRadiant,
   scoreDire,
   levels,
+  radiantOrder,
+  direOrder,
 }: {
   match: Match
   heroStats: HeroStat[]
@@ -396,9 +398,16 @@ export function MatchRosterSidebar({
   scoreRadiant?: number
   scoreDire?: number
   levels?: Map<number, number>
+  // Lets a caller that re-sorts its own player rows (e.g. a sortable
+  // scoreboard) keep this sidebar's row order in sync instead of always
+  // falling back to raw player_slot order.
+  radiantOrder?: MatchPlayer[]
+  direOrder?: MatchPlayer[]
 }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
-  const { radiant, dire } = orderedTeams(match)
+  const teams = orderedTeams(match)
+  const radiant = radiantOrder ?? teams.radiant
+  const dire = direOrder ?? teams.dire
   const radKills = scoreRadiant ?? match.radiant_score ?? radiant.reduce((s, p) => s + p.kills, 0)
   const direKills = scoreDire ?? match.dire_score ?? dire.reduce((s, p) => s + p.kills, 0)
 

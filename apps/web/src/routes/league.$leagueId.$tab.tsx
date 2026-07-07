@@ -4,8 +4,10 @@ import { useMemo } from 'react'
 import { LeagueTabBar, type LeagueTab } from '@/components/league/league_tab_bar'
 import { Panel } from '@/components/league/panel'
 import { useTeamMap } from '@/components/league/use_team_map'
+import { SortHeader } from '@/components/ui/sort_header'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
+import { applySort, useSort } from '@/lib/sortable'
 import { fetchSteamProfile } from '@/lib/steam'
 import { heroIconUrl, heroSlug, winRateColor } from '@/lib/utils'
 
@@ -16,6 +18,8 @@ export const Route = createFileRoute('/league/$leagueId/$tab')({
 })
 
 const VALID_TABS: LeagueTab[] = ['standings', 'draft', 'participants']
+
+type DraftSortKey = 'hero' | 'picks' | 'winrate' | 'bans'
 
 function DraftPanel({
   leagueId,
@@ -34,10 +38,26 @@ function DraftPanel({
     queryFn: () => opendota.leagueBanStats(leagueId),
     staleTime: 10 * 60 * 1000,
   })
+  const { key: sortKey, dir: sortDir, onSort } = useSort<DraftSortKey>('picks', 'desc')
 
   const banByHero = useMemo(() => new Map((banStats.data ?? []).map((b) => [b.hero_id, b.bans])), [banStats.data])
-  const topPicks = [...(heroStats.data ?? [])].sort((a, b) => b.picks - a.picks).slice(0, 15)
-  const maxPick = Math.max(1, ...topPicks.map((h) => h.picks))
+  const allStats = heroStats.data ?? []
+  const maxPick = Math.max(1, ...allStats.map((h) => h.picks))
+  const sorted = applySort(allStats, sortDir, (a, b) => {
+    switch (sortKey) {
+      case 'hero':
+        return (heroMap.get(a.hero_id)?.localized_name ?? String(a.hero_id)).localeCompare(
+          heroMap.get(b.hero_id)?.localized_name ?? String(b.hero_id),
+        )
+      case 'winrate':
+        return (a.picks > 0 ? a.wins / a.picks : 0) - (b.picks > 0 ? b.wins / b.picks : 0)
+      case 'bans':
+        return (banByHero.get(a.hero_id) ?? 0) - (banByHero.get(b.hero_id) ?? 0)
+      default:
+        return a.picks - b.picks
+    }
+  })
+  const topPicks = sorted.slice(0, 15)
 
   return (
     <Panel title="Draft">
@@ -54,10 +74,18 @@ function DraftPanel({
       <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-dota)' }}>
         <thead>
           <tr className="text-[12px] font-bold uppercase tracking-widest" style={{ color: '#8a8474' }}>
-            <th className="pb-2 text-left">Hero</th>
-            <th className="pb-2 px-2 text-right">Picks</th>
-            <th className="pb-2 px-2 text-right">Win Rate</th>
-            <th className="pb-2 px-2 text-right">Bans</th>
+            <th className="pb-2 text-left">
+              <SortHeader label="Hero" sortKey="hero" active={sortKey === 'hero'} dir={sortDir} onClick={onSort} />
+            </th>
+            <th className="pb-2 px-2 text-right">
+              <SortHeader label="Picks" sortKey="picks" active={sortKey === 'picks'} dir={sortDir} onClick={onSort} className="justify-end" />
+            </th>
+            <th className="pb-2 px-2 text-right">
+              <SortHeader label="Win Rate" sortKey="winrate" active={sortKey === 'winrate'} dir={sortDir} onClick={onSort} className="justify-end" />
+            </th>
+            <th className="pb-2 px-2 text-right">
+              <SortHeader label="Bans" sortKey="bans" active={sortKey === 'bans'} dir={sortDir} onClick={onSort} className="justify-end" />
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -109,6 +137,8 @@ function DraftPanel({
   )
 }
 
+type StandingsSortKey = 'team' | 'wins' | 'losses' | 'winrate'
+
 function StandingsPanel({ leagueId }: { leagueId: number }) {
   const standings = useQuery({
     queryKey: ['league_standings', leagueId],
@@ -118,6 +148,27 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
   const navigate = useNavigate()
   const relevantTeamIds = useMemo(() => (standings.data ?? []).map((s) => s.team_id), [standings.data])
   const teamMap = useTeamMap(relevantTeamIds)
+  const { key: sortKey, dir: sortDir, onSort } = useSort<StandingsSortKey>('winrate', 'desc')
+
+  const sortedStandings = applySort(standings.data ?? [], sortDir, (a, b) => {
+    switch (sortKey) {
+      case 'team':
+        return (teamMap.get(a.team_id)?.name ?? `Team ${a.team_id}`).localeCompare(
+          teamMap.get(b.team_id)?.name ?? `Team ${b.team_id}`,
+        )
+      case 'wins':
+        return a.wins - b.wins
+      case 'losses':
+        return a.losses - b.losses
+      default: {
+        const gamesA = a.wins + a.losses
+        const gamesB = b.wins + b.losses
+        const wrA = gamesA > 0 ? a.wins / gamesA : 0
+        const wrB = gamesB > 0 ? b.wins / gamesB : 0
+        return wrA - wrB
+      }
+    }
+  })
 
   return (
     <Panel title="Team Standings">
@@ -136,14 +187,22 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
           <thead>
             <tr className="text-[12px] font-bold uppercase tracking-widest" style={{ color: '#8a8474' }}>
               <th className="pb-2 pr-2 text-right w-8">#</th>
-              <th className="pb-2 text-left">Team</th>
-              <th className="pb-2 px-3 text-right">W</th>
-              <th className="pb-2 px-3 text-right">L</th>
-              <th className="pb-2 pl-3 text-right">Win Rate</th>
+              <th className="pb-2 text-left">
+                <SortHeader label="Team" sortKey="team" active={sortKey === 'team'} dir={sortDir} onClick={onSort} />
+              </th>
+              <th className="pb-2 px-3 text-right">
+                <SortHeader label="W" sortKey="wins" active={sortKey === 'wins'} dir={sortDir} onClick={onSort} className="justify-end" />
+              </th>
+              <th className="pb-2 px-3 text-right">
+                <SortHeader label="L" sortKey="losses" active={sortKey === 'losses'} dir={sortDir} onClick={onSort} className="justify-end" />
+              </th>
+              <th className="pb-2 pl-3 text-right">
+                <SortHeader label="Win Rate" sortKey="winrate" active={sortKey === 'winrate'} dir={sortDir} onClick={onSort} className="justify-end" />
+              </th>
             </tr>
           </thead>
           <tbody>
-            {standings.data.map((s, i) => {
+            {sortedStandings.map((s, i) => {
               const team = teamMap.get(s.team_id)
               const games = s.wins + s.losses
               const wr = games > 0 ? (s.wins / games) * 100 : 0

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { HeroStat, Match, MatchPlayer } from 'types'
+import { SortHeader } from '@/components/ui/sort_header'
 import { MAP_MAX, MAP_MIN } from '@/lib/buildings'
 import { playerColor } from '@/lib/dotaconst'
+import { applySort, useSort } from '@/lib/sortable'
 import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
 
 /* Laning tab (OpenDota-style): where each hero actually stood during the
@@ -20,6 +22,8 @@ const C = {
 }
 
 const LANE_NAMES: Record<number, string> = { 1: 'Safe', 2: 'Mid', 3: 'Off', 4: 'Jungle' }
+
+type SortKey = 'player' | 'lane' | 'eff' | 'lh' | 'gold' | 'xp'
 
 function toCanvas(val: number, size: number): number {
   return ((val - MAP_MIN) / (MAP_MAX - MAP_MIN)) * size
@@ -97,6 +101,30 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
   }, [draw])
 
   const at10 = (arr: number[] | null | undefined) => arr?.[Math.min(10, (arr?.length ?? 1) - 1)] ?? null
+
+  const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('eff', 'desc')
+
+  // LH / DN renders as one combined cell, but only last hits (the more
+  // meaningful farm signal) drives the sort — denies aren't exposed as a
+  // separate sortable column.
+  const compare = (a: MatchPlayer, b: MatchPlayer) => {
+    switch (sortKey) {
+      case 'player':
+        return (a.personaname ?? 'Anonymous').localeCompare(b.personaname ?? 'Anonymous')
+      case 'lane':
+        return (a.lane_role ?? 0) - (b.lane_role ?? 0)
+      case 'lh':
+        return (at10(a.lh_t) ?? -1) - (at10(b.lh_t) ?? -1)
+      case 'gold':
+        return (at10(a.gold_t) ?? -1) - (at10(b.gold_t) ?? -1)
+      case 'xp':
+        return (at10(a.xp_t) ?? -1) - (at10(b.xp_t) ?? -1)
+      default:
+        return (a.lane_efficiency_pct ?? -1) - (b.lane_efficiency_pct ?? -1)
+    }
+  }
+  const radiantSorted = applySort(match.players.filter((p) => p.player_slot < 128), sortDir, compare)
+  const direSorted = applySort(match.players.filter((p) => p.player_slot >= 128), sortDir, compare)
 
   const statRow = (p: MatchPlayer) => {
     const hero = heroMap.get(p.hero_id)
@@ -199,20 +227,32 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
         <table className="w-full border-collapse">
           <thead>
             <tr className="text-left text-[12px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
-              <th className="px-2 py-2">Player</th>
-              <th className="px-2">Lane</th>
-              <th className="px-2 text-right" title="Lane efficiency: share of the maximum possible lane farm">Eff</th>
-              <th className="px-2 text-right">LH / DN</th>
-              <th className="px-2 text-right">Gold</th>
-              <th className="px-2 text-right">XP</th>
+              <th className="px-2 py-2">
+                <SortHeader label="Player" sortKey="player" active={sortKey === 'player'} dir={sortDir} onClick={onSort} />
+              </th>
+              <th className="px-2">
+                <SortHeader label="Lane" sortKey="lane" active={sortKey === 'lane'} dir={sortDir} onClick={onSort} />
+              </th>
+              <th className="px-2 text-right" title="Lane efficiency: share of the maximum possible lane farm">
+                <SortHeader label="Eff" sortKey="eff" active={sortKey === 'eff'} dir={sortDir} onClick={onSort} className="justify-end" />
+              </th>
+              <th className="px-2 text-right">
+                <SortHeader label="LH / DN" sortKey="lh" active={sortKey === 'lh'} dir={sortDir} onClick={onSort} className="justify-end" />
+              </th>
+              <th className="px-2 text-right">
+                <SortHeader label="Gold" sortKey="gold" active={sortKey === 'gold'} dir={sortDir} onClick={onSort} className="justify-end" />
+              </th>
+              <th className="px-2 text-right">
+                <SortHeader label="XP" sortKey="xp" active={sortKey === 'xp'} dir={sortDir} onClick={onSort} className="justify-end" />
+              </th>
             </tr>
           </thead>
           <tbody>
-            {match.players.filter((p) => p.player_slot < 128).map(statRow)}
+            {radiantSorted.map(statRow)}
             <tr>
               <td colSpan={6} style={{ height: 8 }} />
             </tr>
-            {match.players.filter((p) => p.player_slot >= 128).map(statRow)}
+            {direSorted.map(statRow)}
           </tbody>
         </table>
       </div>

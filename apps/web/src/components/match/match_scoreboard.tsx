@@ -1,10 +1,53 @@
 import { type JSX, memo, useCallback, useEffect, useMemo, useState } from 'react'
 import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
+import { SortHeader } from '@/components/ui/sort_header'
+import { applySort, useSort } from '@/lib/sortable'
 import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
 import { AbilityIcon } from './ability_icon'
 import { ItemIcon } from './item_icon'
 import { MatchRosterSidebar, orderedTeams, useRosterMetrics } from './match_roster'
 import { GameTimeSlider, damageHealAtTime, hasTimeline, itemsAtTime, statsAtTime, teamScoreAtTime, type TimedStats } from './match_time'
+
+type SortKey = 'kills' | 'deaths' | 'assists' | 'networth' | 'lh' | 'gpm' | 'xpm' | 'dmg' | 'heal' | 'bld' | 'wards'
+
+function wardsAtTime(p: MatchPlayer, timeSec: number): number {
+  const obs = p.obs_log ? p.obs_log.filter((w) => w.time <= timeSec).length : (p.obs_placed ?? 0)
+  const sen = p.sen_log ? p.sen_log.filter((w) => w.time <= timeSec).length : (p.sen_placed ?? 0)
+  return obs + sen
+}
+
+function sortValue(
+  p: MatchPlayer,
+  key: SortKey,
+  timed: TimedStats,
+  match: Match,
+  timeSec: number,
+): number {
+  switch (key) {
+    case 'kills':
+      return timed.kills
+    case 'deaths':
+      return timed.deaths
+    case 'assists':
+      return timed.assists
+    case 'networth':
+      return timed.netWorth
+    case 'lh':
+      return timed.lastHits
+    case 'gpm':
+      return timed.gpm
+    case 'xpm':
+      return timed.xpm
+    case 'dmg':
+      return p.hero_damage != null ? damageHealAtTime(match, p, timeSec).damage : -1
+    case 'heal':
+      return p.hero_healing != null ? damageHealAtTime(match, p, timeSec).healing : -1
+    case 'bld':
+      return p.tower_damage ?? -1
+    case 'wards':
+      return wardsAtTime(p, timeSec)
+  }
+}
 
 const SIDEBAR_W = 272
 const SIDEBAR_W_MOBILE = 140
@@ -187,9 +230,10 @@ function AbilityBuildGroup({
 }
 
 type Col = {
-  label: string | JSX.Element
+  label: string
   width: number
   align?: 'center' | 'right'
+  sortKey?: SortKey
   render: (p: MatchPlayer, t: TimedStats) => JSX.Element
 }
 
@@ -335,9 +379,24 @@ export function MatchScoreboard({
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
   const [timeSec, setTimeSec] = useState<number>(match.duration)
   const sidebarW = useSidebarWidth()
+  const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('networth', 'desc')
 
   const heroMap = useMemo(() => new Map(heroStats.map((h) => [h.id, h])), [heroStats])
   const { radiant, dire } = useMemo(() => orderedTeams(match), [match])
+  // Sorted independently per team, side never mixes: clicking a header
+  // re-orders each team's own 5 rows, it doesn't merge into one 10-row list.
+  const timedFor = useCallback(
+    (p: MatchPlayer) => statsAtTime(p, match.players, heroMap.get(p.hero_id)?.name ?? '', timeSec, match.duration),
+    [match, heroMap, timeSec],
+  )
+  const sortedRadiant = useMemo(
+    () => applySort(radiant, sortDir, (a, b) => sortValue(a, sortKey, timedFor(a), match, timeSec) - sortValue(b, sortKey, timedFor(b), match, timeSec)),
+    [radiant, sortKey, sortDir, timedFor, match, timeSec],
+  )
+  const sortedDire = useMemo(
+    () => applySort(dire, sortDir, (a, b) => sortValue(a, sortKey, timedFor(a), match, timeSec) - sortValue(b, sortKey, timedFor(b), match, timeSec)),
+    [dire, sortKey, sortDir, timedFor, match, timeSec],
+  )
   const scrubbable = hasTimeline(match)
   // Shrink rows so scoreboard + timeline fit the viewport without scrolling.
   const { ref: fitRef, rowH, headerH } = useRosterMetrics(scrubbable ? 82 : 36)
@@ -348,12 +407,13 @@ export function MatchScoreboard({
 
   const cols: Col[] = useMemo(
     () => [
-      { label: 'K', width: 44, render: (_p, t) => num('#ffffff', 18, 700)(t.kills) },
-      { label: 'D', width: 44, render: (_p, t) => num('#cfd4d8')(t.deaths) },
-      { label: 'A', width: 44, render: (_p, t) => num('#cfd4d8')(t.assists) },
+      { label: 'K', width: 44, sortKey: 'kills', render: (_p, t) => num('#ffffff', 18, 700)(t.kills) },
+      { label: 'D', width: 44, sortKey: 'deaths', render: (_p, t) => num('#cfd4d8')(t.deaths) },
+      { label: 'A', width: 44, sortKey: 'assists', render: (_p, t) => num('#cfd4d8')(t.assists) },
       {
-        label: (<span className="inline-flex items-center gap-1"><GoldPip />NET</span>),
+        label: 'NET',
         width: 84,
+        sortKey: 'networth',
         render: (_p, t) => num('#f2c94c', 16)(t.netWorth.toLocaleString()),
       },
       {
@@ -364,34 +424,39 @@ export function MatchScoreboard({
       {
         label: 'LH / DN',
         width: 80,
+        sortKey: 'lh',
         render: (_p, t) => (
           <span className="text-[15px] tabular-nums" style={{ color: '#e8ecef', fontFamily: 'var(--font-dota)' }}>
             {t.lastHits}<span style={{ color: '#5a6066' }}> / </span>{t.denies}
           </span>
         ),
       },
-      { label: 'GPM', width: 58, render: (_p, t) => num('#f2c94c')(t.gpm) },
-      { label: 'XPM', width: 58, render: (_p, t) => num('#e8ecef')(t.xpm) },
+      { label: 'GPM', width: 58, sortKey: 'gpm', render: (_p, t) => num('#f2c94c')(t.gpm) },
+      { label: 'XPM', width: 58, sortKey: 'xpm', render: (_p, t) => num('#e8ecef')(t.xpm) },
       {
         label: 'DMG',
         width: 72,
+        sortKey: 'dmg',
         render: (p) =>
           num('#e8ecef')(p.hero_damage != null ? fmtK(damageHealAtTime(match, p, timeSec).damage) : '—'),
       },
       {
         label: 'HEAL',
         width: 62,
+        sortKey: 'heal',
         render: (p) =>
           num('#e8ecef')(p.hero_healing != null ? fmtK(damageHealAtTime(match, p, timeSec).healing) : '—'),
       },
       {
         label: 'BLD',
         width: 62,
+        sortKey: 'bld',
         render: (p) => num('#c9a94a')(p.tower_damage != null ? fmtK(p.tower_damage) : '-'),
       },
       {
         label: 'WARDS',
         width: 66,
+        sortKey: 'wards',
         render: (p) => {
           // Ward placements are timestamped, so this column follows the slider.
           const obs = p.obs_log ? p.obs_log.filter((w) => w.time <= timeSec).length : p.obs_placed
@@ -438,11 +503,35 @@ export function MatchScoreboard({
     </div>
   )
 
+  const sortableLabel = (c: Col, extraClass = '') => (
+    <div
+      role="columnheader"
+      className="shrink-0 flex items-center justify-center"
+      style={{ width: c.width, height: headerH }}
+    >
+      <SortHeader
+        label={c.label}
+        sortKey={c.sortKey as SortKey}
+        active={sortKey === c.sortKey}
+        dir={sortDir}
+        onClick={onSort}
+        className={`text-[13px] ${extraClass}`}
+        style={{ color: sortKey === c.sortKey ? undefined : '#8a97a0', letterSpacing: '1px', fontFamily: 'var(--font-dota)', minHeight: 'unset' }}
+      />
+    </div>
+  )
+
   const headerRow = (isRadiant: boolean) => {
     const enemies = isRadiant ? dire : radiant
     return (
       <div role="row" className="flex items-stretch" style={{ height: headerH }}>
-        {cols.map((c, i) => label(c.label as string | JSX.Element, c.width, i === 4 ? 'justify-start pl-1' : ''))}
+        {cols.map((c, i) =>
+          c.sortKey ? (
+            <div key={i}>{sortableLabel(c, i === 4 ? 'justify-start pl-1' : '')}</div>
+          ) : (
+            <div key={i}>{label(c.label, c.width, i === 4 ? 'justify-start pl-1' : '')}</div>
+          ),
+        )}
         {hasKillLogs && (
           <div role="columnheader" className="flex items-center shrink-0 pl-2" style={{ width: enemies.length * 38 + 60 }}>
             <span className="text-[13px] uppercase flex-1" style={{ color: '#8a97a0', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}>
@@ -492,12 +581,14 @@ export function MatchScoreboard({
           scoreRadiant={radScore}
           scoreDire={direScore}
           levels={levelBySlot}
+          radiantOrder={sortedRadiant}
+          direOrder={sortedDire}
         />
         {/* Stats pane — scrolls horizontally, rows aligned with the sidebar */}
         <div className="flex-1 min-w-0 overflow-x-auto">
           <div className="inline-block min-w-full" role="table">
             {headerRow(true)}
-            {radiant.map((p) => (
+            {sortedRadiant.map((p) => (
               <PlayerRow
                 key={p.player_slot}
                 player={p}
@@ -519,7 +610,7 @@ export function MatchScoreboard({
               />
             ))}
             {headerRow(false)}
-            {dire.map((p) => (
+            {sortedDire.map((p) => (
               <PlayerRow
                 key={p.player_slot}
                 player={p}

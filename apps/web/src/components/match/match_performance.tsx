@@ -1,4 +1,6 @@
 import type { HeroStat, Match, MatchPlayer } from 'types'
+import { SortHeader } from '@/components/ui/sort_header'
+import { applySort, useSort } from '@/lib/sortable'
 import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
 import { PlayerNameLink, TeamHeader, orderedTeams } from './match_roster'
 
@@ -36,6 +38,38 @@ function pctColor(p: number): string {
 function maxKey(rec: Record<string, number> | null | undefined): number | null {
   const keys = Object.keys(rec ?? {}).map(Number).filter(Number.isFinite)
   return keys.length ? Math.max(...keys) : null
+}
+
+// Lane is a categorical position (Safe/Mid/Off/Jungle), not a scalar — there's
+// no natural "greater than" order between them, so it's left unsortable. All
+// other columns are discrete numbers and get a shared sort control.
+type SortKey = 'lane_eff' | 'apm' | 'tfp' | 'stuns' | 'camps' | 'runes' | 'bb' | 'multi' | 'streak' | 'pings'
+
+function comparePerf(sortKey: SortKey) {
+  return (a: MatchPlayer, b: MatchPlayer): number => {
+    switch (sortKey) {
+      case 'apm':
+        return (a.actions_per_min ?? 0) - (b.actions_per_min ?? 0)
+      case 'tfp':
+        return (a.teamfight_participation ?? 0) - (b.teamfight_participation ?? 0)
+      case 'stuns':
+        return (a.stuns ?? 0) - (b.stuns ?? 0)
+      case 'camps':
+        return (a.camps_stacked ?? 0) - (b.camps_stacked ?? 0)
+      case 'runes':
+        return (a.rune_pickups ?? 0) - (b.rune_pickups ?? 0)
+      case 'bb':
+        return (a.buyback_count ?? 0) - (b.buyback_count ?? 0)
+      case 'multi':
+        return (maxKey(a.multi_kills) ?? 0) - (maxKey(b.multi_kills) ?? 0)
+      case 'streak':
+        return (maxKey(a.kill_streaks) ?? 0) - (maxKey(b.kill_streaks) ?? 0)
+      case 'pings':
+        return (a.pings ?? 0) - (b.pings ?? 0)
+      default:
+        return (a.lane_efficiency_pct ?? 0) - (b.lane_efficiency_pct ?? 0)
+    }
+  }
 }
 
 function Row({ p, hero }: { p: MatchPlayer; hero: HeroStat | undefined }) {
@@ -119,20 +153,32 @@ export function MatchPerformance({
 }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const { radiant, dire } = orderedTeams(match)
+  // One shared sort control drives both team sections independently — each
+  // team's 5 rows are sorted on their own, never merged into one list of 10.
+  const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('lane_eff', 'desc')
+  const radiantSorted = applySort(radiant, sortDir, comparePerf(sortKey))
+  const direSorted = applySort(dire, sortDir, comparePerf(sortKey))
 
   const header = (
-    <div className="flex items-center" style={{ height: 40 }}>
+    <div
+      className="flex items-center py-2 text-[13px] uppercase"
+      style={{ color: C.label, letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
+    >
       <div className="shrink-0" style={{ width: 240 }} />
-      {['Lane', 'Lane Eff', 'APM', 'TF Part', 'Stuns', 'Camps', 'Runes', 'BB', 'Multi', 'Streak', 'Pings'].map((l, i) => (
-        <div
-          key={l}
-          className="shrink-0 text-center text-[13px] uppercase"
-          style={{ width: i >= 7 ? 70 : 84, color: C.label, letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
-        >
-          {l}
-        </div>
-      ))}
-      <div className="pl-4 text-[13px] uppercase" style={{ color: C.label, letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}>
+      <div className="shrink-0 text-center" style={{ width: 84 }}>
+        Lane
+      </div>
+      <SortHeader label="Lane Eff" sortKey="lane_eff" active={sortKey === 'lane_eff'} dir={sortDir} onClick={onSort} className="w-[84px] shrink-0 justify-center" />
+      <SortHeader label="APM" sortKey="apm" active={sortKey === 'apm'} dir={sortDir} onClick={onSort} className="w-[84px] shrink-0 justify-center" />
+      <SortHeader label="TF Part" sortKey="tfp" active={sortKey === 'tfp'} dir={sortDir} onClick={onSort} className="w-[84px] shrink-0 justify-center" />
+      <SortHeader label="Stuns" sortKey="stuns" active={sortKey === 'stuns'} dir={sortDir} onClick={onSort} className="w-[84px] shrink-0 justify-center" />
+      <SortHeader label="Camps" sortKey="camps" active={sortKey === 'camps'} dir={sortDir} onClick={onSort} className="w-[84px] shrink-0 justify-center" />
+      <SortHeader label="Runes" sortKey="runes" active={sortKey === 'runes'} dir={sortDir} onClick={onSort} className="w-[84px] shrink-0 justify-center" />
+      <SortHeader label="BB" sortKey="bb" active={sortKey === 'bb'} dir={sortDir} onClick={onSort} className="w-[70px] shrink-0 justify-center" />
+      <SortHeader label="Multi" sortKey="multi" active={sortKey === 'multi'} dir={sortDir} onClick={onSort} className="w-[70px] shrink-0 justify-center" />
+      <SortHeader label="Streak" sortKey="streak" active={sortKey === 'streak'} dir={sortDir} onClick={onSort} className="w-[70px] shrink-0 justify-center" />
+      <SortHeader label="Pings" sortKey="pings" active={sortKey === 'pings'} dir={sortDir} onClick={onSort} className="w-[70px] shrink-0 justify-center" />
+      <div className="pl-4">
         Benchmarks (percentile vs all players on this hero)
       </div>
     </div>
@@ -157,8 +203,8 @@ export function MatchPerformance({
   return (
     <div className="overflow-x-auto">
       <div style={{ background: C.panel, minWidth: 1510 }}>
-        {section(radiant, true)}
-        {section(dire, false)}
+        {section(radiantSorted, true)}
+        {section(direSorted, false)}
       </div>
     </div>
   )

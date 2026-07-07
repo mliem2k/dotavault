@@ -1,5 +1,7 @@
 import type { HeroStat, Match, MatchPlayer } from 'types'
+import { SortHeader } from '@/components/ui/sort_header'
 import { playerColor } from '@/lib/dotaconst'
+import { applySort, useSort } from '@/lib/sortable'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 
 /* Fantasy tab: fantasy points per player using the standard OpenDota
@@ -16,32 +18,76 @@ const C = {
   panelDark: 'rgba(8,10,12,0.7)',
 }
 
-type Component = { label: string; value: (p: MatchPlayer) => number; points: (p: MatchPlayer) => number }
+type SortKey =
+  | 'player'
+  | 'total'
+  | 'kills'
+  | 'deaths'
+  | 'cs'
+  | 'gpm'
+  | 'towers'
+  | 'roshan'
+  | 'teamfight'
+  | 'obswards'
+  | 'stacks'
+  | 'runes'
+  | 'firstblood'
+  | 'stuns'
+
+type Component = {
+  label: string
+  key: SortKey
+  value: (p: MatchPlayer) => number
+  points: (p: MatchPlayer) => number
+}
 
 const COMPONENTS: Component[] = [
-  { label: 'Kills', value: (p) => p.kills, points: (p) => p.kills * 0.3 },
-  { label: 'Deaths', value: (p) => p.deaths, points: (p) => 3 - p.deaths * 0.3 },
-  { label: 'CS', value: (p) => p.last_hits + p.denies, points: (p) => (p.last_hits + p.denies) * 0.003 },
-  { label: 'GPM', value: (p) => p.gold_per_min, points: (p) => p.gold_per_min * 0.002 },
-  { label: 'Towers', value: (p) => p.towers_killed ?? 0, points: (p) => (p.towers_killed ?? 0) * 1 },
-  { label: 'Roshan', value: (p) => p.roshans_killed ?? 0, points: (p) => (p.roshans_killed ?? 0) * 1 },
+  { label: 'Kills', key: 'kills', value: (p) => p.kills, points: (p) => p.kills * 0.3 },
+  { label: 'Deaths', key: 'deaths', value: (p) => p.deaths, points: (p) => 3 - p.deaths * 0.3 },
+  { label: 'CS', key: 'cs', value: (p) => p.last_hits + p.denies, points: (p) => (p.last_hits + p.denies) * 0.003 },
+  { label: 'GPM', key: 'gpm', value: (p) => p.gold_per_min, points: (p) => p.gold_per_min * 0.002 },
+  { label: 'Towers', key: 'towers', value: (p) => p.towers_killed ?? 0, points: (p) => (p.towers_killed ?? 0) * 1 },
+  { label: 'Roshan', key: 'roshan', value: (p) => p.roshans_killed ?? 0, points: (p) => (p.roshans_killed ?? 0) * 1 },
   {
     label: 'Teamfight',
+    key: 'teamfight',
     value: (p) => Math.round((p.teamfight_participation ?? 0) * 100),
     points: (p) => (p.teamfight_participation ?? 0) * 3,
   },
-  { label: 'Obs Wards', value: (p) => p.obs_placed ?? 0, points: (p) => (p.obs_placed ?? 0) * 0.5 },
-  { label: 'Stacks', value: (p) => p.camps_stacked ?? 0, points: (p) => (p.camps_stacked ?? 0) * 0.5 },
-  { label: 'Runes', value: (p) => p.rune_pickups ?? 0, points: (p) => (p.rune_pickups ?? 0) * 0.25 },
-  { label: 'First Blood', value: (p) => p.firstblood_claimed ?? 0, points: (p) => (p.firstblood_claimed ?? 0) * 4 },
-  { label: 'Stuns', value: (p) => Math.round(p.stuns ?? 0), points: (p) => (p.stuns ?? 0) * 0.05 },
+  { label: 'Obs Wards', key: 'obswards', value: (p) => p.obs_placed ?? 0, points: (p) => (p.obs_placed ?? 0) * 0.5 },
+  { label: 'Stacks', key: 'stacks', value: (p) => p.camps_stacked ?? 0, points: (p) => (p.camps_stacked ?? 0) * 0.5 },
+  { label: 'Runes', key: 'runes', value: (p) => p.rune_pickups ?? 0, points: (p) => (p.rune_pickups ?? 0) * 0.25 },
+  {
+    label: 'First Blood',
+    key: 'firstblood',
+    value: (p) => p.firstblood_claimed ?? 0,
+    points: (p) => (p.firstblood_claimed ?? 0) * 4,
+  },
+  { label: 'Stuns', key: 'stuns', value: (p) => Math.round(p.stuns ?? 0), points: (p) => (p.stuns ?? 0) * 0.05 },
 ]
 
 const totalPoints = (p: MatchPlayer) => COMPONENTS.reduce((s, c) => s + c.points(p), 0)
+const playerLabel = (p: MatchPlayer) => p.personaname ?? 'Anonymous'
 
 export function MatchFantasy({ match, heroStats }: { match: Match; heroStats: HeroStat[] }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const best = Math.max(...match.players.map(totalPoints))
+  const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('total', 'desc')
+
+  const compare = (a: MatchPlayer, b: MatchPlayer) => {
+    switch (sortKey) {
+      case 'player':
+        return playerLabel(a).localeCompare(playerLabel(b))
+      case 'total':
+        return totalPoints(a) - totalPoints(b)
+      default: {
+        const comp = COMPONENTS.find((c) => c.key === sortKey)
+        return comp ? comp.value(a) - comp.value(b) : totalPoints(a) - totalPoints(b)
+      }
+    }
+  }
+  const radiant = applySort(match.players.filter((p) => p.player_slot < 128), sortDir, compare)
+  const dire = applySort(match.players.filter((p) => p.player_slot >= 128), sortDir, compare)
 
   const row = (p: MatchPlayer) => {
     const hero = heroMap.get(p.hero_id)
@@ -100,19 +146,32 @@ export function MatchFantasy({ match, heroStats }: { match: Match; heroStats: He
       <table className="w-full border-collapse" style={{ minWidth: 1100 }}>
         <thead>
           <tr className="text-[12px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
-            <th className="px-3 py-2 text-left">Player</th>
-            <th className="px-2 text-right">Total</th>
+            <th className="px-3 py-2 text-left">
+              <SortHeader label="Player" sortKey="player" active={sortKey === 'player'} dir={sortDir} onClick={onSort} />
+            </th>
+            <th className="px-2 text-right">
+              <SortHeader label="Total" sortKey="total" active={sortKey === 'total'} dir={sortDir} onClick={onSort} className="justify-end" />
+            </th>
             {COMPONENTS.map((c) => (
-              <th key={c.label} className="px-2 text-center">{c.label}</th>
+              <th key={c.label} className="px-2 text-center">
+                <SortHeader
+                  label={c.label}
+                  sortKey={c.key}
+                  active={sortKey === c.key}
+                  dir={sortDir}
+                  onClick={onSort}
+                  className="justify-center"
+                />
+              </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {match.players.filter((p) => p.player_slot < 128).map(row)}
+          {radiant.map(row)}
           <tr>
             <td colSpan={2 + COMPONENTS.length} style={{ height: 10 }} />
           </tr>
-          {match.players.filter((p) => p.player_slot >= 128).map(row)}
+          {dire.map(row)}
         </tbody>
       </table>
       <p className="px-4 py-3 text-[12px]" style={{ color: C.dim }}>

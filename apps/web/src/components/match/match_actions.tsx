@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import type { HeroStat, Match, MatchPlayer } from 'types'
+import { SortHeader } from '@/components/ui/sort_header'
 import { orderTypeName, playerColor } from '@/lib/dotaconst'
+import { applySort, useSort } from '@/lib/sortable'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 
 /* Actions tab (OpenDota-style): how each player actually piloted their hero:
@@ -18,8 +20,16 @@ const C = {
   panelDark: 'rgba(8,10,12,0.7)',
 }
 
+// Column identity for the top-10 order-type columns is per-match (whatever
+// order types were actually used), so only Player/APM/Total get sort
+// controls — a fixed SortKey union can't cleanly cover a variable column set.
+type SortKey = 'player' | 'apm' | 'total'
+
+const totalActions = (p: MatchPlayer) => Object.values(p.actions ?? {}).reduce((s, v) => s + v, 0)
+
 export function MatchActions({ match, heroStats }: { match: Match; heroStats: HeroStat[] }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
+  const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('apm', 'desc')
 
   // Columns: order types seen in this match, by total volume.
   const columns = useMemo(() => {
@@ -43,9 +53,22 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
     return max
   }, [match.players, columns])
 
+  const compare = (a: MatchPlayer, b: MatchPlayer) => {
+    switch (sortKey) {
+      case 'player':
+        return (a.personaname ?? 'Anonymous').localeCompare(b.personaname ?? 'Anonymous')
+      case 'total':
+        return totalActions(a) - totalActions(b)
+      default:
+        return (a.actions_per_min ?? 0) - (b.actions_per_min ?? 0)
+    }
+  }
+  const radiant = applySort(match.players.filter((p) => p.player_slot < 128), sortDir, compare)
+  const dire = applySort(match.players.filter((p) => p.player_slot >= 128), sortDir, compare)
+
   const row = (p: MatchPlayer) => {
     const hero = heroMap.get(p.hero_id)
-    const total = Object.values(p.actions ?? {}).reduce((s, v) => s + v, 0)
+    const total = totalActions(p)
     return (
       <tr key={p.player_slot} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         <td className="px-3 py-1.5">
@@ -102,9 +125,15 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
       <table className="w-full border-collapse" style={{ minWidth: 1100 }}>
         <thead>
           <tr className="text-[12px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
-            <th className="px-3 py-2 text-left">Player</th>
-            <th className="px-2 text-right" title="Actions per minute">APM</th>
-            <th className="px-2 text-right">Total</th>
+            <th className="px-3 py-2 text-left">
+              <SortHeader label="Player" sortKey="player" active={sortKey === 'player'} dir={sortDir} onClick={onSort} />
+            </th>
+            <th className="px-2 text-right" title="Actions per minute">
+              <SortHeader label="APM" sortKey="apm" active={sortKey === 'apm'} dir={sortDir} onClick={onSort} className="justify-end" />
+            </th>
+            <th className="px-2 text-right">
+              <SortHeader label="Total" sortKey="total" active={sortKey === 'total'} dir={sortDir} onClick={onSort} className="justify-end" />
+            </th>
             {columns.map((id) => (
               <th key={id} className="px-1 text-center" style={{ maxWidth: 90 }}>
                 {orderTypeName(id)}
@@ -113,11 +142,11 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
           </tr>
         </thead>
         <tbody>
-          {match.players.filter((p) => p.player_slot < 128).map(row)}
+          {radiant.map(row)}
           <tr>
             <td colSpan={3 + columns.length} style={{ height: 10 }} />
           </tr>
-          {match.players.filter((p) => p.player_slot >= 128).map(row)}
+          {dire.map(row)}
         </tbody>
       </table>
     </div>
