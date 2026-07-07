@@ -6,7 +6,10 @@ import { Panel } from '@/components/league/panel'
 import { useTeamMap } from '@/components/league/use_team_map'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
+import { fetchSteamProfile } from '@/lib/steam'
 import { heroIconUrl } from '@/lib/utils'
+
+type FallbackProfile = { name: string; avatar: string | null; isPrivate: boolean }
 
 export const Route = createFileRoute('/league/$leagueId/$tab')({
   component: LeagueTabPage,
@@ -207,11 +210,17 @@ function RosterPanel({ leagueId }: { leagueId: number }) {
 
   // proPlayers only covers players OpenDota considers notable; plenty of
   // real competitors (especially in qualifiers) aren't in it at all, so
-  // they'd otherwise show as "Player <id>". Their individual profile still
-  // has a personaname, so fetch that as a fallback for whoever's missing.
-  // Capped so a huge open-qualifier bracket (dozens of teams, mostly
-  // unlisted players) can't fire hundreds of individual requests at once;
-  // anyone past the cap just keeps the "Player <id>" fallback.
+  // they'd otherwise show as "Player <id>". Their individual OpenDota
+  // profile usually has a personaname, but for an account OpenDota hasn't
+  // resolved yet (it only fetches a Steam profile lazily, in the background,
+  // sometime after first being asked about that account, not necessarily by
+  // this request) that comes back empty too. Steam's own basic profile
+  // identity (name, avatar) is public regardless of privacy settings, so
+  // fall back to that directly instead of waiting on OpenDota's cache,
+  // showing a "Private" badge when the account itself isn't public. Capped
+  // so a huge open-qualifier bracket (dozens of teams, mostly unlisted
+  // players) can't fire hundreds of individual requests at once; anyone past
+  // the cap just keeps the "Player <id>" fallback.
   const missingIds = useMemo(() => {
     if (!roster.data) return []
     const ids = new Set<number>()
@@ -219,20 +228,25 @@ function RosterPanel({ leagueId }: { leagueId: number }) {
     return [...ids].slice(0, 80)
   }, [roster.data, proMap])
 
-  const fallbackNames = useQuery({
-    queryKey: ['league_roster_fallback_names', leagueId, missingIds],
+  const fallbackProfiles = useQuery({
+    queryKey: ['league_roster_fallback_profiles', leagueId, missingIds],
     queryFn: async () => {
       const entries = await Promise.all(
-        missingIds.map(async (id) => {
+        missingIds.map(async (id): Promise<[number, FallbackProfile | null]> => {
           try {
             const p = await opendota.player(String(id))
-            return [id, p.profile?.personaname ?? null] as const
+            if (p.profile?.personaname) {
+              return [id, { name: p.profile.personaname, avatar: p.profile.avatarfull ?? null, isPrivate: false }]
+            }
           } catch {
-            return [id, null] as const
+            // fall through to the Steam lookup below
           }
+          const steam = await fetchSteamProfile(id)
+          if (steam) return [id, { name: steam.personaname, avatar: steam.avatarfull, isPrivate: !steam.isPublic }]
+          return [id, null]
         }),
       )
-      return new Map(entries.filter((e): e is [number, string] => e[1] != null))
+      return new Map(entries.filter((e): e is [number, FallbackProfile] => e[1] != null))
     },
     enabled: missingIds.length > 0,
     staleTime: 60 * 60 * 1000,
@@ -291,6 +305,7 @@ function RosterPanel({ leagueId }: { leagueId: number }) {
               <div className="ml-7">
                 {g.players.map((p) => {
                   const pro = proMap.get(p.account_id)
+                  const fallback = fallbackProfiles.data?.get(p.account_id)
                   const wr = p.games > 0 ? (p.wins / p.games) * 100 : 0
                   return (
                     <a
@@ -298,9 +313,20 @@ function RosterPanel({ leagueId }: { leagueId: number }) {
                       href={`/player/${p.account_id}`}
                       className="flex items-center gap-2 py-0.5 hover:bg-white/[0.03]"
                     >
+                      {!pro && fallback?.avatar && (
+                        <img src={fallback.avatar} alt="" className="h-4 w-4 shrink-0 rounded-sm" />
+                      )}
                       <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: '#c8c2b4', fontFamily: 'var(--font-dota)' }}>
-                        {pro?.name ?? pro?.personaname ?? fallbackNames.data?.get(p.account_id) ?? `Player ${p.account_id}`}
+                        {pro?.name ?? pro?.personaname ?? fallback?.name ?? `Player ${p.account_id}`}
                       </span>
+                      {!pro && fallback?.isPrivate && (
+                        <span
+                          className="shrink-0 px-1 text-[10px] uppercase"
+                          style={{ color: '#8a8474', border: '1px solid #3a352a', letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
+                        >
+                          Private
+                        </span>
+                      )}
                       <span className="shrink-0 text-[12px] tabular-nums" style={{ color: '#5a5648', fontFamily: 'var(--font-dota)' }}>
                         {p.games}g
                       </span>

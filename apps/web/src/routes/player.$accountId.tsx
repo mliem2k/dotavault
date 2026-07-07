@@ -6,7 +6,7 @@ import { PlayerDataContext } from '@/lib/player_data_context'
 import { divisionLabel, divisionShort, findLeaderboardPosition } from '@/lib/leaderboard'
 import { opendota } from '@/lib/opendota'
 import { rankBadge, rankName } from '@/lib/rank'
-import { resolveVanitySteamId } from '@/lib/steam'
+import { fetchSteamProfile, resolveVanitySteamId } from '@/lib/steam'
 import { usePageTitle } from '@/lib/title'
 import { winRate } from '@/lib/utils'
 
@@ -55,6 +55,21 @@ function PlayerPage() {
       return { player, wl }
     },
     enabled: isNumeric,
+  })
+  // OpenDota only has a persona name/avatar once something has triggered it
+  // to resolve and cache that account's Steam profile, which can lag well
+  // behind this page load (or never happen at all for an account nobody's
+  // individually visited before), leaving `profile` null. Steam's own basic
+  // profile identity is public regardless of privacy settings, so fall back
+  // to it directly via the same playerdb.co proxy already used for vanity
+  // resolution, rather than showing a crash or an empty header while waiting
+  // on OpenDota's cache.
+  const hasOpenDotaProfile = player.data?.player.profile != null
+  const steamFallback = useQuery({
+    queryKey: ['steam_profile_fallback', accountId],
+    queryFn: () => fetchSteamProfile(Number(accountId)),
+    enabled: isNumeric && player.data != null && !hasOpenDotaProfile,
+    staleTime: 60 * 60 * 1000,
   })
   const matches = useQuery({
     queryKey: ['player_matches', accountId],
@@ -106,7 +121,7 @@ function PlayerPage() {
   // /leaderboards page.
   const rankTier = player.data?.player.rank_tier ?? null
   const isImmortal = rankTier != null && Math.floor(rankTier / 10) === 8
-  const personaName = player.data?.player.profile.personaname
+  const personaName = player.data?.player.profile?.personaname ?? steamFallback.data?.personaname
   const proNameForAccount = proPlayers.data?.find((pp) => pp.account_id === Number(accountId) && pp.is_pro)?.name
   const leaderboardPos = useQuery({
     queryKey: ['leaderboard_position', accountId, personaName, proNameForAccount],
@@ -115,7 +130,7 @@ function PlayerPage() {
     staleTime: 30 * 60 * 1000,
   })
 
-  usePageTitle(player.data?.player.profile.personaname)
+  usePageTitle(personaName)
 
   if (!isNumeric) {
     if (vanity.isPending || vanity.data) {
@@ -142,7 +157,23 @@ function PlayerPage() {
   }
   if (!player.data) return <div className="text-sm text-muted">Player not found.</div>
 
-  const p = player.data.player
+  const openDotaProfile = player.data.player.profile
+  if (!openDotaProfile && steamFallback.isPending) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-20">
+        <Spinner className="h-8 w-8" />
+        <span className="text-sm" style={{ color: C.labelBright }}>Resolving Steam profile…</span>
+      </div>
+    )
+  }
+  const resolvedProfile = openDotaProfile
+    ? { personaname: openDotaProfile.personaname, avatarfull: openDotaProfile.avatarfull, account_id: openDotaProfile.account_id, isPrivate: false }
+    : steamFallback.data
+      ? { personaname: steamFallback.data.personaname, avatarfull: steamFallback.data.avatarfull, account_id: Number(accountId), isPrivate: !steamFallback.data.isPublic }
+      : null
+  if (!resolvedProfile) return <div className="text-sm text-muted">Player not found.</div>
+
+  const p = { ...player.data.player, profile: { personaname: resolvedProfile.personaname, account_id: resolvedProfile.account_id } }
   const wl = player.data.wl
   const totalGames = wl.win + wl.lose
   const proInfo = proPlayers.data?.find((pp) => pp.account_id === Number(accountId) && pp.is_pro)
@@ -150,7 +181,7 @@ function PlayerPage() {
   // (Steam lets a name repeat across separate name-change events).
   const previousNames = [...new Set(
     (p.aliases ?? [])
-      .filter((a) => a.personaname && a.personaname !== p.profile.personaname)
+      .filter((a) => a.personaname && a.personaname !== resolvedProfile.personaname)
       .sort((a, b) => new Date(b.name_since).getTime() - new Date(a.name_since).getTime())
       .map((a) => a.personaname),
   )]
@@ -219,17 +250,25 @@ function PlayerPage() {
         {/* Header bar */}
         <div className="flex items-center gap-4 px-4 py-3" style={{ background: 'rgba(8,10,12,0.9)' }}>
           <img
-            src={p.profile.avatarfull}
-            alt={p.profile.personaname}
+            src={resolvedProfile.avatarfull}
+            alt={resolvedProfile.personaname}
             className="h-16 w-16 shrink-0"
             style={{ border: '1px solid #2c3236' }}
           />
           <div className="min-w-0">
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-[28px] leading-tight truncate" style={{ color: C.white }}>
-                {p.profile.personaname}
+                {resolvedProfile.personaname}
               </h1>
-              {proInfo?.name && proInfo.name !== p.profile.personaname && (
+              {resolvedProfile.isPrivate && (
+                <span
+                  className="shrink-0 px-1.5 py-0.5 text-[12px] uppercase"
+                  style={{ color: C.labelBright, border: '1px solid #3a352a', letterSpacing: '1px' }}
+                >
+                  Private
+                </span>
+              )}
+              {proInfo?.name && proInfo.name !== resolvedProfile.personaname && (
                 <span className="text-[15px]" style={{ color: C.labelBright }}>
                   [{proInfo.name}]
                 </span>
