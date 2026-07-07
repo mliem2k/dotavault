@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { LeagueTabBar, type LeagueTab } from '@/components/league/league_tab_bar'
 import { Panel } from '@/components/league/panel'
+import { useTeamMap } from '@/components/league/use_team_map'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
 import { heroIconUrl } from '@/lib/utils'
@@ -97,19 +98,15 @@ function DraftPanel({
   )
 }
 
-function StandingsPanel({
-  leagueId,
-  teamMap,
-}: {
-  leagueId: number
-  teamMap: Map<number, { name: string | null; tag: string | null; logo_url: string | null }>
-}) {
+function StandingsPanel({ leagueId }: { leagueId: number }) {
   const standings = useQuery({
     queryKey: ['league_standings', leagueId],
     queryFn: () => opendota.leagueTeamStandings(leagueId),
     staleTime: 10 * 60 * 1000,
   })
   const navigate = useNavigate()
+  const relevantTeamIds = useMemo(() => (standings.data ?? []).map((s) => s.team_id), [standings.data])
+  const teamMap = useTeamMap(relevantTeamIds)
 
   return (
     <Panel title="Team Standings">
@@ -190,18 +187,14 @@ function StandingsPanel({
   )
 }
 
-function RosterPanel({
-  leagueId,
-  teamMap,
-}: {
-  leagueId: number
-  teamMap: Map<number, { name: string | null; tag: string | null; logo_url: string | null }>
-}) {
+function RosterPanel({ leagueId }: { leagueId: number }) {
   const roster = useQuery({
     queryKey: ['league_roster', leagueId],
     queryFn: () => opendota.leagueRoster(leagueId),
     staleTime: 10 * 60 * 1000,
   })
+  const relevantTeamIds = useMemo(() => (roster.data ?? []).map((r) => r.team_id), [roster.data])
+  const teamMap = useTeamMap(relevantTeamIds)
   const proPlayers = useQuery({
     queryKey: ['pro_players'],
     queryFn: () => opendota.proPlayers(),
@@ -339,20 +332,14 @@ function LeagueTabPage() {
     queryFn: () => opendota.heroStats(),
     staleTime: 60 * 60 * 1000,
   })
-  const teams = useQuery({
-    queryKey: ['teams_list'],
-    queryFn: () => opendota.teamsList(),
-    staleTime: 30 * 60 * 1000,
-  })
   const heroMap = useMemo(() => new Map((heroStats.data ?? []).map((h) => [h.id, h])), [heroStats.data])
-  const teamMap = useMemo(() => new Map((teams.data ?? []).map((t) => [t.team_id, t])), [teams.data])
 
   return (
     <div>
       <LeagueTabBar leagueId={leagueId} active={activeTab} />
-      {activeTab === 'standings' && <StandingsPanel leagueId={id} teamMap={teamMap} />}
+      {activeTab === 'standings' && <StandingsPanel leagueId={id} />}
       {activeTab === 'draft' && <DraftPanel leagueId={id} heroMap={heroMap} />}
-      {activeTab === 'participants' && <RosterPanel leagueId={id} teamMap={teamMap} />}
+      {activeTab === 'participants' && <RosterPanel leagueId={id} />}
     </div>
   )
 }

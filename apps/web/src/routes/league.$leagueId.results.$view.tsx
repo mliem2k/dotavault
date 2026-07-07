@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { BracketView } from '@/components/league/bracket_view'
 import { buildSeries } from '@/components/league/series'
+import { useTeamMap } from '@/components/league/use_team_map'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
 import { formatDuration, formatTimeAgo } from '@/lib/utils'
@@ -21,13 +22,9 @@ function ResultsViewPage() {
     queryFn: () => opendota.leagueMatches(id, 500, 0),
     staleTime: 5 * 60 * 1000,
   })
-  const teams = useQuery({
-    queryKey: ['teams_list'],
-    queryFn: () => opendota.teamsList(),
-    staleTime: 30 * 60 * 1000,
-  })
-  const teamMap = useMemo(() => new Map((teams.data ?? []).map((t) => [t.team_id, t])), [teams.data])
   const series = useMemo(() => buildSeries(matches.data ?? []), [matches.data])
+  const relevantTeamIds = useMemo(() => series.flatMap((s) => [s.teamA, s.teamB]), [series])
+  const teamMap = useTeamMap(relevantTeamIds)
 
   if (matches.isPending) {
     return (
