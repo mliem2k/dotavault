@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { formatDuration } from '@/lib/utils'
-import { inferBracket, isWinningContinuation } from './infer_bracket'
+import { inferBracket, isAdjacentRound, isWinningContinuation } from './infer_bracket'
 import type { Series } from './series'
 import { useBracketLayout } from './use_bracket_layout'
 
@@ -102,6 +102,11 @@ function ConnectorLines({
   width: number
   height: number
 }) {
+  const roundIndexOf = new Map<string, number>()
+  rounds.forEach((round, i) => {
+    for (const s of round) roundIndexOf.set(s.key, i)
+  })
+
   const paths: { key: string; d: string; color: string }[] = []
   for (const round of rounds) {
     for (const s of round) {
@@ -109,9 +114,12 @@ function ConnectorLines({
       if (!parents) continue
       const child = positions[s.key]
       if (!child) continue
+      const childRoundIndex = roundIndexOf.get(s.key)
+      if (childRoundIndex == null) continue
       for (const side of ['a', 'b'] as const) {
         const parentKey = parents[side]
         if (!parentKey) continue
+        if (!isAdjacentRound(roundIndexOf.get(parentKey), childRoundIndex)) continue
         const parent = positions[parentKey]
         if (!parent) continue
         const parentSeries = seriesByKey.get(parentKey)
