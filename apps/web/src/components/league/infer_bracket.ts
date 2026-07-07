@@ -48,3 +48,15 @@ export function inferBracket(series: Series[]): { rounds: Series[][]; parentOf: 
   }
   return { rounds, parentOf }
 }
+
+// A parent link only means "this team's previous series", not "this team
+// won its previous series" — under the Swiss-stage/double-elimination
+// approximation above, a team can carry over into the next inferred round
+// despite having lost. Callers coloring a connector line as a winner's path
+// must check this, not just whether the parent series had a decisive score.
+export function isWinningContinuation(continuingTeamId: number | null, parentSeries: Series | undefined): boolean {
+  if (continuingTeamId == null || parentSeries == null) return false
+  if (parentSeries.teamA === continuingTeamId) return parentSeries.scoreA > parentSeries.scoreB
+  if (parentSeries.teamB === continuingTeamId) return parentSeries.scoreB > parentSeries.scoreA
+  return false
+}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { formatDuration } from '@/lib/utils'
-import { inferBracket } from './infer_bracket'
+import { inferBracket, isWinningContinuation } from './infer_bracket'
 import type { Series } from './series'
 import { useBracketLayout } from './use_bracket_layout'
 
@@ -115,11 +115,12 @@ function ConnectorLines({
         const parent = positions[parentKey]
         if (!parent) continue
         const parentSeries = seriesByKey.get(parentKey)
-        const decided = parentSeries != null && parentSeries.scoreA !== parentSeries.scoreB
+        const continuingTeam = side === 'a' ? s.teamA : s.teamB
+        const wonParent = isWinningContinuation(continuingTeam, parentSeries)
         const midX = (parent.right + child.left) / 2
         paths.push({
           key: `${s.key}-${side}`,
-          color: decided ? LINE_COLOR_WINNER : LINE_COLOR_NEUTRAL,
+          color: wonParent ? LINE_COLOR_WINNER : LINE_COLOR_NEUTRAL,
           d: `M ${parent.right} ${parent.centerY} H ${midX} V ${child.centerY} H ${child.left}`,
         })
       }
