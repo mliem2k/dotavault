@@ -16,11 +16,13 @@ import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
 import { Route as HeroesRouteImport } from './routes/heroes'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MetaIndexRouteImport } from './routes/meta.index'
+import { Route as LeaderboardsIndexRouteImport } from './routes/leaderboards.index'
 import { Route as TeamTeamIdRouteImport } from './routes/team.$teamId'
 import { Route as PlayerAccountIdRouteImport } from './routes/player.$accountId'
 import { Route as MetaBracketRouteImport } from './routes/meta.$bracket'
 import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
 import { Route as LeagueLeagueIdRouteImport } from './routes/league.$leagueId'
+import { Route as LeaderboardsRegionRouteImport } from './routes/leaderboards.$region'
 import { Route as HeroHeroNameRouteImport } from './routes/hero.$heroName'
 import { Route as PlayerAccountIdIndexRouteImport } from './routes/player.$accountId.index'
 import { Route as MatchMatchIdIndexRouteImport } from './routes/match.$matchId.index'
@@ -71,6 +73,11 @@ const MetaIndexRoute = MetaIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MetaRoute,
 } as any)
+const LeaderboardsIndexRoute = LeaderboardsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LeaderboardsRoute,
+} as any)
 const TeamTeamIdRoute = TeamTeamIdRouteImport.update({
   id: '/team/$teamId',
   path: '/team/$teamId',
@@ -95,6 +102,11 @@ const LeagueLeagueIdRoute = LeagueLeagueIdRouteImport.update({
   id: '/league/$leagueId',
   path: '/league/$leagueId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardsRegionRoute = LeaderboardsRegionRouteImport.update({
+  id: '/$region',
+  path: '/$region',
+  getParentRoute: () => LeaderboardsRoute,
 } as any)
 const HeroHeroNameRoute = HeroHeroNameRouteImport.update({
   id: '/hero/$heroName',
@@ -174,16 +186,18 @@ const LeagueLeagueIdResultsViewRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/heroes': typeof HeroesRoute
-  '/leaderboards': typeof LeaderboardsRoute
+  '/leaderboards': typeof LeaderboardsRouteWithChildren
   '/leagues': typeof LeaguesRoute
   '/meta': typeof MetaRouteWithChildren
   '/pro': typeof ProRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
+  '/leaderboards/$region': typeof LeaderboardsRegionRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
   '/match/$matchId': typeof MatchMatchIdRouteWithChildren
   '/meta/$bracket': typeof MetaBracketRoute
   '/player/$accountId': typeof PlayerAccountIdRouteWithChildren
   '/team/$teamId': typeof TeamTeamIdRoute
+  '/leaderboards/': typeof LeaderboardsIndexRoute
   '/meta/': typeof MetaIndexRoute
   '/league/$leagueId/$tab': typeof LeagueLeagueIdTabRoute
   '/league/$leagueId/results': typeof LeagueLeagueIdResultsRouteWithChildren
@@ -202,12 +216,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/heroes': typeof HeroesRoute
-  '/leaderboards': typeof LeaderboardsRoute
   '/leagues': typeof LeaguesRoute
   '/pro': typeof ProRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
+  '/leaderboards/$region': typeof LeaderboardsRegionRoute
   '/meta/$bracket': typeof MetaBracketRoute
   '/team/$teamId': typeof TeamTeamIdRoute
+  '/leaderboards': typeof LeaderboardsIndexRoute
   '/meta': typeof MetaIndexRoute
   '/league/$leagueId/$tab': typeof LeagueLeagueIdTabRoute
   '/match/$matchId/$tab': typeof MatchMatchIdTabRoute
@@ -225,16 +240,18 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/heroes': typeof HeroesRoute
-  '/leaderboards': typeof LeaderboardsRoute
+  '/leaderboards': typeof LeaderboardsRouteWithChildren
   '/leagues': typeof LeaguesRoute
   '/meta': typeof MetaRouteWithChildren
   '/pro': typeof ProRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
+  '/leaderboards/$region': typeof LeaderboardsRegionRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
   '/match/$matchId': typeof MatchMatchIdRouteWithChildren
   '/meta/$bracket': typeof MetaBracketRoute
   '/player/$accountId': typeof PlayerAccountIdRouteWithChildren
   '/team/$teamId': typeof TeamTeamIdRoute
+  '/leaderboards/': typeof LeaderboardsIndexRoute
   '/meta/': typeof MetaIndexRoute
   '/league/$leagueId/$tab': typeof LeagueLeagueIdTabRoute
   '/league/$leagueId/results': typeof LeagueLeagueIdResultsRouteWithChildren
@@ -260,11 +277,13 @@ export interface FileRouteTypes {
     | '/meta'
     | '/pro'
     | '/hero/$heroName'
+    | '/leaderboards/$region'
     | '/league/$leagueId'
     | '/match/$matchId'
     | '/meta/$bracket'
     | '/player/$accountId'
     | '/team/$teamId'
+    | '/leaderboards/'
     | '/meta/'
     | '/league/$leagueId/$tab'
     | '/league/$leagueId/results'
@@ -283,12 +302,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/heroes'
-    | '/leaderboards'
     | '/leagues'
     | '/pro'
     | '/hero/$heroName'
+    | '/leaderboards/$region'
     | '/meta/$bracket'
     | '/team/$teamId'
+    | '/leaderboards'
     | '/meta'
     | '/league/$leagueId/$tab'
     | '/match/$matchId/$tab'
@@ -310,11 +330,13 @@ export interface FileRouteTypes {
     | '/meta'
     | '/pro'
     | '/hero/$heroName'
+    | '/leaderboards/$region'
     | '/league/$leagueId'
     | '/match/$matchId'
     | '/meta/$bracket'
     | '/player/$accountId'
     | '/team/$teamId'
+    | '/leaderboards/'
     | '/meta/'
     | '/league/$leagueId/$tab'
     | '/league/$leagueId/results'
@@ -334,7 +356,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HeroesRoute: typeof HeroesRoute
-  LeaderboardsRoute: typeof LeaderboardsRoute
+  LeaderboardsRoute: typeof LeaderboardsRouteWithChildren
   LeaguesRoute: typeof LeaguesRoute
   MetaRoute: typeof MetaRouteWithChildren
   ProRoute: typeof ProRoute
@@ -396,6 +418,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MetaIndexRouteImport
       parentRoute: typeof MetaRoute
     }
+    '/leaderboards/': {
+      id: '/leaderboards/'
+      path: '/'
+      fullPath: '/leaderboards/'
+      preLoaderRoute: typeof LeaderboardsIndexRouteImport
+      parentRoute: typeof LeaderboardsRoute
+    }
     '/team/$teamId': {
       id: '/team/$teamId'
       path: '/team/$teamId'
@@ -430,6 +459,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/league/$leagueId'
       preLoaderRoute: typeof LeagueLeagueIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/leaderboards/$region': {
+      id: '/leaderboards/$region'
+      path: '/$region'
+      fullPath: '/leaderboards/$region'
+      preLoaderRoute: typeof LeaderboardsRegionRouteImport
+      parentRoute: typeof LeaderboardsRoute
     }
     '/hero/$heroName': {
       id: '/hero/$heroName'
@@ -532,6 +568,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface LeaderboardsRouteChildren {
+  LeaderboardsRegionRoute: typeof LeaderboardsRegionRoute
+  LeaderboardsIndexRoute: typeof LeaderboardsIndexRoute
+}
+
+const LeaderboardsRouteChildren: LeaderboardsRouteChildren = {
+  LeaderboardsRegionRoute: LeaderboardsRegionRoute,
+  LeaderboardsIndexRoute: LeaderboardsIndexRoute,
+}
+
+const LeaderboardsRouteWithChildren = LeaderboardsRoute._addFileChildren(
+  LeaderboardsRouteChildren,
+)
+
 interface MetaRouteChildren {
   MetaBracketRoute: typeof MetaBracketRoute
   MetaIndexRoute: typeof MetaIndexRoute
@@ -626,7 +676,7 @@ const PlayerAccountIdRouteWithChildren = PlayerAccountIdRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HeroesRoute: HeroesRoute,
-  LeaderboardsRoute: LeaderboardsRoute,
+  LeaderboardsRoute: LeaderboardsRouteWithChildren,
   LeaguesRoute: LeaguesRoute,
   MetaRoute: MetaRouteWithChildren,
   ProRoute: ProRoute,
