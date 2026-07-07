@@ -39,7 +39,7 @@ function ResultsViewPage() {
   }
 
   return (
-    <div className="max-w-[720px]">
+    <>
       {series.map((s, i) => {
         const teamA = teamMap.get(s.teamA ?? -1)
         const teamB = teamMap.get(s.teamB ?? -1)
@@ -99,6 +99,6 @@ function ResultsViewPage() {
           </div>
         )
       })}
-    </div>
+    </>
   )
 }

@@ -305,7 +305,7 @@ export function AllMatches({
   })
 
   return (
-    <div style={{ background: 'rgba(16,19,22,0.72)', fontFamily: 'var(--font-dota)' }}>
+    <div className="max-w-[1100px]" style={{ background: 'rgba(16,19,22,0.72)', fontFamily: 'var(--font-dota)' }}>
       {/* Filter toolbar */}
       <div
         className="flex items-center gap-2.5 px-3 py-2.5 flex-wrap"
@@ -489,7 +489,7 @@ export function AllMatches({
         </span>
       </div>
 
-      <div className="max-w-[1100px] overflow-x-auto">
+      <div className="overflow-x-auto">
         <div className="min-w-[900px]">
           {/* Header row */}
           <div

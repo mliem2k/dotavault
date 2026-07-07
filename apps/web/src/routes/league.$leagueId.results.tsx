@@ -19,33 +19,35 @@ function ResultsLayout() {
   return (
     <div>
       <LeagueTabBar leagueId={leagueId} active="results" />
-      <Panel
-        title="Results"
-        action={
-          <div className="flex items-center gap-1">
-            <Link
-              to="/league/$leagueId/results/$view"
-              params={{ leagueId, view: 'list' }}
-              aria-current={activeView === 'list' ? 'page' : undefined}
-              className="px-2.5 py-3 text-[11px] font-bold uppercase cursor-pointer"
-              style={btnStyle('list')}
-            >
-              list
-            </Link>
-            <Link
-              to="/league/$leagueId/results/$view"
-              params={{ leagueId, view: 'bracket' }}
-              aria-current={activeView === 'bracket' ? 'page' : undefined}
-              className="px-2.5 py-3 text-[11px] font-bold uppercase cursor-pointer"
-              style={btnStyle('bracket')}
-            >
-              bracket
-            </Link>
-          </div>
-        }
-      >
-        <Outlet />
-      </Panel>
+      <div className={activeView === 'list' ? 'max-w-[720px]' : undefined}>
+        <Panel
+          title="Results"
+          action={
+            <div className="flex items-center gap-1">
+              <Link
+                to="/league/$leagueId/results/$view"
+                params={{ leagueId, view: 'list' }}
+                aria-current={activeView === 'list' ? 'page' : undefined}
+                className="px-2.5 py-3 text-[11px] font-bold uppercase cursor-pointer"
+                style={btnStyle('list')}
+              >
+                list
+              </Link>
+              <Link
+                to="/league/$leagueId/results/$view"
+                params={{ leagueId, view: 'bracket' }}
+                aria-current={activeView === 'bracket' ? 'page' : undefined}
+                className="px-2.5 py-3 text-[11px] font-bold uppercase cursor-pointer"
+                style={btnStyle('bracket')}
+              >
+                bracket
+              </Link>
+            </div>
+          }
+        >
+          <Outlet />
+        </Panel>
+      </div>
     </div>
   )
 }
