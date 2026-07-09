@@ -51,7 +51,7 @@ function FilterButton({
       onClick={onClick}
       aria-label={label}
       aria-pressed={active}
-      className={`-ml-1 h-[44px] w-[44px] cursor-pointer bg-cover bg-no-repeat transition-[filter] duration-100 ease-in-out ${
+      className={`-ml-1 h-[44px] w-[44px] cursor-pointer bg-contain bg-center bg-no-repeat transition-[filter] duration-100 ease-in-out ${
         active
           ? '[filter:brightness(1)_saturate(1)]'
           : '[filter:brightness(0.5)_saturate(0)] hover:[filter:brightness(0.8)_saturate(0)]'
