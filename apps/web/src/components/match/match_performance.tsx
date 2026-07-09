@@ -75,8 +75,11 @@ function comparePerf(sortKey: SortKey) {
 function Row({ p, hero }: { p: MatchPlayer; hero: HeroStat | undefined }) {
   const eff = p.lane_efficiency_pct
   const tfp = p.teamfight_participation
-  const cell = (v: React.ReactNode, w: number, color = C.text) => (
-    <div className="shrink-0 flex items-center justify-center text-[16px] tabular-nums font-dota" style={{ width: w, color }}>
+  const cell = (v: React.ReactNode, w: number, color?: string) => (
+    <div
+      className={`shrink-0 flex items-center justify-center text-[16px] tabular-nums font-dota${color ? '' : ' text-slate-foreground'}`}
+      style={{ width: w, ...(color ? { color } : {}) }}
+    >
       {v}
     </div>
   )
