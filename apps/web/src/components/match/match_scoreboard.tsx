@@ -2,6 +2,7 @@ import { type JSX, memo, useCallback, useEffect, useMemo, useState } from 'react
 import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
 import { applySort, useSort } from '@/lib/sortable'
+import { AGHS_SCEPTER_CDN, AGHS_SHARD_CDN, cdnFallback, dotaIconUrl } from '@/lib/utils'
 import { AbilityIcon } from './ability_icon'
 import { ItemIcon } from './item_icon'
 import { MatchRosterSidebar, orderedTeams, useRosterMetrics } from './match_roster'
@@ -9,10 +10,10 @@ import {
   GameTimeSlider,
   damageHealAtTime,
   hasMoonshardBuff,
-  hasScepterBuff,
-  hasShardBuff,
   hasTimeline,
   itemsAtTime,
+  scepterSource,
+  shardSource,
   statsAtTime,
   teamScoreAtTime,
   type TimedStats,
@@ -135,7 +136,7 @@ function SupportItemsGroup({
 
   return (
     // Fixed width (not minWidth) so every row's box is exactly the same
-    // size regardless of how many distinct items a player bought — a
+    // size regardless of how many distinct items a player bought: a
     // minWidth-only box grows past it once content needs more room,
     // which shifts the gold total (and every column after it) out of
     // alignment row to row.
@@ -171,9 +172,32 @@ function SupportItemsGroup({
   )
 }
 
-/* Permanent upgrades (Aghanim's Scepter/Shard, Moon Shard) — final state
+/* A permanent hero upgrade granted with no backing item (Aghanim's
+   Blessing), styled distinctly from ItemIcon so it doesn't read as "they
+   have this item in their inventory": they don't, there's nothing to find
+   in the Items column for this. */
+function AghsBlessingBadge({ kind }: { kind: 'scepter' | 'shard' }) {
+  const src = dotaIconUrl(kind === 'scepter' ? 'aghs_scepter' : 'aghs_shard')
+  const fallback = kind === 'scepter' ? AGHS_SCEPTER_CDN : AGHS_SHARD_CDN
+  const label = kind === 'scepter' ? "Aghanim's Blessing (Scepter effect)" : "Aghanim's Blessing (Shard effect)"
+  return (
+    <div
+      className="flex items-center justify-center shrink-0 rounded-sm"
+      style={{ width: 32, height: 24, background: '#1a1408', border: '1px solid #6b5423' }}
+      title={label}
+    >
+      <img src={src} alt={label} style={{ width: 20, height: 20 }} onError={cdnFallback(fallback)} />
+    </div>
+  )
+}
+
+/* Permanent upgrades (Aghanim's Scepter/Shard, Moon Shard): final state
    only, not time-scrubbed, since these are "did they ever get this" facts
-   rather than a snapshot of current inventory. */
+   rather than a snapshot of current inventory. Scepter/Shard show the
+   regular shop item icon when the player actually has the item (already
+   visible in the Items column too, but useful as a quick glance here), and
+   the distinct AghsBlessingBadge when the upgrade came from Aghanim's
+   Blessing instead (no item, would be misleading to show the item icon). */
 function BuffsGroup({
   player,
   idToName,
@@ -183,20 +207,20 @@ function BuffsGroup({
   idToName: Map<number, string>
   itemConst: Record<string, ItemConst>
 }) {
-  const names = [
-    hasScepterBuff(player, idToName) ? 'ultimate_scepter' : null,
-    hasShardBuff(player, idToName) ? 'aghanims_shard' : null,
-    hasMoonshardBuff(player) ? 'moon_shard' : null,
-  ].filter((n): n is string => n != null)
+  const scepter = scepterSource(player, idToName)
+  const shard = shardSource(player, idToName)
+  const moonshard = hasMoonshardBuff(player)
 
   return (
     // Fixed width, not minWidth: there are only ever at most 3 possible
     // buffs so this never needs to grow, but width (not minWidth) keeps the
     // box the same size in a 0-buff row too, matching every other section.
     <div className="flex items-center gap-1.5 px-2 shrink-0" style={{ width: 124 }}>
-      {names.map((name) => (
-        <ItemIcon key={name} name={name} meta={itemConst[name]} width={32} height={24} />
-      ))}
+      {scepter === 'item' && <ItemIcon name="ultimate_scepter" meta={itemConst.ultimate_scepter} width={32} height={24} />}
+      {scepter === 'blessing' && <AghsBlessingBadge kind="scepter" />}
+      {shard === 'item' && <ItemIcon name="aghanims_shard" meta={itemConst.aghanims_shard} width={32} height={24} />}
+      {shard === 'blessing' && <AghsBlessingBadge kind="shard" />}
+      {moonshard && <ItemIcon name="moon_shard" meta={itemConst.moon_shard} width={32} height={24} />}
     </div>
   )
 }
@@ -471,7 +495,7 @@ export function MatchScoreboard({
 
   const hasPurchases = match.players.some((p) => (p.purchase_log?.length ?? 0) > 0)
   const hasBuffs = match.players.some(
-    (p) => hasScepterBuff(p, idToName) || hasShardBuff(p, idToName) || hasMoonshardBuff(p),
+    (p) => scepterSource(p, idToName) != null || shardSource(p, idToName) != null || hasMoonshardBuff(p),
   )
   const maxAbilities = Math.max(0, ...match.players.map((p) => p.ability_upgrades_arr?.length ?? 0))
 

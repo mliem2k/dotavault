@@ -60,21 +60,43 @@ export function itemsAtTime(
   return ids
 }
 
-// aghanims_scepter/aghanims_shard/moonshard summarize OpenDota's parsed
-// permanent_buffs array, which can come back empty even when the item is
-// clearly owned (seen on a real match: permanent_buffs: [] for a player with
-// ultimate_scepter sitting in item_0). Scepter/Shard stay in the final
-// inventory once bought, so cross-check the item slots as a fallback; Moon
-// Shard is consumed on use and never sits in a slot, so its only fallback is
-// the purchase log.
-export function hasScepterBuff(player: MatchPlayer, idToName: Map<number, string>): boolean {
+// Aghanim's Scepter/Shard grant their hero-specific upgrade two different
+// ways: bought normally (the upgrade stays active permanently even if the
+// item is later sold to free up inventory space, confirmed on real match
+// data: several players had aghanims_shard/aghanims_scepter true with the
+// item gone from their final slots, but purchase_log showed they'd bought
+// it themselves earlier in the game), or via Aghanim's Blessing
+// (Roshan-dropped, used instantly on a chosen ally) where the upgrade is
+// permanent with no item ever entering their inventory at all. Only the
+// second case should read as a "buff with no item" badge: a player who
+// bought-then-sold it did personally acquire the item, so that's still
+// "item", not "blessing".
+//
+// OpenDota's aghanims_scepter/aghanims_shard summary field (computed from
+// the parsed permanent_buffs array) is only trustworthy for the Blessing
+// case; it can come back false even when the item is clearly owned (a real
+// match had permanent_buffs: [] for a player with ultimate_scepter sitting
+// in item_0). So: trust the final item slots or purchase history first
+// (personally acquired), and only read the summary field as Blessing when
+// neither shows any personal purchase.
+export type UpgradeSource = 'item' | 'blessing' | null
+
+function everHadItem(player: MatchPlayer, idToName: Map<number, string>, itemName: string): boolean {
   const finalItems = [player.item_0, player.item_1, player.item_2, player.item_3, player.item_4, player.item_5]
-  return (player.aghanims_scepter ?? 0) > 0 || finalItems.some((id) => idToName.get(id) === 'ultimate_scepter')
+  if (finalItems.some((id) => idToName.get(id) === itemName)) return true
+  return (player.purchase_log ?? []).some((e) => e.key === itemName)
 }
 
-export function hasShardBuff(player: MatchPlayer, idToName: Map<number, string>): boolean {
-  const finalItems = [player.item_0, player.item_1, player.item_2, player.item_3, player.item_4, player.item_5]
-  return (player.aghanims_shard ?? 0) > 0 || finalItems.some((id) => idToName.get(id) === 'aghanims_shard')
+export function scepterSource(player: MatchPlayer, idToName: Map<number, string>): UpgradeSource {
+  if (everHadItem(player, idToName, 'ultimate_scepter')) return 'item'
+  if ((player.aghanims_scepter ?? 0) > 0) return 'blessing'
+  return null
+}
+
+export function shardSource(player: MatchPlayer, idToName: Map<number, string>): UpgradeSource {
+  if (everHadItem(player, idToName, 'aghanims_shard')) return 'item'
+  if ((player.aghanims_shard ?? 0) > 0) return 'blessing'
+  return null
 }
 
 export function hasMoonshardBuff(player: MatchPlayer): boolean {

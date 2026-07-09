@@ -5,7 +5,10 @@ import { lobbyTypeName, regionName } from '@/lib/dotaconst'
 import { opendota } from '@/lib/opendota'
 import { rankBadge, rankName } from '@/lib/rank'
 import {
+  AGHS_SCEPTER_CDN,
+  AGHS_SHARD_CDN,
   cdnFallback,
+  dotaIconUrl,
   formatDuration,
   heroIconFromPath,
   heroIconUrl,
@@ -18,7 +21,7 @@ import {
 } from '@/lib/utils'
 import { ItemIcon } from './item_icon'
 import { PlayerAvatar, PlayerNameLink, usePlayerName, usePlayerProName } from './match_roster'
-import { GameTimeSlider, hasScepterBuff, hasShardBuff, hasTimeline, itemsAtTime, statsAtTime, type TimedStats } from './match_time'
+import { GameTimeSlider, hasTimeline, itemsAtTime, scepterSource, shardSource, statsAtTime, type TimedStats } from './match_time'
 
 const GAME_MODES: Record<number, string> = {
   1: 'All Pick',
@@ -191,6 +194,53 @@ function overallPercentile(player: MatchPlayer): number {
 /* Portrait card (team view)                                           */
 /* ------------------------------------------------------------------ */
 
+/* Scepter/Shard badge: shows the real shop item icon when the player
+   actually has the item, or a visually distinct "Blessing" badge when the
+   upgrade came from Aghanim's Blessing instead (Roshan-dropped, consumed
+   instantly on an ally, no item ever enters their inventory, so showing
+   the shop icon there would be misleading). */
+function AghsBadge({ kind, source }: { kind: 'scepter' | 'shard'; source: 'item' | 'blessing' }) {
+  if (source === 'item') {
+    const name = kind === 'scepter' ? 'ultimate_scepter' : 'aghanims_shard'
+    const label = kind === 'scepter' ? "Aghanim's Scepter" : "Aghanim's Shard"
+    return (
+      <div
+        className="overflow-hidden"
+        style={{ width: 36, height: 27, background: 'rgba(13,16,18,0.9)', border: `1px solid ${C.panelBorder}` }}
+        title={label}
+      >
+        <img
+          src={itemIconUrl(name)}
+          alt={label}
+          className="h-full w-full object-cover"
+          onError={(e) => {
+            const img = e.currentTarget
+            if (!img.src.includes('cdn.cloudflare')) {
+              img.src = `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/${name}.png`
+            } else {
+              img.onerror = null
+              img.style.opacity = '0.12'
+            }
+          }}
+        />
+      </div>
+    )
+  }
+
+  const src = dotaIconUrl(kind === 'scepter' ? 'aghs_scepter' : 'aghs_shard')
+  const fallback = kind === 'scepter' ? AGHS_SCEPTER_CDN : AGHS_SHARD_CDN
+  const label = kind === 'scepter' ? "Aghanim's Blessing (Scepter effect)" : "Aghanim's Blessing (Shard effect)"
+  return (
+    <div
+      className="flex items-center justify-center overflow-hidden"
+      style={{ width: 36, height: 27, background: '#1a1408', border: '1px solid #6b5423' }}
+      title={label}
+    >
+      <img src={src} alt={label} style={{ width: 22, height: 22 }} onError={cdnFallback(fallback)} />
+    </div>
+  )
+}
+
 function HeroPortraitCard({
   player,
   hero,
@@ -204,8 +254,8 @@ function HeroPortraitCard({
 }) {
   const playerName = usePlayerName(player)
   const proName = usePlayerProName(player, playerName)
-  const hasScepter = hasScepterBuff(player, idToName)
-  const hasShard = hasShardBuff(player, idToName)
+  const scepter = scepterSource(player, idToName)
+  const shard = shardSource(player, idToName)
 
   return (
     <div className="flex flex-col items-center shrink-0" style={{ width: 118 }}>
@@ -269,38 +319,11 @@ function HeroPortraitCard({
         </div>
       </button>
 
-      {/* Aghanim's Scepter/Shard badges under the card, using the real shop
-          item icons (local asset first, Steam CDN fallback) */}
-      {(hasScepter || hasShard) && (
+      {/* Aghanim's Scepter/Shard badges under the card */}
+      {(scepter || shard) && (
         <div className="mt-1.5 flex items-center justify-center gap-1">
-          {(
-            [
-              hasScepter ? { name: 'ultimate_scepter', label: "Aghanim's Scepter" } : null,
-              hasShard ? { name: 'aghanims_shard', label: "Aghanim's Shard" } : null,
-            ].filter(Boolean) as { name: string; label: string }[]
-          ).map(({ name, label }) => (
-            <div
-              key={name}
-              className="overflow-hidden"
-              style={{ width: 36, height: 27, background: 'rgba(13,16,18,0.9)', border: `1px solid ${C.panelBorder}` }}
-              title={label}
-            >
-              <img
-                src={itemIconUrl(name)}
-                alt={label}
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  const img = e.currentTarget
-                  if (!img.src.includes('cdn.cloudflare')) {
-                    img.src = `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/${name}.png`
-                  } else {
-                    img.onerror = null
-                    img.style.opacity = '0.12'
-                  }
-                }}
-              />
-            </div>
-          ))}
+          {scepter && <AghsBadge kind="scepter" source={scepter} />}
+          {shard && <AghsBadge kind="shard" source={shard} />}
         </div>
       )}
     </div>
