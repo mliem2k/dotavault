@@ -157,6 +157,16 @@ function PlayerPage() {
       </div>
     )
   }
+  if (player.isError) {
+    return (
+      <div className="text-sm text-muted py-20 text-center">
+        Couldn't load this player right now (OpenDota may be rate-limited).{' '}
+        <button type="button" onClick={() => player.refetch()} className="underline text-gold cursor-pointer">
+          Try again
+        </button>
+      </div>
+    )
+  }
   if (!player.data) return <div className="text-sm text-muted">Player not found.</div>
 
   const openDotaProfile = player.data.player.profile
