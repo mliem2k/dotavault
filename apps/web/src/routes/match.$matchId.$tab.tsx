@@ -188,14 +188,16 @@ function MatchPage() {
     <div className="flex flex-col gap-0">
       {/* Tab strip: grouped primary row, contextual secondary row */}
       <div
-        className="flex items-center flex-wrap mt-3 px-3 py-2.5"
-        style={{ fontFamily: 'var(--font-dota)', background: 'rgba(8,10,12,0.55)' }}
+        className="flex items-center flex-wrap mt-3 px-3 py-2.5 font-dota"
+        style={{ background: 'rgba(8,10,12,0.55)' }}
       >
         {navEntries.map((g, i) => {
           const active = g === activeGroup
           return (
             <span key={g.label} className="flex items-center">
               {i > 0 && (
+                // #3f464d is not in the Token Mapping Reference — left as-is per
+                // task instructions.
                 <span className="mx-2.5 text-[13px]" style={{ color: '#3f464d' }}>/</span>
               )}
               <Link
@@ -203,9 +205,11 @@ function MatchPage() {
                 params={{ matchId, tab: g.tabs[0] }}
                 className="text-[14px] font-semibold uppercase cursor-pointer whitespace-nowrap"
                 style={{
-                  color: active ? '#ffffff' : '#7d8b95',
+                  // #7d8b95 is not in the Token Mapping Reference — left as-is per
+                  // task instructions.
+                  color: active ? 'var(--color-white)' : '#7d8b95',
                   letterSpacing: '2px',
-                  borderBottom: active ? '1px solid #ffffff' : '1px solid transparent',
+                  borderBottom: active ? '1px solid var(--color-white)' : '1px solid transparent',
                   paddingBottom: 2,
                   textShadow: '0 1px 2px rgba(0,0,0,0.9)',
                 }}
@@ -218,12 +222,14 @@ function MatchPage() {
       </div>
       {activeGroup && activeGroup.tabs.length > 1 && (
         <div
-          className="flex items-center flex-wrap mb-3 px-3 py-2"
-          style={{ fontFamily: 'var(--font-dota)', background: 'rgba(8,10,12,0.35)', borderTop: '1px solid rgba(255,255,255,0.05)' }}
+          className="flex items-center flex-wrap mb-3 px-3 py-2 font-dota"
+          style={{ background: 'rgba(8,10,12,0.35)', borderTop: '1px solid rgba(255,255,255,0.05)' }}
         >
           {activeGroup.tabs.map((t, i) => (
             <span key={t} className="flex items-center">
               {i > 0 && (
+                // #3f464d is not in the Token Mapping Reference — left as-is per
+                // task instructions.
                 <span className="mx-2 text-[13px]" style={{ color: '#3f464d' }}>·</span>
               )}
               <Link
@@ -231,9 +237,11 @@ function MatchPage() {
                 params={{ matchId, tab: t }}
                 className="text-[13px] uppercase cursor-pointer whitespace-nowrap"
                 style={{
-                  color: activeTab === t ? '#f2c94c' : '#7d8b95',
+                  // #7d8b95 is not in the Token Mapping Reference — left as-is per
+                  // task instructions.
+                  color: activeTab === t ? 'var(--color-gold)' : '#7d8b95',
                   letterSpacing: '2px',
-                  borderBottom: activeTab === t ? '1px solid #f2c94c' : '1px solid transparent',
+                  borderBottom: activeTab === t ? '1px solid var(--color-gold)' : '1px solid transparent',
                   paddingBottom: 1,
                 }}
               >

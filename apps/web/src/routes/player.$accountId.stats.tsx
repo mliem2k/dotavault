@@ -4,7 +4,7 @@ import { PlayerStats } from '@/components/player/player_stats'
 import { Spinner } from '@/components/ui/spinner'
 import { usePlayerData } from '@/lib/player_data_context'
 
-const C = { white: '#ffffff', panel: 'rgba(16,19,22,0.72)' }
+const C = { white: 'var(--color-white)', panel: 'rgba(16,19,22,0.72)' }
 
 export const Route = createFileRoute('/player/$accountId/stats')({
   component: StatsTabPage,

@@ -11,8 +11,10 @@ export const Route = createFileRoute('/leaderboards/$region')({
 
 const PAGE_SIZE = 50
 
+// #c8ccd1 and #c98a4a (silver/bronze medal colors) are not in the Token
+// Mapping Reference — left as-is per task instructions.
 const RANK_COLORS: Record<number, string> = {
-  1: '#f2c94c',
+  1: 'var(--color-gold)',
   2: '#c8ccd1',
   3: '#c98a4a',
 }
@@ -51,12 +53,9 @@ function RegionPage() {
   const shown = filtered.slice(clampedPage * PAGE_SIZE, clampedPage * PAGE_SIZE + PAGE_SIZE)
 
   return (
-    <div className="max-w-[860px] mx-auto" style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+    <div className="max-w-[860px] mx-auto border border-border" style={{ background: 'rgba(12,11,14,0.72)' }}>
       {/* Toolbar */}
-      <div
-        className="flex items-center gap-3 px-4 py-3 flex-wrap"
-        style={{ borderBottom: '1px solid #24222a' }}
-      >
+      <div className="flex items-center gap-3 px-4 py-3 flex-wrap border-b border-border">
         <input
           value={search}
           onChange={(e) => {
@@ -65,16 +64,10 @@ function RegionPage() {
           }}
           placeholder="Search player or team tag…"
           aria-label="Search player or team"
-          className="text-[14px] px-3 py-1.5 flex-1 min-w-[200px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#c9a94a]"
-          style={{
-            background: '#14181b',
-            color: '#dcd6c8',
-            border: '1px solid #2c3236',
-            fontFamily: 'var(--font-dota)',
-          }}
+          className="text-[14px] px-3 py-1.5 flex-1 min-w-[200px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold bg-slate-bg text-foreground border border-slate-card font-dota"
         />
         {query.data && (
-          <div className="text-[12px] text-right shrink-0" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+          <div className="text-[12px] text-right shrink-0 text-muted font-dota">
             Updated {fmtTime(query.data.time_posted)}
             <br />
             Next {fmtTime(query.data.next_scheduled_post_time)}
@@ -87,11 +80,11 @@ function RegionPage() {
           <Spinner />
         </div>
       ) : !query.data ? (
-        <div className="py-16 text-center text-[14px]" style={{ color: '#8a8474' }}>
+        <div className="py-16 text-center text-[14px] text-muted">
           This leaderboard is currently unavailable.
         </div>
       ) : shown.length === 0 ? (
-        <div className="py-16 text-center text-[14px]" style={{ color: '#8a8474' }}>
+        <div className="py-16 text-center text-[14px] text-muted">
           No players match "{search}".
         </div>
       ) : (
@@ -102,8 +95,7 @@ function RegionPage() {
             return (
             <div
               key={r.rank}
-              className="relative flex w-full items-center gap-4 px-4 py-2.5 text-left"
-              style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
+              className={`relative flex w-full items-center gap-4 px-4 py-2.5 text-left ${i === 0 ? '' : 'border-t border-border'}`}
             >
               {/* Stretched link (only when a pro profile was actually matched): the
                   whole row becomes a real, ctrl+click/middle-click openable link,
@@ -120,8 +112,8 @@ function RegionPage() {
                 />
               )}
               <span
-                className="w-10 shrink-0 text-right text-[16px] tabular-nums pointer-events-none"
-                style={{ color: RANK_COLORS[r.rank] ?? '#8a8474', fontFamily: 'var(--font-display)', fontWeight: 600 }}
+                className="w-10 shrink-0 text-right text-[16px] tabular-nums pointer-events-none font-display"
+                style={{ color: RANK_COLORS[r.rank] ?? 'var(--color-muted)', fontWeight: 600 }}
               >
                 {r.rank}
               </span>
@@ -130,45 +122,43 @@ function RegionPage() {
                   r.team_id ? (
                     <a
                       href={`/team/${r.team_id}`}
-                      className="relative z-10 shrink-0 text-[13px] px-1.5 py-0.5 hover:brightness-125"
-                      style={{ background: '#24222a', color: '#c9a94a', fontFamily: 'var(--font-dota)' }}
+                      className="relative z-10 shrink-0 text-[13px] px-1.5 py-0.5 hover:brightness-125 bg-border text-gold font-dota"
                     >
                       {r.team_tag}
                     </a>
                   ) : (
-                    <span
-                      className="shrink-0 text-[13px] px-1.5 py-0.5"
-                      style={{ background: '#24222a', color: '#c9a94a', fontFamily: 'var(--font-dota)' }}
-                    >
+                    <span className="shrink-0 text-[13px] px-1.5 py-0.5 bg-border text-gold font-dota">
                       {r.team_tag}
                     </span>
                   )
                 ) : null}
-                <span className="text-[14px] truncate" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+                <span className="text-[14px] truncate text-foreground font-dota">
                   {r.name}
                 </span>
                 {pro && (
                   <>
                     <span
-                      className="shrink-0 px-1 text-[10px] uppercase"
-                      style={{ color: '#c9a94a', border: '1px solid rgba(201,169,74,0.5)', letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
+                      className="shrink-0 px-1 text-[10px] uppercase text-gold font-dota"
+                      style={{ border: '1px solid rgba(201,169,74,0.5)', letterSpacing: '1px' }}
                     >
                       Pro
                     </span>
                     {pro.name !== r.name && (
-                      <span className="hidden sm:inline-block truncate max-w-[140px] text-[13px]" style={{ color: '#c9a94a', fontFamily: 'var(--font-dota)' }}>
+                      <span className="hidden sm:inline-block truncate max-w-[140px] text-[13px] text-gold font-dota">
                         [{pro.name}]
                       </span>
                     )}
                     {pro.personaname && pro.personaname !== r.name && pro.personaname !== pro.name && (
-                      <span className="hidden md:inline-block truncate max-w-[120px] text-[13px]" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+                      <span className="hidden md:inline-block truncate max-w-[120px] text-[13px] text-muted font-dota">
                         {pro.personaname}
                       </span>
                     )}
                   </>
                 )}
                 {r.sponsor && (
-                  <span className="hidden md:inline-block truncate max-w-[100px] text-[13px]" style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}>
+                  // #77715f is not in the Token Mapping Reference (close to but distinct
+                  // from #8a8474/#5a5648 text-muted) — left as-is per task instructions.
+                  <span className="hidden md:inline-block truncate max-w-[100px] text-[13px] font-dota" style={{ color: '#77715f' }}>
                     .{r.sponsor}
                   </span>
                 )}
@@ -194,28 +184,27 @@ function RegionPage() {
 
       {/* Pagination */}
       {filtered.length > PAGE_SIZE && (
-        <div
-          className="flex items-center justify-center gap-4 px-4 py-3"
-          style={{ borderTop: '1px solid #24222a' }}
-        >
+        <div className="flex items-center justify-center gap-4 px-4 py-3 border-t border-border">
           <button
             type="button"
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={clampedPage === 0}
-            className="min-h-11 px-4 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-40"
-            style={{ background: '#1a2024', border: '1px solid #2c3236', color: '#cfd4d8', letterSpacing: '1px' }}
+            className="min-h-11 px-4 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-40 border border-slate-card text-slate-foreground"
+            // #1a2024 is not in the Token Mapping Reference (close to but distinct
+            // from #14181b bg-slate-bg) — left as-is per task instructions.
+            style={{ background: '#1a2024', letterSpacing: '1px' }}
           >
             Prev
           </button>
-          <span className="text-[13px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+          <span className="text-[13px] tabular-nums text-muted font-dota">
             Page {clampedPage + 1} of {totalPages}
           </span>
           <button
             type="button"
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={clampedPage >= totalPages - 1}
-            className="min-h-11 px-4 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-40"
-            style={{ background: '#1a2024', border: '1px solid #2c3236', color: '#cfd4d8', letterSpacing: '1px' }}
+            className="min-h-11 px-4 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-40 border border-slate-card text-slate-foreground"
+            style={{ background: '#1a2024', letterSpacing: '1px' }}
           >
             Next
           </button>

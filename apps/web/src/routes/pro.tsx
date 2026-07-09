@@ -20,17 +20,14 @@ export const Route = createFileRoute('/pro')({
 
 function Panel({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) {
   return (
-    <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+    <div className="border border-border" style={{ background: 'rgba(12,11,14,0.72)' }}>
       <div
-        className="flex items-center justify-between gap-2 px-4 py-3 uppercase flex-wrap"
+        className="flex items-center justify-between gap-2 px-4 py-3 uppercase flex-wrap text-foreground font-display border-b border-border"
         style={{
           background: 'rgba(8,10,12,0.85)',
-          color: '#c8c2b4',
-          fontFamily: 'var(--font-display)',
           fontSize: 20,
           fontWeight: 500,
           letterSpacing: '3px',
-          borderBottom: '1px solid #24222a',
         }}
       >
         <span>{title}</span>
@@ -44,10 +41,11 @@ function Panel({ title, children, right }: { title: string; children: React.Reac
 function TeamName({ name, won }: { name: string; won: boolean }) {
   return (
     <span
-      className="truncate text-[14px]"
+      className="truncate text-[14px] font-dota"
       style={{
-        color: won ? '#8ec63f' : '#a09a8c',
-        fontFamily: 'var(--font-dota)',
+        // #a09a8c is not in the Token Mapping Reference (close to but distinct
+        // from #8a8474/#5a5648 text-muted) — left as-is per task instructions.
+        color: won ? 'var(--color-radiant)' : '#a09a8c',
         fontWeight: won ? 600 : 400,
       }}
     >
@@ -81,12 +79,9 @@ function ProMatches() {
           onChange={(e) => setLeague(e.target.value)}
           placeholder="Filter league..."
           aria-label="Search league name"
-          className="px-2 py-1 text-[13px] normal-case focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#c9a94a]"
+          className="px-2 py-1 text-[13px] normal-case focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold border border-border text-foreground font-dota"
           style={{
             background: 'rgba(8,10,12,0.7)',
-            border: '1px solid #24222a',
-            color: '#dcd6c8',
-            fontFamily: 'var(--font-dota)',
             letterSpacing: 'normal',
             width: 170,
             maxWidth: '100%',
@@ -106,31 +101,32 @@ function ProMatches() {
             <a
               key={m.match_id}
               href={`/match/${m.match_id}`}
-              className="flex items-center gap-3 py-2.5 hover:bg-white/[0.03]"
-              style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
+              className={`flex items-center gap-3 py-2.5 hover:bg-white/[0.03] ${i === 0 ? '' : 'border-t border-border'}`}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center gap-2">
                   <TeamName name={m.radiant_name ?? 'Radiant'} won={radWon} />
                   <span
-                    className="shrink-0 px-1.5 text-[14px] tabular-nums"
-                    style={{ color: '#dcd6c8', background: 'rgba(255,255,255,0.05)', fontFamily: 'var(--font-dota)' }}
+                    className="shrink-0 px-1.5 text-[14px] tabular-nums text-foreground font-dota"
+                    style={{ background: 'rgba(255,255,255,0.05)' }}
                   >
                     {m.radiant_score ?? '?'} : {m.dire_score ?? '?'}
                   </span>
                   <TeamName name={m.dire_name ?? 'Dire'} won={!radWon} />
                 </div>
                 {m.league_name && (
-                  <div className="mt-0.5 truncate text-[13px]" style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}>
+                  // #77715f is not in the Token Mapping Reference (close to but distinct
+                  // from #8a8474/#5a5648 text-muted) — left as-is per task instructions.
+                  <div className="mt-0.5 truncate text-[13px] font-dota" style={{ color: '#77715f' }}>
                     {m.league_name}
                   </div>
                 )}
               </div>
               <div className="shrink-0 text-right">
-                <div className="text-[13px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+                <div className="text-[13px] tabular-nums text-muted font-dota">
                   {formatTimeAgo(m.start_time)}
                 </div>
-                <div className="mt-0.5 text-[13px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+                <div className="mt-0.5 text-[13px] tabular-nums text-muted font-dota">
                   {formatDuration(m.duration)}
                 </div>
               </div>
@@ -144,13 +140,12 @@ function ProMatches() {
             type="button"
             onClick={() => query.fetchNextPage()}
             disabled={query.isFetchingNextPage}
-            className="min-h-11 px-5 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:opacity-50"
+            className="min-h-11 px-5 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:opacity-50 border border-slate-card text-slate-foreground font-dota"
             style={{
+              // #1a2024 is not in the Token Mapping Reference (close to but distinct
+              // from #14181b bg-slate-bg) — left as-is per task instructions.
               background: '#1a2024',
-              border: '1px solid #2c3236',
-              color: '#cfd4d8',
               letterSpacing: '1px',
-              fontFamily: 'var(--font-dota)',
             }}
           >
             {query.isFetchingNextPage ? 'Loading...' : 'Load More'}
@@ -209,8 +204,8 @@ function TopTeams() {
       )}
       {top.length > 0 && (
         <div
-          className="flex items-center gap-3 py-2 text-[12px] uppercase"
-          style={{ color: '#8a8474', letterSpacing: '1px', fontFamily: 'var(--font-dota)', borderBottom: '1px solid #1c1810' }}
+          className="flex items-center gap-3 py-2 text-[12px] uppercase text-muted font-dota border-b border-border"
+          style={{ letterSpacing: '1px' }}
         >
           <span className="w-5 shrink-0" />
           <span className="h-7 w-7 shrink-0" />
@@ -237,10 +232,9 @@ function TopTeams() {
           <a
             key={t.team_id}
             href={`/team/${t.team_id}`}
-            className="flex items-center gap-3 py-2 hover:bg-white/[0.03]"
-            style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
+            className={`flex items-center gap-3 py-2 hover:bg-white/[0.03] ${i === 0 ? '' : 'border-t border-border'}`}
           >
-            <span className="w-5 text-right text-[13px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+            <span className="w-5 text-right text-[13px] tabular-nums text-muted font-dota">
               {i + 1}
             </span>
             {t.logo_url ? (
@@ -260,13 +254,13 @@ function TopTeams() {
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="truncate text-[14px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+                <span className="truncate text-[14px] text-foreground font-dota">
                   {t.name}
                 </span>
                 {tiChampionships(t.team_id).length > 0 && (
                   <span
-                    className="shrink-0 px-1.5 py-0.5 text-[11px] font-bold uppercase"
-                    style={{ background: 'transparent', border: '1px solid rgba(242,201,76,0.5)', color: '#f2c94c', letterSpacing: '0.5px' }}
+                    className="shrink-0 px-1.5 py-0.5 text-[11px] font-bold uppercase text-gold"
+                    style={{ background: 'transparent', border: '1px solid rgba(242,201,76,0.5)', letterSpacing: '0.5px' }}
                     title={`The International Champion: ${tiChampionships(t.team_id)
                       .map((c) => (c.wonAs ? `TI${c.year} as ${c.wonAs}` : `TI${c.year}`))
                       .join(', ')}`}
@@ -275,19 +269,22 @@ function TopTeams() {
                   </span>
                 )}
               </div>
-              <div className="text-[13px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+              <div className="text-[13px] tabular-nums text-muted font-dota">
                 {t.wins}W · {t.losses}L
-                <span className="ml-2" style={{ color: wr >= 55 ? '#8ec63f' : wr < 45 ? '#d14a38' : '#8a8474' }}>
+                <span
+                  className="ml-2"
+                  style={{ color: wr >= 55 ? 'var(--color-radiant)' : wr < 45 ? 'var(--color-dire)' : 'var(--color-muted)' }}
+                >
                   {wr.toFixed(0)}%
                 </span>
                 {t.last_match_time && (
-                  <span className="ml-2" style={{ color: '#5a5648' }}>
+                  <span className="ml-2 text-muted">
                     · Last played {formatTimeAgo(t.last_match_time)}
                   </span>
                 )}
               </div>
             </div>
-            <span className="shrink-0 text-[15px] tabular-nums" style={{ color: '#c9a94a', fontFamily: 'var(--font-dota)' }}>
+            <span className="shrink-0 text-[15px] tabular-nums text-gold font-dota">
               {Math.round(t.rating)}
             </span>
           </a>
@@ -356,8 +353,7 @@ function ProPlayers() {
           <a
             key={p.account_id}
             href={`/player/${p.account_id}`}
-            className="flex items-center gap-3 py-2 hover:bg-white/[0.03]"
-            style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
+            className={`flex items-center gap-3 py-2 hover:bg-white/[0.03] ${i === 0 ? '' : 'border-t border-border'}`}
           >
             <img
               src={p.avatarmedium}
@@ -366,20 +362,22 @@ function ProPlayers() {
               height={28}
               loading="lazy"
               className="h-7 w-7 shrink-0 rounded-full"
+              // #2c2820 is not in the Token Mapping Reference (close to but distinct
+              // from #2a2620/#24222a border-border) — left as-is per task instructions.
               style={{ border: '1px solid #2c2820' }}
             />
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[14px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+              <div className="truncate text-[14px] text-foreground font-dota">
                 {p.name ?? p.personaname}
               </div>
-              <div className="truncate text-[13px]" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+              <div className="truncate text-[13px] text-muted font-dota">
                 {p.team_name}
               </div>
             </div>
             {pos && (
               <span
-                className="shrink-0 px-1.5 py-0.5 text-[12px] font-bold tabular-nums"
-                style={{ background: 'transparent', border: '1px solid rgba(242,201,76,0.5)', color: '#f2c94c' }}
+                className="shrink-0 px-1.5 py-0.5 text-[12px] font-bold tabular-nums text-gold"
+                style={{ background: 'transparent', border: '1px solid rgba(242,201,76,0.5)' }}
                 title={`Rank #${pos.rank} on Valve's ${divisionLabel(pos.division)} leaderboard`}
               >
                 #{pos.rank} {divisionShort(pos.division)}
@@ -412,15 +410,12 @@ function ProPage() {
     <div className="space-y-6 py-4">
       <div>
         <h1
-          className="text-[44px] leading-none font-bold uppercase"
-          style={{ color: '#dcd6c8', fontFamily: 'var(--font-display)', letterSpacing: '2px' }}
+          className="text-[44px] leading-none font-bold uppercase text-foreground font-display"
+          style={{ letterSpacing: '2px' }}
         >
           Pro Scene
         </h1>
-        <p
-          className="mt-2 text-[13px] uppercase tracking-[0.2em]"
-          style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
-        >
+        <p className="mt-2 text-[13px] uppercase tracking-[0.2em] text-foreground font-dota">
           Recent professional matches, team ratings, and players
         </p>
       </div>

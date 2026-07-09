@@ -75,18 +75,12 @@ function LeaderboardsPage() {
     <div className="space-y-6 py-4">
       <div className="text-center mb-2">
         <h1
-          className="text-[44px] leading-none font-bold uppercase"
-          style={{ fontFamily: 'var(--font-display)', color: '#dcd6c8', letterSpacing: '2px' }}
+          className="text-[44px] leading-none font-bold uppercase font-display text-foreground"
+          style={{ letterSpacing: '2px' }}
         >
           World Leaderboards
         </h1>
-        <p
-          className="mt-2 text-[13px] uppercase tracking-[0.2em]"
-          style={{
-            color: '#dcd6c8',
-            fontFamily: 'var(--font-dota)',
-          }}
-        >
+        <p className="mt-2 text-[13px] uppercase tracking-[0.2em] font-dota text-foreground">
           Top 5,000 players by solo ranked MMR, per region
         </p>
       </div>
@@ -103,22 +97,21 @@ function LeaderboardsPage() {
               setPage(0)
             }}
             role="tab"
-            className="min-h-11 inline-flex items-center justify-center px-5 py-2 text-[14px] uppercase cursor-pointer transition-colors"
+            className="min-h-11 inline-flex items-center justify-center px-5 py-2 text-[14px] uppercase cursor-pointer transition-colors font-display"
             activeOptions={{ exact: true }}
             style={{
-              fontFamily: 'var(--font-display)',
               letterSpacing: '1px',
               fontWeight: 600,
               background: 'rgba(12,11,14,0.72)',
-              color: '#dcd6c8',
-              border: '1px solid #24222a',
+              color: 'var(--color-foreground)',
+              border: '1px solid var(--color-border)',
             }}
             activeProps={{
               'aria-current': 'page',
               style: {
                 background: 'rgba(201,169,74,0.18)',
-                color: '#c9a94a',
-                border: '1px solid #c9a94a',
+                color: 'var(--color-gold)',
+                border: '1px solid var(--color-gold)',
               },
             }}
           >

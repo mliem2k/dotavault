@@ -15,12 +15,14 @@ export const Route = createFileRoute('/player/$accountId')({
 })
 
 // Client palette shared with the match screens.
+// #8fbf3f (green) is not in the Token Mapping Reference (distinct "won" green
+// used across the slate-family pages) — left as-is per task instructions.
 const C = {
-  label: '#8a8474',
-  labelBright: '#8a97a0',
-  text: '#cfd4d8',
-  white: '#ffffff',
-  gold: '#c9a94a',
+  label: 'var(--color-muted)',
+  labelBright: 'var(--color-slate-muted-light)',
+  text: 'var(--color-slate-foreground)',
+  white: 'var(--color-white)',
+  gold: 'var(--color-gold)',
   green: '#8fbf3f',
   panel: 'rgba(16,19,22,0.72)',
 }
@@ -204,8 +206,8 @@ function PlayerPage() {
       active ? '' : 'hover:bg-white/[0.03] hover:text-foreground'
     }`
   const tabLinkStyle = (active: boolean) => ({
-    background: active ? '#c9a94a' : 'transparent',
-    color: active ? '#0b0b0d' : '#8a8474',
+    background: active ? 'var(--color-gold)' : 'transparent',
+    color: active ? 'var(--color-background)' : 'var(--color-muted)',
     letterSpacing: '1.5px',
   })
 
@@ -229,7 +231,7 @@ function PlayerPage() {
         countsQ,
       }}
     >
-      <div className="flex flex-col gap-0" style={{ fontFamily: 'var(--font-dota)' }}>
+      <div className="flex flex-col gap-0 font-dota">
         {/* Tab strip — PROFILE / MATCHES / STATS */}
         <div className="flex items-center gap-1 flex-wrap mt-3 mb-3 px-3 py-2.5" style={{ background: 'rgba(8,10,12,0.55)' }}>
           <Link to="/player/$accountId/profile" params={{ accountId }} className={tabLinkClass(activeTab === 'profile')} style={tabLinkStyle(activeTab === 'profile')}>
@@ -248,8 +250,7 @@ function PlayerPage() {
           <img
             src={resolvedProfile.avatarfull}
             alt={resolvedProfile.personaname}
-            className="h-16 w-16 shrink-0 rounded-full"
-            style={{ border: '1px solid #2c3236' }}
+            className="h-16 w-16 shrink-0 rounded-full border border-slate-card"
           />
           <div className="min-w-0">
             <div className="flex items-center gap-2.5 flex-wrap">
@@ -259,6 +260,8 @@ function PlayerPage() {
               {resolvedProfile.isPrivate && (
                 <span
                   className="shrink-0 px-1.5 py-0.5 text-[12px] uppercase"
+                  // #3a352a is not in the Token Mapping Reference (close to but distinct
+                  // from #2a2620/#24222a border-border) — left as-is per task instructions.
                   style={{ color: C.labelBright, border: '1px solid #3a352a', letterSpacing: '1px' }}
                 >
                   Private
@@ -272,8 +275,7 @@ function PlayerPage() {
               {proInfo?.team_id && (
                 <a
                   href={`/team/${proInfo.team_id}`}
-                  className="text-[13px] px-1.5 py-0.5 shrink-0 hover:brightness-125"
-                  style={{ background: '#24222a', color: '#c9a94a' }}
+                  className="text-[13px] px-1.5 py-0.5 shrink-0 hover:brightness-125 bg-border text-gold"
                   title={proInfo.team_name ?? undefined}
                 >
                   {proInfo.team_tag ?? proInfo.team_name}
@@ -284,8 +286,10 @@ function PlayerPage() {
               {rankName(p.rank_tier)}
               {leaderboardPos.data && (
                 <span
-                  className="px-1.5 py-0.5 text-[12px]"
-                  style={{ background: '#2a2410', color: '#f2c94c', letterSpacing: '1px' }}
+                  className="px-1.5 py-0.5 text-[12px] text-gold"
+                  // #2a2410 is not in the Token Mapping Reference — left as-is per
+                  // task instructions.
+                  style={{ background: '#2a2410', letterSpacing: '1px' }}
                   title={`Rank #${leaderboardPos.data.rank} on Valve's ${divisionLabel(leaderboardPos.data.division)} leaderboard`}
                 >
                   #{leaderboardPos.data.rank} {divisionShort(leaderboardPos.data.division)}

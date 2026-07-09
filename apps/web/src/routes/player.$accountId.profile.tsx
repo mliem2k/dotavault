@@ -7,11 +7,11 @@ import { RANK_NAMES, rankName } from '@/lib/rank'
 import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl, heroSlug } from '@/lib/utils'
 
 const C = {
-  label: '#67757f',
-  labelBright: '#8a97a0',
-  text: '#cfd4d8',
-  white: '#ffffff',
-  gold: '#c9a94a',
+  label: 'var(--color-slate-muted)',
+  labelBright: 'var(--color-slate-muted-light)',
+  text: 'var(--color-slate-foreground)',
+  white: 'var(--color-white)',
+  gold: 'var(--color-gold)',
   panel: 'rgba(16,19,22,0.72)',
 }
 
@@ -40,7 +40,8 @@ function ProfileLayout() {
                     src={heroLandscapeUrl(hero.name)}
                     alt={hero.localized_name}
                     title={`${hero.localized_name} · ${ph.games} games`}
-                    style={{ width: 118, height: 66, objectFit: 'cover', border: '1px solid #2c3236' }}
+                    className="border border-slate-card"
+                    style={{ width: 118, height: 66, objectFit: 'cover' }}
                     onError={cdnFallback(heroLandscapeCdn(hero.name))}
                   />
                 </a>
@@ -54,18 +55,22 @@ function ProfileLayout() {
                 style={{
                   width: 84,
                   height: 84,
+                  // Gradient stops (#3a2f10, #101316, #23282c) are not in the Token
+                  // Mapping Reference — left as-is per task instructions.
                   background: leaderboardPos.data
                     ? 'radial-gradient(circle, #3a2f10 0%, #101316 70%)'
                     : 'radial-gradient(circle, #23282c 0%, #101316 70%)',
-                  border: `2px solid ${leaderboardPos.data ? '#f2c94c' : '#2c3236'}`,
+                  border: `2px solid ${leaderboardPos.data ? 'var(--color-gold)' : 'var(--color-slate-card)'}`,
                 }}
               >
                 <img src={badge.medal} alt={rankName(p.rank_tier)} className="h-16 w-16 object-contain" />
                 {badge.stars && <img src={badge.stars} alt="" className="absolute h-16 w-16 object-contain" />}
                 {leaderboardPos.data && (
                   <span
-                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 text-[12px] font-bold tabular-nums whitespace-nowrap"
-                    style={{ background: '#f2c94c', color: '#1a1608', letterSpacing: '0.5px' }}
+                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 text-[12px] font-bold tabular-nums whitespace-nowrap bg-gold"
+                    // #1a1608 is not in the Token Mapping Reference — left as-is per
+                    // task instructions.
+                    style={{ color: '#1a1608', letterSpacing: '0.5px' }}
                     title={`Rank #${leaderboardPos.data.rank} on Valve's ${divisionLabel(leaderboardPos.data.division)} leaderboard`}
                   >
                     #{leaderboardPos.data.rank} {divisionShort(leaderboardPos.data.division)}
@@ -74,10 +79,9 @@ function ProfileLayout() {
               </div>
               {/* Rank ladder tooltip: all tiers, current one highlighted */}
               <div
-                className="absolute right-0 top-full mt-2 hidden group-hover:block group-focus-within:block z-50 pointer-events-none"
+                className="absolute right-0 top-full mt-2 hidden group-hover:block group-focus-within:block z-50 pointer-events-none border border-slate-border"
                 style={{
                   background: 'rgba(10,13,15,0.97)',
-                  border: '1px solid #3a4147',
                   boxShadow: '0 6px 24px rgba(0,0,0,0.75)',
                   padding: '12px 14px',
                   width: 460,
@@ -147,7 +151,7 @@ function ProfileLayout() {
           </div>
           {/* Legend strip */}
           <div className="flex items-center justify-end gap-2 px-3 py-1.5" style={{ background: 'rgba(8,10,12,0.8)' }}>
-            <span className="inline-block" style={{ width: 10, height: 10, background: '#c9a94a' }} />
+            <span className="inline-block bg-gold" style={{ width: 10, height: 10 }} />
             <span className="text-[12px]" style={{ color: C.text }}>{p.profile.personaname}</span>
           </div>
         </div>
@@ -164,8 +168,8 @@ function ProfileLayout() {
               activeFeed === 'recent' ? '' : 'hover:bg-white/[0.03] hover:text-foreground'
             }`}
             style={{
-              background: activeFeed === 'recent' ? '#c9a94a' : 'transparent',
-              color: activeFeed === 'recent' ? '#0b0b0d' : '#8a8474',
+              background: activeFeed === 'recent' ? 'var(--color-gold)' : 'transparent',
+              color: activeFeed === 'recent' ? 'var(--color-background)' : 'var(--color-muted)',
               letterSpacing: '1.5px',
             }}
           >
@@ -178,8 +182,8 @@ function ProfileLayout() {
               activeFeed === 'teammates' ? '' : 'hover:bg-white/[0.03] hover:text-foreground'
             }`}
             style={{
-              background: activeFeed === 'teammates' ? '#c9a94a' : 'transparent',
-              color: activeFeed === 'teammates' ? '#0b0b0d' : '#8a8474',
+              background: activeFeed === 'teammates' ? 'var(--color-gold)' : 'transparent',
+              color: activeFeed === 'teammates' ? 'var(--color-background)' : 'var(--color-muted)',
               letterSpacing: '1.5px',
             }}
           >
