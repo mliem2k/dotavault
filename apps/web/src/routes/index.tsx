@@ -14,16 +14,13 @@ export const Route = createFileRoute('/')({
 // Dota2.com-style panel: translucent dark over the greyfade texture, Reaver uppercase header.
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+    <div className="border border-border" style={{ background: 'rgba(12,11,14,0.72)' }}>
       <div
-        className="px-4 py-3 uppercase text-center"
+        className="px-4 py-3 uppercase text-center font-display border-b border-border text-foreground"
         style={{
-          color: '#c8c2b4',
-          fontFamily: 'var(--font-display)',
           fontSize: 20,
           fontWeight: 500,
           letterSpacing: '3px',
-          borderBottom: '1px solid #24222a',
         }}
       >
         {title}
@@ -72,7 +69,7 @@ function HomePage() {
         >
           dotavault
         </h1>
-        <div className="h-px w-20 bg-[#24222a]" />
+        <div className="h-px w-20 bg-border" />
         <p
           className="text-base uppercase text-white"
           style={{ letterSpacing: '0.15em', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}
@@ -92,18 +89,15 @@ function HomePage() {
                   key={m.match_id}
                   to="/match/$matchId"
                   params={{ matchId: String(m.match_id) }}
-                  className="flex items-center justify-between py-2.5 hover:bg-white/[0.03]"
-                  style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
+                  className={`flex items-center justify-between py-2.5 hover:bg-white/[0.03] ${i === 0 ? '' : 'border-t border-border'}`}
                 >
                   <span
-                    className="text-[17px]"
-                    style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
+                    className="text-[17px] text-foreground font-dota"
                   >
                     {m.radiant_name ?? 'Radiant'} vs {m.dire_name ?? 'Dire'}
                   </span>
                   <span
-                    className="text-[14px] tabular-nums"
-                    style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                    className="text-[14px] tabular-nums text-muted font-dota"
                   >
                     {formatTimeAgo(m.start_time)}
                   </span>
@@ -126,8 +120,7 @@ function HomePage() {
                     key={h.id}
                     to="/hero/$heroName"
                     params={{ heroName: heroSlug(h.localized_name) }}
-                    className="flex items-center justify-between py-2 hover:bg-white/[0.03]"
-                    style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
+                    className={`flex items-center justify-between py-2 hover:bg-white/[0.03] ${i === 0 ? '' : 'border-t border-border'}`}
                   >
                     <div className="flex items-center gap-2.5">
                       <img
@@ -137,18 +130,13 @@ function HomePage() {
                         className="h-7 w-7 rounded"
                       />
                       <span
-                        className="text-[17px]"
-                        style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
+                        className="text-[17px] text-foreground font-dota"
                       >
                         {h.localized_name}
                       </span>
                     </div>
                     <span
-                      className="text-[14px] font-semibold tabular-nums"
-                      style={{
-                        color: wr >= 50 ? '#8ec63f' : '#d14a38',
-                        fontFamily: 'var(--font-dota)',
-                      }}
+                      className={`text-[14px] font-semibold tabular-nums font-dota ${wr >= 50 ? 'text-radiant' : 'text-dire'}`}
                     >
                       {winRate(wins, picks)}
                     </span>

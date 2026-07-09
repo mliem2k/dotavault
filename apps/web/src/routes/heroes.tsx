@@ -76,7 +76,7 @@ function HeroCard({
   return (
     <a
       href={`/hero/${slug}`}
-      className="group absolute block overflow-hidden transition-[transform,box-shadow,opacity,top,left] duration-300 ease-out hover:z-[4] hover:scale-[1.4] hover:[box-shadow:3px_3px_8px_#000]"
+      className="group absolute block overflow-hidden bg-background transition-[transform,box-shadow,opacity,top,left] duration-300 ease-out hover:z-[4] hover:scale-[1.4] hover:[box-shadow:3px_3px_8px_#000]"
       style={{
         left: pos?.left ?? 0,
         top: pos?.top ?? 0,
@@ -84,7 +84,6 @@ function HeroCard({
         height: hidden ? 0 : size.h,
         opacity: hidden ? 0 : 1,
         boxShadow: '1px 1px 4px #000',
-        background: '#0b0b0d',
       }}
     >
       {/* background-size 110% -> 100% on hover, like the real card */}
@@ -110,8 +109,8 @@ function HeroCard({
           style={{ filter: 'drop-shadow(0 0 4px #000)' }}
         />
         <span
-          className="truncate py-2 pr-2 text-[18px] font-semibold tracking-[1px] text-white uppercase"
-          style={{ fontFamily: 'var(--font-display)', textShadow: '0 0 4px #000' }}
+          className="truncate py-2 pr-2 text-[18px] font-semibold tracking-[1px] text-white uppercase font-display"
+          style={{ textShadow: '0 0 4px #000' }}
         >
           {hero.name_loc}
         </span>
@@ -164,11 +163,13 @@ function HeroesPage() {
       {/* Title */}
       <div className="pt-16 text-center">
         <h1
-          className="text-[54px] leading-[1.12] font-bold tracking-[3px] text-white uppercase"
-          style={{ fontFamily: 'var(--font-display)', marginBottom: 10 }}
+          className="text-[54px] leading-[1.12] font-bold tracking-[3px] text-white uppercase font-display"
+          style={{ marginBottom: 10 }}
         >
           Choose Your Hero
         </h1>
+        {/* #ddd is not in the Token Mapping Reference (close to but distinct from
+            #dcd6c8 text-foreground) — left as-is per task instructions. */}
         <p className="mx-auto max-w-[1000px] text-[26px] leading-[1.4] text-[#ddd]" style={{ marginBottom: 30 }}>
           From magical tacticians to fierce brutes and cunning rogues, Dota 2's hero pool is massive and
           limitlessly diverse. Unleash incredible abilities and devastating ultimates on your way to victory.
@@ -183,6 +184,7 @@ function HeroesPage() {
         <div className="mx-[10px] text-[18px] tracking-[2px] text-white uppercase">Filter Heroes</div>
 
         <div className="ml-5 flex items-center flex-wrap gap-y-2">
+          {/* #808fa6 is not in the Token Mapping Reference — left as-is per task instructions. */}
           <div className="mr-5 text-[17px] tracking-[2px] text-[#808fa6] uppercase">Attribute</div>
           {ATTRS.map((a, i) => (
             <FilterButton
@@ -196,6 +198,7 @@ function HeroesPage() {
         </div>
 
         <div className="ml-5 flex items-center flex-wrap gap-y-2">
+          {/* #808fa6 is not in the Token Mapping Reference — left as-is per task instructions. */}
           <div className="mr-5 text-[17px] tracking-[2px] text-[#808fa6] uppercase">Complexity</div>
           {[1, 2, 3].map((lvl) => (
             <FilterButton
@@ -208,6 +211,8 @@ function HeroesPage() {
           ))}
         </div>
 
+        {/* #25282a is not in the Token Mapping Reference (close to but distinct from
+            #24222a border-border) — left as-is per task instructions. */}
         <div className="flex h-[50px] w-full sm:w-[250px] items-center" style={{ background: '#25282a' }}>
           <img src="/search_icon.svg" alt="" className="mx-[10px] h-[26px] w-[26px] shrink-0" />
           <input

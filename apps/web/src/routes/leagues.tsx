@@ -96,10 +96,8 @@ function LeaguesPage() {
     <div className="space-y-6 py-4">
       <div className="text-center">
         <h1
-          className="leading-none font-bold uppercase"
+          className="leading-none font-bold uppercase text-foreground font-display"
           style={{
-            color: '#dcd6c8',
-            fontFamily: 'var(--font-display)',
             fontSize: 'clamp(1.5rem, 4vw, 2.75rem)',
             letterSpacing: '2px',
             textShadow: '0 2px 10px rgba(0,0,0,0.8)',
@@ -108,8 +106,8 @@ function LeaguesPage() {
           Leagues
         </h1>
         <p
-          className="mt-2 text-[13px] uppercase tracking-[0.2em]"
-          style={{ color: '#fff', fontFamily: 'var(--font-dota)', textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)' }}
+          className="mt-2 text-[13px] uppercase tracking-[0.2em] text-white font-dota"
+          style={{ textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)' }}
         >
           Search any tournament for its own draft stats, standings, and matches
         </p>
@@ -121,27 +119,24 @@ function LeaguesPage() {
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search league name..."
           aria-label="Search league name"
-          className="w-full px-3 py-2 text-[14px] outline-none focus-visible:ring-2 focus-visible:ring-[#c9a94a] sm:w-[280px]"
-          style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a', color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
+          className="w-full px-3 py-2 text-[14px] outline-none focus-visible:ring-2 focus-visible:ring-gold sm:w-[280px] border border-border text-foreground font-dota"
+          style={{ background: 'rgba(12,11,14,0.72)' }}
         />
         {/* Own row, and the tier group itself wraps: 5 buttons plus the count
             text crowded onto one line with the search input above ran out of
             room and started overlapping/squeezing together on narrower
             viewports. */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap items-center" style={{ border: '1px solid #24222a' }}>
+          <div className="flex flex-wrap items-center border border-border">
             {['all', 'premium', 'professional', 'minor', 'amateur'].map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => setTier(t)}
-                className="px-3 py-2 text-[12px] uppercase cursor-pointer"
+                className={`px-3 py-2 text-[12px] uppercase cursor-pointer text-white font-dota ${tier === t ? 'bg-border' : 'bg-transparent'}`}
                 style={{
-                  background: tier === t ? '#24222a' : 'transparent',
-                  color: '#fff',
                   textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)',
                   letterSpacing: '1px',
-                  fontFamily: 'var(--font-dota)',
                 }}
               >
                 {t === 'all' ? 'All Tiers' : (TIER_LABELS[t] ?? t)}
@@ -150,8 +145,8 @@ function LeaguesPage() {
           </div>
           {leagues.data && (
             <span
-              className="text-[12px] sm:ml-auto"
-              style={{ color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)', fontFamily: 'var(--font-dota)' }}
+              className="text-[12px] sm:ml-auto text-white font-dota"
+              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)' }}
             >
               {rows.length} of {leagues.data.length.toLocaleString()} leagues
             </span>
@@ -159,11 +154,11 @@ function LeaguesPage() {
         </div>
       </div>
 
-      <div className="max-w-[720px] mx-auto" style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+      <div className="max-w-[720px] mx-auto border border-border" style={{ background: 'rgba(12,11,14,0.72)' }}>
         {leagues.data && rows.length > 0 && (
           <div
-            className="flex items-center gap-3 px-4 py-2 text-[12px] uppercase"
-            style={{ color: '#8a8474', letterSpacing: '1px', fontFamily: 'var(--font-dota)', borderBottom: '1px solid #1c1810' }}
+            className="flex items-center gap-3 px-4 py-2 text-[12px] uppercase text-muted font-dota border-b border-border"
+            style={{ letterSpacing: '1px' }}
           >
             <SortHeader label="Name" sortKey="name" active={sortKey === 'name'} dir={sortDir} onClick={onSort} className="flex-1" />
             <SortHeader label="Tier" sortKey="tier" active={sortKey === 'tier'} dir={sortDir} onClick={onSort} className="shrink-0" />
@@ -175,7 +170,7 @@ function LeaguesPage() {
           </div>
         )}
         {!leagues.isPending && rows.length === 0 && (
-          <div className="py-16 text-center text-[14px]" style={{ color: '#8a8474' }}>
+          <div className="py-16 text-center text-[14px] text-muted">
             No leagues match "{debouncedSearch}".
           </div>
         )}
@@ -183,16 +178,15 @@ function LeaguesPage() {
           <a
             key={l.leagueid}
             href={`/league/${l.leagueid}`}
-            className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03]"
-            style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
+            className={`flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03] ${i === 0 ? '' : 'border-t border-border'}`}
           >
-            <span className="flex-1 truncate text-[15px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+            <span className="flex-1 truncate text-[15px] text-foreground font-dota">
               {l.name || `League ${l.leagueid}`}
             </span>
             {l.tier && (
               <span
-                className="shrink-0 px-2 py-0.5 text-[12px] uppercase"
-                style={{ background: 'rgba(255,255,255,0.05)', color: '#c9a94a', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}
+                className="shrink-0 px-2 py-0.5 text-[12px] uppercase text-gold font-dota"
+                style={{ background: 'rgba(255,255,255,0.05)', letterSpacing: '1px' }}
               >
                 {TIER_LABELS[l.tier] ?? l.tier}
               </span>

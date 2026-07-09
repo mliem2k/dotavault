@@ -10,9 +10,12 @@ function ResultsLayout() {
   const { leagueId } = Route.useParams()
   const { pathname } = useLocation()
   const activeView = pathname.endsWith('/bracket') ? 'bracket' : 'list'
+  const btnClass = (view: 'list' | 'bracket') =>
+    `px-2.5 py-3 text-[11px] font-bold uppercase cursor-pointer ${
+      activeView === view ? 'bg-gold text-background' : 'text-muted'
+    }`
   const btnStyle = (view: 'list' | 'bracket') => ({
-    color: activeView === view ? '#0b0b0d' : '#8a8474',
-    background: activeView === view ? '#c9a94a' : 'rgba(255,255,255,0.05)',
+    background: activeView === view ? undefined : 'rgba(255,255,255,0.05)',
     letterSpacing: '1px',
   })
 
@@ -28,7 +31,7 @@ function ResultsLayout() {
                 to="/league/$leagueId/results/$view"
                 params={{ leagueId, view: 'list' }}
                 aria-current={activeView === 'list' ? 'page' : undefined}
-                className="px-2.5 py-3 text-[11px] font-bold uppercase cursor-pointer"
+                className={btnClass('list')}
                 style={btnStyle('list')}
               >
                 list
@@ -37,7 +40,7 @@ function ResultsLayout() {
                 to="/league/$leagueId/results/$view"
                 params={{ leagueId, view: 'bracket' }}
                 aria-current={activeView === 'bracket' ? 'page' : undefined}
-                className="px-2.5 py-3 text-[11px] font-bold uppercase cursor-pointer"
+                className={btnClass('bracket')}
                 style={btnStyle('bracket')}
               >
                 bracket

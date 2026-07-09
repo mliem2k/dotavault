@@ -60,17 +60,15 @@ function LeaguePage() {
   }, [leagues.data, league?.name, id])
 
   if (!Number.isInteger(id) || id <= 0) {
-    return <div className="py-16 text-center text-[14px]" style={{ color: '#8a8474' }}>Invalid league id.</div>
+    return <div className="py-16 text-center text-[14px] text-muted">Invalid league id.</div>
   }
 
   return (
     <div className="space-y-6 py-4">
       <div>
         <h1
-          className="leading-tight font-bold uppercase"
+          className="leading-tight font-bold uppercase text-foreground font-display"
           style={{
-            color: '#dcd6c8',
-            fontFamily: 'var(--font-display)',
             fontSize: 'clamp(1.5rem, 4vw, 2.75rem)',
             letterSpacing: '1px',
             textShadow: '0 2px 10px rgba(0,0,0,0.8)',
@@ -79,8 +77,8 @@ function LeaguePage() {
           {league?.name ?? (leagues.isPending ? 'Loading...' : `League ${id}`)}
         </h1>
         <p
-          className="mt-2 text-[13px] uppercase tracking-[0.15em]"
-          style={{ color: '#fff', fontFamily: 'var(--font-dota)', textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)' }}
+          className="mt-2 text-[13px] uppercase tracking-[0.15em] text-white font-dota"
+          style={{ textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)' }}
         >
           {summary.data
             ? `${summary.data.total_matches.toLocaleString()} matches${
@@ -94,16 +92,15 @@ function LeaguePage() {
 
       {summary.data && summary.data.total_matches === 0 ? (
         <div>
-          <div className="py-8 text-center text-[14px]" style={{ color: '#8a8474' }}>
+          <div className="py-8 text-center text-[14px] text-muted">
             {relatedLeagues.length > 0
               ? "This event hasn't been played yet, no matches recorded."
               : 'OpenDota has no recorded matches for this league.'}
           </div>
           {relatedLeagues.length > 0 && (
-            <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+            <div className="border border-border" style={{ background: 'rgba(12,11,14,0.72)' }}>
               <div
-                className="px-4 py-3 text-[13px] uppercase tracking-[0.15em]"
-                style={{ color: '#c9a94a', fontFamily: 'var(--font-dota)', borderBottom: '1px solid #24222a' }}
+                className="px-4 py-3 text-[13px] uppercase tracking-[0.15em] text-gold font-dota border-b border-border"
               >
                 Qualifiers and related events
               </div>
@@ -111,16 +108,15 @@ function LeaguePage() {
                 <a
                   key={l.leagueid}
                   href={`/league/${l.leagueid}`}
-                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03]"
-                  style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
+                  className={`flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03] ${i === 0 ? '' : 'border-t border-border'}`}
                 >
-                  <span className="flex-1 truncate text-[15px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+                  <span className="flex-1 truncate text-[15px] text-foreground font-dota">
                     {l.subName}
                   </span>
                   {l.tier && (
                     <span
-                      className="shrink-0 px-2 py-0.5 text-[12px] uppercase"
-                      style={{ background: 'rgba(255,255,255,0.05)', color: '#c9a94a', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}
+                      className="shrink-0 px-2 py-0.5 text-[12px] uppercase text-gold font-dota"
+                      style={{ background: 'rgba(255,255,255,0.05)', letterSpacing: '1px' }}
                     >
                       {TIER_LABELS[l.tier] ?? l.tier}
                     </span>

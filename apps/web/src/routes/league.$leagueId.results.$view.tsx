@@ -45,35 +45,35 @@ function ResultsViewPage() {
         const teamB = teamMap.get(s.teamB ?? -1)
         const aWon = s.scoreA > s.scoreB
         return (
-          <div key={s.key} className="py-2.5" style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}>
+          <div key={s.key} className={`py-2.5 ${i === 0 ? '' : 'border-t border-border'}`}>
             <div className="flex items-center gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center gap-2">
                   <span
-                    className="truncate text-[15px]"
-                    style={{ color: aWon ? '#8ec63f' : '#8a8474', fontFamily: 'var(--font-dota)', fontWeight: aWon ? 600 : 400 }}
+                    className={`truncate text-[15px] font-dota ${aWon ? 'text-radiant' : 'text-muted'}`}
+                    style={{ fontWeight: aWon ? 600 : 400 }}
                   >
                     {teamA?.name ?? (s.teamA ? `Team ${s.teamA}` : 'TBD')}
                   </span>
                   <span
-                    className="shrink-0 px-2 py-0.5 text-[14px] font-bold tabular-nums"
-                    style={{ color: '#dcd6c8', background: 'rgba(255,255,255,0.06)', fontFamily: 'var(--font-dota)' }}
+                    className="shrink-0 px-2 py-0.5 text-[14px] font-bold tabular-nums text-foreground font-dota"
+                    style={{ background: 'rgba(255,255,255,0.06)' }}
                   >
                     {s.scoreA} : {s.scoreB}
                   </span>
                   <span
-                    className="truncate text-[15px]"
-                    style={{ color: !aWon ? '#8ec63f' : '#8a8474', fontFamily: 'var(--font-dota)', fontWeight: !aWon ? 600 : 400 }}
+                    className={`truncate text-[15px] font-dota ${!aWon ? 'text-radiant' : 'text-muted'}`}
+                    style={{ fontWeight: !aWon ? 600 : 400 }}
                   >
                     {teamB?.name ?? (s.teamB ? `Team ${s.teamB}` : 'TBD')}
                   </span>
                 </div>
               </div>
               <div className="shrink-0 text-right">
-                <div className="text-[12px] uppercase tracking-wider" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+                <div className="text-[12px] uppercase tracking-wider text-muted font-dota">
                   Bo{s.bestOf}
                 </div>
-                <div className="text-[12px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+                <div className="text-[12px] tabular-nums text-muted font-dota">
                   {formatTimeAgo(s.lastStartTime)}
                 </div>
               </div>
@@ -86,11 +86,13 @@ function ResultsViewPage() {
                   <a
                     key={g.match_id}
                     href={`/match/${g.match_id}`}
-                    className="px-2 py-1 text-[12px] tabular-nums hover:bg-white/[0.05]"
-                    style={{ background: 'rgba(255,255,255,0.03)', color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                    className="px-2 py-1 text-[12px] tabular-nums hover:bg-white/[0.05] text-muted font-dota"
+                    style={{ background: 'rgba(255,255,255,0.03)' }}
                     title={`${formatDuration(g.duration)} · ${g.radiant_score ?? '?'}-${g.dire_score ?? '?'}`}
                   >
-                    <span style={{ color: aWonGame ? '#8ec63f' : '#c73f2d' }}>{aWonGame ? 'W' : 'L'}</span>{' '}
+                    {/* #c73f2d is not in the Token Mapping Reference (close to but distinct from
+                        text-dire's #d14a38/#c94a38) — left as raw inline style per established precedent. */}
+                    <span className={aWonGame ? 'text-radiant' : undefined} style={!aWonGame ? { color: '#c73f2d' } : undefined}>{aWonGame ? 'W' : 'L'}</span>{' '}
                     {formatDuration(g.duration)}
                   </a>
                 )

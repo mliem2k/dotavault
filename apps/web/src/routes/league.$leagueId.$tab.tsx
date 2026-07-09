@@ -67,13 +67,13 @@ function DraftPanel({
         </div>
       )}
       {topPicks.length === 0 && !heroStats.isPending && (
-        <div className="py-8 text-center text-[13px]" style={{ color: '#8a8474' }}>
+        <div className="py-8 text-center text-[13px] text-muted">
           No draft data for this league yet.
         </div>
       )}
-      <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-dota)' }}>
+      <table className="w-full border-collapse font-dota">
         <thead>
-          <tr className="text-[12px] font-bold uppercase tracking-widest" style={{ color: '#8a8474' }}>
+          <tr className="text-[12px] font-bold uppercase tracking-widest text-muted">
             <th className="pb-2 text-left">
               <SortHeader label="Hero" sortKey="hero" active={sortKey === 'hero'} dir={sortDir} onClick={onSort} />
             </th>
@@ -94,27 +94,27 @@ function DraftPanel({
             const wr = h.picks > 0 ? (h.wins / h.picks) * 100 : 0
             const bans = banByHero.get(h.hero_id) ?? 0
             return (
-              <tr key={h.hero_id} style={{ borderTop: '1px solid #1c1810' }}>
+              <tr key={h.hero_id} className="border-t border-border">
                 <td className="py-1.5">
                   {hero ? (
                     <a href={`/hero/${heroSlug(hero.localized_name)}`} className="flex items-center gap-2 hover:underline">
                       <img src={heroIconUrl(hero.name)} alt="" loading="lazy" className="h-6 w-6 rounded-sm" />
-                      <span className="truncate text-[14px]" style={{ color: '#dcd6c8' }}>
+                      <span className="truncate text-[14px] text-foreground">
                         {hero.localized_name}
                       </span>
                     </a>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-[14px]" style={{ color: '#dcd6c8' }}>
+                      <span className="truncate text-[14px] text-foreground">
                         {`Hero ${h.hero_id}`}
                       </span>
                     </div>
                   )}
                 </td>
-                <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#dcd6c8' }}>
+                <td className="px-2 text-right text-[13px] tabular-nums text-foreground">
                   <div className="flex items-center justify-end gap-2">
                     <div className="h-[6px]" style={{ width: 60, background: 'rgba(255,255,255,0.06)' }}>
-                      <div style={{ width: `${(h.picks / maxPick) * 100}%`, height: '100%', background: '#c9a94a' }} />
+                      <div className="bg-gold" style={{ width: `${(h.picks / maxPick) * 100}%`, height: '100%' }} />
                     </div>
                     {h.picks}
                   </div>
@@ -125,6 +125,8 @@ function DraftPanel({
                 >
                   {wr.toFixed(1)}%
                 </td>
+                {/* #c73f2d is not in the Token Mapping Reference (close to but distinct
+                    from #d14a38/#c94a38 text-dire) — left as-is per task instructions. */}
                 <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#c73f2d' }}>
                   {bans || '-'}
                 </td>
@@ -178,14 +180,14 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
         </div>
       )}
       {standings.data?.length === 0 && !standings.isPending && (
-        <div className="py-8 text-center text-[13px]" style={{ color: '#8a8474' }}>
+        <div className="py-8 text-center text-[13px] text-muted">
           No team-attributed matches in this league.
         </div>
       )}
       {standings.data && standings.data.length > 0 && (
-        <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-dota)' }}>
+        <table className="w-full border-collapse font-dota">
           <thead>
-            <tr className="text-[12px] font-bold uppercase tracking-widest" style={{ color: '#8a8474' }}>
+            <tr className="text-[12px] font-bold uppercase tracking-widest text-muted">
               <th className="pb-2 pr-2 text-right w-8">#</th>
               <th className="pb-2 text-left">
                 <SortHeader label="Team" sortKey="team" active={sortKey === 'team'} dir={sortDir} onClick={onSort} />
@@ -218,10 +220,9 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
                   }}
                   role="link"
                   tabIndex={0}
-                  className="cursor-pointer hover:bg-white/[0.03]"
-                  style={{ borderTop: '1px solid #1c1810' }}
+                  className="cursor-pointer hover:bg-white/[0.03] border-t border-border"
                 >
-                  <td className="py-2 pr-2 text-right text-[13px] tabular-nums" style={{ color: '#8a8474' }}>
+                  <td className="py-2 pr-2 text-right text-[13px] tabular-nums text-muted">
                     {i + 1}
                   </td>
                   <td className="py-2">
@@ -242,14 +243,15 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
                       ) : (
                         <span className="h-7 w-7 shrink-0" />
                       )}
-                      <span className="truncate text-[15px] hover:underline" style={{ color: '#dcd6c8' }}>
+                      <span className="truncate text-[15px] hover:underline text-foreground">
                         {team?.name ?? `Team ${s.team_id}`}
                       </span>
                     </a>
                   </td>
-                  <td className="px-3 text-right text-[14px] tabular-nums" style={{ color: '#8ec63f' }}>
+                  <td className="px-3 text-right text-[14px] tabular-nums text-radiant">
                     {s.wins}
                   </td>
+                  {/* #c73f2d is not in the Token Mapping Reference — left as-is per task instructions. */}
                   <td className="px-3 text-right text-[14px] tabular-nums" style={{ color: '#c73f2d' }}>
                     {s.losses}
                   </td>
@@ -355,7 +357,7 @@ function RosterPanel({ leagueId }: { leagueId: number }) {
         </div>
       )}
       {byTeam.length === 0 && !roster.isPending && (
-        <div className="py-8 text-center text-[13px]" style={{ color: '#8a8474' }}>
+        <div className="py-8 text-center text-[13px] text-muted">
           No team-attributed rosters in this league.
         </div>
       )}
@@ -378,7 +380,7 @@ function RosterPanel({ leagueId }: { leagueId: number }) {
                 ) : (
                   <span className="h-5 w-5 shrink-0" />
                 )}
-                <span className="truncate text-[14px] font-semibold" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+                <span className="truncate text-[14px] font-semibold text-foreground font-dota">
                   {team?.name ?? `Team ${g.teamId}`}
                 </span>
               </a>
@@ -396,23 +398,23 @@ function RosterPanel({ leagueId }: { leagueId: number }) {
                       {!pro && fallback?.avatar && (
                         <img src={fallback.avatar} alt="" loading="lazy" className="h-4 w-4 shrink-0 rounded-full" />
                       )}
-                      <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+                      <span className="min-w-0 flex-1 truncate text-[13px] text-foreground font-dota">
                         {pro?.name ?? pro?.personaname ?? fallback?.name ?? `Player ${p.account_id}`}
                       </span>
                       {!pro && fallback?.isPrivate && (
                         <span
-                          className="shrink-0 px-1 text-[10px] uppercase"
-                          style={{ color: '#8a8474', border: '1px solid #8a8474', letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
+                          className="shrink-0 px-1 text-[10px] uppercase text-muted border border-muted font-dota"
+                          style={{ letterSpacing: '1px' }}
                         >
                           Private
                         </span>
                       )}
-                      <span className="shrink-0 text-[12px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+                      <span className="shrink-0 text-[12px] tabular-nums text-muted font-dota">
                         {p.games}g
                       </span>
                       <span
-                        className="shrink-0 text-[12px] font-semibold tabular-nums"
-                        style={{ color: winRateColor(wr, '#8a8474'), fontFamily: 'var(--font-dota)' }}
+                        className="shrink-0 text-[12px] font-semibold tabular-nums font-dota"
+                        style={{ color: winRateColor(wr, '#8a8474') }}
                       >
                         {wr.toFixed(0)}%
                       </span>

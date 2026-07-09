@@ -83,6 +83,8 @@ function HistoryText({ text }: { text: string }) {
         if (!p) return null
         return bold ? (
           // biome-ignore lint/suspicious/noArrayIndexKey: static split of a fixed string
+          // #e8e2d4 is not in the Token Mapping Reference (close to but distinct from
+          // #dcd6c8/#c8c2b4 text-foreground) — left as-is per task instructions.
           <strong key={i} style={{ fontWeight: 700, color: '#e8e2d4' }}>
             {p}
           </strong>
@@ -124,8 +126,8 @@ function IconStat({ icon, value }: { icon: string; value: React.ReactNode }) {
     <div className="flex items-center gap-2.5 py-[3px]">
       <img src={statIconUrl(icon)} alt="" className="h-[22px] w-[22px] shrink-0 opacity-90" />
       <span
-        className="text-[14px] tabular-nums"
-        style={{ color: '#fff', fontWeight: 600, fontFamily: 'var(--font-dota)' }}
+        className="text-[14px] tabular-nums text-white font-dota"
+        style={{ fontWeight: 600 }}
       >
         {value}
       </span>
@@ -138,8 +140,8 @@ function StatGroup({ title, children }: { title: string; children: React.ReactNo
   return (
     <div className="flex flex-col">
       <div
-        className="text-[16px] font-bold uppercase mb-2"
-        style={{ color: '#8a8474', letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
+        className="text-[16px] font-bold uppercase mb-2 text-muted font-dota"
+        style={{ letterSpacing: '1px' }}
       >
         {title}
       </div>
@@ -154,12 +156,12 @@ function AttrRow({ attrKey, base, gain }: { attrKey: string; base: number; gain:
     <div className="flex items-center gap-2.5 py-0.5">
       <img src={attrIconUrl(attrKey)} alt="" className="h-7 w-7 shrink-0" />
       <span
-        className="text-[20px] tabular-nums leading-none"
-        style={{ color: '#fff', fontWeight: 600, fontFamily: 'var(--font-display)' }}
+        className="text-[20px] tabular-nums leading-none text-white font-display"
+        style={{ fontWeight: 600 }}
       >
         {base}
       </span>
-      <span className="text-[15px] tabular-nums" style={{ color: '#8a8474' }}>
+      <span className="text-[15px] tabular-nums text-muted">
         +{gain.toFixed(1)}
       </span>
     </div>
@@ -174,8 +176,8 @@ function TotalBar({ fill, value, gain }: { fill: string; value: number; gain: nu
       style={{ height: 20, background: fill }}
     >
       <span
-        className="text-[13px] tabular-nums"
-        style={{ color: '#fff', fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+        className="text-[13px] tabular-nums text-white"
+        style={{ fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
       >
         {value}
       </span>
@@ -191,10 +193,10 @@ function TotalBar({ fill, value, gain }: { fill: string; value: number; gain: nu
 
 function StatPanel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+    <div className="border border-border" style={{ background: 'rgba(12,11,14,0.72)' }}>
       <div
-        className="px-4 py-3 uppercase"
-        style={{ color: '#c8c2b4', fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, letterSpacing: '3px', borderBottom: '1px solid #24222a' }}
+        className="px-4 py-3 uppercase text-foreground font-display border-b border-border"
+        style={{ fontSize: 20, fontWeight: 500, letterSpacing: '3px' }}
       >
         {title}
       </div>
@@ -220,9 +222,9 @@ function LanePresenceSection({ laneRoles }: { laneRoles: { lane_role: number; pi
 
   return (
     <StatPanel title="Lane Presence">
-      <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-dota)' }}>
+      <table className="w-full border-collapse font-dota">
         <thead>
-          <tr className="text-[13px] font-bold uppercase tracking-widest" style={{ color: '#8a8474' }}>
+          <tr className="text-[13px] font-bold uppercase tracking-widest text-muted">
             <th className="pb-2 text-left">Lane</th>
             <th className="pb-2 px-3 text-right">Presence</th>
             <th className="pb-2 pl-3 text-right">Win Rate</th>
@@ -233,21 +235,22 @@ function LanePresenceSection({ laneRoles }: { laneRoles: { lane_role: number; pi
             const presence = (l.picks / total) * 100
             const wr = l.picks > 0 ? (l.wins / l.picks) * 100 : 0
             return (
-              <tr key={l.lane_role} style={{ borderTop: '1px solid #1c1810' }}>
-                <td className="py-2 text-[16px]" style={{ color: '#dcd6c8' }}>
+              <tr key={l.lane_role} className="border-t border-border">
+                <td className="py-2 text-[16px] text-foreground">
                   {LANE_LABELS[l.lane_role] ?? `Lane ${l.lane_role}`}
                 </td>
-                <td className="px-3 text-right text-[15px] tabular-nums" style={{ color: '#8a8474' }}>
+                <td className="px-3 text-right text-[15px] tabular-nums text-muted">
                   <div className="flex items-center justify-end gap-2">
                     <div className="h-[6px] w-16" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                      <div style={{ width: `${presence}%`, height: '100%', background: '#c9a94a' }} />
+                      <div className="bg-gold" style={{ width: `${presence}%`, height: '100%' }} />
                     </div>
                     {presence.toFixed(1)}%
                   </div>
                 </td>
                 <td
-                  className="pl-3 text-right text-[16px] font-semibold tabular-nums"
-                  style={{ color: wr >= 52 ? '#8ec63f' : wr < 48 ? '#d14a38' : '#dcd6c8' }}
+                  className={`pl-3 text-right text-[16px] font-semibold tabular-nums ${
+                    wr >= 52 ? 'text-radiant' : wr < 48 ? 'text-dire' : 'text-foreground'
+                  }`}
                 >
                   {wr.toFixed(1)}%
                 </td>
@@ -256,7 +259,7 @@ function LanePresenceSection({ laneRoles }: { laneRoles: { lane_role: number; pi
           })}
         </tbody>
       </table>
-      <div className="mt-3 text-[13px]" style={{ color: '#5a5648' }}>
+      <div className="mt-3 text-[13px] text-muted">
         Last 60 days, {total.toLocaleString()} games.
       </div>
     </StatPanel>
@@ -291,16 +294,14 @@ function MatchupsSection({
       <a
         key={m.hero_id}
         href={h ? `/hero/${heroSlug(h.localized_name)}` : undefined}
-        className="flex items-center gap-2.5 py-1.5 hover:bg-white/[0.03]"
-        style={{ borderTop: '1px solid #1c1810' }}
+        className="flex items-center gap-2.5 py-1.5 hover:bg-white/[0.03] border-t border-border"
       >
         {h && <img src={heroIconUrl(h.name)} alt="" className="h-8 w-8 shrink-0 rounded" />}
-        <span className="min-w-0 flex-1 truncate text-[16px]" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+        <span className="min-w-0 flex-1 truncate text-[16px] text-foreground font-dota">
           {h?.localized_name ?? `Hero ${m.hero_id}`}
         </span>
         <span
-          className="shrink-0 text-[16px] font-bold tabular-nums"
-          style={{ color: good ? '#8ec63f' : '#d14a38', fontFamily: 'var(--font-dota)' }}
+          className={`shrink-0 text-[16px] font-bold tabular-nums font-dota ${good ? 'text-radiant' : 'text-dire'}`}
         >
           {m.wr.toFixed(1)}%
         </span>
@@ -314,19 +315,19 @@ function MatchupsSection({
     <StatPanel title="Matchups">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
-          <div className="text-[13px] font-bold uppercase tracking-widest mb-1" style={{ color: '#8ec63f' }}>
+          <div className="text-[13px] font-bold uppercase tracking-widest mb-1 text-radiant">
             Best Against
           </div>
           {best.map((m) => row(m, true))}
         </div>
         <div>
-          <div className="text-[13px] font-bold uppercase tracking-widest mb-1" style={{ color: '#d14a38' }}>
+          <div className="text-[13px] font-bold uppercase tracking-widest mb-1 text-dire">
             Worst Against
           </div>
           {worst.map((m) => row(m, false))}
         </div>
       </div>
-      <div className="mt-3 text-[13px]" style={{ color: '#5a5648' }}>
+      <div className="mt-3 text-[13px] text-muted">
         Minimum {MATCHUP_MIN_GAMES.toLocaleString()} games played against that hero.
       </div>
     </StatPanel>
@@ -368,23 +369,24 @@ function DurationSection({ durations }: { durations: { duration_bin: number; gam
         {rows.map((r) => (
           <div key={r.duration_bin} className="flex shrink-0 flex-col items-center" style={{ width: 48 }}>
             <div
-              className="text-[14px] font-semibold tabular-nums mb-1"
-              style={{ color: r.wr >= 52 ? '#8ec63f' : r.wr < 48 ? '#d14a38' : '#8a8474', fontFamily: 'var(--font-dota)' }}
+              className={`text-[14px] font-semibold tabular-nums mb-1 font-dota ${
+                r.wr >= 52 ? 'text-radiant' : r.wr < 48 ? 'text-dire' : 'text-muted'
+              }`}
             >
               {r.wr.toFixed(0)}%
             </div>
             <div
-              className="w-full rounded-t-sm"
-              style={{ height: heightFor(r.wr), background: r.wr >= 52 ? '#8ec63f' : r.wr < 48 ? '#d14a38' : '#c9a94a' }}
+              className={`w-full rounded-t-sm ${r.wr >= 52 ? 'bg-radiant' : r.wr < 48 ? 'bg-dire' : 'bg-gold'}`}
+              style={{ height: heightFor(r.wr) }}
               title={`${r.games_played.toLocaleString()} games`}
             />
-            <div className="mt-1.5 text-[13px]" style={{ color: '#5a5648', fontFamily: 'var(--font-dota)' }}>
+            <div className="mt-1.5 text-[13px] text-muted font-dota">
               {Math.round(r.duration_bin / 60)}m
             </div>
           </div>
         ))}
       </div>
-      <div className="text-center text-[13px] mt-1" style={{ color: '#5a5648' }}>
+      <div className="text-center text-[13px] mt-1 text-muted">
         Minimum {DURATION_MIN_GAMES} games in that duration bucket.
       </div>
     </StatPanel>
@@ -426,7 +428,7 @@ function ItemPopularitySection({
           const maxCount = Math.max(1, ...top.map((t) => t.count))
           return (
             <div key={phase.key}>
-              <div className="text-[13px] font-bold uppercase tracking-widest mb-2" style={{ color: '#8a8474' }}>
+              <div className="text-[13px] font-bold uppercase tracking-widest mb-2 text-muted">
                 {phase.label}
               </div>
               {top.map((t) => {
@@ -446,7 +448,7 @@ function ItemPopularitySection({
                       />
                     )}
                     <div className="h-[4px] flex-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                      <div style={{ width: `${(t.count / maxCount) * 100}%`, height: '100%', background: '#c9a94a' }} />
+                      <div className="bg-gold" style={{ width: `${(t.count / maxCount) * 100}%`, height: '100%' }} />
                     </div>
                   </div>
                 )
@@ -646,6 +648,9 @@ function HeroDetailPage() {
         className="relative overflow-hidden -mx-6 -mt-[calc(2rem+5rem)]"
         style={{
           minHeight: 780,
+          // #000 is not in the Token Mapping Reference (distinct from bg-background's
+          // #0b0b0d/#08080a) and is part of a composite background shorthand with an
+          // image — left as-is per task instructions.
           background: '#000 url(/backgrounds/greyfade.jpg) no-repeat top center / 100%',
         }}
       >
@@ -696,15 +701,13 @@ function HeroDetailPage() {
         >
           <div style={{ width: 1, flex: 1, background: 'rgba(255,255,255,0.25)' }} />
           <div
-            className="uppercase"
+            className="uppercase text-white font-dota"
             style={{
               writingMode: 'vertical-rl',
               transform: 'rotate(180deg)',
-              color: '#fff',
               fontSize: 16,
               letterSpacing: '4px',
               margin: '18px 0 4px',
-              fontFamily: 'var(--font-dota)',
             }}
           >
             {hero.localized_name}
@@ -730,12 +733,11 @@ function HeroDetailPage() {
               href={`/hero/${heroSlug(prevHero.localized_name)}`}
               title={prevHero.localized_name}
               aria-label="Previous hero"
-              className="flex items-center justify-center hover:bg-white/10"
+              className="flex items-center justify-center hover:bg-white/10 text-white"
               style={{
                 width: 44,
                 height: 44,
                 border: '1px solid rgba(255,255,255,0.5)',
-                color: '#fff',
                 fontSize: 20,
                 lineHeight: 1,
               }}
@@ -757,7 +759,7 @@ function HeroDetailPage() {
           >
             {[...Array(6)].map((_, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: static decoration
-              <span key={i} style={{ width: 9, height: 9, background: '#fff', display: 'block' }} />
+              <span key={i} className="bg-white" style={{ width: 9, height: 9, display: 'block' }} />
             ))}
           </a>
           {nextHero && (
@@ -765,12 +767,11 @@ function HeroDetailPage() {
               href={`/hero/${heroSlug(nextHero.localized_name)}`}
               title={nextHero.localized_name}
               aria-label="Next hero"
-              className="flex items-center justify-center hover:bg-white/10"
+              className="flex items-center justify-center hover:bg-white/10 text-white"
               style={{
                 width: 44,
                 height: 44,
                 border: '1px solid rgba(255,255,255,0.5)',
-                color: '#fff',
                 fontSize: 20,
                 lineHeight: 1,
               }}
@@ -789,22 +790,18 @@ function HeroDetailPage() {
               className="h-[32px] w-[32px] shrink-0"
             />
             <span
-              className="ml-1.5 text-[24px] uppercase"
+              className="ml-1.5 text-[24px] uppercase text-white font-dota"
               style={{
-                color: '#fff',
                 fontWeight: 100,
                 letterSpacing: '2px',
-                fontFamily: 'var(--font-dota)',
               }}
             >
               {attr.label}
             </span>
           </div>
           <h1
-            className="font-bold uppercase"
+            className="font-bold uppercase text-white font-display"
             style={{
-              fontFamily: 'var(--font-display)',
-              color: '#fff',
               fontSize: 'clamp(2.5rem, 8vw, 5rem)',
               lineHeight: 1.1,
               letterSpacing: '2px',
@@ -816,10 +813,8 @@ function HeroDetailPage() {
           </h1>
           {meta?.tagline && (
             <div
-              className="mt-2 text-[18px] font-bold uppercase"
+              className="mt-2 text-[18px] font-bold uppercase text-accent font-dota"
               style={{
-                color: '#5a8fc2',
-                fontFamily: 'var(--font-dota)',
                 letterSpacing: '2px',
                 textShadow: '0 1px 6px rgba(0,0,0,0.9)',
               }}
@@ -830,10 +825,8 @@ function HeroDetailPage() {
           {history && (
             <>
               <p
-                className="text-[24px]"
+                className="text-[24px] text-foreground font-dota"
                 style={{
-                  color: '#dcd6c8',
-                  fontFamily: 'var(--font-dota)',
                   fontWeight: 200,
                   lineHeight: 1.5,
                   marginTop: 14,
@@ -847,11 +840,9 @@ function HeroDetailPage() {
                   type="button"
                   onClick={() => setLoreOpen((v) => !v)}
                   aria-expanded={loreOpen}
-                  className="inline-block mt-2 text-[18px] underline cursor-pointer hover:text-white"
+                  className="inline-block mt-2 text-[18px] underline cursor-pointer hover:text-white text-muted font-dota"
                   style={{
-                    color: '#8a8474',
                     fontWeight: 200,
-                    fontFamily: 'var(--font-dota)',
                     textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)',
                   }}
                 >
@@ -861,8 +852,8 @@ function HeroDetailPage() {
             </>
           )}
           <div
-            className="text-[17px] font-bold uppercase"
-            style={{ color: '#8a8474', fontFamily: 'var(--font-dota)', letterSpacing: '2px', marginTop: 30 }}
+            className="text-[17px] font-bold uppercase text-muted font-dota"
+            style={{ letterSpacing: '2px', marginTop: 30 }}
           >
             Attack Type
           </div>
@@ -873,8 +864,8 @@ function HeroDetailPage() {
               style={{ width: 24, height: 24, filter: 'brightness(0) invert(1)' }}
             />
             <span
-              className="text-[15px] font-bold uppercase"
-              style={{ color: '#fff', fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}
+              className="text-[15px] font-bold uppercase text-white font-dota"
+              style={{ letterSpacing: '2px' }}
             >
               {hero.attack_type}
             </span>
@@ -882,8 +873,8 @@ function HeroDetailPage() {
           {meta && (
             <>
               <div
-                className="text-[17px] font-bold uppercase"
-                style={{ color: '#8a8474', fontFamily: 'var(--font-dota)', letterSpacing: '2px', marginTop: 30 }}
+                className="text-[17px] font-bold uppercase text-muted font-dota"
+                style={{ letterSpacing: '2px', marginTop: 30 }}
               >
                 Complexity
               </div>
@@ -895,13 +886,12 @@ function HeroDetailPage() {
                 {[1, 2, 3].map((n) => (
                   <span
                     key={n}
+                    className={`border border-white ${n <= meta.complexity ? 'bg-white' : 'bg-transparent'}`}
                     style={{
                       width: 15,
                       height: 15,
                       display: 'block',
                       transform: 'rotate(45deg)',
-                      border: '1px solid #fff',
-                      background: n <= meta.complexity ? '#fff' : 'transparent',
                     }}
                   />
                 ))}
@@ -917,8 +907,8 @@ function HeroDetailPage() {
             style={{ bottom: 40, right: 'min(140px, 7.8vw)' }}
           >
             <div
-              className="text-[18px] font-bold uppercase mb-1.5"
-              style={{ color: '#ffffff', fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}
+              className="text-[18px] font-bold uppercase mb-1.5 text-white font-dota"
+              style={{ letterSpacing: '2px' }}
             >
               Abilities
             </div>
@@ -948,13 +938,11 @@ function HeroDetailPage() {
                     }}
                   >
                     <div
-                      className="text-center uppercase"
+                      className="text-center uppercase font-display text-white"
                       style={{
-                        fontFamily: 'var(--font-display)',
                         fontSize: 20,
                         fontWeight: 600,
                         letterSpacing: '2px',
-                        color: '#fff',
                         marginBottom: 12,
                       }}
                     >
@@ -967,13 +955,15 @@ function HeroDetailPage() {
                         style={{ height: 50, background: 'rgba(0,0,0,0.5)', marginBottom: 4, padding: '0 14px' }}
                       >
                         <div
-                          className="flex-1 text-center"
-                          style={{ fontSize: 13, lineHeight: 1.25, color: 'rgba(255,255,255,0.73)', fontFamily: 'var(--font-dota)' }}
+                          className="flex-1 text-center font-dota"
+                          style={{ fontSize: 13, lineHeight: 1.25, color: 'rgba(255,255,255,0.73)' }}
                         >
                           {left}
                         </div>
+                        {/* #222/#85601f/#e7d292 are not in the Token Mapping Reference — left as-is
+                            per task instructions. */}
                         <div
-                          className="shrink-0 flex items-center justify-center rounded-full"
+                          className="shrink-0 flex items-center justify-center rounded-full font-display"
                           style={{
                             width: 38,
                             height: 38,
@@ -981,7 +971,6 @@ function HeroDetailPage() {
                             background: '#222',
                             border: '2px solid #85601f',
                             color: '#e7d292',
-                            fontFamily: 'var(--font-display)',
                             fontSize: 20,
                             fontWeight: 700,
                             textShadow: '0 0 8px rgb(255,83,28)',
@@ -990,8 +979,8 @@ function HeroDetailPage() {
                           {lvl}
                         </div>
                         <div
-                          className="flex-1 text-center"
-                          style={{ fontSize: 13, lineHeight: 1.25, color: 'rgba(255,255,255,0.73)', fontFamily: 'var(--font-dota)' }}
+                          className="flex-1 text-center font-dota"
+                          style={{ fontSize: 13, lineHeight: 1.25, color: 'rgba(255,255,255,0.73)' }}
                         >
                           {right}
                         </div>
@@ -1028,13 +1017,12 @@ function HeroDetailPage() {
                       }}
                     />
                     <div
-                      className="absolute bottom-full mb-2 hidden group-hover:block group-focus-within:block z-50 pointer-events-none"
+                      className="absolute bottom-full mb-2 hidden group-hover:block group-focus-within:block z-50 pointer-events-none border border-border"
                       style={{
                         left: '50%',
                         transform: 'translateX(-20%)',
                         width: 280,
                         background: 'rgba(10,9,12,0.97)',
-                        border: '1px solid #24222a',
                         padding: '10px 14px',
                       }}
                     >
@@ -1064,9 +1052,8 @@ function HeroDetailPage() {
                         />
                         <div>
                           <div
+                            className="text-white font-display"
                             style={{
-                              color: '#fff',
-                              fontFamily: 'var(--font-display)',
                               fontSize: 14,
                               fontWeight: 700,
                               textTransform: 'uppercase',
@@ -1077,9 +1064,8 @@ function HeroDetailPage() {
                           </div>
                           {abilityDesc && (
                             <div
+                              className="text-foreground font-dota"
                               style={{
-                                color: '#c8c2b4',
-                                fontFamily: 'var(--font-dota)',
                                 fontSize: 11,
                                 lineHeight: 1.4,
                                 marginTop: 3,
@@ -1092,9 +1078,8 @@ function HeroDetailPage() {
                       </div>
                       {beh && (
                         <div
+                          className="text-muted font-dota"
                           style={{
-                            color: '#5a5648',
-                            fontFamily: 'var(--font-dota)',
                             fontSize: 11,
                             textTransform: 'uppercase',
                             letterSpacing: '2px',
@@ -1104,6 +1089,8 @@ function HeroDetailPage() {
                           {beh}
                         </div>
                       )}
+                      {/* #1e1a12 is not in the Token Mapping Reference (close to but distinct
+                          from #1c1810 border-border) — left as-is per task instructions. */}
                       {attribs.map((x, i) => (
                         <div
                           key={i}
@@ -1111,9 +1098,8 @@ function HeroDetailPage() {
                           style={{ borderTop: '1px solid #1e1a12', paddingTop: 4, paddingBottom: 4 }}
                         >
                           <span
+                            className="text-muted font-dota"
                             style={{
-                              color: '#5a5648',
-                              fontFamily: 'var(--font-dota)',
                               fontSize: 11,
                               textTransform: 'uppercase',
                             }}
@@ -1121,9 +1107,8 @@ function HeroDetailPage() {
                             {x.header}
                           </span>
                           <span
+                            className="text-foreground font-dota"
                             style={{
-                              color: '#c8c2b4',
-                              fontFamily: 'var(--font-dota)',
                               fontSize: 11,
                               fontWeight: 700,
                             }}
@@ -1196,6 +1181,8 @@ function HeroDetailPage() {
                 className="w-full rounded-sm"
                 style={{ aspectRatio: '16 / 9', objectFit: 'cover' }}
               />
+              {/* #5c8a2c (health) and #2f74c0 (mana) are not in the Token Mapping
+                  Reference — left as-is per task instructions. */}
               {meta && (
                 <>
                   <TotalBar fill="#5c8a2c" value={meta.max_health} gain={meta.health_regen} />
@@ -1222,8 +1209,8 @@ function HeroDetailPage() {
             </div>
           </div>
           <span
-            className="text-[18px] uppercase text-center"
-            style={{ color: '#8a8474', fontFamily: 'var(--font-dota)', letterSpacing: '2px', fontWeight: 400 }}
+            className="text-[18px] uppercase text-center text-muted font-dota"
+            style={{ letterSpacing: '2px', fontWeight: 400 }}
           >
             Attributes
           </span>
@@ -1238,15 +1225,15 @@ function HeroDetailPage() {
               return (
                 <div key={r} className="flex flex-col gap-1.5">
                   <span
-                    className="text-[15px] font-bold"
+                    className={`text-[15px] font-bold font-dota ${active ? 'text-white' : 'text-muted'}`}
                     style={{
-                      color: active ? '#ffffff' : '#8a8474',
                       letterSpacing: '1px',
-                      fontFamily: 'var(--font-dota)',
                     }}
                   >
                     {r}
                   </span>
+                  {/* #3a3a3e and #f2f4f8 are not in the Token Mapping Reference — left as-is
+                      per task instructions. */}
                   <span className="relative h-[3px] rounded-full" style={{ background: '#3a3a3e' }}>
                     {active && (
                       <span
@@ -1264,8 +1251,8 @@ function HeroDetailPage() {
             })}
           </div>
           <span
-            className="text-[18px] uppercase text-center"
-            style={{ color: '#8a8474', fontFamily: 'var(--font-dota)', letterSpacing: '2px', fontWeight: 400 }}
+            className="text-[18px] uppercase text-center text-muted font-dota"
+            style={{ letterSpacing: '2px', fontWeight: 400 }}
           >
             Roles
           </span>
@@ -1308,8 +1295,8 @@ function HeroDetailPage() {
             </StatGroup>
           </div>
           <span
-            className="text-[18px] uppercase text-center"
-            style={{ color: '#8a8474', fontFamily: 'var(--font-dota)', letterSpacing: '2px', fontWeight: 400 }}
+            className="text-[18px] uppercase text-center text-muted font-dota"
+            style={{ letterSpacing: '2px', fontWeight: 400 }}
           >
             Stats
           </span>
@@ -1320,8 +1307,8 @@ function HeroDetailPage() {
       {abilityList.length > 0 && abilities.data && (
         <div
           ref={abilityDetailRef}
+          className="text-white"
           style={{
-            color: '#fff',
             boxSizing: 'border-box',
             fontFamily: 'Radiance, "Noto Sans", sans-serif',
             width: '100%',
@@ -1336,10 +1323,8 @@ function HeroDetailPage() {
           }}
         >
           <div
-            className="text-center pb-6 uppercase"
+            className="text-center pb-6 uppercase text-white font-dota"
             style={{
-              color: '#ffffff',
-              fontFamily: 'var(--font-dota)',
               fontSize: 24,
               fontWeight: 400,
               letterSpacing: '3px',
@@ -1386,14 +1371,16 @@ function HeroDetailPage() {
         const linkBase: React.CSSProperties = {
           position: 'relative', display: 'flex', alignItems: 'center', height: '100%',
           width: '45%', backgroundImage: BG, backgroundSize: 'cover', backgroundPosition: 'center',
-          textDecoration: 'none', color: '#fff', padding: '0 30px',
+          textDecoration: 'none', padding: '0 30px',
           transition: 'filter 0.15s',
         }
         const nameStyle: React.CSSProperties = {
-          fontSize: 28, fontWeight: 700, color: '#fff', textTransform: 'uppercase',
-          letterSpacing: '1px', fontFamily: 'var(--font-display)',
+          fontSize: 28, fontWeight: 700, textTransform: 'uppercase',
+          letterSpacing: '1px',
           maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }
+        // #9f9f9f is not in the Token Mapping Reference (close to but distinct from
+        // #8a8474 text-muted) — left as-is per task instructions.
         const labelStyle: React.CSSProperties = {
           fontSize: 15, color: '#9f9f9f', textTransform: 'uppercase',
           letterSpacing: '2px', marginBottom: 5,
@@ -1404,11 +1391,13 @@ function HeroDetailPage() {
         }
         return (
           <div
-            className="-mx-6"
+            className="-mx-6 text-white"
             style={{
               fontFamily: 'Radiance, "Noto Sans", sans-serif',
-              color: '#fff', boxSizing: 'border-box',
+              boxSizing: 'border-box',
               width: 'calc(100% + 3rem)', height: 150,
+              // #111 is not in the Token Mapping Reference (close to but distinct from
+              // bg-background/bg-card) — left as-is per task instructions.
               backgroundColor: '#111',
               marginTop: 40,
               display: 'flex', flexDirection: 'row', alignItems: 'center',
@@ -1417,16 +1406,16 @@ function HeroDetailPage() {
             {prevHero ? (
               <a
                 href={`/hero/${heroSlug(prevHero.localized_name)}`}
-                className="hover:brightness-125"
+                className="hover:brightness-125 text-white"
                 style={{ ...linkBase, justifyContent: 'flex-end' }}
               >
                 <img src={cropUrl(prevHero.name)} alt={prevHero.localized_name} style={{ ...cropStyle, left: 0 }} />
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={labelStyle}>Previous Hero</div>
-                  <div style={nameStyle}>{prevHero.localized_name}</div>
+                  <div className="text-white font-display" style={nameStyle}>{prevHero.localized_name}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
                     <img src={attrIcon(prevHero.primary_attr)} alt="" style={{ width: 24, height: 24 }} />
-                    <div style={{ fontSize: 16, color: '#fff', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    <div className="text-white" style={{ fontSize: 16, textTransform: 'uppercase', letterSpacing: '1px' }}>
                       {prevHero.attack_type}
                     </div>
                   </div>
@@ -1436,9 +1425,9 @@ function HeroDetailPage() {
 
             <a
               href="/heroes"
-              className="hover:bg-white/10"
+              className="hover:bg-white/10 text-white"
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                flex: 1, height: '100%', textDecoration: 'none', color: '#fff', gap: 10 }}
+                flex: 1, height: '100%', textDecoration: 'none', gap: 10 }}
             >
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 14px)', gap: 5 }}>
                 {[...Array(6)].map((_, i) => (
@@ -1454,15 +1443,15 @@ function HeroDetailPage() {
             {nextHero ? (
               <a
                 href={`/hero/${heroSlug(nextHero.localized_name)}`}
-                className="hover:brightness-125"
+                className="hover:brightness-125 text-white"
                 style={{ ...linkBase, justifyContent: 'flex-start' }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={labelStyle}>Next Hero</div>
-                  <div style={nameStyle}>{nextHero.localized_name}</div>
+                  <div className="text-white font-display" style={nameStyle}>{nextHero.localized_name}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
                     <img src={attrIcon(nextHero.primary_attr)} alt="" style={{ width: 24, height: 24 }} />
-                    <div style={{ fontSize: 16, color: '#fff', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    <div className="text-white" style={{ fontSize: 16, textTransform: 'uppercase', letterSpacing: '1px' }}>
                       {nextHero.attack_type}
                     </div>
                   </div>

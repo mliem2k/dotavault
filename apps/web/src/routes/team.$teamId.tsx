@@ -44,17 +44,14 @@ type TeamMatch = {
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+    <div className="border border-border" style={{ background: 'rgba(12,11,14,0.72)' }}>
       <div
-        className="px-4 py-3 uppercase"
+        className="px-4 py-3 uppercase text-foreground font-display border-b border-border"
         style={{
           background: 'rgba(8,10,12,0.85)',
-          color: '#c8c2b4',
-          fontFamily: 'var(--font-display)',
           fontSize: 20,
           fontWeight: 500,
           letterSpacing: '3px',
-          borderBottom: '1px solid #24222a',
         }}
       >
         {title}
@@ -114,7 +111,7 @@ function TeamPage() {
 
   if (!team.data)
     return (
-      <div className="text-sm" style={{ color: '#8a8474' }}>
+      <div className="text-sm text-muted">
         Team not found.
       </div>
     )
@@ -202,6 +199,8 @@ function TeamPage() {
   return (
     <div className="space-y-6 py-4">
       {/* Team header */}
+      {/* #0e0c0a and #2c2820 are not in the Token Mapping Reference (close to but
+          distinct from bg-background/border-border) — left as-is per task instructions. */}
       <div
         className="px-4 pt-4 pb-3"
         style={{ background: '#0e0c0a', borderBottom: '1px solid #2c2820' }}
@@ -221,15 +220,15 @@ function TeamPage() {
           <div className="min-w-0">
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1
-                className="text-[32px] font-bold leading-tight uppercase truncate"
-                style={{ color: '#dcd6c8', fontFamily: 'var(--font-display)', letterSpacing: '2px' }}
+                className="text-[32px] font-bold leading-tight uppercase truncate text-foreground font-display"
+                style={{ letterSpacing: '2px' }}
               >
                 {t.name}
               </h1>
               {tiChampionships(t.team_id).length > 0 && (
                 <span
-                  className="shrink-0 px-2 py-0.5 text-[13px] font-bold uppercase"
-                  style={{ background: 'transparent', border: '1px solid rgba(242,201,76,0.5)', color: '#f2c94c', letterSpacing: '1px' }}
+                  className="shrink-0 px-2 py-0.5 text-[13px] font-bold uppercase text-gold"
+                  style={{ background: 'transparent', border: '1px solid rgba(242,201,76,0.5)', letterSpacing: '1px' }}
                   title={`The International Champion: ${tiChampionships(t.team_id)
                     .map((c) => (c.wonAs ? `TI${c.year} as ${c.wonAs}` : `TI${c.year}`))
                     .join(', ')}`}
@@ -239,9 +238,11 @@ function TeamPage() {
               )}
             </div>
             {t.tag && (
+              // #77715f is not in the Token Mapping Reference (close to but distinct
+              // from #8a8474/#5a5648 text-muted) — left as-is per task instructions.
               <div
-                className="text-[13px] uppercase tracking-widest mt-0.5"
-                style={{ color: '#77715f', fontFamily: 'var(--font-dota)' }}
+                className="text-[13px] uppercase tracking-widest mt-0.5 font-dota"
+                style={{ color: '#77715f' }}
               >
                 {t.tag}
               </div>
@@ -251,26 +252,27 @@ function TeamPage() {
           <div className="flex items-center flex-wrap gap-4 sm:gap-8 ml-auto">
             {(
               [
-                { value: t.wins.toLocaleString(), label: 'Wins', color: '#8ec63f' },
-                { value: t.losses.toLocaleString(), label: 'Losses', color: '#d14a38' },
+                { value: t.wins.toLocaleString(), label: 'Wins', color: 'text-radiant' },
+                { value: t.losses.toLocaleString(), label: 'Losses', color: 'text-dire' },
                 {
                   value: wr,
                   label: 'Win Rate',
-                  color: t.wins / (totalGames || 1) >= 0.5 ? '#8ec63f' : '#d14a38',
+                  color: t.wins / (totalGames || 1) >= 0.5 ? 'text-radiant' : 'text-dire',
                 },
-                { value: Math.round(t.rating).toLocaleString(), label: 'Rating', color: '#dcd6c8' },
+                { value: Math.round(t.rating).toLocaleString(), label: 'Rating', color: 'text-foreground' },
               ] as { value: string; label: string; color: string }[]
             ).map((stat) => (
               <div key={stat.label}>
+                {/* #5a5446 is not in the Token Mapping Reference (close to but distinct
+                    from #5a5648 text-muted) — left as-is per task instructions. */}
                 <div
-                  className="text-[11px] uppercase tracking-widest mb-0.5"
-                  style={{ color: '#5a5446', fontFamily: 'var(--font-dota)' }}
+                  className="text-[11px] uppercase tracking-widest mb-0.5 font-dota"
+                  style={{ color: '#5a5446' }}
                 >
                   {stat.label}
                 </div>
                 <div
-                  className="text-[22px] font-bold leading-tight tabular-nums"
-                  style={{ color: stat.color, fontFamily: 'var(--font-dota)' }}
+                  className={`text-[22px] font-bold leading-tight tabular-nums font-dota ${stat.color}`}
                 >
                   {stat.value}
                 </div>
@@ -297,7 +299,8 @@ function TeamPage() {
                       active={sortKey === 'player'}
                       dir={sortDir}
                       onClick={onSort}
-                      style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                      className="font-dota"
+                      style={{ color: 'var(--color-muted)' }}
                     />
                   </th>
                   <th className="pb-2 text-[11px] font-bold uppercase tracking-widest text-left">
@@ -307,7 +310,8 @@ function TeamPage() {
                       active={sortKey === 'role'}
                       dir={sortDir}
                       onClick={onSort}
-                      style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                      className="font-dota"
+                      style={{ color: 'var(--color-muted)' }}
                     />
                   </th>
                   <th className="pb-2 text-[11px] font-bold uppercase tracking-widest text-right">
@@ -317,8 +321,8 @@ function TeamPage() {
                       active={sortKey === 'games'}
                       dir={sortDir}
                       onClick={onSort}
-                      className="justify-end"
-                      style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                      className="justify-end font-dota"
+                      style={{ color: 'var(--color-muted)' }}
                     />
                   </th>
                   <th className="pb-2 text-[11px] font-bold uppercase tracking-widest text-right">
@@ -328,8 +332,8 @@ function TeamPage() {
                       active={sortKey === 'winrate'}
                       dir={sortDir}
                       onClick={onSort}
-                      className="justify-end"
-                      style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                      className="justify-end font-dota"
+                      style={{ color: 'var(--color-muted)' }}
                     />
                   </th>
                 </tr>
@@ -341,20 +345,18 @@ function TeamPage() {
                   return (
                     <tr
                       key={p.account_id}
-                      style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
+                      className={i === 0 ? '' : 'border-t border-border'}
                     >
                       <td className="py-1.5 pr-4">
                         <a
                           href={`/player/${p.account_id}`}
-                          className="text-[14px] hover:text-white"
-                          style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
+                          className="text-[14px] hover:text-white text-foreground font-dota"
                         >
                           {p.name ?? `Player ${p.account_id}`}
                         </a>
                       </td>
                       <td
-                        className="py-1.5 text-[12px]"
-                        style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                        className="py-1.5 text-[12px] text-muted font-dota"
                       >
                         {roleLabelFor(p)}
                         {isStandIn(p) && (
@@ -368,18 +370,14 @@ function TeamPage() {
                         )}
                       </td>
                       <td
-                        className="py-1.5 text-right text-[13px] tabular-nums"
-                        style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                        className="py-1.5 text-right text-[13px] tabular-nums text-muted font-dota"
                       >
                         {p.games_played}
                       </td>
                       <td
-                        className="py-1.5 text-right text-[13px] font-semibold tabular-nums"
-                        style={{
-                          color:
-                            pwr == null ? '#8a8474' : Number(pwr) >= 50 ? '#8ec63f' : '#d14a38',
-                          fontFamily: 'var(--font-dota)',
-                        }}
+                        className={`py-1.5 text-right text-[13px] font-semibold tabular-nums font-dota ${
+                          pwr == null ? 'text-muted' : Number(pwr) >= 50 ? 'text-radiant' : 'text-dire'
+                        }`}
                       >
                         {pwr != null ? `${pwr}%` : 'n/a'}
                       </td>
@@ -404,29 +402,22 @@ function TeamPage() {
                   <a
                     key={m.match_id}
                     href={`/match/${m.match_id}`}
-                    className="flex items-center justify-between gap-3 py-2.5 hover:bg-white/[0.03]"
-                    style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
+                    className={`flex items-center justify-between gap-3 py-2.5 hover:bg-white/[0.03] ${i === 0 ? '' : 'border-t border-border'}`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span
-                        className="text-[13px] font-bold uppercase shrink-0"
-                        style={{
-                          color: won ? '#8ec63f' : '#d14a38',
-                          fontFamily: 'var(--font-dota)',
-                        }}
+                        className={`text-[13px] font-bold uppercase shrink-0 font-dota ${won ? 'text-radiant' : 'text-dire'}`}
                       >
                         {won ? 'W' : 'L'}
                       </span>
                       <span
-                        className="text-[14px] truncate"
-                        style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
+                        className="text-[14px] truncate text-foreground font-dota"
                       >
                         vs {m.opposing_team_name ?? 'Unknown'}
                       </span>
                     </div>
                     <span
-                      className="text-[12px] tabular-nums shrink-0"
-                      style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                      className="text-[12px] tabular-nums shrink-0 text-muted font-dota"
                     >
                       {formatTimeAgo(m.start_time)}
                     </span>
