@@ -31,15 +31,14 @@ import { formatClock, GameTimeSlider, itemsAtTime, statsAtTime, teamScoreAtTime,
    mount (no click needed); otherwise our Go service parses Valve's raw
    replay on demand, which only works while Valve still serves the file. */
 
-const C = {
-  label: '#8a97a0',
-  dim: '#67757f',
-  text: '#cfd4d8',
-  white: '#ffffff',
+// Canvas 2D draw calls need real color strings (not classNames), so these two
+// stay as raw hex for ctx.fillStyle/strokeStyle call sites specifically.
+const CANVAS_COLOR = {
   green: '#9fbf3f',
   red: '#c94a38',
-  gold: '#f2c94c',
-  blue: '#4f8fc2',
+}
+
+const C = {
   panel: 'rgba(16,19,22,0.72)',
   panelDark: 'rgba(8,10,12,0.7)',
 }
@@ -253,23 +252,23 @@ function ParseRequest({ matchId }: { matchId: number }) {
   }
 
   return (
-    <div className="p-8 text-center space-y-3" style={{ background: C.panel, fontFamily: 'var(--font-dota)' }}>
-      <p className="text-[14px]" style={{ color: C.dim }}>
+    <div className="p-8 text-center space-y-3 font-dota" style={{ background: C.panel }}>
+      <p className="text-[14px] text-slate-muted">
         This match has not been parsed yet. Request a parse to enable the replay viewer.
       </p>
       {state === 'submitted' ? (
-        <p className="text-[14px]" style={{ color: C.green }}>
+        <p className="text-[14px] text-radiant">
           Parse requested, reload in a few minutes to check if data is available.
         </p>
       ) : state === 'error' ? (
-        <p className="text-[14px]" style={{ color: C.red }}>Failed to request parse. Try again later.</p>
+        <p className="text-[14px] text-dire">Failed to request parse. Try again later.</p>
       ) : (
         <button
           type="button"
           onClick={request}
           disabled={state === 'requesting'}
-          className="inline-flex items-center gap-2 px-4 py-2 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:opacity-50"
-          style={{ background: '#1d2a12', border: '1px solid #3d5a24', color: C.green, letterSpacing: '1px' }}
+          className="inline-flex items-center gap-2 px-4 py-2 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:opacity-50 text-radiant"
+          style={{ background: '#1d2a12', border: '1px solid #3d5a24', letterSpacing: '1px' }}
         >
           <RefreshCw className={`h-3.5 w-3.5 ${state === 'requesting' ? 'animate-spin' : ''}`} />
           {state === 'requesting' ? 'Requesting…' : 'Request Parse'}
@@ -344,13 +343,11 @@ function PlayerRow({
         }}
       />
       <span
-        className="absolute -bottom-1 -right-1 flex items-center justify-center text-[10px] tabular-nums leading-none"
+        className="absolute -bottom-1 -right-1 flex items-center justify-center text-[10px] tabular-nums leading-none text-gold border border-slate-card"
         style={{
           minWidth: 14,
           height: 14,
           background: '#0d1012',
-          border: '1px solid #2c3236',
-          color: C.gold,
         }}
         title="Level"
       >
@@ -401,15 +398,15 @@ function PlayerRow({
         )}
         <div className="min-w-0 flex-1">
           <div className="truncate text-[13px] leading-tight">
-            <PlayerNameLink player={player} style={{ color: C.text }} />
+            <PlayerNameLink player={player} className="text-slate-foreground" />
           </div>
           <div className="flex items-center gap-1.5 text-[13px] tabular-nums leading-tight">
-            <span style={{ color: C.white }}>{stats.kills}</span>
+            <span className="text-white">{stats.kills}</span>
             <span style={{ color: '#4a5157' }}>/</span>
-            <span style={{ color: C.red }}>{stats.deaths}</span>
+            <span className="text-dire">{stats.deaths}</span>
             <span style={{ color: '#4a5157' }}>/</span>
-            <span style={{ color: C.label }}>{stats.assists}</span>
-            <span className="ml-auto inline-flex items-center gap-0.5" style={{ color: C.gold }}>
+            <span className="text-slate-muted-light">{stats.assists}</span>
+            <span className="ml-auto inline-flex items-center gap-0.5 text-gold">
               <GoldIcon size={10} />
               {stats.netWorth >= 1000 ? `${(stats.netWorth / 1000).toFixed(1)}k` : stats.netWorth}
             </span>
@@ -421,17 +418,16 @@ function PlayerRow({
         <div className="mt-1 space-y-0.5">
           <div className="h-[4px] w-full" style={{ background: 'rgba(0,0,0,0.6)' }}>
             <div
-              className="h-full"
+              className={`h-full ${dead ? 'bg-slate-border' : 'bg-radiant'}`}
               style={{
                 width: `${sample.mhp > 0 ? (sample.hp / sample.mhp) * 100 : 0}%`,
-                background: dead ? '#3a4147' : C.green,
               }}
             />
           </div>
           <div className="h-[3px] w-full" style={{ background: 'rgba(0,0,0,0.6)' }}>
             <div
               className="h-full"
-              style={{ width: `${sample.mmp > 0 ? (sample.mp / sample.mmp) * 100 : 0}%`, background: C.blue }}
+              style={{ width: `${sample.mmp > 0 ? (sample.mp / sample.mmp) * 100 : 0}%`, background: '#4f8fc2' }}
             />
           </div>
         </div>
@@ -444,8 +440,8 @@ function PlayerRow({
             <div
               // biome-ignore lint/suspicious/noArrayIndexKey: fixed 6 slots
               key={i}
-              className="overflow-hidden"
-              style={{ width: 26, height: 20, background: '#0d1012', border: '1px solid #22282c' }}
+              className="overflow-hidden border border-slate-bg"
+              style={{ width: 26, height: 20, background: '#0d1012' }}
             >
               {name && (
                 <img
@@ -493,8 +489,8 @@ function TeamPanel({
   return (
     <div className="w-[240px] shrink-0 self-start" style={{ background: C.panel }}>
       <div
-        className="px-3 py-2 text-[13px] uppercase"
-        style={{ color: side === 'radiant' ? C.green : C.red, letterSpacing: '2px', background: C.panelDark }}
+        className={`px-3 py-2 text-[13px] uppercase ${side === 'radiant' ? 'text-radiant' : 'text-dire'}`}
+        style={{ letterSpacing: '2px', background: C.panelDark }}
       >
         {side === 'radiant' ? 'Radiant' : 'Dire'}
       </div>
@@ -655,7 +651,7 @@ export function ReplayViewer({
         .filter((e) => e.time > 0)
         .map((e) => ({
           time: e.time,
-          color: e.team === 'radiant' ? C.green : e.team === 'dire' ? C.red : C.gold,
+          color: e.team === 'radiant' ? '#9fbf3f' : e.team === 'dire' ? '#c94a38' : '#f2c94c',
         })),
     [events],
   )
@@ -707,7 +703,7 @@ export function ReplayViewer({
         if (t >= buildingDeaths[i]) return
         const cx = toCanvas(b.x, size)
         const cy = size - toCanvas(b.y, size)
-        const color = b.team === 'radiant' ? C.green : C.red
+        const color = b.team === 'radiant' ? CANVAS_COLOR.green : CANVAS_COLOR.red
         ctx.save()
         if (b.kind === 'fort') {
           ctx.beginPath()
@@ -826,7 +822,7 @@ export function ReplayViewer({
         ctx.globalAlpha = alpha
         ctx.beginPath()
         ctx.arc(cx, cy, r + 2, 0, Math.PI * 2)
-        ctx.fillStyle = dead ? '#3a4147' : isRadiant ? C.green : C.red
+        ctx.fillStyle = dead ? '#3a4147' : isRadiant ? CANVAS_COLOR.green : CANVAS_COLOR.red
         ctx.fill()
 
         if (icon?.complete && icon.naturalWidth > 0) {
@@ -839,7 +835,7 @@ export function ReplayViewer({
           ctx.restore()
         }
         if (dead) {
-          ctx.strokeStyle = C.red
+          ctx.strokeStyle = CANVAS_COLOR.red
           ctx.lineWidth = 2.5
           ctx.beginPath()
           ctx.moveTo(cx - 6, cy - 6)
@@ -930,8 +926,8 @@ export function ReplayViewer({
   if (!hasAnyWaypoints && !denseBySlot && !canFetchFullPlayback) {
     if (match.version === null) return <ParseRequest matchId={match.match_id} />
     return (
-      <div className="p-8 text-center" style={{ background: C.panel, fontFamily: 'var(--font-dota)' }}>
-        <p className="text-[14px]" style={{ color: C.dim }}>
+      <div className="p-8 text-center font-dota" style={{ background: C.panel }}>
+        <p className="text-[14px] text-slate-muted">
           No teamfight or ward position data available for this match.
         </p>
       </div>
@@ -942,7 +938,7 @@ export function ReplayViewer({
   const scoreDire = teamScoreAtTime(match, false, time)
 
   return (
-    <div className="flex flex-wrap gap-3" style={{ fontFamily: 'var(--font-dota)' }}>
+    <div className="flex flex-wrap gap-3 font-dota">
       <TeamPanel
         side="radiant"
         players={radiant}
@@ -958,29 +954,29 @@ export function ReplayViewer({
       <div className="min-w-[420px] flex-1 space-y-3" style={{ background: C.panel }}>
         <div className="flex items-center justify-between px-4 py-2" style={{ background: C.panelDark }}>
           <div className="flex items-center gap-3">
-            <span className="text-[26px] leading-none tabular-nums" style={{ color: C.green }}>{scoreRadiant}</span>
+            <span className="text-[26px] leading-none tabular-nums text-radiant">{scoreRadiant}</span>
             <span
-              className="px-2 py-0.5 text-[16px] tabular-nums"
-              style={{ color: C.white, background: 'rgba(0,0,0,0.5)', border: '1px solid #2c3236' }}
+              className="px-2 py-0.5 text-[16px] tabular-nums text-white border border-slate-card"
+              style={{ background: 'rgba(0,0,0,0.5)' }}
             >
               {formatClock(time)}
             </span>
-            <span className="text-[26px] leading-none tabular-nums" style={{ color: C.red }}>{scoreDire}</span>
+            <span className="text-[26px] leading-none tabular-nums text-dire">{scoreDire}</span>
           </div>
           {canFetchFullPlayback && fullPlaybackState !== 'done' && (
             <div className="flex items-center gap-2.5">
               {fullPlaybackState === 'unavailable' && (
-                <span className="text-[12px]" style={{ color: C.dim }}>Replay no longer available</span>
+                <span className="text-[12px] text-slate-muted">Replay no longer available</span>
               )}
               {fullPlaybackState === 'error' && (
-                <span className="text-[12px]" style={{ color: C.red }}>Failed to parse replay</span>
+                <span className="text-[12px] text-dire">Failed to parse replay</span>
               )}
               <button
                 type="button"
                 onClick={fetchFullPlayback}
                 disabled={fullPlaybackState === 'working'}
-                className="inline-flex items-center gap-2 px-3 py-1.5 text-[12px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-60"
-                style={{ background: '#1d2a12', border: '1px solid #3d5a24', color: C.green, letterSpacing: '1px' }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-[12px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-60 text-radiant"
+                style={{ background: '#1d2a12', border: '1px solid #3d5a24', letterSpacing: '1px' }}
                 title="Parses the raw replay ourselves for true continuous hero movement plus live HP/mana/levels. If OpenDota hasn't parsed the match yet, the server requests that first and continues automatically; only works while Valve still serves the replay file"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${fullPlaybackState === 'working' ? 'animate-spin' : ''}`} />
@@ -997,7 +993,7 @@ export function ReplayViewer({
             </div>
           )}
           {fullPlaybackState === 'done' && (
-            <span className="text-[12px] uppercase" style={{ color: C.green, letterSpacing: '1px' }}>
+            <span className="text-[12px] uppercase text-radiant" style={{ letterSpacing: '1px' }}>
               ✓ Full playback
             </span>
           )}
@@ -1007,14 +1003,13 @@ export function ReplayViewer({
             ref={canvasRef}
             width={560}
             height={560}
-            className="w-full max-w-[560px]"
-            style={{ border: '1px solid #22282c' }}
+            className="w-full max-w-[560px] border border-slate-bg"
           />
           {!hasAnyWaypoints && !denseBySlot && (
             <div className="absolute inset-0 flex items-center justify-center px-8">
               <p
-                className="px-4 py-3 text-center text-[13px]"
-                style={{ color: C.text, background: 'rgba(8,10,12,0.85)', border: '1px solid #2c3236' }}
+                className="px-4 py-3 text-center text-[13px] text-slate-foreground border border-slate-card"
+                style={{ background: 'rgba(8,10,12,0.85)' }}
               >
                 No position data from OpenDota for this match.
                 {fullPlaybackState === 'working'
@@ -1033,8 +1028,8 @@ export function ReplayViewer({
               if (prev) setTime(Math.max(0, prev.time))
             }}
             disabled={!events.some((e) => e.time < time - 0.5)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-30"
-            style={{ background: '#1a2024', border: '1px solid #2c3236', color: C.text }}
+            className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-30 text-slate-foreground border border-slate-card"
+            style={{ background: '#1a2024' }}
             title="Previous event"
           >
             <SkipBack className="h-4 w-4" />
@@ -1042,8 +1037,8 @@ export function ReplayViewer({
           <button
             type="button"
             onClick={() => setPlaying((p) => !p)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125"
-            style={{ background: '#1a2024', border: '1px solid #2c3236', color: C.text }}
+            className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 text-slate-foreground border border-slate-card"
+            style={{ background: '#1a2024' }}
           >
             {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
           </button>
@@ -1055,37 +1050,32 @@ export function ReplayViewer({
               if (next) setTime(Math.min(duration, next.time))
             }}
             disabled={!events.some((e) => e.time > time + 0.5)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-30"
-            style={{ background: '#1a2024', border: '1px solid #2c3236', color: C.text }}
+            className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-30 text-slate-foreground border border-slate-card"
+            style={{ background: '#1a2024' }}
             title="Next event"
           >
             <SkipForward className="h-4 w-4" />
           </button>
-          <div className="flex items-center shrink-0" style={{ border: '1px solid #2c3236' }}>
+          <div className="flex items-center shrink-0 border border-slate-card">
             {SPEEDS.map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setSpeed(s)}
-                className="px-2.5 py-1.5 text-[12px] cursor-pointer"
-                style={{ background: speed === s ? '#2c3236' : 'transparent', color: speed === s ? C.white : C.dim }}
+                className={`px-2.5 py-1.5 text-[12px] cursor-pointer ${speed === s ? 'bg-slate-card text-white' : 'text-slate-muted'}`}
               >
                 {s}x
               </button>
             ))}
           </div>
-          <div className="flex items-center shrink-0" style={{ border: '1px solid #2c3236' }} title="Fog of war: show only what this team can see">
-            <span className="px-2 text-[11px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>Fog</span>
+          <div className="flex items-center shrink-0 border border-slate-card" title="Fog of war: show only what this team can see">
+            <span className="px-2 text-[11px] uppercase text-slate-muted" style={{ letterSpacing: '1px' }}>Fog</span>
             {(['off', 'radiant', 'dire'] as const).map((f) => (
               <button
                 key={f}
                 type="button"
                 onClick={() => setFogTeam(f)}
-                className="px-2 py-1.5 text-[12px] uppercase cursor-pointer"
-                style={{
-                  background: fogTeam === f ? '#2c3236' : 'transparent',
-                  color: fogTeam === f ? (f === 'radiant' ? C.green : f === 'dire' ? C.red : C.white) : C.dim,
-                }}
+                className={`px-2 py-1.5 text-[12px] uppercase cursor-pointer ${fogTeam === f ? 'bg-slate-card' : ''} ${fogTeam === f ? (f === 'radiant' ? 'text-radiant' : f === 'dire' ? 'text-dire' : 'text-white') : 'text-slate-muted'}`}
               >
                 {f === 'off' ? 'Off' : f === 'radiant' ? 'Rad' : 'Dire'}
               </button>
@@ -1100,7 +1090,7 @@ export function ReplayViewer({
           />
         </div>
         {activeTeamfight && (
-          <p className="text-center text-[13px] pb-3" style={{ color: C.gold }}>
+          <p className="text-center text-[13px] pb-3 text-gold">
             ⚔ Teamfight {formatClock(activeTeamfight.start)}–{formatClock(activeTeamfight.end)} · {activeTeamfight.deaths} deaths
           </p>
         )}
@@ -1120,8 +1110,8 @@ export function ReplayViewer({
       {/* Synced event feed */}
       <div className="w-[300px] shrink-0" style={{ background: C.panel }}>
         <div
-          className="text-[15px] uppercase px-4 py-3"
-          style={{ color: C.white, letterSpacing: '2px', background: C.panelDark }}
+          className="text-[15px] uppercase px-4 py-3 text-white"
+          style={{ letterSpacing: '2px', background: C.panelDark }}
         >
           Match Events
         </div>
@@ -1142,10 +1132,10 @@ export function ReplayViewer({
                   background: passed ? 'rgba(242,201,76,0.05)' : 'transparent',
                 }}
               >
-                <span className="w-11 text-right text-[13px] tabular-nums shrink-0" style={{ color: C.dim }}>
+                <span className="w-11 text-right text-[13px] tabular-nums shrink-0 text-slate-muted">
                   {formatClock(Math.max(0, e.time))}
                 </span>
-                <span style={{ width: 3, height: 20, background: e.team === 'radiant' ? C.green : e.team === 'dire' ? C.red : '#3a4147' }} />
+                <span className={e.team === 'radiant' ? 'bg-radiant' : e.team === 'dire' ? 'bg-dire' : 'bg-slate-border'} style={{ width: 3, height: 20 }} />
                 <span className="text-[15px] w-6 text-center shrink-0">{e.icon}</span>
                 {hero && (
                   <img
@@ -1159,12 +1149,12 @@ export function ReplayViewer({
                     }}
                   />
                 )}
-                <span className="text-[13px] line-clamp-2" style={{ color: C.text }}>{e.text}</span>
+                <span className="text-[13px] line-clamp-2 text-slate-foreground">{e.text}</span>
               </button>
             )
           })}
           {events.length === 0 && (
-            <div className="py-8 text-center text-[13px]" style={{ color: C.dim }}>No events recorded.</div>
+            <div className="py-8 text-center text-[13px] text-slate-muted">No events recorded.</div>
           )}
         </div>
       </div>

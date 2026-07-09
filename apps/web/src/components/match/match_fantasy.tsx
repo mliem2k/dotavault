@@ -1,5 +1,6 @@
 import type { HeroStat, Match, MatchPlayer } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { playerColor } from '@/lib/dotaconst'
 import { applySort, useSort } from '@/lib/sortable'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
@@ -8,12 +9,6 @@ import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
    scoring (same components Dota's official fantasy leagues use). */
 
 const C = {
-  dim: '#67757f',
-  text: '#cfd4d8',
-  white: '#ffffff',
-  green: '#9fbf3f',
-  red: '#c94a38',
-  gold: '#f2c94c',
   panel: 'rgba(16,19,22,0.72)',
   panelDark: 'rgba(8,10,12,0.7)',
 }
@@ -93,8 +88,8 @@ export function MatchFantasy({ match, heroStats }: { match: Match; heroStats: He
     const hero = heroMap.get(p.hero_id)
     const total = totalPoints(p)
     return (
-      <tr key={p.player_slot} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <td className="px-3 py-1.5">
+      <TableRow key={p.player_slot} className="hover:bg-transparent border-t border-white/5 border-x-0 border-b-0">
+        <TableCell className="p-0 px-3 py-1.5 whitespace-normal">
           <div className="flex items-center gap-2">
             <span style={{ width: 3, height: 22, background: playerColor(p.player_slot) }} />
             <img
@@ -109,51 +104,50 @@ export function MatchFantasy({ match, heroStats }: { match: Match; heroStats: He
                 img.src = heroIconFromPath(hero.icon)
               }}
             />
-            <span className="max-w-[130px] truncate text-[13px]" style={{ color: p.player_slot < 128 ? C.green : C.red }}>
+            <span className={`max-w-[130px] truncate text-[13px] ${p.player_slot < 128 ? 'text-radiant' : 'text-dire'}`}>
               {p.personaname ?? 'Anonymous'}
             </span>
           </div>
-        </td>
-        <td className="px-2 text-right">
+        </TableCell>
+        <TableCell className="p-0 px-2 text-right">
           <span
-            className="text-[15px] font-bold tabular-nums"
-            style={{ color: total === best ? C.gold : C.white }}
+            className={`text-[15px] font-bold tabular-nums ${total === best ? 'text-gold' : 'text-white'}`}
             title={total === best ? 'Best fantasy score of the match' : undefined}
           >
             {total.toFixed(1)}
           </span>
-        </td>
+        </TableCell>
         {COMPONENTS.map((c) => {
           const pts = c.points(p)
           return (
-            <td key={c.label} className="px-2 text-center">
-              <div className="text-[13px] tabular-nums" style={{ color: pts > 0 ? C.text : '#3a4147' }}>
+            <TableCell key={c.label} className="p-0 px-2 text-center whitespace-normal">
+              <div className={`text-[13px] tabular-nums ${pts > 0 ? 'text-slate-foreground' : 'text-slate-border'}`}>
                 {pts.toFixed(1)}
               </div>
-              <div className="text-[11px] tabular-nums" style={{ color: C.dim }}>{c.value(p)}</div>
-            </td>
+              <div className="text-[11px] tabular-nums text-slate-muted">{c.value(p)}</div>
+            </TableCell>
           )
         })}
-      </tr>
+      </TableRow>
     )
   }
 
   return (
-    <div className="overflow-x-auto" style={{ background: C.panel, fontFamily: 'var(--font-dota)' }}>
-      <div className="px-4 py-3 text-[15px] uppercase" style={{ color: C.white, letterSpacing: '2px', background: C.panelDark }}>
+    <div className="overflow-x-auto font-dota" style={{ background: C.panel }}>
+      <div className="px-4 py-3 text-[15px] uppercase text-white" style={{ letterSpacing: '2px', background: C.panelDark }}>
         Fantasy Points
       </div>
-      <table className="w-full border-collapse" style={{ minWidth: 1100 }}>
-        <thead>
-          <tr className="text-[12px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
-            <th className="px-3 py-2 text-left">
+      <Table className="w-full" style={{ minWidth: 1100 }}>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent text-[12px] uppercase text-slate-muted border-none" style={{ letterSpacing: '1px' }}>
+            <TableHead className="h-auto px-3 py-2 text-left">
               <SortHeader label="Player" sortKey="player" active={sortKey === 'player'} dir={sortDir} onClick={onSort} />
-            </th>
-            <th className="px-2 text-right">
+            </TableHead>
+            <TableHead className="h-auto px-2 text-right">
               <SortHeader label="Total" sortKey="total" active={sortKey === 'total'} dir={sortDir} onClick={onSort} className="justify-end" />
-            </th>
+            </TableHead>
             {COMPONENTS.map((c) => (
-              <th key={c.label} className="px-2 text-center">
+              <TableHead key={c.label} className="h-auto px-2 text-center">
                 <SortHeader
                   label={c.label}
                   sortKey={c.key}
@@ -162,19 +156,19 @@ export function MatchFantasy({ match, heroStats }: { match: Match; heroStats: He
                   onClick={onSort}
                   className="justify-center"
                 />
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {radiant.map(row)}
-          <tr>
-            <td colSpan={2 + COMPONENTS.length} style={{ height: 10 }} />
-          </tr>
+          <TableRow className="hover:bg-transparent border-none">
+            <TableCell colSpan={2 + COMPONENTS.length} className="p-0" style={{ height: 10 }} />
+          </TableRow>
           {dire.map(row)}
-        </tbody>
-      </table>
-      <p className="px-4 py-3 text-[12px]" style={{ color: C.dim }}>
+        </TableBody>
+      </Table>
+      <p className="px-4 py-3 text-[12px] text-slate-muted">
         Standard fantasy scoring: 0.3/kill, 3 minus 0.3/death, 0.003/CS, 0.002/GPM, 1/tower, 1/Roshan, 3 x teamfight
         share, 0.5/observer, 0.5/stack, 0.25/rune, 4/first blood, 0.05/stun second. Small values show points over raw
         stat.

@@ -139,8 +139,8 @@ export function MatchStory({ match, heroStats }: { match: Match; heroStats: Hero
   const paras = useMemo(() => buildStory(match, heroStats), [match, heroStats])
 
   return (
-    <div className="mx-auto max-w-[760px]" style={{ background: C.panel, fontFamily: 'var(--font-dota)' }}>
-      <div className="px-5 py-3 text-[15px] uppercase" style={{ color: C.white, letterSpacing: '2px', background: C.panelDark }}>
+    <div className="mx-auto max-w-[760px] font-dota" style={{ background: C.panel }}>
+      <div className="px-5 py-3 text-[15px] uppercase text-white" style={{ letterSpacing: '2px', background: C.panelDark }}>
         Match Story
       </div>
       <div className="space-y-4 px-6 py-5">
@@ -149,7 +149,7 @@ export function MatchStory({ match, heroStats }: { match: Match; heroStats: Hero
           return (
             // biome-ignore lint/suspicious/noArrayIndexKey: static narrative
             <div key={i} className="flex items-start gap-3">
-              <span className="w-12 shrink-0 pt-0.5 text-right text-[12px] tabular-nums" style={{ color: C.dim }}>
+              <span className="w-12 shrink-0 pt-0.5 text-right text-[12px] tabular-nums text-slate-muted">
                 {p.time != null ? formatClock(Math.max(0, p.time)) : ''}
               </span>
               {hero ? (
@@ -168,7 +168,7 @@ export function MatchStory({ match, heroStats }: { match: Match; heroStats: Hero
               ) : (
                 <span style={{ width: 24 }} className="shrink-0" />
               )}
-              <p className="text-[15px] leading-relaxed" style={{ color: C.text }}>
+              <p className="text-[15px] leading-relaxed text-slate-foreground">
                 {p.text}
               </p>
             </div>

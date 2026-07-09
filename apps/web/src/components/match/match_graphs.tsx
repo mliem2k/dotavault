@@ -75,8 +75,8 @@ function TimeLabels({ minutes }: { minutes: number }) {
     labels.push(
       <div
         key={mm}
-        className="absolute text-[11px] tabular-nums"
-        style={{ left: `${(mm / minutes) * 100}%`, top: 0, color: '#67757f', fontFamily: 'var(--font-dota)', transform: 'translateX(-50%)' }}
+        className="absolute text-[11px] tabular-nums text-slate-muted font-dota"
+        style={{ left: `${(mm / minutes) * 100}%`, top: 0, transform: 'translateX(-50%)' }}
       >
         {mm}:00
       </div>,
@@ -138,15 +138,12 @@ function WinProbChart({ match, vbH }: { match: Match; vbH: number }) {
         </svg>
         {hp != null && hoverIdx != null && (
           <div
-            className="absolute px-2 py-1 text-[12px] tabular-nums pointer-events-none"
+            className={`absolute px-2 py-1 text-[12px] tabular-nums pointer-events-none font-dota border border-slate-card ${hp >= 0.5 ? 'text-radiant' : 'text-dire'}`}
             style={{
               left: `${(hoverIdx / (n - 1)) * 100}%`,
               top: 6,
               transform: 'translateX(-50%)',
               background: 'rgba(8,10,12,0.9)',
-              border: '1px solid #2c3236',
-              color: hp >= 0.5 ? '#9fbf3f' : '#c94a38',
-              fontFamily: 'var(--font-dota)',
               whiteSpace: 'nowrap',
             }}
           >
@@ -155,7 +152,7 @@ function WinProbChart({ match, vbH }: { match: Match; vbH: number }) {
         )}
       </div>
       <TimeLabels minutes={n} />
-      <p className="mt-1 text-[11px]" style={{ color: '#67757f', fontFamily: 'var(--font-dota)' }}>
+      <p className="mt-1 text-[11px] text-slate-muted font-dota">
         Estimated from gold and XP advantage (logistic heuristic, not a trained model).
       </p>
     </div>
@@ -220,38 +217,36 @@ function TeamAdvantageChart({ match, vbH }: { match: Match; vbH: number }) {
           <>
             <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: `${hoverPct}%`, width: 1, background: '#5a606688' }} />
             <div
-              className="absolute pointer-events-none rounded"
+              className="absolute pointer-events-none rounded font-dota border border-slate-border"
               style={{
                 left: hoverPct > 55 ? undefined : `calc(${hoverPct}% + 10px)`,
                 right: hoverPct > 55 ? `calc(${100 - hoverPct}% + 10px)` : undefined,
                 top: 6,
                 background: '#0b0d0f',
-                border: '1px solid #3a4147',
                 padding: '6px 8px',
-                fontFamily: 'var(--font-dota)',
                 zIndex: 5,
               }}
             >
-              <div className="text-[10px] uppercase tracking-wider mb-1 tabular-nums" style={{ color: '#67757f' }}>{hoverIdx}:00</div>
+              <div className="text-[10px] uppercase tracking-wider mb-1 tabular-nums text-slate-muted">{hoverIdx}:00</div>
               <div className="flex items-center gap-1.5 text-[11px] leading-tight">
                 <span className="rounded-sm" style={{ width: 8, height: 8, background: '#cb9b25' }} />
                 <span style={{ color: '#b8c2c9' }}>Net Worth</span>
-                <span className="ml-auto tabular-nums font-semibold" style={{ color: gv >= 0 ? '#9fbf3f' : '#c94a38' }}>{advLabel(gv)}</span>
+                <span className={`ml-auto tabular-nums font-semibold ${gv >= 0 ? 'text-radiant' : 'text-dire'}`}>{advLabel(gv)}</span>
               </div>
               <div className="flex items-center gap-1.5 text-[11px] leading-tight mt-0.5">
                 <span className="rounded-sm" style={{ width: 8, height: 8, background: '#5a8fc2' }} />
                 <span style={{ color: '#b8c2c9' }}>XP</span>
-                <span className="ml-auto tabular-nums font-semibold" style={{ color: xv >= 0 ? '#9fbf3f' : '#c94a38' }}>{advLabel(xv)}</span>
+                <span className={`ml-auto tabular-nums font-semibold ${xv >= 0 ? 'text-radiant' : 'text-dire'}`}>{advLabel(xv)}</span>
               </div>
             </div>
           </>
         )}
       </div>
       <TimeLabels minutes={n} />
-      <div className="flex items-center gap-4 mt-1 text-[11px]" style={{ fontFamily: 'var(--font-dota)' }}>
-        <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-[2px]" style={{ background: '#cb9b25' }} /><span style={{ color: '#8a97a0' }}>Net Worth adv.</span></span>
-        <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-[2px]" style={{ background: '#5a8fc2' }} /><span style={{ color: '#8a97a0' }}>XP adv.</span></span>
-        <span className="ml-auto" style={{ color: '#5a6066' }}>Positive = Radiant ahead</span>
+      <div className="flex items-center gap-4 mt-1 text-[11px] font-dota">
+        <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-[2px]" style={{ background: '#cb9b25' }} /><span className="text-slate-muted-light">Net Worth adv.</span></span>
+        <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-[2px]" style={{ background: '#5a8fc2' }} /><span className="text-slate-muted-light">XP adv.</span></span>
+        <span className="ml-auto text-slate-muted">Positive = Radiant ahead</span>
       </div>
     </div>
   )
@@ -358,20 +353,18 @@ function PlayerLinesChart({
           <>
             <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: `${hoverPct}%`, width: 1, background: '#5a606688' }} />
             <div
-              className="absolute pointer-events-none rounded"
+              className="absolute pointer-events-none rounded font-dota border border-slate-border"
               style={{
                 left: hoverPct > 55 ? undefined : `calc(${hoverPct}% + 10px)`,
                 right: hoverPct > 55 ? `calc(${100 - hoverPct}% + 10px)` : undefined,
                 top: 6,
                 background: '#0b0d0f',
-                border: '1px solid #3a4147',
                 padding: '6px 8px',
                 minWidth: 130,
-                fontFamily: 'var(--font-dota)',
                 zIndex: 5,
               }}
             >
-              <div className="text-[10px] uppercase tracking-wider mb-1 tabular-nums" style={{ color: '#67757f' }}>
+              <div className="text-[10px] uppercase tracking-wider mb-1 tabular-nums text-slate-muted">
                 {hoverIdx}:00
               </div>
               {hoverRows.map((r) => (
@@ -391,7 +384,7 @@ function PlayerLinesChart({
                     />
                   )}
                   <span className="flex-1 min-w-0 truncate" style={{ color: '#b8c2c9' }}>{r.name}</span>
-                  <span className="tabular-nums font-semibold ml-2" style={{ color: '#cfd4d8' }}>
+                  <span className="tabular-nums font-semibold ml-2 text-slate-foreground">
                     {metric === 'networth' ? r.v.toLocaleString() : r.v}
                   </span>
                 </div>
@@ -464,8 +457,8 @@ function PlayerItemsTimeline({
   const grid: JSX.Element[] = []
   for (let mm = 10; mm < minutes; mm += 10) {
     grid.push(
-      <div key={mm} className="absolute top-0 bottom-0" style={{ left: `${((mm * 60) / durationSec) * 100}%`, width: 1, background: '#22282c' }}>
-        <span className="absolute text-[11px] tabular-nums" style={{ top: '50%', left: 4, color: '#67757f', fontFamily: 'var(--font-dota)' }}>{mm}:00</span>
+      <div key={mm} className="absolute top-0 bottom-0 bg-slate-bg" style={{ left: `${((mm * 60) / durationSec) * 100}%`, width: 1 }}>
+        <span className="absolute text-[11px] tabular-nums text-slate-muted font-dota" style={{ top: '50%', left: 4 }}>{mm}:00</span>
       </div>,
     )
   }
@@ -485,7 +478,7 @@ function PlayerItemsTimeline({
 function Empty({ height }: { height: number }) {
   return (
     <div className="flex-1 flex items-center justify-center" style={{ height }}>
-      <span className="text-sm" style={{ color: '#5a6066', fontFamily: 'var(--font-dota)' }}>
+      <span className="text-sm text-slate-muted font-dota">
         This match is unparsed — timeline data unavailable.
       </span>
     </div>
@@ -579,11 +572,9 @@ export function MatchGraphs({
               key={m}
               type="button"
               onClick={() => setMode(m)}
-              className="flex-1 px-3 py-2.5 text-[13px] uppercase transition-colors cursor-pointer"
+              className={`flex-1 px-3 py-2.5 text-[13px] uppercase transition-colors cursor-pointer font-dota ${activeMode === m ? 'text-white' : 'text-slate-muted-light'}`}
               style={{
-                fontFamily: 'var(--font-dota)',
                 letterSpacing: '1px',
-                color: activeMode === m ? '#ffffff' : '#8a97a0',
                 background: activeMode === m ? '#5c666c' : 'rgba(22,26,29,0.85)',
                 border: `1px solid ${activeMode === m ? '#6e787e' : '#242a2e'}`,
               }}
@@ -595,21 +586,17 @@ export function MatchGraphs({
 
         {perPlayerMode && (
           <div
-            className="flex items-center gap-1.5 mb-2 flex-wrap"
-            style={{ fontFamily: 'var(--font-dota)', marginLeft: SIDEBAR_W + 16 }}
+            className="flex items-center gap-1.5 mb-2 flex-wrap font-dota"
+            style={{ marginLeft: SIDEBAR_W + 16 }}
           >
-            <span className="text-[11px] mr-1" style={{ color: '#5a6066' }}>
+            <span className="text-[11px] mr-1 text-slate-muted">
               Showing {visibleSlots.size}/{match.players.length}:
             </span>
             <button
               type="button"
               onClick={allSlots}
-              className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-sm"
-              style={{
-                color: visibleSlots.size === match.players.length ? '#e8ecef' : '#8a97a0',
-                background: visibleSlots.size === match.players.length ? '#2c3236' : '#15181b',
-                border: '1px solid #22282c',
-              }}
+              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-sm border border-slate-bg ${visibleSlots.size === match.players.length ? 'text-slate-foreground-light bg-slate-card' : 'text-slate-muted-light'}`}
+              style={{ background: visibleSlots.size === match.players.length ? undefined : '#15181b' }}
             >
               All
             </button>
@@ -624,12 +611,8 @@ export function MatchGraphs({
                   key={label}
                   type="button"
                   onClick={() => selectPosition(i)}
-                  className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-sm"
-                  style={{
-                    color: isActive ? '#e8ecef' : '#8a97a0',
-                    background: isActive ? '#2c3236' : '#15181b',
-                    border: '1px solid #22282c',
-                  }}
+                  className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-sm border border-slate-bg ${isActive ? 'text-slate-foreground-light bg-slate-card' : 'text-slate-muted-light'}`}
+                  style={{ background: isActive ? undefined : '#15181b' }}
                 >
                   {label}
                 </button>

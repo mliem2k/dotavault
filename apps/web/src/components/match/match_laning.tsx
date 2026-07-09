@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { HeroStat, Match, MatchPlayer } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { MAP_MAX, MAP_MIN } from '@/lib/buildings'
 import { playerColor } from '@/lib/dotaconst'
 import { applySort, useSort } from '@/lib/sortable'
@@ -11,12 +12,6 @@ import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
    ~10 minutes) plus a lane performance table at the 10 minute mark. */
 
 const C = {
-  dim: '#67757f',
-  text: '#cfd4d8',
-  white: '#ffffff',
-  green: '#9fbf3f',
-  red: '#c94a38',
-  gold: '#f2c94c',
   panel: 'rgba(16,19,22,0.72)',
   panelDark: 'rgba(8,10,12,0.7)',
 }
@@ -130,8 +125,8 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
     const hero = heroMap.get(p.hero_id)
     const isRadiant = p.player_slot < 128
     return (
-      <tr key={p.player_slot} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <td className="px-2 py-1.5">
+      <TableRow key={p.player_slot} className="hover:bg-transparent border-t border-white/5 border-x-0 border-b-0">
+        <TableCell className="p-0 px-2 py-1.5 whitespace-normal">
           <div className="flex items-center gap-2">
             <span style={{ width: 3, height: 20, background: playerColor(p.player_slot) }} />
             <a href={hero ? `/hero/${heroSlug(hero.localized_name)}` : '#'} className="block shrink-0">
@@ -148,35 +143,35 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
                 }}
               />
             </a>
-            <span className="max-w-[120px] truncate text-[13px]" style={{ color: isRadiant ? C.green : C.red }}>
+            <span className={`max-w-[120px] truncate text-[13px] ${isRadiant ? 'text-radiant' : 'text-dire'}`}>
               {p.personaname ?? 'Anonymous'}
             </span>
           </div>
-        </td>
-        <td className="px-2 text-[13px]" style={{ color: C.text }}>
+        </TableCell>
+        <TableCell className="p-0 px-2 text-[13px] text-slate-foreground whitespace-normal">
           {p.lane_role ? LANE_NAMES[p.lane_role] ?? '?' : '?'}
-        </td>
-        <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: p.lane_efficiency_pct != null && p.lane_efficiency_pct >= 60 ? C.gold : C.text }}>
+        </TableCell>
+        <TableCell className={`p-0 px-2 text-right text-[13px] tabular-nums ${p.lane_efficiency_pct != null && p.lane_efficiency_pct >= 60 ? 'text-gold' : 'text-slate-foreground'}`}>
           {p.lane_efficiency_pct != null ? `${p.lane_efficiency_pct}%` : '-'}
-        </td>
-        <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: C.text }}>
+        </TableCell>
+        <TableCell className="p-0 px-2 text-right text-[13px] tabular-nums text-slate-foreground">
           {at10(p.lh_t) ?? '-'} / {at10(p.dn_t) ?? '-'}
-        </td>
-        <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: C.gold }}>
+        </TableCell>
+        <TableCell className="p-0 px-2 text-right text-[13px] tabular-nums text-gold">
           {at10(p.gold_t)?.toLocaleString() ?? '-'}
-        </td>
-        <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: C.text }}>
+        </TableCell>
+        <TableCell className="p-0 px-2 text-right text-[13px] tabular-nums text-slate-foreground">
           {at10(p.xp_t)?.toLocaleString() ?? '-'}
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
     )
   }
 
   return (
-    <div className="flex flex-wrap gap-4" style={{ fontFamily: 'var(--font-dota)' }}>
+    <div className="flex flex-wrap gap-4 font-dota">
       <div className="min-w-[420px] flex-1" style={{ background: C.panel }}>
         <div className="flex flex-wrap items-center gap-2 px-4 py-2.5" style={{ background: C.panelDark }}>
-          <span className="text-[15px] uppercase" style={{ color: C.white, letterSpacing: '2px' }}>
+          <span className="text-[15px] uppercase text-white" style={{ letterSpacing: '2px' }}>
             Laning Phase
           </span>
           <div className="ml-auto flex flex-wrap gap-1">
@@ -213,48 +208,48 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
           </div>
         </div>
         <div className="flex justify-center p-4">
-          <canvas ref={canvasRef} width={560} height={560} className="w-full max-w-[560px]" style={{ border: '1px solid #22282c' }} />
+          <canvas ref={canvasRef} width={560} height={560} className="w-full max-w-[560px] border border-slate-bg" />
         </div>
-        <p className="px-4 pb-4 text-center text-[13px]" style={{ color: C.dim }}>
+        <p className="px-4 pb-4 text-center text-[13px] text-slate-muted">
           Position heatmap during the laning phase, colored per player. Toggle heroes above.
         </p>
       </div>
 
       <div className="w-[430px] shrink-0 self-start" style={{ background: C.panel }}>
-        <div className="px-4 py-3 text-[15px] uppercase" style={{ color: C.white, letterSpacing: '2px', background: C.panelDark }}>
+        <div className="px-4 py-3 text-[15px] uppercase text-white" style={{ letterSpacing: '2px', background: C.panelDark }}>
           Lane Performance at 10:00
         </div>
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="text-left text-[12px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
-              <th className="px-2 py-2">
+        <Table className="w-full">
+          <TableHeader>
+            <TableRow className="hover:bg-transparent text-left text-[12px] uppercase text-slate-muted border-none" style={{ letterSpacing: '1px' }}>
+              <TableHead className="h-auto px-2 py-2">
                 <SortHeader label="Player" sortKey="player" active={sortKey === 'player'} dir={sortDir} onClick={onSort} />
-              </th>
-              <th className="px-2">
+              </TableHead>
+              <TableHead className="h-auto px-2">
                 <SortHeader label="Lane" sortKey="lane" active={sortKey === 'lane'} dir={sortDir} onClick={onSort} />
-              </th>
-              <th className="px-2 text-right" title="Lane efficiency: share of the maximum possible lane farm">
+              </TableHead>
+              <TableHead className="h-auto px-2 text-right" title="Lane efficiency: share of the maximum possible lane farm">
                 <SortHeader label="Eff" sortKey="eff" active={sortKey === 'eff'} dir={sortDir} onClick={onSort} className="justify-end" />
-              </th>
-              <th className="px-2 text-right">
+              </TableHead>
+              <TableHead className="h-auto px-2 text-right">
                 <SortHeader label="LH / DN" sortKey="lh" active={sortKey === 'lh'} dir={sortDir} onClick={onSort} className="justify-end" />
-              </th>
-              <th className="px-2 text-right">
+              </TableHead>
+              <TableHead className="h-auto px-2 text-right">
                 <SortHeader label="Gold" sortKey="gold" active={sortKey === 'gold'} dir={sortDir} onClick={onSort} className="justify-end" />
-              </th>
-              <th className="px-2 text-right">
+              </TableHead>
+              <TableHead className="h-auto px-2 text-right">
                 <SortHeader label="XP" sortKey="xp" active={sortKey === 'xp'} dir={sortDir} onClick={onSort} className="justify-end" />
-              </th>
-            </tr>
-          </thead>
-          <tbody>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {radiantSorted.map(statRow)}
-            <tr>
-              <td colSpan={6} style={{ height: 8 }} />
-            </tr>
+            <TableRow className="hover:bg-transparent border-none">
+              <TableCell colSpan={6} className="p-0" style={{ height: 8 }} />
+            </TableRow>
             {direSorted.map(statRow)}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   )

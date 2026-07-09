@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { HeroBenchmarks, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { lobbyTypeName, regionName } from '@/lib/dotaconst'
 import { opendota } from '@/lib/opendota'
 import { rankBadge, rankName } from '@/lib/rank'
@@ -66,18 +67,6 @@ function renderObjectPosition(hero: HeroStat): string {
   return `${RENDER_CENTER_X[short] ?? 50}% top`
 }
 
-// Client palette (post-game screens).
-const C = {
-  label: '#67757f',
-  labelBright: '#8a97a0',
-  white: '#ffffff',
-  text: '#cfd4d8',
-  gold: '#f2c94c',
-  green: '#9fbf3f',
-  red: '#c94a38',
-  panel: 'rgba(16,19,22,0.85)',
-  panelBorder: '#22282c',
-}
 
 // Animated hero render, falling back to the self-hosted static portrait if the
 // clip is unavailable.
@@ -213,31 +202,35 @@ function AghsBadge({ kind, source }: { kind: 'scepter' | 'shard'; source: 'held'
         ? `Aghanim's Blessing (${kind === 'scepter' ? 'Scepter' : 'Shard'} effect)`
         : base
   return (
-    <div
-      className="overflow-hidden"
-      style={{
-        width: 36,
-        height: 27,
-        background: 'rgba(13,16,18,0.9)',
-        border: source === 'held' ? `1px solid ${C.panelBorder}` : BUFF_BORDER,
-      }}
-      title={label}
-    >
-      <img
-        src={itemIconUrl(name)}
-        alt={label}
-        className="h-full w-full object-cover"
-        onError={(e) => {
-          const img = e.currentTarget
-          if (!img.src.includes('cdn.cloudflare')) {
-            img.src = `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/${name}.png`
-          } else {
-            img.onerror = null
-            img.style.opacity = '0.12'
-          }
-        }}
-      />
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          className={`overflow-hidden ${source === 'held' ? 'border border-slate-bg' : ''}`}
+          style={{
+            width: 36,
+            height: 27,
+            background: 'rgba(13,16,18,0.9)',
+            border: source === 'held' ? undefined : BUFF_BORDER,
+          }}
+        >
+          <img
+            src={itemIconUrl(name)}
+            alt={label}
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              const img = e.currentTarget
+              if (!img.src.includes('cdn.cloudflare')) {
+                img.src = `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/${name}.png`
+              } else {
+                img.onerror = null
+                img.style.opacity = '0.12'
+              }
+            }}
+          />
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -271,13 +264,12 @@ function HeroPortraitCard({
           style={{ minHeight: 42, background: 'rgba(10,12,14,0.85)' }}
         >
           <span
-            className="block text-[13px] leading-tight line-clamp-2 group-hover:text-white"
-            style={{ color: '#e8ecef', fontFamily: 'var(--font-dota)' }}
+            className="block text-[13px] leading-tight line-clamp-2 group-hover:text-white text-slate-foreground-light font-dota"
           >
             {playerName}
           </span>
           {proName && (
-            <span className="block text-[11px] leading-tight truncate opacity-70" style={{ color: '#e8ecef' }}>
+            <span className="block text-[11px] leading-tight truncate opacity-70 text-slate-foreground-light">
               [{proName}]
             </span>
           )}
@@ -293,7 +285,7 @@ function HeroPortraitCard({
               scale={1.15}
             />
           ) : (
-            <div className="absolute inset-0" style={{ background: '#14181b' }} />
+            <div className="absolute inset-0 bg-slate-bg" />
           )}
           <div
             className="absolute inset-0"
@@ -305,16 +297,16 @@ function HeroPortraitCard({
         <div className="shrink-0 px-2 py-1.5 flex flex-col items-center text-center" style={{ background: 'rgba(10,12,14,0.85)' }}>
           <div className="flex items-center justify-center gap-1 mb-0.5">
             <GoldIcon size={12} />
-            <span className="text-[14px] leading-none tabular-nums" style={{ color: C.gold, fontFamily: 'var(--font-dota)' }}>
+            <span className="text-[14px] leading-none tabular-nums text-gold font-dota">
               {player.net_worth.toLocaleString()}
             </span>
           </div>
-          <div className="text-[14px] tabular-nums leading-none" style={{ fontFamily: 'var(--font-dota)' }}>
-            <span style={{ color: '#fff', fontWeight: 700 }}>{player.kills}</span>
-            <span style={{ color: '#5a6066' }}> / </span>
-            <span style={{ color: C.text }}>{player.deaths}</span>
-            <span style={{ color: '#5a6066' }}> / </span>
-            <span style={{ color: C.text }}>{player.assists}</span>
+          <div className="text-[14px] tabular-nums leading-none font-dota">
+            <span className="text-white" style={{ fontWeight: 700 }}>{player.kills}</span>
+            <span className="text-slate-muted"> / </span>
+            <span className="text-slate-foreground">{player.deaths}</span>
+            <span className="text-slate-muted"> / </span>
+            <span className="text-slate-foreground">{player.assists}</span>
           </div>
         </div>
       </button>
@@ -393,8 +385,8 @@ function PlayStyleBars({ style }: { style: PlayStyle }) {
   return (
     <div>
       <div
-        className="text-center text-[12px] uppercase mb-2"
-        style={{ color: '#b8c4cc', fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}
+        className="text-center text-[12px] uppercase mb-2 font-dota"
+        style={{ color: '#b8c4cc', letterSpacing: '2px' }}
       >
         Play Style in This Match
       </div>
@@ -402,15 +394,15 @@ function PlayStyleBars({ style }: { style: PlayStyle }) {
         {rows.map(([label, val]) => (
           <div key={label} className="flex items-center gap-2">
             <span
-              className="w-16 shrink-0 text-[11px] uppercase text-right"
-              style={{ color: C.labelBright, fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}
+              className="w-16 shrink-0 text-[11px] uppercase text-right text-slate-muted-light font-dota"
+              style={{ letterSpacing: '1px' }}
             >
               {label}
             </span>
-            <div className="flex-1 h-[5px] overflow-hidden" style={{ background: '#3a4147' }}>
+            <div className="flex-1 h-[5px] overflow-hidden bg-slate-border">
               <div className="h-full" style={{ width: `${(val / 10) * 100}%`, background: '#a9c53d' }} />
             </div>
-            <span className="w-7 shrink-0 text-[11px] tabular-nums" style={{ color: '#e8ecef', fontFamily: 'var(--font-dota)' }}>
+            <span className="w-7 shrink-0 text-[11px] tabular-nums text-slate-foreground-light font-dota">
               {val.toFixed(1)}
             </span>
           </div>
@@ -482,28 +474,28 @@ function LaneResults({ match, heroMap }: { match: Match; heroMap: Map<number, He
   ]
 
   return (
-    <div className="mx-auto mt-6 flex max-w-[900px] justify-center gap-3" style={{ fontFamily: 'var(--font-dota)' }}>
+    <div className="mx-auto mt-6 flex max-w-[900px] justify-center gap-3 font-dota">
       {lanes.map((lane) => {
         const rs = laneScoreAt10(lane.rad)
         const ds = laneScoreAt10(lane.dir)
         const ratio = ds > 0 ? rs / ds : rs > 0 ? 2 : 1
         const verdict = ratio >= 1.15 ? 'radiant' : ratio <= 0.87 ? 'dire' : 'even'
         const verdictText = verdict === 'radiant' ? 'Radiant Won' : verdict === 'dire' ? 'Dire Won' : 'Even'
-        const verdictColor = verdict === 'radiant' ? C.green : verdict === 'dire' ? C.red : '#aab8c2'
+        const verdictColorClass = verdict === 'radiant' ? 'text-radiant' : verdict === 'dire' ? 'text-dire' : ''
         return (
           <div
             key={lane.name}
-            className="flex flex-1 flex-col items-center gap-2 px-4 py-3"
-            style={{ background: 'rgba(10,12,14,0.72)', border: '1px solid #22282c' }}
+            className="flex flex-1 flex-col items-center gap-2 px-4 py-3 border border-slate-bg"
+            style={{ background: 'rgba(10,12,14,0.72)' }}
             title={`Net worth + XP at 10:00: Radiant ${laneScoreAt10(lane.rad).toLocaleString()} vs Dire ${laneScoreAt10(lane.dir).toLocaleString()}`}
           >
             <div className="flex items-center gap-2">
               <HeroIconRow players={lane.rad} heroMap={heroMap} />
-              <span className="text-[11px] uppercase" style={{ color: '#5a6066' }}>vs</span>
+              <span className="text-[11px] uppercase text-slate-muted">vs</span>
               <HeroIconRow players={lane.dir} heroMap={heroMap} />
             </div>
-            <div className="text-[13px] uppercase" style={{ color: verdictColor, letterSpacing: '1px' }}>{verdictText}</div>
-            <div className="text-[11px] uppercase" style={{ color: '#5a6066', letterSpacing: '1px' }}>{lane.name}</div>
+            <div className={`text-[13px] uppercase ${verdictColorClass}`} style={{ letterSpacing: '1px', color: verdict === 'even' ? '#aab8c2' : undefined }}>{verdictText}</div>
+            <div className="text-[11px] uppercase text-slate-muted" style={{ letterSpacing: '1px' }}>{lane.name}</div>
           </div>
         )
       })}
@@ -540,12 +532,12 @@ function KillBreakdown({ match, heroMap }: { match: Match; heroMap: Map<number, 
     const teamTotal = totals.reduce((s, v) => s + v, 0)
     const maxCell = Math.max(1, ...players.flatMap((p) => perPlayer.get(p.player_slot) ?? []))
     return (
-      <div className="flex-1" style={{ background: 'rgba(10,12,14,0.72)', border: '1px solid #22282c' }}>
+      <div className="flex-1 border border-slate-bg" style={{ background: 'rgba(10,12,14,0.72)' }}>
         <div className="flex items-center justify-between px-3 py-2" style={{ background: 'rgba(8,10,12,0.7)' }}>
-          <span className="text-[13px] uppercase" style={{ color: team === 'radiant' ? C.green : C.red, letterSpacing: '2px' }}>
+          <span className={`text-[13px] uppercase ${team === 'radiant' ? 'text-radiant' : 'text-dire'}`} style={{ letterSpacing: '2px' }}>
             {team === 'radiant' ? 'Radiant' : 'Dire'}
           </span>
-          <span className="text-[13px] tabular-nums" style={{ color: '#fff' }}>{teamTotal} kills</span>
+          <span className="text-[13px] tabular-nums text-white">{teamTotal} kills</span>
         </div>
         {players.map((p) => {
           const hero = heroMap.get(p.hero_id)
@@ -567,17 +559,17 @@ function KillBreakdown({ match, heroMap }: { match: Match; heroMap: Map<number, 
                   }}
                 />
               </a>
-              <span className="w-6 shrink-0 text-right text-[12px] tabular-nums" style={{ color: '#fff' }}>{total}</span>
+              <span className="w-6 shrink-0 text-right text-[12px] tabular-nums text-white">{total}</span>
               <div className="flex flex-1 gap-1">
                 {buckets.map((v, i) => (
                   <div
                     // biome-ignore lint/suspicious/noArrayIndexKey: fixed buckets
                     key={i}
-                    className="flex h-[18px] flex-1 items-center justify-center text-[11px] tabular-nums"
+                    className={`flex h-[18px] flex-1 items-center justify-center text-[11px] tabular-nums ${v > 0 ? 'text-white' : ''}`}
                     title={`${bucketLabel(i)}: ${v} kills`}
                     style={{
                       background: v > 0 ? `rgba(${team === 'radiant' ? '159,191,63' : '201,74,56'},${0.12 + 0.5 * (v / maxCell)})` : 'rgba(255,255,255,0.03)',
-                      color: v > 0 ? '#fff' : '#4a5157',
+                      color: v > 0 ? undefined : '#4a5157',
                     }}
                   >
                     {v || ''}
@@ -609,7 +601,7 @@ function KillBreakdown({ match, heroMap }: { match: Match; heroMap: Map<number, 
   }
 
   return (
-    <div className="mx-auto mt-4 max-w-[1080px]" style={{ fontFamily: 'var(--font-dota)' }}>
+    <div className="mx-auto mt-4 max-w-[1080px] font-dota">
       <div className="mb-2 text-center text-[13px] uppercase" style={{ color: '#aab8c2', letterSpacing: '2px' }}>
         Kill Breakdown
       </div>
@@ -622,9 +614,9 @@ function KillBreakdown({ match, heroMap }: { match: Match; heroMap: Map<number, 
 }
 
 function DeltaValue({ value, delta }: { value: number; delta: number | null }) {
-  const color = delta == null ? '#e8ecef' : delta >= 0 ? '#7ac74f' : '#d95f4a'
+  const color = delta == null ? undefined : delta >= 0 ? '#7ac74f' : '#d95f4a'
   return (
-    <span className="text-[13px] font-semibold tabular-nums" style={{ color, fontFamily: 'var(--font-dota)' }}>
+    <span className={`text-[13px] font-semibold tabular-nums font-dota ${delta == null ? 'text-slate-foreground-light' : ''}`} style={{ color }}>
       {value.toLocaleString()}
       {delta != null && (
         <span className="text-[12px] ml-1">
@@ -660,7 +652,7 @@ function VsAveragesBox({
 
   const row = (label: string, value: number, delta: number | null) => (
     <div className="flex items-baseline gap-1.5">
-      <span className="text-[11px] uppercase" style={{ color: C.labelBright, fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}>
+      <span className="text-[11px] uppercase text-slate-muted-light font-dota" style={{ letterSpacing: '1px' }}>
         {label}:
       </span>
       <DeltaValue value={value} delta={delta} />
@@ -668,10 +660,10 @@ function VsAveragesBox({
   )
 
   return (
-    <div style={{ background: 'rgba(24,30,33,0.85)', border: `1px solid ${C.panelBorder}` }}>
+    <div className="border border-slate-bg" style={{ background: 'rgba(24,30,33,0.85)' }}>
       <div
-        className="text-[11px] uppercase px-3 pt-2"
-        style={{ color: '#b8c4cc', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}
+        className="text-[11px] uppercase px-3 pt-2 font-dota"
+        style={{ color: '#b8c4cc', letterSpacing: '1px' }}
       >
         vs Their Averages for This Hero
       </div>
@@ -692,7 +684,7 @@ function VsAveragesBox({
           className="relative h-[6px]"
           style={{ background: 'linear-gradient(90deg, #a63426 0%, #2c3236 50%, #4a9a3a 100%)' }}
         >
-          <div className="absolute top-[-3px] bottom-[-3px]" style={{ left: '50%', width: 1, background: '#8a97a0' }} />
+          <div className="absolute top-[-3px] bottom-[-3px] bg-slate-muted-light" style={{ left: '50%', width: 1 }} />
           <div
             className="absolute -translate-x-1/2 overflow-hidden"
             style={{ left: `${pct * 100}%`, bottom: 2, width: 26, height: 26, filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.8))' }}
@@ -704,7 +696,7 @@ function VsAveragesBox({
             )}
           </div>
         </div>
-        <div className="text-center text-[10px] uppercase mt-1" style={{ color: C.labelBright, fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}>
+        <div className="text-center text-[10px] uppercase mt-1 text-slate-muted-light font-dota" style={{ letterSpacing: '2px' }}>
           Average
         </div>
       </div>
@@ -761,10 +753,9 @@ function DetailPanel({
           <div className="min-w-0">
             <PlayerNameLink
               player={player}
-              className="block text-[24px] leading-tight truncate"
-              style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}
+              className="block text-[24px] leading-tight truncate text-white font-dota"
             />
-            <div className="text-[12px] uppercase" style={{ color: '#86a34c', fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}>
+            <div className="text-[12px] uppercase font-dota" style={{ color: '#86a34c', letterSpacing: '2px' }}>
               Lvl {stats.level}{' '}
               {hero && (
                 <a href={`/hero/${heroSlug(hero.localized_name)}`} className="hover:underline">
@@ -780,7 +771,7 @@ function DetailPanel({
           {items.map((id, i) => {
             const name = id ? (idToName.get(id) ?? null) : null
             return (
-              <div key={i} style={{ background: 'rgba(10,13,15,0.9)', border: `1px solid ${C.panelBorder}` }}>
+              <div key={i} className="border border-slate-bg" style={{ background: 'rgba(10,13,15,0.9)' }}>
                 <ItemIcon
                   name={name}
                   meta={name ? itemConst[name] : undefined}
@@ -818,16 +809,16 @@ function DetailPanel({
         </div>
         <div className="flex items-center justify-center gap-1.5 mt-2">
           <GoldIcon size={15} />
-          <span className="text-[19px] tabular-nums" style={{ color: C.gold, fontFamily: 'var(--font-dota)' }}>
+          <span className="text-[19px] tabular-nums text-gold font-dota">
             {stats.netWorth.toLocaleString()}
           </span>
         </div>
-        <div className="text-[21px] tabular-nums mt-0.5 text-center" style={{ fontFamily: 'var(--font-dota)' }}>
-          <span style={{ color: '#fff', fontWeight: 700 }}>{stats.kills}</span>
-          <span style={{ color: '#5a6066' }}> / </span>
-          <span style={{ color: C.text }}>{stats.deaths}</span>
-          <span style={{ color: '#5a6066' }}> / </span>
-          <span style={{ color: C.text }}>{stats.assists}</span>
+        <div className="text-[21px] tabular-nums mt-0.5 text-center font-dota">
+          <span className="text-white" style={{ fontWeight: 700 }}>{stats.kills}</span>
+          <span className="text-slate-muted"> / </span>
+          <span className="text-slate-foreground">{stats.deaths}</span>
+          <span className="text-slate-muted"> / </span>
+          <span className="text-slate-foreground">{stats.assists}</span>
         </div>
       </div>
     </div>
@@ -843,8 +834,8 @@ function BackButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="shrink-0 px-4 py-2 text-[11px] uppercase leading-snug text-center transition-colors cursor-pointer hover:brightness-125"
-      style={{ background: '#22282c', color: '#cfd4d8', fontFamily: 'var(--font-dota)', letterSpacing: '2px' }}
+      className="shrink-0 px-4 py-2 text-[11px] uppercase leading-snug text-center transition-colors cursor-pointer hover:brightness-125 bg-slate-bg text-slate-foreground font-dota"
+      style={{ letterSpacing: '2px' }}
     >
       Back to
       <br />
@@ -940,7 +931,8 @@ export function MatchOverview({
   const selDirePlayer = dire.find((p) => p.player_slot === selDire)
 
   const winnerLabel = match.radiant_win ? 'Radiant Victory' : 'Dire Victory'
-  const winnerColor = match.radiant_win ? C.green : C.red
+  const winnerColorClass = match.radiant_win ? 'text-radiant' : 'text-dire'
+  const winnerColor = match.radiant_win ? '#9fbf3f' : '#c94a38'
   const startDate = new Date(match.start_time * 1000)
   const dateStr = `${startDate.getMonth() + 1}/${startDate.getDate()}/${startDate.getFullYear()} ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`
 
@@ -959,11 +951,11 @@ export function MatchOverview({
   /* Score header (team view only, like the client) */
   const isTournamentMatch = match.leagueid > 0 && !!match.league?.name
   const tournamentBanner = isTournamentMatch && (
-    <div className="flex items-center justify-center gap-2 pt-3 text-center" style={{ fontFamily: 'var(--font-dota)' }}>
+    <div className="flex items-center justify-center gap-2 pt-3 text-center font-dota">
       {match.league?.tier && (
         <span
-          className="shrink-0 px-1.5 py-0.5 text-[11px] font-bold uppercase"
-          style={{ background: 'rgba(255,255,255,0.06)', color: C.gold, letterSpacing: '1px' }}
+          className="shrink-0 px-1.5 py-0.5 text-[11px] font-bold uppercase text-gold"
+          style={{ background: 'rgba(255,255,255,0.06)', letterSpacing: '1px' }}
         >
           {match.league.tier}
         </span>
@@ -986,7 +978,7 @@ export function MatchOverview({
         title={team.name ?? undefined}
       >
         {team.logo_url && <img src={team.logo_url} alt="" className="h-8 w-8 object-contain" />}
-        <span className="max-w-[90px] truncate text-[12px] uppercase" style={{ color: '#c8d2da', letterSpacing: '0.5px', fontFamily: 'var(--font-dota)' }}>
+        <span className="max-w-[90px] truncate text-[12px] uppercase font-dota" style={{ color: '#c8d2da', letterSpacing: '0.5px' }}>
           {team.name}
         </span>
       </a>
@@ -1000,19 +992,19 @@ export function MatchOverview({
         <div className="flex flex-col items-center gap-1.5">
           {isTournamentMatch && teamLogo(match.radiant_team)}
           <span
-            className="tabular-nums"
-            style={{ fontSize: 'clamp(32px, 9vw, 64px)', lineHeight: 1, color: C.green, fontFamily: 'var(--font-dota)', textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(159,191,63,0.4)' }}
+            className="tabular-nums text-radiant font-dota"
+            style={{ fontSize: 'clamp(32px, 9vw, 64px)', lineHeight: 1, textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(159,191,63,0.4)' }}
           >
             {match.radiant_score}
           </span>
         </div>
-        <div className="text-center" style={{ fontFamily: 'var(--font-dota)' }}>
+        <div className="text-center font-dota">
           <div className="text-[13px] uppercase" style={{ color: '#aab8c2', letterSpacing: '2px', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
             {GAME_MODES[match.game_mode] ?? `Mode ${match.game_mode}`}
             {lobby && lobby !== 'Normal' ? ` · ${lobby}` : ''}
           </div>
           <div className="text-[13px] uppercase" style={{ color: '#93a2ad', letterSpacing: '2px', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
-            Duration <span className="ml-1 text-[17px]" style={{ color: '#ffffff', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>{formatDuration(match.duration)}</span>
+            Duration <span className="ml-1 text-[17px] text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>{formatDuration(match.duration)}</span>
           </div>
           <div className="flex items-center justify-center gap-1.5 text-[12px] uppercase" style={{ color: '#93a2ad', letterSpacing: '2px', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
             {avgBadge && (
@@ -1028,8 +1020,8 @@ export function MatchOverview({
         <div className="flex flex-col items-center gap-1.5">
           {isTournamentMatch && teamLogo(match.dire_team)}
           <span
-            className="tabular-nums"
-            style={{ fontSize: 'clamp(32px, 9vw, 64px)', lineHeight: 1, color: C.red, fontFamily: 'var(--font-dota)', textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(201,74,56,0.4)' }}
+            className="tabular-nums text-dire font-dota"
+            style={{ fontSize: 'clamp(32px, 9vw, 64px)', lineHeight: 1, textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(201,74,56,0.4)' }}
           >
             {match.dire_score}
           </span>
@@ -1037,10 +1029,9 @@ export function MatchOverview({
       </div>
       <div className="absolute right-0 top-1/2 hidden -translate-y-1/2 text-right xl:block">
         <div
+          className={`${winnerColorClass} font-dota`}
           style={{
             fontSize: 44,
-            color: winnerColor,
-            fontFamily: 'var(--font-dota)',
             textShadow: `0 2px 8px rgba(0,0,0,0.9), 0 0 24px ${winnerColor}88`,
           }}
         >
@@ -1048,13 +1039,11 @@ export function MatchOverview({
         </div>
         {comeback && (
           <div
-            className="mt-1 inline-block px-2.5 py-0.5 text-[13px] uppercase"
+            className="mt-1 inline-block px-2.5 py-0.5 text-[13px] uppercase text-gold font-dota"
             style={{
-              color: C.gold,
               border: '1px solid rgba(242,201,76,0.5)',
               background: 'rgba(242,201,76,0.08)',
               letterSpacing: '2px',
-              fontFamily: 'var(--font-dota)',
             }}
             title="The winning team overcame a 10,000+ gold deficit"
           >
@@ -1068,7 +1057,7 @@ export function MatchOverview({
 
   /* Footer: replay button + match id / date (team view only) */
   const footer = (
-    <div className="flex flex-col items-center gap-5 pt-10 pb-6" style={{ fontFamily: 'var(--font-dota)' }}>
+    <div className="flex flex-col items-center gap-5 pt-10 pb-6 font-dota">
       <div className="flex items-center gap-3">
         {replayUrl && (
           <a
@@ -1084,11 +1073,10 @@ export function MatchOverview({
             type="button"
             onClick={requestParse}
             disabled={parseState === 'requesting' || parseState === 'requested'}
-            className="px-6 py-2 text-[15px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default"
+            className="px-6 py-2 text-[15px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default text-radiant"
             style={{
               background: '#1d2a12',
               border: '1px solid #3d5a24',
-              color: '#9fbf3f',
               letterSpacing: '2px',
               opacity: parseState === 'requested' ? 0.6 : 1,
             }}
@@ -1101,7 +1089,7 @@ export function MatchOverview({
         )}
       </div>
       {parseState === 'requested' && (
-        <div className="text-[13px]" style={{ color: '#8a97a0' }}>
+        <div className="text-[13px] text-slate-muted-light">
           Parse queued at OpenDota. This page checks automatically and will update once full stats are ready
           (usually within a few minutes).
         </div>

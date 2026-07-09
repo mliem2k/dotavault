@@ -50,8 +50,8 @@ function PlayerColumn({
             }}
           />
         )}
-        <div className="min-w-0" style={{ fontFamily: 'var(--font-dota)' }}>
-          <div className="text-[15px] truncate" style={{ color: C.white }}>{hero?.localized_name}</div>
+        <div className="min-w-0 font-dota">
+          <div className="text-[15px] truncate text-white">{hero?.localized_name}</div>
           <PlayerNameLink player={player} className="block text-[12px] truncate" style={{ color: C.dim }} />
         </div>
       </div>
@@ -62,18 +62,18 @@ function PlayerColumn({
           return (
             // biome-ignore lint/suspicious/noArrayIndexKey: static purchase list
             <div key={i} className="flex items-center gap-2.5 py-[3px]">
-              <span className="w-12 text-right text-[13px] tabular-nums shrink-0" style={{ color: C.dim, fontFamily: 'var(--font-dota)' }}>
+              <span className="w-12 text-right text-[13px] tabular-nums shrink-0 font-dota" style={{ color: C.dim }}>
                 {formatDuration(Math.max(0, e.time))}
               </span>
               <ItemIcon name={e.key} meta={meta} width={34} height={25} />
-              <span className="text-[13px] truncate" style={{ color: C.text, fontFamily: 'var(--font-dota)' }}>
+              <span className="text-[13px] truncate text-slate-foreground font-dota">
                 {meta?.dname ?? e.key.replace(/_/g, ' ')}
               </span>
             </div>
           )
         })}
         {purchases.length === 0 && (
-          <div className="py-2 text-[13px]" style={{ color: C.dim, fontFamily: 'var(--font-dota)' }}>No purchases.</div>
+          <div className="py-2 text-[13px] font-dota" style={{ color: C.dim }}>No purchases.</div>
         )}
       </div>
     </div>
@@ -97,7 +97,7 @@ export function MatchPurchases({
   if (!hasAny) {
     return (
       <div className="flex items-center justify-center py-16">
-        <span className="text-sm" style={{ color: C.dim, fontFamily: 'var(--font-dota)' }}>
+        <span className="text-sm font-dota" style={{ color: C.dim }}>
           No purchase data available for this match.
         </span>
       </div>
@@ -107,10 +107,9 @@ export function MatchPurchases({
   const teamSection = (team: MatchPlayer[], isRadiant: boolean) => (
     <div>
       <div
-        className="text-[17px] mb-2 px-1"
+        className={`text-[17px] mb-2 px-1 font-dota ${isRadiant ? '' : 'text-dire'}`}
         style={{
-          color: isRadiant ? C.green : C.red,
-          fontFamily: 'var(--font-dota)',
+          color: isRadiant ? C.green : undefined,
           textShadow: '0 1px 3px rgba(0,0,0,0.9)',
         }}
       >

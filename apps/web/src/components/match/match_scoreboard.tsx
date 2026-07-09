@@ -1,6 +1,7 @@
 import { type JSX, memo, useCallback, useEffect, useMemo, useState } from 'react'
 import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { applySort, useSort } from '@/lib/sortable'
 import { AbilityIcon } from './ability_icon'
 import { ItemIcon } from './item_icon'
@@ -100,8 +101,8 @@ function fmtK(v: number | null | undefined): string {
   return n.toLocaleString()
 }
 
-const num = (color: string, size = 16, weight = 400) => (v: number | string) => (
-  <span className="tabular-nums" style={{ color, fontSize: size, fontWeight: weight, fontFamily: 'var(--font-dota)' }}>{v}</span>
+const num = (colorClass: string, size = 16, weight = 400) => (v: number | string) => (
+  <span className={`tabular-nums font-dota ${colorClass}`} style={{ fontSize: size, fontWeight: weight }}>{v}</span>
 )
 
 /* Support items purchased + total gold spent on them. */
@@ -146,8 +147,8 @@ function SupportItemsGroup({
             <ItemIcon name={name} meta={itemConst[name]} width={32} height={24} />
             {n > 1 && (
               <span
-                className="absolute -bottom-1 -right-1 text-[10px] px-0.5 tabular-nums"
-                style={{ background: '#0a0c0e', color: '#e8ecef', fontFamily: 'var(--font-dota)' }}
+                className="absolute -bottom-1 -right-1 text-[10px] px-0.5 tabular-nums text-slate-foreground-light font-dota"
+                style={{ background: '#0a0c0e' }}
               >
                 x{n}
               </span>
@@ -156,15 +157,15 @@ function SupportItemsGroup({
         ))}
         {extraCount > 0 && (
           <div
-            className="flex items-center justify-center shrink-0 rounded-sm text-[11px] tabular-nums"
-            style={{ width: 32, height: 24, background: '#12100c', border: '1px solid #241f16', color: '#8a97a0' }}
+            className="flex items-center justify-center shrink-0 rounded-sm text-[11px] tabular-nums text-slate-muted-light"
+            style={{ width: 32, height: 24, background: '#12100c', border: '1px solid #241f16' }}
             title={`${extraCount} more support item type${extraCount > 1 ? 's' : ''}`}
           >
             +{extraCount}
           </div>
         )}
       </div>
-      <span className="w-14 text-right text-[15px] tabular-nums" style={{ color: '#f2c94c', fontFamily: 'var(--font-dota)' }}>
+      <span className="w-14 text-right text-[15px] tabular-nums text-gold font-dota">
         {gold > 0 ? gold.toLocaleString() : '0'}
       </span>
     </div>
@@ -188,9 +189,14 @@ function AghsBuffIcon({
   label: string
 }) {
   return (
-    <div title={label}>
-      <ItemIcon name={itemName} meta={itemConst[itemName]} width={32} height={24} style={{ border: BUFF_BORDER }} />
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div>
+          <ItemIcon name={itemName} meta={itemConst[itemName]} width={32} height={24} style={{ border: BUFF_BORDER }} />
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -444,14 +450,14 @@ export function MatchScoreboard({
 
   const cols: Col[] = useMemo(
     () => [
-      { label: 'K', width: 44, sortKey: 'kills', render: (_p, t) => num('#ffffff', 18, 700)(t.kills) },
-      { label: 'D', width: 44, sortKey: 'deaths', render: (_p, t) => num('#cfd4d8')(t.deaths) },
-      { label: 'A', width: 44, sortKey: 'assists', render: (_p, t) => num('#cfd4d8')(t.assists) },
+      { label: 'K', width: 44, sortKey: 'kills', render: (_p, t) => num('text-white', 18, 700)(t.kills) },
+      { label: 'D', width: 44, sortKey: 'deaths', render: (_p, t) => num('text-slate-foreground')(t.deaths) },
+      { label: 'A', width: 44, sortKey: 'assists', render: (_p, t) => num('text-slate-foreground')(t.assists) },
       {
         label: 'NET',
         width: 84,
         sortKey: 'networth',
-        render: (_p, t) => num('#f2c94c', 16)(t.netWorth.toLocaleString()),
+        render: (_p, t) => num('text-gold', 16)(t.netWorth.toLocaleString()),
       },
       {
         label: 'Items',
@@ -463,32 +469,32 @@ export function MatchScoreboard({
         width: 80,
         sortKey: 'lh',
         render: (_p, t) => (
-          <span className="text-[15px] tabular-nums" style={{ color: '#e8ecef', fontFamily: 'var(--font-dota)' }}>
-            {t.lastHits}<span style={{ color: '#5a6066' }}> / </span>{t.denies}
+          <span className="text-[15px] tabular-nums text-slate-foreground-light font-dota">
+            {t.lastHits}<span className="text-slate-muted"> / </span>{t.denies}
           </span>
         ),
       },
-      { label: 'GPM', width: 58, sortKey: 'gpm', render: (_p, t) => num('#f2c94c')(t.gpm) },
-      { label: 'XPM', width: 58, sortKey: 'xpm', render: (_p, t) => num('#e8ecef')(t.xpm) },
+      { label: 'GPM', width: 58, sortKey: 'gpm', render: (_p, t) => num('text-gold')(t.gpm) },
+      { label: 'XPM', width: 58, sortKey: 'xpm', render: (_p, t) => num('text-slate-foreground-light')(t.xpm) },
       {
         label: 'DMG',
         width: 72,
         sortKey: 'dmg',
         render: (p) =>
-          num('#e8ecef')(p.hero_damage != null ? fmtK(damageHealAtTime(match, p, timeSec).damage) : '—'),
+          num('text-slate-foreground-light')(p.hero_damage != null ? fmtK(damageHealAtTime(match, p, timeSec).damage) : '—'),
       },
       {
         label: 'HEAL',
         width: 62,
         sortKey: 'heal',
         render: (p) =>
-          num('#e8ecef')(p.hero_healing != null ? fmtK(damageHealAtTime(match, p, timeSec).healing) : '—'),
+          num('text-slate-foreground-light')(p.hero_healing != null ? fmtK(damageHealAtTime(match, p, timeSec).healing) : '—'),
       },
       {
         label: 'BLD',
         width: 62,
         sortKey: 'bld',
-        render: (p) => num('#c9a94a')(p.tower_damage != null ? fmtK(p.tower_damage) : '-'),
+        render: (p) => num('text-gold')(p.tower_damage != null ? fmtK(p.tower_damage) : '-'),
       },
       {
         label: 'WARDS',
@@ -498,7 +504,7 @@ export function MatchScoreboard({
           // Ward placements are timestamped, so this column follows the slider.
           const obs = p.obs_log ? p.obs_log.filter((w) => w.time <= timeSec).length : p.obs_placed
           const sen = p.sen_log ? p.sen_log.filter((w) => w.time <= timeSec).length : p.sen_placed
-          return num('#e8ecef')(obs || sen ? `${obs ?? 0}/${sen ?? 0}` : '-')
+          return num('text-slate-foreground-light')(obs || sen ? `${obs ?? 0}/${sen ?? 0}` : '-')
         },
       },
     ],
@@ -526,8 +532,8 @@ export function MatchScoreboard({
   const label = (content: string | JSX.Element, width?: number, extraClass = '') => (
     <div
       role="columnheader"
-      className={`shrink-0 flex items-center justify-center text-[13px] uppercase ${extraClass}`}
-      style={{ width, height: headerH, color: '#8a97a0', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}
+      className={`shrink-0 flex items-center justify-center text-[13px] uppercase text-slate-muted-light font-dota ${extraClass}`}
+      style={{ width, height: headerH, letterSpacing: '1px' }}
     >
       {content}
     </div>
@@ -545,8 +551,8 @@ export function MatchScoreboard({
         active={sortKey === c.sortKey}
         dir={sortDir}
         onClick={onSort}
-        className={`text-[13px] ${extraClass}`}
-        style={{ color: sortKey === c.sortKey ? undefined : '#8a97a0', letterSpacing: '1px', fontFamily: 'var(--font-dota)', minHeight: 'unset' }}
+        className={`text-[13px] font-dota ${sortKey === c.sortKey ? '' : 'text-slate-muted-light'} ${extraClass}`}
+        style={{ letterSpacing: '1px', minHeight: 'unset' }}
       />
     </div>
   )
@@ -563,7 +569,7 @@ export function MatchScoreboard({
         )}
         {hasPurchases && (
           <div role="columnheader" className="flex items-center shrink-0 pl-2" style={{ width: 266 }}>
-            <span className="text-[13px] uppercase flex-1" style={{ color: '#8a97a0', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}>
+            <span className="text-[13px] uppercase flex-1 text-slate-muted-light font-dota" style={{ letterSpacing: '1px' }}>
               Support Items
             </span>
             <GoldPip size={13} />
@@ -572,7 +578,7 @@ export function MatchScoreboard({
         )}
         {hasBuffs && (
           <div role="columnheader" className="flex items-center shrink-0 pl-2" style={{ width: 140 }}>
-            <span className="text-[13px] uppercase" style={{ color: '#8a97a0', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}>
+            <span className="text-[13px] uppercase text-slate-muted-light font-dota" style={{ letterSpacing: '1px' }}>
               Buffs
             </span>
           </div>
@@ -586,8 +592,8 @@ export function MatchScoreboard({
             {Array.from({ length: maxAbilities }, (_, i) => (
               <span
                 key={i}
-                className="inline-block text-center tabular-nums text-[13px]"
-                style={{ width: 26, color: '#8a97a0', fontFamily: 'var(--font-dota)' }}
+                className="inline-block text-center tabular-nums text-[13px] text-slate-muted-light font-dota"
+                style={{ width: 26 }}
               >
                 {i + 1}
               </span>

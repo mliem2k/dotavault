@@ -26,8 +26,8 @@ function sortedEntries(rec: Record<string, number> | null | undefined): [string,
 function AbilityUse({ name, count, meta }: { name: string; count: number; meta: AbilityConst | undefined }) {
   return (
     <div
-      className="flex items-center gap-1 px-1 py-0.5"
-      style={{ background: 'rgba(8,10,12,0.6)', border: '1px solid #22282c' }}
+      className="flex items-center gap-1 px-1 py-0.5 border border-solid border-slate-bg"
+      style={{ background: 'rgba(8,10,12,0.6)' }}
       title={`${meta?.dname ?? name}: used ${count} times`}
     >
       <img
@@ -45,7 +45,7 @@ function AbilityUse({ name, count, meta }: { name: string; count: number; meta: 
           }
         }}
       />
-      <span className="text-[12px] tabular-nums" style={{ color: C.text }}>{count}</span>
+      <span className="text-[12px] tabular-nums text-slate-foreground">{count}</span>
     </div>
   )
 }
@@ -53,8 +53,8 @@ function AbilityUse({ name, count, meta }: { name: string; count: number; meta: 
 function ItemUse({ name, count, meta }: { name: string; count: number; meta: ItemConst | undefined }) {
   return (
     <div
-      className="flex items-center gap-1 px-1 py-0.5"
-      style={{ background: 'rgba(8,10,12,0.6)', border: '1px solid #22282c' }}
+      className="flex items-center gap-1 px-1 py-0.5 border border-solid border-slate-bg"
+      style={{ background: 'rgba(8,10,12,0.6)' }}
       title={`${meta?.dname ?? name}: used ${count} times`}
     >
       <img
@@ -71,7 +71,7 @@ function ItemUse({ name, count, meta }: { name: string; count: number; meta: Ite
           }
         }}
       />
-      <span className="text-[12px] tabular-nums" style={{ color: C.text }}>{count}</span>
+      <span className="text-[12px] tabular-nums text-slate-foreground">{count}</span>
     </div>
   )
 }
@@ -108,11 +108,11 @@ function PlayerCasts({
             img.src = heroIconFromPath(hero.icon)
           }}
         />
-        <span className="text-[13px]" style={{ color: isRadiant ? C.green : C.red }}>
+        <span className={`text-[13px] ${isRadiant ? 'text-radiant' : 'text-dire'}`}>
           {hero?.localized_name ?? 'Unknown'}
         </span>
-        <span className="truncate text-[13px]" style={{ color: C.dim }}>{player.personaname ?? 'Anonymous'}</span>
-        <span className="ml-auto shrink-0 text-[12px] tabular-nums" style={{ color: C.dim }}>
+        <span className="truncate text-[13px] text-slate-muted">{player.personaname ?? 'Anonymous'}</span>
+        <span className="ml-auto shrink-0 text-[12px] tabular-nums text-slate-muted">
           {attacks > 0 ? `${attacks.toLocaleString()} attacks landed` : ''}
           {tp > 0 ? `${attacks > 0 ? ' · ' : ''}${tp} TPs` : ''}
         </span>
@@ -125,7 +125,7 @@ function PlayerCasts({
           <ItemUse key={name} name={name} count={count} meta={itemConst[name]} />
         ))}
         {abilities.length === 0 && items.length === 0 && (
-          <span className="text-[13px]" style={{ color: C.dim }}>No cast data recorded.</span>
+          <span className="text-[13px] text-slate-muted">No cast data recorded.</span>
         )}
       </div>
     </div>
@@ -146,7 +146,7 @@ export function MatchCasts({
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const section = (players: MatchPlayer[], team: 'radiant' | 'dire') => (
     <div className="min-w-[480px] flex-1" style={{ background: C.panel }}>
-      <div className="px-4 py-3 text-[15px] uppercase" style={{ color: team === 'radiant' ? C.green : C.red, letterSpacing: '2px', background: C.panelDark }}>
+      <div className={`px-4 py-3 text-[15px] uppercase ${team === 'radiant' ? 'text-radiant' : 'text-dire'}`} style={{ letterSpacing: '2px', background: C.panelDark }}>
         {team === 'radiant' ? 'Radiant' : 'Dire'}
       </div>
       {players.map((p) => (
@@ -156,7 +156,7 @@ export function MatchCasts({
   )
 
   return (
-    <div className="flex flex-wrap gap-4" style={{ fontFamily: 'var(--font-dota)' }}>
+    <div className="flex flex-wrap gap-4 font-dota">
       {section(match.players.filter((p) => p.player_slot < 128), 'radiant')}
       {section(match.players.filter((p) => p.player_slot >= 128), 'dire')}
     </div>

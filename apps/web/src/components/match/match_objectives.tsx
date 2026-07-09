@@ -128,7 +128,7 @@ export function MatchObjectives({
   if (events.length === 0) {
     return (
       <div className="flex items-center justify-center py-16">
-        <span className="text-sm" style={{ color: C.dim, fontFamily: 'var(--font-dota)' }}>
+        <span className="text-sm text-slate-muted font-dota">
           This match is unparsed — objective data unavailable.
         </span>
       </div>
@@ -138,8 +138,8 @@ export function MatchObjectives({
   return (
     <div className="max-w-[900px]" style={{ background: C.panel }}>
       <div
-        className="text-[15px] uppercase px-4 py-3"
-        style={{ color: C.white, letterSpacing: '2px', background: 'rgba(8,10,12,0.7)', fontFamily: 'var(--font-dota)' }}
+        className="text-[15px] uppercase px-4 py-3 text-white font-dota"
+        style={{ letterSpacing: '2px', background: 'rgba(8,10,12,0.7)' }}
       >
         Objectives
       </div>
@@ -149,10 +149,10 @@ export function MatchObjectives({
           return (
             // biome-ignore lint/suspicious/noArrayIndexKey: static event list
             <div key={i} className="flex items-center gap-3.5 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-              <span className="w-14 text-right text-[15px] tabular-nums shrink-0" style={{ color: C.dim, fontFamily: 'var(--font-dota)' }}>
+              <span className="w-14 text-right text-[15px] tabular-nums shrink-0 text-slate-muted font-dota">
                 {fmtClock(e.time)}
               </span>
-              <span style={{ width: 3, height: 26, background: e.team === 'radiant' ? C.green : e.team === 'dire' ? C.red : '#3a4147' }} />
+              <span className={e.team === 'radiant' ? 'bg-radiant' : e.team === 'dire' ? 'bg-dire' : 'bg-slate-border'} style={{ width: 3, height: 26 }} />
               <span className="text-[19px] w-7 text-center">{e.icon}</span>
               {hero && (
                 <img
@@ -166,7 +166,7 @@ export function MatchObjectives({
                   }}
                 />
               )}
-              <span className="text-[16px]" style={{ color: C.text, fontFamily: 'var(--font-dota)' }}>{e.text}</span>
+              <span className="text-[16px] text-slate-foreground font-dota">{e.text}</span>
             </div>
           )
         })}

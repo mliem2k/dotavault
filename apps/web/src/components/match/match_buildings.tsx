@@ -98,7 +98,7 @@ function BuildingTooltip({
 
   return (
     <div
-      className="pointer-events-none"
+      className="pointer-events-none border border-solid border-slate-border font-dota"
       style={{
         position: 'fixed',
         left,
@@ -106,23 +106,21 @@ function BuildingTooltip({
         width: W,
         zIndex: 9999,
         background: '#0b0d0f',
-        border: '1px solid #2c3236',
         boxShadow: '0 6px 24px rgba(0,0,0,0.7)',
         padding: '10px 12px',
-        fontFamily: 'var(--font-dota)',
       }}
     >
       <div className="mb-1 flex items-center justify-between">
-        <span className="text-[13px] font-bold uppercase" style={{ color: team === 'radiant' ? C.green : C.red, letterSpacing: '1px' }}>
+        <span className={`text-[13px] font-bold uppercase ${team === 'radiant' ? 'text-radiant' : 'text-dire'}`} style={{ letterSpacing: '1px' }}>
           {label}
         </span>
-        <span className="text-[12px]" style={{ color: C.dim }}>
+        <span className="text-[12px] text-slate-muted">
           {info.deadAt != null ? `Destroyed ${formatClock(info.deadAt)}` : 'Standing'}
         </span>
       </div>
 
       {info.attackers.length === 0 && info.creepDamage === 0 ? (
-        <div className="py-1 text-[12px]" style={{ color: C.dim }}>
+        <div className="py-1 text-[12px] text-slate-muted">
           Took no recorded damage.
         </div>
       ) : (
@@ -135,7 +133,7 @@ function BuildingTooltip({
               />
             ))}
             {info.creepDamage > 0 && (
-              <div style={{ width: `${(info.creepDamage / total) * 100}%`, background: team === 'radiant' ? C.red : C.green, opacity: 0.5 }} />
+              <div className={team === 'radiant' ? 'bg-dire' : 'bg-radiant'} style={{ width: `${(info.creepDamage / total) * 100}%`, opacity: 0.5 }} />
             )}
           </div>
           <div className="space-y-1">
@@ -155,21 +153,21 @@ function BuildingTooltip({
                     />
                   </a>
                 )}
-                <span className="tabular-nums" style={{ color: C.white, minWidth: 38 }}>{a.damage.toLocaleString()}</span>
+                <span className="tabular-nums text-white" style={{ minWidth: 38 }}>{a.damage.toLocaleString()}</span>
                 <span className="truncate" style={{ color: playerColor(a.player.player_slot) }}>
                   {a.player.personaname ?? 'Anonymous'}
                 </span>
                 {a.lastHit && (
-                  <span className="ml-auto shrink-0" style={{ color: C.gold }}>last hit</span>
+                  <span className="ml-auto shrink-0 text-gold">last hit</span>
                 )}
               </div>
             ))}
             {info.creepDamage > 0 && (
               <div className="flex items-center gap-1.5 text-[12px]">
-                <span style={{ width: 18, textAlign: 'center', color: C.dim }}>⚔</span>
-                <span className="tabular-nums" style={{ color: C.white, minWidth: 38 }}>{info.creepDamage.toLocaleString()}</span>
-                <span style={{ color: C.dim }}>creeps</span>
-                {info.creepLastHit && <span className="ml-auto shrink-0" style={{ color: C.gold }}>last hit</span>}
+                <span className="text-slate-muted" style={{ width: 18, textAlign: 'center' }}>⚔</span>
+                <span className="tabular-nums text-white" style={{ minWidth: 38 }}>{info.creepDamage.toLocaleString()}</span>
+                <span className="text-slate-muted">creeps</span>
+                {info.creepLastHit && <span className="ml-auto shrink-0 text-gold">last hit</span>}
               </div>
             )}
           </div>
@@ -209,18 +207,18 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
     .sort((a, z) => a.at - z.at)
 
   return (
-    <div className="flex flex-wrap gap-4" style={{ fontFamily: 'var(--font-dota)' }}>
+    <div className="flex flex-wrap gap-4 font-dota">
       <div className="min-w-[420px] flex-1" style={{ background: C.panel }}>
-        <div className="px-4 py-3 text-[15px] uppercase" style={{ color: C.white, letterSpacing: '2px', background: C.panelDark }}>
+        <div className="px-4 py-3 text-[15px] uppercase text-white" style={{ letterSpacing: '2px', background: C.panelDark }}>
           Buildings Map
         </div>
         <div className="flex justify-center p-4">
-          <div className="relative w-full max-w-[560px]" style={{ aspectRatio: '1', border: '1px solid #22282c' }}>
+          <div className="relative w-full max-w-[560px] border border-solid border-slate-bg" style={{ aspectRatio: '1' }}>
             <img src="/minimap.webp" alt="" className="absolute inset-0 h-full w-full" />
 
             {BUILDINGS.map((b, i) => {
               const dead = deaths[i] !== Number.POSITIVE_INFINITY
-              const color = b.team === 'radiant' ? C.green : C.red
+              const bgClass = dead ? 'bg-slate-border' : b.team === 'radiant' ? 'bg-radiant' : 'bg-dire'
               const size = b.kind === 'fort' ? 16 : b.kind === 'tower' ? 11 : 8
               return (
                 <span
@@ -232,9 +230,8 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
                   onMouseLeave={() => setHover(null)}
                 >
                   <span
-                    className="block h-full w-full"
+                    className={`block h-full w-full ${bgClass}`}
                     style={{
-                      background: dead ? '#3a4147' : color,
                       border: '1px solid #0d1012',
                       borderRadius: b.kind === 'fort' ? '50%' : 2,
                       transform: b.kind === 'rax' ? 'rotate(45deg)' : undefined,
@@ -261,10 +258,10 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
                         src={hero ? heroIconUrl(hero.name) : ''}
                         alt=""
                         title={`${hero?.localized_name ?? 'Unknown'} · ${anchor.label}`}
+                        className={`border border-solid ${p.player_slot < 128 ? 'border-radiant' : 'border-dire'}`}
                         style={{
                           width: 22,
                           height: 22,
-                          border: `1px solid ${p.player_slot < 128 ? C.green : C.red}`,
                           background: 'rgba(8,10,12,0.7)',
                         }}
                         onError={(e) => {
@@ -288,14 +285,14 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
             })}
           </div>
         </div>
-        <p className="px-4 pb-4 text-center text-[13px]" style={{ color: C.dim }}>
+        <p className="px-4 pb-4 text-center text-[13px] text-slate-muted">
           Hover a building for its damage breakdown. Dimmed buildings were destroyed. Hero icons mark laning assignments.
         </p>
       </div>
 
       {/* Destruction order */}
       <div className="w-[320px] shrink-0 self-start" style={{ background: C.panel }}>
-        <div className="px-4 py-3 text-[15px] uppercase" style={{ color: C.white, letterSpacing: '2px', background: C.panelDark }}>
+        <div className="px-4 py-3 text-[15px] uppercase text-white" style={{ letterSpacing: '2px', background: C.panelDark }}>
           Destruction Order
         </div>
         <div className="max-h-[560px] overflow-y-auto">
@@ -308,11 +305,11 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
                 className="flex items-center gap-2.5 px-3 py-2 text-[13px]"
                 style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
               >
-                <span className="w-11 shrink-0 text-right tabular-nums" style={{ color: C.dim }}>
+                <span className="w-11 shrink-0 text-right tabular-nums text-slate-muted">
                   {formatClock(at)}
                 </span>
-                <span style={{ width: 3, height: 20, background: b.team === 'radiant' ? C.green : C.red }} />
-                <span style={{ color: C.text }}>
+                <span className={b.team === 'radiant' ? 'bg-radiant' : 'bg-dire'} style={{ width: 3, height: 20 }} />
+                <span className="text-slate-foreground">
                   {b.team === 'radiant' ? 'Radiant' : 'Dire'} {b.label}
                 </span>
                 {killer?.hero && (
@@ -337,7 +334,7 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
             )
           })}
           {destroyed.length === 0 && (
-            <div className="py-8 text-center text-[13px]" style={{ color: C.dim }}>
+            <div className="py-8 text-center text-[13px] text-slate-muted">
               No buildings were destroyed.
             </div>
           )}

@@ -76,7 +76,7 @@ function Row({ p, hero }: { p: MatchPlayer; hero: HeroStat | undefined }) {
   const eff = p.lane_efficiency_pct
   const tfp = p.teamfight_participation
   const cell = (v: React.ReactNode, w: number, color = C.text) => (
-    <div className="shrink-0 flex items-center justify-center text-[16px] tabular-nums" style={{ width: w, color, fontFamily: 'var(--font-dota)' }}>
+    <div className="shrink-0 flex items-center justify-center text-[16px] tabular-nums font-dota" style={{ width: w, color }}>
       {v}
     </div>
   )
@@ -98,13 +98,13 @@ function Row({ p, hero }: { p: MatchPlayer; hero: HeroStat | undefined }) {
             />
           </a>
         )}
-        <div className="min-w-0" style={{ fontFamily: 'var(--font-dota)' }}>
+        <div className="min-w-0 font-dota">
           {hero ? (
-            <a href={`/hero/${heroSlug(hero.localized_name)}`} className="block text-[15px] truncate hover:underline" style={{ color: C.white }}>
+            <a href={`/hero/${heroSlug(hero.localized_name)}`} className="block text-[15px] truncate hover:underline text-white">
               {hero.localized_name}
             </a>
           ) : (
-            <div className="text-[15px] truncate" style={{ color: C.white }} />
+            <div className="text-[15px] truncate text-white" />
           )}
           <PlayerNameLink player={p} className="block text-[12px] truncate" style={{ color: C.dim }} />
         </div>
@@ -127,13 +127,13 @@ function Row({ p, hero }: { p: MatchPlayer; hero: HeroStat | undefined }) {
           const pct = typeof b?.pct === 'number' ? b.pct : null
           return (
             <div key={key} className="w-[96px]" title={pct != null ? `${label}: better than ${Math.round(pct * 100)}% of players` : label}>
-              <div className="flex justify-between text-[11px] uppercase" style={{ color: C.dim, fontFamily: 'var(--font-dota)' }}>
+              <div className="flex justify-between text-[11px] uppercase font-dota" style={{ color: C.dim }}>
                 <span>{label}</span>
                 <span className="tabular-nums" style={{ color: pct != null ? pctColor(pct) : C.dim }}>
                   {pct != null ? `${Math.round(pct * 100)}` : '-'}
                 </span>
               </div>
-              <div style={{ height: 6, background: '#2c3236', marginTop: 2 }}>
+              <div className="bg-slate-card" style={{ height: 6, marginTop: 2 }}>
                 {pct != null && <div style={{ height: '100%', width: `${pct * 100}%`, background: pctColor(pct) }} />}
               </div>
             </div>
@@ -161,8 +161,8 @@ export function MatchPerformance({
 
   const header = (
     <div
-      className="flex items-center py-2 text-[13px] uppercase"
-      style={{ color: C.label, letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}
+      className="flex items-center py-2 text-[13px] uppercase font-dota text-slate-muted-light"
+      style={{ letterSpacing: '1px' }}
     >
       <div className="shrink-0" style={{ width: 240 }} />
       <div className="shrink-0 text-center" style={{ width: 84 }}>

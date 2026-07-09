@@ -232,7 +232,7 @@ export function MatchVision({
   if (!hasData) {
     return (
       <div className="flex items-center justify-center py-16">
-        <span className="text-sm" style={{ color: C.dim, fontFamily: 'var(--font-dota)' }}>
+        <span className="text-sm font-dota text-slate-muted">
           No ward data available for this match.
         </span>
       </div>
@@ -244,12 +244,12 @@ export function MatchVision({
   const warders = players.filter((p) => (p.obs_log?.length ?? 0) + (p.sen_log?.length ?? 0) > 0)
 
   return (
-    <div className="flex gap-4 flex-wrap items-start" style={{ fontFamily: 'var(--font-dota)' }}>
+    <div className="flex gap-4 flex-wrap items-start font-dota">
       {/* Ward map */}
       <div style={{ background: C.panel }}>
         <div
-          className="text-[15px] uppercase px-4 py-3"
-          style={{ color: C.white, letterSpacing: '2px', background: C.panelDark }}
+          className="text-[15px] uppercase px-4 py-3 text-white"
+          style={{ letterSpacing: '2px', background: C.panelDark }}
         >
           Ward Map
         </div>
@@ -266,10 +266,9 @@ export function MatchVision({
               key={value}
               type="button"
               onClick={() => setMode(value)}
-              className="flex-1 px-2 py-1.5 text-[12px] uppercase cursor-pointer"
+              className={`flex-1 px-2 py-1.5 text-[12px] uppercase cursor-pointer ${mode === value ? 'text-white' : 'text-slate-muted-light'}`}
               style={{
                 letterSpacing: '1px',
-                color: mode === value ? '#ffffff' : '#8a97a0',
                 background: mode === value ? '#5c666c' : 'rgba(22,26,29,0.85)',
                 border: `1px solid ${mode === value ? '#6e787e' : '#242a2e'}`,
               }}
@@ -289,10 +288,9 @@ export function MatchVision({
               key={value}
               type="button"
               onClick={() => setScope(value)}
-              className="flex-1 px-2 py-1.5 text-[12px] uppercase cursor-pointer"
+              className={`flex-1 px-2 py-1.5 text-[12px] uppercase cursor-pointer ${scope === value ? 'text-white' : 'text-slate-muted-light'}`}
               style={{
                 letterSpacing: '1px',
-                color: scope === value ? '#ffffff' : '#8a97a0',
                 background: scope === value ? '#5c666c' : 'rgba(22,26,29,0.85)',
                 border: `1px solid ${scope === value ? '#6e787e' : '#242a2e'}`,
               }}
@@ -337,20 +335,19 @@ export function MatchVision({
             const flipY = hover.y > DISPLAY_SIZE - 90
             return (
               <div
-                className="absolute z-10 pointer-events-none"
+                className="absolute z-10 pointer-events-none border border-slate-border"
                 style={{
                   left: flipX ? undefined : hover.x + 26,
                   right: flipX ? DISPLAY_SIZE - hover.x + 10 : undefined,
                   top: flipY ? undefined : hover.y + 24,
                   bottom: flipY ? DISPLAY_SIZE - hover.y + 8 : undefined,
                   background: 'rgba(10,13,15,0.96)',
-                  border: '1px solid #3a4147',
                   boxShadow: '0 4px 16px rgba(0,0,0,0.7)',
                   padding: '8px 12px',
                   minWidth: 170,
                 }}
               >
-                <div className="text-[13px] uppercase mb-1" style={{ color: hover.obs ? '#f2c94c' : '#65a9d9', letterSpacing: '1px' }}>
+                <div className={`text-[13px] uppercase mb-1 ${hover.obs ? 'text-gold' : ''}`} style={{ color: hover.obs ? undefined : '#65a9d9', letterSpacing: '1px' }}>
                   {hover.obs ? '● Observer Ward' : '◆ Sentry Ward'}
                 </div>
                 <div className="flex items-center gap-2">
@@ -367,15 +364,15 @@ export function MatchVision({
                     />
                   )}
                   <div className="min-w-0">
-                    <div className="text-[14px] truncate" style={{ color: C.white }}>{hero?.localized_name}</div>
-                    <div className="text-[11px] truncate" style={{ color: C.dim }}>{player?.personaname ?? 'Anonymous'}</div>
+                    <div className="text-[14px] truncate text-white">{hero?.localized_name}</div>
+                    <div className="text-[11px] truncate text-slate-muted">{player?.personaname ?? 'Anonymous'}</div>
                   </div>
                 </div>
-                <div className="mt-1 text-[13px] tabular-nums" style={{ color: C.text }}>
-                  Placed at <span style={{ color: C.white }}>{formatDuration(Math.max(0, hover.time))}</span>
+                <div className="mt-1 text-[13px] tabular-nums text-slate-foreground">
+                  Placed at <span className="text-white">{formatDuration(Math.max(0, hover.time))}</span>
                   {hover.until != null && (
                     <>
-                      {' '}· until <span style={{ color: C.white }}>{formatDuration(Math.max(0, hover.until))}</span>
+                      {' '}· until <span className="text-white">{formatDuration(Math.max(0, hover.until))}</span>
                     </>
                   )}
                 </div>
@@ -391,18 +388,18 @@ export function MatchVision({
       {/* Legend + per-player counts */}
       <div className="flex-1 min-w-[320px] max-w-[520px]" style={{ background: C.panel }}>
         <div
-          className="text-[15px] uppercase px-4 py-3"
-          style={{ color: C.white, letterSpacing: '2px', background: C.panelDark }}
+          className="text-[15px] uppercase px-4 py-3 text-white"
+          style={{ letterSpacing: '2px', background: C.panelDark }}
         >
           Wards Placed
         </div>
         <div className="px-4 py-3">
           <div className="flex gap-8 pb-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <span className="text-[15px]" style={{ color: C.label }}>
-              ● Observers <span className="ml-1 text-[17px] tabular-nums" style={{ color: C.white }}>{obsTotal}</span>
+            <span className="text-[15px] text-slate-muted-light">
+              ● Observers <span className="ml-1 text-[17px] tabular-nums text-white">{obsTotal}</span>
             </span>
-            <span className="text-[15px]" style={{ color: C.label }}>
-              ◆ Sentries <span className="ml-1 text-[17px] tabular-nums" style={{ color: C.white }}>{senTotal}</span>
+            <span className="text-[15px] text-slate-muted-light">
+              ◆ Sentries <span className="ml-1 text-[17px] tabular-nums text-white">{senTotal}</span>
             </span>
           </div>
           {warders.map((p) => {
@@ -438,19 +435,19 @@ export function MatchVision({
                   />
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="text-[15px] truncate" style={{ color: C.white }}>{hero?.localized_name}</div>
-                  <PlayerNameLink player={p} className="block text-[12px] truncate" style={{ color: C.dim }} />
+                  <div className="text-[15px] truncate text-white">{hero?.localized_name}</div>
+                  <PlayerNameLink player={p} className="block text-[12px] truncate text-slate-muted" />
                 </div>
-                <span className="text-[15px] tabular-nums shrink-0" style={{ color: C.text }}>
+                <span className="text-[15px] tabular-nums shrink-0 text-slate-foreground">
                   ● {obs}
                 </span>
-                <span className="text-[15px] tabular-nums shrink-0 w-12" style={{ color: C.text }}>
+                <span className="text-[15px] tabular-nums shrink-0 w-12 text-slate-foreground">
                   ◆ {sen}
                 </span>
               </div>
             )
           })}
-          <div className="pt-2 text-[12px]" style={{ color: C.dim }}>
+          <div className="pt-2 text-[12px] text-slate-muted">
             Click a player to show only their wards.
           </div>
         </div>

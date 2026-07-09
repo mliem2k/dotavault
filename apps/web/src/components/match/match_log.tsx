@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import type { HeroStat, Match } from 'types'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { RUNE_NAMES } from '@/lib/dotaconst'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { extractObjectiveEvents } from './match_objectives'
@@ -11,11 +12,6 @@ import { formatClock } from './match_time'
    activations, buybacks, and ward placements. */
 
 const C = {
-  dim: '#67757f',
-  text: '#cfd4d8',
-  white: '#ffffff',
-  green: '#9fbf3f',
-  red: '#c94a38',
   panel: 'rgba(16,19,22,0.72)',
   panelDark: 'rgba(8,10,12,0.7)',
 }
@@ -127,28 +123,28 @@ function RunesSummary({ match, heroMap }: { match: Match; heroMap: Map<number, H
 
   return (
     <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-      <div className="mb-2 text-[13px] uppercase" style={{ color: C.dim, letterSpacing: '2px' }}>
+      <div className="mb-2 text-[13px] uppercase text-slate-muted" style={{ letterSpacing: '2px' }}>
         Runes Taken
       </div>
       <div className="overflow-x-auto">
-        <table className="border-collapse">
-          <thead>
-            <tr>
-              <th />
+        <Table className="w-auto">
+          <TableHeader>
+            <TableRow className="hover:bg-transparent border-none">
+              <TableHead className="h-auto" />
               {cols.map((id) => (
-                <th key={id} className="px-2 pb-1 text-[12px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
+                <TableHead key={id} className="h-auto px-2 pb-1 text-[12px] uppercase text-slate-muted" style={{ letterSpacing: '1px' }}>
                   {RUNE_NAMES[id] ?? id}
-                </th>
+                </TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {players.map((p) => {
               const hero = heroMap.get(p.hero_id)
               const rec = counts.get(p.player_slot) ?? {}
               return (
-                <tr key={p.player_slot}>
-                  <td className="py-0.5 pr-2">
+                <TableRow key={p.player_slot} className="hover:bg-transparent border-none">
+                  <TableCell className="p-0 py-0.5 pr-2">
                     <img
                       src={hero ? heroIconUrl(hero.name) : ''}
                       alt=""
@@ -161,17 +157,17 @@ function RunesSummary({ match, heroMap }: { match: Match; heroMap: Map<number, H
                         img.src = heroIconFromPath(hero.icon)
                       }}
                     />
-                  </td>
+                  </TableCell>
                   {cols.map((id) => (
-                    <td key={id} className="px-2 text-center text-[13px] tabular-nums" style={{ color: rec[id] ? C.text : '#3a4147' }}>
+                    <TableCell key={id} className={`p-0 px-2 text-center text-[13px] tabular-nums ${rec[id] ? 'text-slate-foreground' : 'text-slate-border'}`}>
                       {rec[id] ?? ''}
-                    </td>
+                    </TableCell>
                   ))}
-                </tr>
+                </TableRow>
               )
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   )
@@ -201,9 +197,9 @@ export function MatchLog({ match, heroStats }: { match: Match; heroStats: HeroSt
   )
 
   return (
-    <div style={{ background: C.panel, fontFamily: 'var(--font-dota)' }}>
+    <div className="font-dota" style={{ background: C.panel }}>
       <div className="flex flex-wrap items-center gap-2 px-4 py-3" style={{ background: C.panelDark }}>
-        <span className="text-[15px] uppercase" style={{ color: C.white, letterSpacing: '2px' }}>
+        <span className="text-[15px] uppercase text-white" style={{ letterSpacing: '2px' }}>
           Match Log
         </span>
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
@@ -215,30 +211,21 @@ export function MatchLog({ match, heroStats }: { match: Match; heroStats: HeroSt
                 type="button"
                 onClick={() => toggleCategory(c)}
                 disabled={!present.has(c)}
-                className="px-2.5 py-1 text-[13px] uppercase cursor-pointer disabled:cursor-default disabled:opacity-30"
-                style={{
-                  background: active ? '#2c3236' : 'transparent',
-                  border: '1px solid #2c3236',
-                  color: active ? C.white : C.dim,
-                  letterSpacing: '1px',
-                }}
+                className={`px-2.5 py-1 text-[13px] uppercase cursor-pointer disabled:cursor-default disabled:opacity-30 border border-slate-card ${active ? 'bg-slate-card text-white' : 'text-slate-muted'}`}
+                style={{ letterSpacing: '1px' }}
               >
                 {CATEGORY_LABELS[c]}
               </button>
             )
           })}
-          <div className="ml-2 flex items-center" style={{ border: '1px solid #2c3236' }}>
+          <div className="ml-2 flex items-center border border-slate-card">
             {(['all', 'radiant', 'dire'] as const).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => setTeamFilter(t)}
-                className="px-2.5 py-1 text-[13px] uppercase cursor-pointer"
-                style={{
-                  background: teamFilter === t ? '#2c3236' : 'transparent',
-                  color: teamFilter === t ? (t === 'radiant' ? C.green : t === 'dire' ? C.red : C.white) : C.dim,
-                  letterSpacing: '1px',
-                }}
+                className={`px-2.5 py-1 text-[13px] uppercase cursor-pointer ${teamFilter === t ? 'bg-slate-card' : ''} ${teamFilter === t ? (t === 'radiant' ? 'text-radiant' : t === 'dire' ? 'text-dire' : 'text-white') : 'text-slate-muted'}`}
+                style={{ letterSpacing: '1px' }}
               >
                 {t === 'all' ? 'All' : t === 'radiant' ? 'Radiant' : 'Dire'}
               </button>
@@ -263,10 +250,10 @@ export function MatchLog({ match, heroStats }: { match: Match; heroStats: HeroSt
               style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
               title="Jump to this moment in the replay"
             >
-              <span className="w-12 shrink-0 text-right tabular-nums" style={{ color: C.dim }}>
+              <span className="w-12 shrink-0 text-right tabular-nums text-slate-muted">
                 {formatClock(Math.max(0, e.time))}
               </span>
-              <span style={{ width: 3, height: 18, background: e.team === 'radiant' ? C.green : e.team === 'dire' ? C.red : '#3a4147' }} />
+              <span className={e.team === 'radiant' ? 'bg-radiant' : e.team === 'dire' ? 'bg-dire' : 'bg-slate-border'} style={{ width: 3, height: 18 }} />
               <span className="w-6 shrink-0 text-center text-[14px]">{e.icon}</span>
               {hero && (
                 <img
@@ -280,12 +267,12 @@ export function MatchLog({ match, heroStats }: { match: Match; heroStats: HeroSt
                   }}
                 />
               )}
-              <span style={{ color: C.text }}>{e.text}</span>
+              <span className="text-slate-foreground">{e.text}</span>
             </Link>
           )
         })}
         {shown.length === 0 && (
-          <div className="py-10 text-center text-[13px]" style={{ color: C.dim }}>
+          <div className="py-10 text-center text-[13px] text-slate-muted">
             No events match the current filters.
           </div>
         )}

@@ -30,8 +30,8 @@ function MatrixCell({ value, max }: { value: number; max: number }) {
       style={{ width: HERO_COL_W, height: ROW_H, background: value > 0 ? `rgba(226,75,58,${(0.06 + intensity * 0.5).toFixed(2)})` : 'transparent' }}
     >
       <span
-        className="text-[13px] tabular-nums"
-        style={{ color: value > 0 ? (intensity > 0.55 ? '#fff' : '#e8c0a0') : '#3a4147', fontFamily: 'var(--font-dota)', fontWeight: intensity > 0.55 ? 700 : 400 }}
+        className={`text-[13px] tabular-nums font-dota ${value > 0 ? (intensity > 0.55 ? 'text-white' : '') : 'text-slate-border'}`}
+        style={{ color: value > 0 && intensity <= 0.55 ? '#e8c0a0' : undefined, fontWeight: intensity > 0.55 ? 700 : 400 }}
       >
         {value > 0 ? fmtK(value) : '—'}
       </span>
@@ -59,8 +59,8 @@ function SourcesRow({
   const chip = (icon: React.ReactNode, value: number, key: string) => (
     <div key={key} className="flex items-center gap-1 shrink-0">
       {icon}
-      <span className="text-[12px] tabular-nums" style={{ color: '#e8c0a0', fontFamily: 'var(--font-dota)' }}>{fmtK(value)}</span>
-      <span className="text-[10px] tabular-nums" style={{ color: '#5a6066', fontFamily: 'var(--font-dota)' }}>{Math.round((value / total) * 100)}%</span>
+      <span className="text-[12px] tabular-nums font-dota" style={{ color: '#e8c0a0' }}>{fmtK(value)}</span>
+      <span className="text-[10px] tabular-nums font-dota text-slate-muted">{Math.round((value / total) * 100)}%</span>
     </div>
   )
 
@@ -68,7 +68,7 @@ function SourcesRow({
     <div className="flex items-center gap-3 px-3" style={{ height: ROW_H, minWidth: 640 }}>
       {attacks > 0 &&
         chip(
-          <div className="shrink-0 rounded-sm flex items-center justify-center" style={{ width: 26, height: 26, background: '#15181b', border: '1px solid #22282c', color: '#a89060', fontSize: 13 }} title="Attacks">⚔</div>,
+          <div className="shrink-0 rounded-sm flex items-center justify-center border-slate-bg" style={{ width: 26, height: 26, background: '#15181b', borderWidth: 1, borderStyle: 'solid', color: '#a89060', fontSize: 13 }} title="Attacks">⚔</div>,
           attacks,
           'attacks',
         )}
@@ -76,7 +76,7 @@ function SourcesRow({
         if (abilities[key]) return chip(<AbilityIcon name={key} meta={abilities[key]} isTalent={false} level={0} />, value, key)
         if (itemConst[key]) return chip(<ItemIcon name={key} meta={itemConst[key]} width={26} height={26} />, value, key)
         return chip(
-          <div className="shrink-0 rounded-sm" style={{ width: 26, height: 26, background: '#15181b', border: '1px solid #22282c' }} title={key} />,
+          <div className="shrink-0 rounded-sm border-slate-bg" style={{ width: 26, height: 26, background: '#15181b', borderWidth: 1, borderStyle: 'solid' }} title={key} />,
           value,
           key,
         )
@@ -110,7 +110,7 @@ function AbilityTargetsRow({
   }
   if (sources.length === 0) {
     return (
-      <div className="flex items-center px-3 text-[12px]" style={{ color: '#5a6066', fontFamily: 'var(--font-dota)' }}>
+      <div className="flex items-center px-3 text-[12px] font-dota text-slate-muted">
         No per-target damage data.
       </div>
     )
@@ -120,7 +120,7 @@ function AbilityTargetsRow({
       {sources.slice(0, 4).map(([srcName, targets]) => {
         const total = Object.values(targets).reduce((s, v) => s + v, 0)
         return (
-          <div key={srcName} className="flex items-center gap-2 text-[11px]" style={{ fontFamily: 'var(--font-dota)' }}>
+          <div key={srcName} className="flex items-center gap-2 text-[11px] font-dota">
             <span className="w-[120px] shrink-0 truncate" style={{ color: '#a8b0b6' }} title={label(srcName)}>
               {label(srcName)}
             </span>
@@ -133,8 +133,8 @@ function AbilityTargetsRow({
                   return (
                     <span
                       key={victim}
-                      className="inline-flex items-center gap-1 px-1"
-                      style={{ background: 'rgba(8,10,12,0.6)', border: '1px solid #22282c' }}
+                      className="inline-flex items-center gap-1 px-1 border-slate-bg"
+                      style={{ background: 'rgba(8,10,12,0.6)', borderWidth: 1, borderStyle: 'solid' }}
                       title={`${hero?.localized_name ?? victim}: ${dmg.toLocaleString()}`}
                     >
                       {hero && (
@@ -145,7 +145,7 @@ function AbilityTargetsRow({
                           onError={(e) => { const img = e.currentTarget; img.onerror = null; img.src = heroIconFromPath(hero.icon) }}
                         />
                       )}
-                      <span className="tabular-nums" style={{ color: '#cfd4d8' }}>{fmtK(dmg)}</span>
+                      <span className="tabular-nums text-slate-foreground">{fmtK(dmg)}</span>
                     </span>
                   )
                 })}
@@ -176,7 +176,7 @@ export function MatchDamage({
   if (!isParsed) {
     return (
       <div className="flex items-center justify-center py-16">
-        <span className="text-sm" style={{ color: '#5a6066', fontFamily: 'var(--font-dota)' }}>
+        <span className="text-sm font-dota text-slate-muted">
           This match is unparsed — damage data unavailable.
         </span>
       </div>
@@ -203,22 +203,22 @@ export function MatchDamage({
     return (
       <div style={{ background: '#101316', border: '1px solid #1f2529' }}>
         {/* Header band */}
-        <div className="flex items-stretch" style={{ borderBottom: '1px solid #22282c' }}>
+        <div className="flex items-stretch border-b border-slate-bg">
           <div
             className="flex items-center gap-2 shrink-0"
             style={{ width: IDENTITY_W, height: TEAM_HEADER_H, padding: '0 10px', borderLeft: `3px solid ${color}`, background: `${color}12` }}
           >
-            <span className="text-[14px] font-bold" style={{ color, fontFamily: 'var(--font-dota)' }}>{isRadiant ? 'The Radiant' : 'The Dire'}</span>
-            <span className="text-[11px] uppercase tracking-wide" style={{ color: '#67757f', fontFamily: 'var(--font-dota)' }}>
-              Score: <span style={{ color }}>{kills}</span>
+            <span className={`text-[14px] font-bold font-dota ${isRadiant ? 'text-radiant' : 'text-dire'}`}>{isRadiant ? 'The Radiant' : 'The Dire'}</span>
+            <span className="text-[11px] uppercase tracking-wide font-dota text-slate-muted">
+              Score: <span className={isRadiant ? 'text-radiant' : 'text-dire'}>{kills}</span>
             </span>
             {isWinner && (
-              <span className="text-[11px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ml-auto" style={{ background: '#123010', color: '#9fbf3f', border: '1px solid #9fbf3f44' }}>Winner</span>
+              <span className="text-[11px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ml-auto text-radiant" style={{ background: '#123010', border: '1px solid #9fbf3f44' }}>Winner</span>
             )}
           </div>
 
           {mode === 'sources' || mode === 'abilities' ? (
-            <div className="flex items-center px-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#67757f', fontFamily: 'var(--font-dota)' }}>
+            <div className="flex items-center px-3 text-[10px] font-bold uppercase tracking-wider font-dota text-slate-muted">
               {mode === 'sources' ? 'Top damage sources (share of total)' : 'Damage per ability, per enemy hero'}
             </div>
           ) : (
@@ -235,7 +235,7 @@ export function MatchDamage({
                   />
                 </div>
               ))}
-              <div className="shrink-0 flex items-center justify-center text-[10px] font-bold uppercase tracking-wider" style={{ width: TOTAL_W, height: TEAM_HEADER_H, color: '#67757f', fontFamily: 'var(--font-dota)' }}>
+              <div className="shrink-0 flex items-center justify-center text-[10px] font-bold uppercase tracking-wider font-dota text-slate-muted" style={{ width: TOTAL_W, height: TEAM_HEADER_H }}>
                 Total
               </div>
             </>
@@ -260,7 +260,7 @@ export function MatchDamage({
                     <MatrixCell key={i} value={v} max={matrixMax} />
                   ))}
                   <div className="shrink-0 flex items-center justify-center" style={{ width: TOTAL_W, height: ROW_H }}>
-                    <span className="text-[14px] font-bold tabular-nums" style={{ color: '#e8a070', fontFamily: 'var(--font-dota)' }}>{fmtK(total)}</span>
+                    <span className="text-[14px] font-bold tabular-nums font-dota" style={{ color: '#e8a070' }}>{fmtK(total)}</span>
                   </div>
                 </>
               )}
@@ -281,13 +281,8 @@ export function MatchDamage({
               key={m}
               type="button"
               onClick={() => setMode(m)}
-              className="flex-1 px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-sm"
-              style={{
-                fontFamily: 'var(--font-dota)',
-                color: mode === m ? '#e8ecef' : '#8a97a0',
-                background: mode === m ? '#2c3236' : '#15181b',
-                border: `1px solid ${mode === m ? '#3a4147' : '#22282c'}`,
-              }}
+              className={`flex-1 px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-sm font-dota border ${mode === m ? 'text-slate-foreground-light bg-slate-card border-slate-border' : 'text-slate-muted-light border-slate-bg'}`}
+              style={{ background: mode === m ? undefined : '#15181b' }}
             >
               {MODE_LABELS[m]}
             </button>

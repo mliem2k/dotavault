@@ -31,8 +31,8 @@ export function MatchCosmetics({ match, heroStats }: { match: Match; heroStats: 
   const withItems = match.players.filter((p) => (p.cosmetics?.length ?? 0) > 0)
 
   return (
-    <div style={{ background: C.panel, fontFamily: 'var(--font-dota)' }}>
-      <div className="px-4 py-3 text-[15px] uppercase" style={{ color: C.white, letterSpacing: '2px', background: C.panelDark }}>
+    <div className="font-dota" style={{ background: C.panel }}>
+      <div className="px-4 py-3 text-[15px] uppercase text-white" style={{ letterSpacing: '2px', background: C.panelDark }}>
         Cosmetics
       </div>
       {withItems.map((p) => {
@@ -52,43 +52,46 @@ export function MatchCosmetics({ match, heroStats }: { match: Match; heroStats: 
                   img.src = heroIconFromPath(hero.icon)
                 }}
               />
-              <span className="text-[13px]" style={{ color: p.player_slot < 128 ? C.green : C.red }}>
+              <span className={`text-[13px] ${p.player_slot < 128 ? 'text-radiant' : 'text-dire'}`}>
                 {hero?.localized_name ?? 'Unknown'}
               </span>
-              <span className="truncate text-[13px]" style={{ color: C.dim }}>{p.personaname ?? 'Anonymous'}</span>
+              <span className="truncate text-[13px] text-slate-muted">{p.personaname ?? 'Anonymous'}</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {(p.cosmetics ?? []).map((c) => (
-                <div
-                  key={c.item_id}
-                  className="flex items-center gap-1.5 px-2 py-1"
-                  style={{
-                    background: 'rgba(8,10,12,0.6)',
-                    border: `1px solid ${RARITY_COLORS[c.item_rarity ?? ''] ?? '#22282c'}`,
-                  }}
-                  title={c.item_rarity ?? undefined}
-                >
-                  {c.image_path && (
-                    <img
-                      src={`https://steamcdn-a.akamaihd.net/apps/570/${c.image_path}`}
-                      alt=""
-                      style={{ width: 44, height: 30, objectFit: 'contain' }}
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                      }}
-                    />
-                  )}
-                  <span className="text-[13px]" style={{ color: RARITY_COLORS[c.item_rarity ?? ''] ?? C.text }}>
-                    {c.name ?? `Item ${c.item_id}`}
-                  </span>
-                </div>
-              ))}
+              {(p.cosmetics ?? []).map((c) => {
+                const rarityColor = RARITY_COLORS[c.item_rarity ?? '']
+                return (
+                  <div
+                    key={c.item_id}
+                    className={`flex items-center gap-1.5 px-2 py-1 ${rarityColor ? '' : 'border-slate-bg'}`}
+                    style={{
+                      background: 'rgba(8,10,12,0.6)',
+                      border: rarityColor ? `1px solid ${rarityColor}` : '1px solid',
+                    }}
+                    title={c.item_rarity ?? undefined}
+                  >
+                    {c.image_path && (
+                      <img
+                        src={`https://steamcdn-a.akamaihd.net/apps/570/${c.image_path}`}
+                        alt=""
+                        style={{ width: 44, height: 30, objectFit: 'contain' }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                        }}
+                      />
+                    )}
+                    <span className={`text-[13px] ${rarityColor ? '' : 'text-slate-foreground'}`} style={rarityColor ? { color: rarityColor } : undefined}>
+                      {c.name ?? `Item ${c.item_id}`}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )
       })}
       {withItems.length === 0 && (
-        <div className="py-10 text-center text-[13px]" style={{ color: C.dim }}>
+        <div className="py-10 text-center text-[13px] text-slate-muted">
           No cosmetic data recorded for this match.
         </div>
       )}

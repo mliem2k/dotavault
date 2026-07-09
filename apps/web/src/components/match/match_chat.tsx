@@ -55,7 +55,7 @@ export function MatchChat({
   if (messages.length === 0) {
     return (
       <div className="flex items-center justify-center py-16">
-        <span className="text-sm" style={{ color: C.dim, fontFamily: 'var(--font-dota)' }}>
+        <span className="text-sm text-slate-muted font-dota">
           No chat messages recorded for this match.
         </span>
       </div>
@@ -63,10 +63,10 @@ export function MatchChat({
   }
 
   return (
-    <div className="max-w-[980px]" style={{ background: C.panel, fontFamily: 'var(--font-dota)' }}>
+    <div className="max-w-[980px] font-dota" style={{ background: C.panel }}>
       <div
-        className="text-[15px] uppercase px-4 py-3"
-        style={{ color: C.white, letterSpacing: '2px', background: C.panelDark }}
+        className="text-[15px] uppercase px-4 py-3 text-white"
+        style={{ letterSpacing: '2px', background: C.panelDark }}
       >
         Chat
       </div>
@@ -89,7 +89,7 @@ export function MatchChat({
           return (
             // biome-ignore lint/suspicious/noArrayIndexKey: static message list
             <div key={i} className="flex items-center gap-3 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-              <span className="w-14 shrink-0 text-right text-[14px] tabular-nums" style={{ color: C.dim }}>
+              <span className="w-14 shrink-0 text-right text-[14px] tabular-nums text-slate-muted">
                 {formatDuration(Math.max(0, msg.time))}
               </span>
               {hero && (
@@ -114,21 +114,21 @@ export function MatchChat({
               )}
               {isTeam && (
                 <span
-                  className="shrink-0 text-[11px] uppercase px-1.5 py-0.5"
-                  style={{ color: C.dim, border: '1px solid #2c3236', letterSpacing: '1px' }}
+                  className="shrink-0 text-[11px] uppercase px-1.5 py-0.5 text-slate-muted border-slate-card"
+                  style={{ border: '1px solid', letterSpacing: '1px' }}
                 >
                   Team
                 </span>
               )}
               {isWheel && (
                 <span
-                  className="shrink-0 text-[11px] uppercase px-1.5 py-0.5"
-                  style={{ color: C.dim, border: '1px solid #2c3236', letterSpacing: '1px' }}
+                  className="shrink-0 text-[11px] uppercase px-1.5 py-0.5 text-slate-muted border-slate-card"
+                  style={{ border: '1px solid', letterSpacing: '1px' }}
                 >
                   Wheel
                 </span>
               )}
-              <span className="min-w-0 text-[16px] break-words" style={{ color: C.text }}>{text}</span>
+              <span className="min-w-0 text-[16px] break-words text-slate-foreground-light">{text}</span>
             </div>
           )
         })}
