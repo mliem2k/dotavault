@@ -140,7 +140,12 @@ body {
   background-image: url('/backgrounds/greyfade.jpg');
   background-size: cover;
   background-position: top center;
-  background-attachment: scroll;
+  /* fixed (not scroll): scroll sizes "cover" against the full scrollable
+     page height, which varies a lot on filterable lists (e.g. /leagues),
+     making the same background look zoomed in/out depending on result
+     count. fixed sizes it against the viewport instead, so it's stable
+     across every page regardless of content height. */
+  background-attachment: fixed;
   background-repeat: no-repeat;
   color: var(--color-foreground);
   font-family: var(--font-sans);

@@ -113,7 +113,7 @@ function LeaguesPage() {
         </p>
       </div>
 
-      <div className="max-w-[720px] mx-auto space-y-2">
+      <div className="max-w-[720px] mx-auto flex flex-wrap items-center gap-2">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -122,36 +122,30 @@ function LeaguesPage() {
           className="w-full px-3 py-2 text-[14px] outline-none focus-visible:ring-2 focus-visible:ring-gold sm:w-[280px] border border-border text-foreground font-dota"
           style={{ background: 'rgba(12,11,14,0.72)' }}
         />
-        {/* Own row, and the tier group itself wraps: 5 buttons plus the count
-            text crowded onto one line with the search input above ran out of
-            room and started overlapping/squeezing together on narrower
-            viewports. */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap items-center border border-border">
-            {['all', 'premium', 'professional', 'minor', 'amateur'].map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTier(t)}
-                className={`px-3 py-2 text-[12px] uppercase cursor-pointer text-white font-dota ${tier === t ? 'bg-border' : 'bg-transparent'}`}
-                style={{
-                  textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)',
-                  letterSpacing: '1px',
-                }}
-              >
-                {t === 'all' ? 'All Tiers' : (TIER_LABELS[t] ?? t)}
-              </button>
-            ))}
-          </div>
-          {leagues.data && (
-            <span
-              className="text-[12px] sm:ml-auto text-white font-dota"
-              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)' }}
+        <div className="flex flex-wrap items-center border border-border">
+          {['all', 'premium', 'professional', 'minor', 'amateur'].map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTier(t)}
+              className={`px-3 py-2 text-[12px] uppercase cursor-pointer text-white font-dota ${tier === t ? 'bg-border' : 'bg-transparent'}`}
+              style={{
+                textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)',
+                letterSpacing: '1px',
+              }}
             >
-              {rows.length} of {leagues.data.length.toLocaleString()} leagues
-            </span>
-          )}
+              {t === 'all' ? 'All Tiers' : (TIER_LABELS[t] ?? t)}
+            </button>
+          ))}
         </div>
+        {leagues.data && (
+          <span
+            className="text-[12px] sm:ml-auto text-white font-dota"
+            style={{ textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)' }}
+          >
+            {rows.length} of {leagues.data.length.toLocaleString()} leagues
+          </span>
+        )}
       </div>
 
       <div className="max-w-[720px] mx-auto border border-border" style={{ background: 'rgba(12,11,14,0.72)' }}>
