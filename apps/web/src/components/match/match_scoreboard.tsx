@@ -191,13 +191,13 @@ function AghsBlessingBadge({ kind }: { kind: 'scepter' | 'shard' }) {
   )
 }
 
-/* Permanent upgrades (Aghanim's Scepter/Shard, Moon Shard): final state
+/* Permanent buffs only: Aghanim's Blessing (Scepter/Shard granted with no
+   backing item) and Moon Shard (consumed on use, never sits in a slot).
+   A plain purchased Scepter/Shard is NOT shown here, that's just an item,
+   already fully visible in the Items column, showing it again under a
+   "Buffs" header mislabels it and duplicates that column. Final state
    only, not time-scrubbed, since these are "did they ever get this" facts
-   rather than a snapshot of current inventory. Scepter/Shard show the
-   regular shop item icon when the player actually has the item (already
-   visible in the Items column too, but useful as a quick glance here), and
-   the distinct AghsBlessingBadge when the upgrade came from Aghanim's
-   Blessing instead (no item, would be misleading to show the item icon). */
+   rather than a snapshot of current inventory. */
 function BuffsGroup({
   player,
   idToName,
@@ -216,9 +216,7 @@ function BuffsGroup({
     // buffs so this never needs to grow, but width (not minWidth) keeps the
     // box the same size in a 0-buff row too, matching every other section.
     <div className="flex items-center gap-1.5 px-2 shrink-0" style={{ width: 124 }}>
-      {scepter === 'item' && <ItemIcon name="ultimate_scepter" meta={itemConst.ultimate_scepter} width={32} height={24} />}
       {scepter === 'blessing' && <AghsBlessingBadge kind="scepter" />}
-      {shard === 'item' && <ItemIcon name="aghanims_shard" meta={itemConst.aghanims_shard} width={32} height={24} />}
       {shard === 'blessing' && <AghsBlessingBadge kind="shard" />}
       {moonshard && <ItemIcon name="moon_shard" meta={itemConst.moon_shard} width={32} height={24} />}
     </div>
@@ -495,7 +493,7 @@ export function MatchScoreboard({
 
   const hasPurchases = match.players.some((p) => (p.purchase_log?.length ?? 0) > 0)
   const hasBuffs = match.players.some(
-    (p) => scepterSource(p, idToName) != null || shardSource(p, idToName) != null || hasMoonshardBuff(p),
+    (p) => scepterSource(p, idToName) === 'blessing' || shardSource(p, idToName) === 'blessing' || hasMoonshardBuff(p),
   )
   const maxAbilities = Math.max(0, ...match.players.map((p) => p.ability_upgrades_arr?.length ?? 0))
 
