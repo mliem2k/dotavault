@@ -2,7 +2,6 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { Loader2, Search, Swords, User } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { SearchResult } from 'types'
-import { Input } from '@/components/ui/input'
 import { opendota } from '@/lib/opendota'
 import { resolveVanitySteamId, STEAM64_BASE } from '@/lib/steam'
 
@@ -238,7 +237,7 @@ export function SearchBar() {
         }}
       >
         <Search className="h-5 w-5 flex-shrink-0" style={{ color: '#5a6070' }} />
-        <Input
+        <input
           value={query}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
@@ -249,7 +248,7 @@ export function SearchBar() {
           aria-controls="search-results-listbox"
           aria-autocomplete="list"
           aria-activedescendant={activeOptionId}
-          className="h-auto w-full rounded-none border-0 bg-transparent px-0 py-0 text-foreground shadow-none outline-none focus-visible:ring-0"
+          className="w-full bg-transparent outline-none text-foreground"
           style={{
             fontFamily: 'Radiance, "Noto Sans", sans-serif',
             fontSize: 17,

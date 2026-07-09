@@ -110,7 +110,7 @@ export function HeroTable({ heroes }: { heroes: HeroStat[] }) {
             return (
               <TableRow
                 key={h.id}
-                className={`border-border/50 ${idx % 2 === 1 ? 'bg-white/[0.02]' : ''}`}
+                className={`hover:bg-transparent border-border/50 ${idx % 2 === 1 ? 'bg-white/[0.02]' : ''}`}
               >
                 <TableCell className="p-0 py-1.5 font-mono text-xs text-muted">{idx + 1}</TableCell>
                 <TableCell className="p-0 py-1.5" colSpan={2}>
