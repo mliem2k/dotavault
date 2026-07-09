@@ -195,14 +195,16 @@ function overallPercentile(player: MatchPlayer): number {
 /* ------------------------------------------------------------------ */
 
 /* Scepter/Shard badge: shows the real shop item icon when the player
-   actually has the item, or a visually distinct "Blessing" badge when the
-   upgrade came from Aghanim's Blessing instead (Roshan-dropped, consumed
-   instantly on an ally, no item ever enters their inventory, so showing
-   the shop icon there would be misleading). */
-function AghsBadge({ kind, source }: { kind: 'scepter' | 'shard'; source: 'item' | 'blessing' }) {
-  if (source === 'item') {
+   personally bought it (whether still held or sold later), or a visually
+   distinct "Blessing" badge when the upgrade came from Aghanim's Blessing
+   instead (Roshan-dropped, consumed instantly on an ally, no item ever
+   enters their inventory, so showing the shop icon there would be
+   misleading). */
+function AghsBadge({ kind, source }: { kind: 'scepter' | 'shard'; source: 'held' | 'sold' | 'blessing' }) {
+  if (source === 'held' || source === 'sold') {
     const name = kind === 'scepter' ? 'ultimate_scepter' : 'aghanims_shard'
-    const label = kind === 'scepter' ? "Aghanim's Scepter" : "Aghanim's Shard"
+    const base = kind === 'scepter' ? "Aghanim's Scepter" : "Aghanim's Shard"
+    const label = source === 'sold' ? `${base} (bought earlier, later sold)` : base
     return (
       <div
         className="overflow-hidden"

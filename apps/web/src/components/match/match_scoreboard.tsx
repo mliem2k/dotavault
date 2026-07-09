@@ -191,13 +191,16 @@ function AghsBlessingBadge({ kind }: { kind: 'scepter' | 'shard' }) {
   )
 }
 
-/* Permanent buffs only: Aghanim's Blessing (Scepter/Shard granted with no
-   backing item) and Moon Shard (consumed on use, never sits in a slot).
-   A plain purchased Scepter/Shard is NOT shown here, that's just an item,
-   already fully visible in the Items column, showing it again under a
-   "Buffs" header mislabels it and duplicates that column. Final state
-   only, not time-scrubbed, since these are "did they ever get this" facts
-   rather than a snapshot of current inventory. */
+/* Permanent buffs only, meaning facts not already visible in the Items
+   column: Aghanim's Blessing (no backing item, ever), a Scepter/Shard that
+   was bought then later sold (the Items column only reflects final state,
+   so a sold upgrade has nowhere else to show), and Moon Shard (consumed on
+   use, never sits in a slot). A Scepter/Shard still sitting in their final
+   inventory (source 'held') is NOT shown here, that's already fully
+   visible in the Items column, showing it again under a "Buffs" header
+   would mislabel it and duplicate that column. Final state only, not
+   time-scrubbed, since these are "did they ever get this" facts rather
+   than a snapshot of current inventory. */
 function BuffsGroup({
   player,
   idToName,
@@ -216,7 +219,17 @@ function BuffsGroup({
     // buffs so this never needs to grow, but width (not minWidth) keeps the
     // box the same size in a 0-buff row too, matching every other section.
     <div className="flex items-center gap-1.5 px-2 shrink-0" style={{ width: 124 }}>
+      {scepter === 'sold' && (
+        <div title="Aghanim's Scepter (bought earlier, later sold; the upgrade stays active)">
+          <ItemIcon name="ultimate_scepter" meta={itemConst.ultimate_scepter} width={32} height={24} />
+        </div>
+      )}
       {scepter === 'blessing' && <AghsBlessingBadge kind="scepter" />}
+      {shard === 'sold' && (
+        <div title="Aghanim's Shard (bought earlier, later sold; the upgrade stays active)">
+          <ItemIcon name="aghanims_shard" meta={itemConst.aghanims_shard} width={32} height={24} />
+        </div>
+      )}
       {shard === 'blessing' && <AghsBlessingBadge kind="shard" />}
       {moonshard && <ItemIcon name="moon_shard" meta={itemConst.moon_shard} width={32} height={24} />}
     </div>
@@ -492,9 +505,11 @@ export function MatchScoreboard({
   const direScore = teamScoreAtTime(match, false, timeSec)
 
   const hasPurchases = match.players.some((p) => (p.purchase_log?.length ?? 0) > 0)
-  const hasBuffs = match.players.some(
-    (p) => scepterSource(p, idToName) === 'blessing' || shardSource(p, idToName) === 'blessing' || hasMoonshardBuff(p),
-  )
+  const hasBuffs = match.players.some((p) => {
+    const scepter = scepterSource(p, idToName)
+    const shard = shardSource(p, idToName)
+    return scepter === 'sold' || scepter === 'blessing' || shard === 'sold' || shard === 'blessing' || hasMoonshardBuff(p)
+  })
   const maxAbilities = Math.max(0, ...match.players.map((p) => p.ability_upgrades_arr?.length ?? 0))
 
   const label = (content: string | JSX.Element, width?: number, extraClass = '') => (

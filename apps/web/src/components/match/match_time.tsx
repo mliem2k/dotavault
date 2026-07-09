@@ -60,43 +60,51 @@ export function itemsAtTime(
   return ids
 }
 
-// Aghanim's Scepter/Shard grant their hero-specific upgrade two different
-// ways: bought normally (the upgrade stays active permanently even if the
-// item is later sold to free up inventory space, confirmed on real match
-// data: several players had aghanims_shard/aghanims_scepter true with the
-// item gone from their final slots, but purchase_log showed they'd bought
-// it themselves earlier in the game), or via Aghanim's Blessing
-// (Roshan-dropped, used instantly on a chosen ally) where the upgrade is
-// permanent with no item ever entering their inventory at all. Only the
-// second case should read as a "buff with no item" badge: a player who
-// bought-then-sold it did personally acquire the item, so that's still
-// "item", not "blessing".
+// Aghanim's Scepter/Shard grant their hero-specific upgrade three different
+// ways, each needing different treatment:
+//   - 'held': bought and still sitting in their final inventory. Already
+//     fully visible in the Items column, so callers that show that column
+//     too (the scoreboard) should treat this as redundant, not a "buff".
+//   - 'sold': bought at some point (found in purchase_log) but no longer in
+//     their final slots, the upgrade stays permanently active even after
+//     selling to free up space (confirmed on real match data: a player had
+//     aghanims_shard true and the item gone from their final slots, but
+//     purchase_log showed a genuine purchase earlier that game). Nothing
+//     else in the UI shows this, since the Items column only reflects
+//     final state, so this should still surface as a buff.
+//   - 'blessing': the summary field says they have the upgrade, but there's
+//     no purchase and no item in slots. That can only be Aghanim's Blessing
+//     (Roshan-dropped, used instantly on a chosen ally, no item ever
+//     enters their inventory). Needs its own badge, showing the shop icon
+//     here would imply an item that doesn't exist on this player.
 //
 // OpenDota's aghanims_scepter/aghanims_shard summary field (computed from
 // the parsed permanent_buffs array) is only trustworthy for the Blessing
 // case; it can come back false even when the item is clearly owned (a real
 // match had permanent_buffs: [] for a player with ultimate_scepter sitting
-// in item_0). So: trust the final item slots or purchase history first
-// (personally acquired), and only read the summary field as Blessing when
-// neither shows any personal purchase.
-export type UpgradeSource = 'item' | 'blessing' | null
+// in item_0). So: trust the final item slots or purchase history first,
+// and only read the summary field when neither shows a personal purchase.
+export type UpgradeSource = 'held' | 'sold' | 'blessing' | null
 
-function everHadItem(player: MatchPlayer, idToName: Map<number, string>, itemName: string): boolean {
+function upgradeSource(
+  player: MatchPlayer,
+  idToName: Map<number, string>,
+  itemName: string,
+  summaryField: number | null | undefined,
+): UpgradeSource {
   const finalItems = [player.item_0, player.item_1, player.item_2, player.item_3, player.item_4, player.item_5]
-  if (finalItems.some((id) => idToName.get(id) === itemName)) return true
-  return (player.purchase_log ?? []).some((e) => e.key === itemName)
+  if (finalItems.some((id) => idToName.get(id) === itemName)) return 'held'
+  if ((player.purchase_log ?? []).some((e) => e.key === itemName)) return 'sold'
+  if ((summaryField ?? 0) > 0) return 'blessing'
+  return null
 }
 
 export function scepterSource(player: MatchPlayer, idToName: Map<number, string>): UpgradeSource {
-  if (everHadItem(player, idToName, 'ultimate_scepter')) return 'item'
-  if ((player.aghanims_scepter ?? 0) > 0) return 'blessing'
-  return null
+  return upgradeSource(player, idToName, 'ultimate_scepter', player.aghanims_scepter)
 }
 
 export function shardSource(player: MatchPlayer, idToName: Map<number, string>): UpgradeSource {
-  if (everHadItem(player, idToName, 'aghanims_shard')) return 'item'
-  if ((player.aghanims_shard ?? 0) > 0) return 'blessing'
-  return null
+  return upgradeSource(player, idToName, 'aghanims_shard', player.aghanims_shard)
 }
 
 export function hasMoonshardBuff(player: MatchPlayer): boolean {
