@@ -167,7 +167,7 @@ function BuffsGroup({
   ].filter((n): n is string => n != null)
 
   return (
-    <div className="flex items-center gap-1.5 px-2 shrink-0">
+    <div className="flex items-center gap-1.5 px-2 shrink-0" style={{ minWidth: 124 }}>
       {names.map((name) => (
         <ItemIcon key={name} name={name} meta={itemConst[name]} width={32} height={24} />
       ))}
@@ -497,7 +497,7 @@ export function MatchScoreboard({
           </div>
         )}
         {hasBuffs && (
-          <div role="columnheader" className="flex items-center shrink-0 pl-2" style={{ minWidth: 110 }}>
+          <div role="columnheader" className="flex items-center shrink-0 pl-2" style={{ minWidth: 140 }}>
             <span className="text-[13px] uppercase" style={{ color: '#8a97a0', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}>
               Buffs
             </span>
