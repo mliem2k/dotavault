@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import type { HeroStat, Match, MatchPlayer } from 'types'
-import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
 import { orderedTeams } from './match_roster'
 
 /* Combat tab — kill matrix, chronological kill log, and teamfight summary.
@@ -24,20 +24,28 @@ function fmtClock(sec: number): string {
   return `${neg ? '-' : ''}${Math.floor(a / 60)}:${String(a % 60).padStart(2, '0')}`
 }
 
-function HeroIcon({ hero, size = 28 }: { hero: HeroStat | undefined; size?: number }) {
+// linked=false for the one call site already nested inside a <Link> (the
+// teamfight summary row), since an <a> can't nest inside another <a>.
+function HeroIcon({ hero, size = 28, linked = true }: { hero: HeroStat | undefined; size?: number; linked?: boolean }) {
   if (!hero) return <span style={{ width: size, height: size, background: '#14181b', display: 'inline-block' }} />
-  return (
+  const img = (
     <img
       src={heroIconUrl(hero.name)}
       alt={hero.localized_name}
       title={hero.localized_name}
       style={{ width: size, height: size }}
       onError={(e) => {
-        const img = e.currentTarget
-        img.onerror = null
-        img.src = heroIconFromPath(hero.icon)
+        const el = e.currentTarget
+        el.onerror = null
+        el.src = heroIconFromPath(hero.icon)
       }}
     />
+  )
+  if (!linked) return img
+  return (
+    <a href={`/hero/${heroSlug(hero.localized_name)}`} className="block shrink-0">
+      {img}
+    </a>
   )
 }
 
@@ -227,7 +235,7 @@ function Teamfights({
                     // biome-ignore lint/suspicious/noArrayIndexKey: aligned to players order
                     <div key={idx} className="relative" title={`${hero?.localized_name}: ${tp.damage.toLocaleString()} dmg, ${kills} kills${tp.deaths ? ', died' : ''}`}>
                       <div style={{ borderTop: `2px solid ${mp.player_slot < 128 ? C.green : C.red}`, opacity: tp.deaths ? 0.45 : 1 }}>
-                        <HeroIcon hero={hero} size={42} />
+                        <HeroIcon hero={hero} size={42} linked={false} />
                       </div>
                       {tp.deaths > 0 && (
                         <span className="absolute inset-0 flex items-center justify-center text-[20px]" style={{ color: '#ff6a5a' }}>✕</span>

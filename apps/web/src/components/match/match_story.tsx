@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { HeroStat, Match, MatchPlayer } from 'types'
-import { formatDuration, heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { formatDuration, heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
 import { formatClock } from './match_time'
 
 /* Story tab (OpenDota-style): a readable narrative recap generated from the
@@ -153,17 +153,18 @@ export function MatchStory({ match, heroStats }: { match: Match; heroStats: Hero
                 {p.time != null ? formatClock(Math.max(0, p.time)) : ''}
               </span>
               {hero ? (
-                <img
-                  src={heroIconUrl(hero.name)}
-                  alt=""
-                  className="mt-0.5 shrink-0"
-                  style={{ width: 24, height: 24 }}
-                  onError={(e) => {
-                    const img = e.currentTarget
-                    img.onerror = null
-                    img.src = heroIconFromPath(hero.icon)
-                  }}
-                />
+                <a href={`/hero/${heroSlug(hero.localized_name)}`} className="mt-0.5 shrink-0 block">
+                  <img
+                    src={heroIconUrl(hero.name)}
+                    alt=""
+                    style={{ width: 24, height: 24 }}
+                    onError={(e) => {
+                      const img = e.currentTarget
+                      img.onerror = null
+                      img.src = heroIconFromPath(hero.icon)
+                    }}
+                  />
+                </a>
               ) : (
                 <span style={{ width: 24 }} className="shrink-0" />
               )}

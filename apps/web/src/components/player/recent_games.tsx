@@ -1,4 +1,4 @@
-import { useNavigate } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import type { HeroStat, PlayerMatch } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
 import { applySort, useSort } from '@/lib/sortable'
@@ -56,7 +56,6 @@ export function RecentGames({
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const leagueByMatchId = new Map((leagueInfo ?? []).map((l) => [l.match_id, l]))
   const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('date', 'desc')
-  const navigate = useNavigate()
 
   const sorted = applySort(matches, sortDir, (a, b) => {
     switch (sortKey) {
@@ -134,26 +133,25 @@ export function RecentGames({
         const won = isWin(m)
         const { d, t } = fmtDate(m.start_time)
         const type = LOBBY_TYPES[m.lobby_type] ?? GAME_MODES[m.game_mode] ?? '—'
-        const goToMatch = () =>
-          navigate({ to: '/match/$matchId', params: { matchId: String(m.match_id) } })
 
         return (
           <div
             key={m.match_id}
-            role="button"
-            tabIndex={0}
-            onClick={goToMatch}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                goToMatch()
-              }
-            }}
-            className="flex items-center px-3 hover:bg-white/[0.05] transition-colors cursor-pointer"
+            className="relative flex items-center px-3 hover:bg-white/[0.05] transition-colors"
             style={{ height: 46, background: i % 2 ? 'rgba(255,255,255,0.02)' : 'transparent' }}
           >
+            {/* Stretched link: whole row is a real, ctrl+click/middle-click openable
+                link to the match, without nesting an <a> inside an <a> around the
+                hero links below (invalid HTML). z-0 vs the hero links' z-10 keeps
+                those independently clickable on top of it. */}
+            <Link
+              to="/match/$matchId"
+              params={{ matchId: String(m.match_id) }}
+              className="absolute inset-0 z-0"
+              aria-label={`View match played ${d} ${t}`}
+            />
             <div
-              className="hidden sm:block w-[150px] shrink-0 text-[13px] tabular-nums"
+              className="hidden sm:block w-[150px] shrink-0 text-[13px] tabular-nums pointer-events-none"
               style={{ color: '#e8ecef' }}
             >
               {d} <span style={{ color: '#8a97a0' }}>{t}</span>
@@ -161,11 +159,7 @@ export function RecentGames({
 
             <div className="flex-1 min-w-0 flex items-center gap-2.5">
               {hero && (
-                <a
-                  href={`/hero/${heroSlug(hero.localized_name)}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="shrink-0 block"
-                >
+                <a href={`/hero/${heroSlug(hero.localized_name)}`} className="relative z-10 shrink-0 block">
                   <img
                     src={heroLandscapeUrl(hero.name)}
                     alt=""
@@ -178,14 +172,13 @@ export function RecentGames({
               {hero ? (
                 <a
                   href={`/hero/${heroSlug(hero.localized_name)}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-[14px] truncate hover:underline"
+                  className="relative z-10 text-[14px] truncate hover:underline"
                   style={{ color: '#e8ecef' }}
                 >
                   {hero.localized_name}
                 </a>
               ) : (
-                <span className="text-[14px] truncate" style={{ color: '#e8ecef' }}>
+                <span className="text-[14px] truncate pointer-events-none" style={{ color: '#e8ecef' }}>
                   {`Hero ${m.hero_id}`}
                 </span>
               )}
@@ -204,7 +197,7 @@ export function RecentGames({
               )}
             </div>
 
-            <div className="w-[80px] sm:w-[110px] shrink-0 text-center">
+            <div className="w-[80px] sm:w-[110px] shrink-0 text-center pointer-events-none">
               <span
                 className="text-[14px] uppercase"
                 style={{ color: won ? '#8fbf3f' : '#d14a38', letterSpacing: '1px' }}
@@ -214,14 +207,14 @@ export function RecentGames({
             </div>
 
             <div
-              className="w-[60px] sm:w-[80px] shrink-0 text-right text-[13px] tabular-nums"
+              className="w-[60px] sm:w-[80px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none"
               style={{ color: '#e8ecef' }}
             >
               {fmtDur(m.duration)}
             </div>
 
             <div
-              className="hidden sm:block w-[90px] shrink-0 text-right text-[13px] pr-2"
+              className="hidden sm:block w-[90px] shrink-0 text-right text-[13px] pr-2 pointer-events-none"
               style={{ color: '#cfd4d8' }}
             >
               {type}

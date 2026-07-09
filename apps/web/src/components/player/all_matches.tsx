@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useRef, useState } from 'react'
 import type { HeroStat, PlayerMatch } from 'types'
@@ -171,7 +171,6 @@ export function AllMatches({
   const [withPlayerFilter, setWithPlayerFilter] = useState<NumOrAll>('all')
   const [proOnly, setProOnly] = useState(false)
   const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('date', 'desc')
-  const navigate = useNavigate()
 
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const heroOptions = [...heroStats].sort((a, b) => a.localized_name.localeCompare(b.localized_name))
@@ -554,21 +553,11 @@ export function AllMatches({
                   const won = isWin(m)
                   const { d, t } = fmtDate(m.start_time)
                   const badge = rankBadge(m.average_rank)
-                  const goToMatch = () => navigate({ to: '/match/$matchId', params: { matchId: String(m.match_id) } })
 
                   return (
                     <div
                       key={m.match_id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={goToMatch}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault()
-                          goToMatch()
-                        }
-                      }}
-                      className="flex items-center px-3 hover:bg-white/[0.05] transition-colors cursor-pointer"
+                      className="flex items-center px-3 hover:bg-white/[0.05] transition-colors"
                       style={{
                         position: 'absolute',
                         top: 0,
@@ -579,13 +568,23 @@ export function AllMatches({
                         background: vRow.index % 2 ? 'rgba(255,255,255,0.02)' : 'transparent',
                       }}
                     >
-                      <div className="w-[150px] shrink-0 text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
+                      {/* Stretched link: makes the whole row a real, ctrl+click/middle-click
+                          openable link to the match, without nesting an <a> inside an <a>
+                          around the hero links below (invalid HTML). z-0 vs the hero links'
+                          z-10 keeps those independently clickable on top of it. */}
+                      <Link
+                        to="/match/$matchId"
+                        params={{ matchId: String(m.match_id) }}
+                        className="absolute inset-0 z-0"
+                        aria-label={`View match played ${d} ${t}`}
+                      />
+                      <div className="w-[150px] shrink-0 text-[13px] tabular-nums pointer-events-none" style={{ color: '#e8ecef' }}>
                         {d} <span style={{ color: '#8a97a0' }}>{t}</span>
                       </div>
 
                       <div className="flex-1 min-w-0 flex items-center gap-2.5">
                         {hero && (
-                          <a href={`/hero/${heroSlug(hero.localized_name)}`} onClick={(e) => e.stopPropagation()} className="shrink-0 block">
+                          <a href={`/hero/${heroSlug(hero.localized_name)}`} className="relative z-10 shrink-0 block">
                             <img
                               src={heroLandscapeUrl(hero.name)}
                               alt=""
@@ -598,20 +597,19 @@ export function AllMatches({
                         {hero ? (
                           <a
                             href={`/hero/${heroSlug(hero.localized_name)}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-[14px] truncate hover:underline"
+                            className="relative z-10 text-[14px] truncate hover:underline"
                             style={{ color: '#e8ecef' }}
                           >
                             {hero.localized_name}
                           </a>
                         ) : (
-                          <span className="text-[14px] truncate" style={{ color: '#e8ecef' }}>
+                          <span className="text-[14px] truncate pointer-events-none" style={{ color: '#e8ecef' }}>
                             {`Hero ${m.hero_id}`}
                           </span>
                         )}
                       </div>
 
-                      <div className="w-[70px] shrink-0 flex items-center justify-center" title={rankName(m.average_rank)}>
+                      <div className="w-[70px] shrink-0 flex items-center justify-center pointer-events-none" title={rankName(m.average_rank)}>
                         {badge ? (
                           <img src={badge.medal} alt="" style={{ width: 24, height: 24 }} className="object-contain" />
                         ) : (
@@ -619,7 +617,7 @@ export function AllMatches({
                         )}
                       </div>
 
-                      <div className="w-[90px] shrink-0 text-center">
+                      <div className="w-[90px] shrink-0 text-center pointer-events-none">
                         <span
                           className="text-[14px] uppercase"
                           style={{ color: won ? '#8fbf3f' : '#d14a38', letterSpacing: '1px' }}
@@ -628,27 +626,27 @@ export function AllMatches({
                         </span>
                       </div>
 
-                      <div className="w-[110px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
+                      <div className="w-[110px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none" style={{ color: '#e8ecef' }}>
                         {m.kills} / {m.deaths} / {m.assists}
                       </div>
 
-                      <div className="hidden sm:block w-[60px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#cfd4d8' }}>
+                      <div className="hidden sm:block w-[60px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none" style={{ color: '#cfd4d8' }}>
                         {m.gold_per_min ?? '—'}
                       </div>
 
-                      <div className="hidden sm:block w-[60px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#cfd4d8' }}>
+                      <div className="hidden sm:block w-[60px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none" style={{ color: '#cfd4d8' }}>
                         {m.xp_per_min ?? '—'}
                       </div>
 
-                      <div className="hidden md:block w-[50px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#cfd4d8' }}>
+                      <div className="hidden md:block w-[50px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none" style={{ color: '#cfd4d8' }}>
                         {m.last_hits ?? '—'}
                       </div>
 
-                      <div className="w-[80px] shrink-0 text-right text-[13px] tabular-nums" style={{ color: '#e8ecef' }}>
+                      <div className="w-[80px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none" style={{ color: '#e8ecef' }}>
                         {fmtDur(m.duration)}
                       </div>
 
-                      <div className="hidden sm:block w-[90px] shrink-0 text-right text-[13px] pr-2 truncate" style={{ color: '#cfd4d8' }} title={m.typeLabel}>
+                      <div className="hidden sm:block w-[90px] shrink-0 text-right text-[13px] pr-2 truncate pointer-events-none" style={{ color: '#cfd4d8' }} title={m.typeLabel}>
                         {m.typeLabel}
                       </div>
                     </div>

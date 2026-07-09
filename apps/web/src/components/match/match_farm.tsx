@@ -1,7 +1,7 @@
 import type { HeroStat, Match, MatchPlayer } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
 import { applySort, useSort } from '@/lib/sortable'
-import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
 import { TeamHeader, orderedTeams } from './match_roster'
 
 /* Farm tab — where each player's gold came from (OpenDota gold_reasons),
@@ -110,19 +110,29 @@ export function MatchFarm({
       <div key={p.player_slot} className="flex items-center px-2" style={{ height: 60, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="flex items-center gap-2.5 shrink-0" style={{ width: 240 }}>
           {hero && (
-            <img
-              src={heroIconUrl(hero.name)}
-              alt=""
-              style={{ width: 42, height: 42 }}
-              onError={(e) => {
-                const img = e.currentTarget
-                img.onerror = null
-                img.src = heroIconFromPath(hero.icon)
-              }}
-            />
+            <a href={`/hero/${heroSlug(hero.localized_name)}`} className="shrink-0 block">
+              <img
+                src={heroIconUrl(hero.name)}
+                alt=""
+                style={{ width: 42, height: 42 }}
+                onError={(e) => {
+                  const img = e.currentTarget
+                  img.onerror = null
+                  img.src = heroIconFromPath(hero.icon)
+                }}
+              />
+            </a>
           )}
           <div className="min-w-0" style={{ fontFamily: 'var(--font-dota)' }}>
-            <div className="text-[15px] truncate" style={{ color: C.white }}>{hero?.localized_name}</div>
+            {hero ? (
+              <a
+                href={`/hero/${heroSlug(hero.localized_name)}`}
+                className="block text-[15px] truncate hover:underline"
+                style={{ color: C.white }}
+              >
+                {hero.localized_name}
+              </a>
+            ) : null}
           </div>
         </div>
         <div className="flex-1 pr-4" style={{ maxWidth: `${(earned / maxEarned) * 100}%`, minWidth: 60 }}>

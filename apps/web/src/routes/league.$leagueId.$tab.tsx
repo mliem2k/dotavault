@@ -225,7 +225,10 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
                     {i + 1}
                   </td>
                   <td className="py-2">
-                    <div className="flex items-center gap-2.5">
+                    {/* Real link so this cell (unlike the rest of the row, which
+                        only navigates via the row's own click/keydown handlers)
+                        supports ctrl+click/middle-click to open in a new tab. */}
+                    <a href={`/team/${s.team_id}`} className="flex items-center gap-2.5" onClick={(e) => e.stopPropagation()}>
                       {team?.logo_url ? (
                         <img
                           src={team.logo_url}
@@ -239,10 +242,10 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
                       ) : (
                         <span className="h-7 w-7 shrink-0" />
                       )}
-                      <span className="truncate text-[15px]" style={{ color: '#dcd6c8' }}>
+                      <span className="truncate text-[15px] hover:underline" style={{ color: '#dcd6c8' }}>
                         {team?.name ?? `Team ${s.team_id}`}
                       </span>
-                    </div>
+                    </a>
                   </td>
                   <td className="px-3 text-right text-[14px] tabular-nums" style={{ color: '#8ec63f' }}>
                     {s.wins}

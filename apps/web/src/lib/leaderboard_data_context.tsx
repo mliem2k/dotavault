@@ -9,7 +9,6 @@ export type LeaderboardData = {
   page: number
   setPage: (updater: (p: number) => number) => void
   proFor: (r: LeaderboardEntry) => ProRef | undefined
-  openProfile: (r: LeaderboardEntry) => void
 }
 
 export const LeaderboardDataContext = createContext<LeaderboardData | null>(null)

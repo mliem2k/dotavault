@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import type { HeroStat, Match, MatchPlayer } from 'types'
 import { BUILDINGS, MAP_MAX, MAP_MIN, buildingDeathTimes } from '@/lib/buildings'
 import { playerColor } from '@/lib/dotaconst'
-import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
 import { formatClock } from './match_time'
 
 /* Buildings tab: every tower/rax/ancient on the minimap at its exact
@@ -142,16 +142,18 @@ function BuildingTooltip({
             {info.attackers.map((a) => (
               <div key={a.player.player_slot} className="flex items-center gap-1.5 text-[12px]">
                 {a.hero && (
-                  <img
-                    src={heroIconUrl(a.hero.name)}
-                    alt=""
-                    style={{ width: 18, height: 18 }}
-                    onError={(e) => {
-                      const img = e.currentTarget
-                      img.onerror = null
-                      if (a.hero) img.src = heroIconFromPath(a.hero.icon)
-                    }}
-                  />
+                  <a href={`/hero/${heroSlug(a.hero.localized_name)}`} className="shrink-0 block">
+                    <img
+                      src={heroIconUrl(a.hero.name)}
+                      alt=""
+                      style={{ width: 18, height: 18 }}
+                      onError={(e) => {
+                        const img = e.currentTarget
+                        img.onerror = null
+                        if (a.hero) img.src = heroIconFromPath(a.hero.icon)
+                      }}
+                    />
+                  </a>
                 )}
                 <span className="tabular-nums" style={{ color: C.white, minWidth: 38 }}>{a.damage.toLocaleString()}</span>
                 <span className="truncate" style={{ color: playerColor(a.player.player_slot) }}>
@@ -254,9 +256,8 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
                 >
                   {players.map((p) => {
                     const hero = heroMap.get(p.hero_id)
-                    return (
+                    const img = (
                       <img
-                        key={p.player_slot}
                         src={hero ? heroIconUrl(hero.name) : ''}
                         alt=""
                         title={`${hero?.localized_name ?? 'Unknown'} · ${anchor.label}`}
@@ -268,11 +269,18 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
                         }}
                         onError={(e) => {
                           if (!hero) return
-                          const img = e.currentTarget
-                          img.onerror = null
-                          img.src = heroIconFromPath(hero.icon)
+                          const el = e.currentTarget
+                          el.onerror = null
+                          el.src = heroIconFromPath(hero.icon)
                         }}
                       />
+                    )
+                    return hero ? (
+                      <a key={p.player_slot} href={`/hero/${heroSlug(hero.localized_name)}`} className="block">
+                        {img}
+                      </a>
+                    ) : (
+                      <span key={p.player_slot}>{img}</span>
                     )
                   })}
                 </div>
@@ -308,18 +316,22 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
                   {b.team === 'radiant' ? 'Radiant' : 'Dire'} {b.label}
                 </span>
                 {killer?.hero && (
-                  <img
-                    src={heroIconUrl(killer.hero.name)}
-                    alt=""
+                  <a
+                    href={`/hero/${heroSlug(killer.hero.localized_name)}`}
                     title={`Last hit: ${killer.player.personaname ?? 'Anonymous'}`}
-                    className="ml-auto"
-                    style={{ width: 20, height: 20 }}
-                    onError={(e) => {
-                      const img = e.currentTarget
-                      img.onerror = null
-                      if (killer.hero) img.src = heroIconFromPath(killer.hero.icon)
-                    }}
-                  />
+                    className="ml-auto block"
+                  >
+                    <img
+                      src={heroIconUrl(killer.hero.name)}
+                      alt=""
+                      style={{ width: 20, height: 20 }}
+                      onError={(e) => {
+                        const img = e.currentTarget
+                        img.onerror = null
+                        if (killer.hero) img.src = heroIconFromPath(killer.hero.icon)
+                      }}
+                    />
+                  </a>
                 )}
               </div>
             )

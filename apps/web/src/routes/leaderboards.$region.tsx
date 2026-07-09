@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { Spinner } from '@/components/ui/spinner'
 import { countryFlagUrl, DIVISIONS, fetchLeaderboard, type Division } from '@/lib/leaderboard'
@@ -29,7 +29,7 @@ function fmtTime(unix: number): string {
 function RegionPage() {
   const { region } = Route.useParams()
   const division = (DIVISIONS.some((d) => d.id === region) ? region : 'americas') as Division
-  const { search, setSearch, page, setPage, proFor, openProfile } = useLeaderboardData()
+  const { search, setSearch, page, setPage, proFor } = useLeaderboardData()
 
   const query = useQuery({
     queryKey: ['leaderboard', division],
@@ -100,17 +100,27 @@ function RegionPage() {
             const pro = proFor(r)
             const clickable = pro != null
             return (
-            <button
+            <div
               key={r.rank}
-              type="button"
-              onClick={clickable ? () => openProfile(r) : undefined}
-              disabled={!clickable}
-              title={clickable ? 'Open pro profile' : undefined}
-              className={`flex w-full items-center gap-4 px-4 py-2.5 text-left ${clickable ? 'cursor-pointer hover:bg-white/[0.04]' : 'cursor-default'}`}
+              className="relative flex w-full items-center gap-4 px-4 py-2.5 text-left"
               style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
             >
+              {/* Stretched link (only when a pro profile was actually matched): the
+                  whole row becomes a real, ctrl+click/middle-click openable link,
+                  without nesting an <a> inside another interactive element around
+                  the team-tag link below (invalid HTML). z-0 vs the team link's
+                  z-10 keeps that independently clickable on top of it. */}
+              {clickable && (
+                <Link
+                  to="/player/$accountId"
+                  params={{ accountId: String(pro.account_id) }}
+                  className="absolute inset-0 z-0 hover:bg-white/[0.04]"
+                  title="Open pro profile"
+                  aria-label={`Open pro profile for ${r.name}`}
+                />
+              )}
               <span
-                className="w-10 shrink-0 text-right text-[16px] tabular-nums"
+                className="w-10 shrink-0 text-right text-[16px] tabular-nums pointer-events-none"
                 style={{ color: RANK_COLORS[r.rank] ?? '#8a8474', fontFamily: 'var(--font-display)', fontWeight: 600 }}
               >
                 {r.rank}
@@ -120,8 +130,7 @@ function RegionPage() {
                   r.team_id ? (
                     <a
                       href={`/team/${r.team_id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="shrink-0 text-[13px] px-1.5 py-0.5 hover:brightness-125"
+                      className="relative z-10 shrink-0 text-[13px] px-1.5 py-0.5 hover:brightness-125"
                       style={{ background: '#24222a', color: '#c9a94a', fontFamily: 'var(--font-dota)' }}
                     >
                       {r.team_tag}
@@ -171,13 +180,13 @@ function RegionPage() {
                   width={16}
                   height={11}
                   loading="lazy"
-                  className="shrink-0"
+                  className="shrink-0 pointer-events-none"
                   onError={(e) => {
                     e.currentTarget.style.visibility = 'hidden'
                   }}
                 />
               )}
-            </button>
+            </div>
             )
           })}
         </div>

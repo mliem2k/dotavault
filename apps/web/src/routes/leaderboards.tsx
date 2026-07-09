@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, Outlet, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Link, Outlet, createFileRoute } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { DIVISIONS, type LeaderboardEntry } from '@/lib/leaderboard'
 import { LeaderboardDataContext, type ProRef } from '@/lib/leaderboard_data_context'
@@ -12,7 +12,6 @@ export const Route = createFileRoute('/leaderboards')({
 
 function LeaderboardsPage() {
   usePageTitle('Leaderboards')
-  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
 
@@ -72,11 +71,6 @@ function LeaderboardsPage() {
     return undefined
   }
 
-  function openProfile(r: LeaderboardEntry) {
-    const pro = proFor(r)
-    if (pro) navigate({ to: '/player/$accountId', params: { accountId: String(pro.account_id) } })
-  }
-
   return (
     <div className="space-y-6 py-4">
       <div className="text-center mb-2">
@@ -133,7 +127,7 @@ function LeaderboardsPage() {
         ))}
       </div>
 
-      <LeaderboardDataContext.Provider value={{ search, setSearch, page, setPage, proFor, openProfile }}>
+      <LeaderboardDataContext.Provider value={{ search, setSearch, page, setPage, proFor }}>
         <Outlet />
       </LeaderboardDataContext.Provider>
     </div>
