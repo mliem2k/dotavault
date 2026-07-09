@@ -2,7 +2,6 @@ import { type JSX, memo, useCallback, useEffect, useMemo, useState } from 'react
 import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
 import { applySort, useSort } from '@/lib/sortable'
-import { AGHS_SCEPTER_CDN, AGHS_SHARD_CDN, cdnFallback, dotaIconUrl } from '@/lib/utils'
 import { AbilityIcon } from './ability_icon'
 import { ItemIcon } from './item_icon'
 import { MatchRosterSidebar, orderedTeams, useRosterMetrics } from './match_roster'
@@ -172,21 +171,25 @@ function SupportItemsGroup({
   )
 }
 
-/* A permanent hero upgrade granted with no backing item (Aghanim's
-   Blessing), styled distinctly from ItemIcon so it doesn't read as "they
-   have this item in their inventory": they don't, there's nothing to find
-   in the Items column for this. */
-function AghsBlessingBadge({ kind }: { kind: 'scepter' | 'shard' }) {
-  const src = dotaIconUrl(kind === 'scepter' ? 'aghs_scepter' : 'aghs_shard')
-  const fallback = kind === 'scepter' ? AGHS_SCEPTER_CDN : AGHS_SHARD_CDN
-  const label = kind === 'scepter' ? "Aghanim's Blessing (Scepter effect)" : "Aghanim's Blessing (Shard effect)"
+// Gold border on top of ItemIcon's own frame: same recognizable shop icon
+// as the Items column (with its tooltip and CDN fallback), but visually
+// flagged as a "buff" callout rather than "they currently hold this item"
+// (true for the sold case, and outright wrong for Blessing, which has no
+// item at all).
+const BUFF_BORDER = '2px solid #d4af37'
+
+function AghsBuffIcon({
+  itemName,
+  itemConst,
+  label,
+}: {
+  itemName: string
+  itemConst: Record<string, ItemConst>
+  label: string
+}) {
   return (
-    <div
-      className="flex items-center justify-center shrink-0 rounded-sm"
-      style={{ width: 32, height: 24, background: '#1a1408', border: '1px solid #6b5423' }}
-      title={label}
-    >
-      <img src={src} alt={label} style={{ width: 20, height: 20 }} onError={cdnFallback(fallback)} />
+    <div title={label}>
+      <ItemIcon name={itemName} meta={itemConst[itemName]} width={32} height={24} style={{ border: BUFF_BORDER }} />
     </div>
   )
 }
@@ -220,17 +223,25 @@ function BuffsGroup({
     // box the same size in a 0-buff row too, matching every other section.
     <div className="flex items-center gap-1.5 px-2 shrink-0" style={{ width: 124 }}>
       {scepter === 'sold' && (
-        <div title="Aghanim's Scepter (bought earlier, later sold; the upgrade stays active)">
-          <ItemIcon name="ultimate_scepter" meta={itemConst.ultimate_scepter} width={32} height={24} />
-        </div>
+        <AghsBuffIcon
+          itemName="ultimate_scepter"
+          itemConst={itemConst}
+          label="Aghanim's Scepter (bought earlier, later sold; the upgrade stays active)"
+        />
       )}
-      {scepter === 'blessing' && <AghsBlessingBadge kind="scepter" />}
+      {scepter === 'blessing' && (
+        <AghsBuffIcon itemName="ultimate_scepter" itemConst={itemConst} label="Aghanim's Blessing (Scepter effect)" />
+      )}
       {shard === 'sold' && (
-        <div title="Aghanim's Shard (bought earlier, later sold; the upgrade stays active)">
-          <ItemIcon name="aghanims_shard" meta={itemConst.aghanims_shard} width={32} height={24} />
-        </div>
+        <AghsBuffIcon
+          itemName="aghanims_shard"
+          itemConst={itemConst}
+          label="Aghanim's Shard (bought earlier, later sold; the upgrade stays active)"
+        />
       )}
-      {shard === 'blessing' && <AghsBlessingBadge kind="shard" />}
+      {shard === 'blessing' && (
+        <AghsBuffIcon itemName="aghanims_shard" itemConst={itemConst} label="Aghanim's Blessing (Shard effect)" />
+      )}
       {moonshard && <ItemIcon name="moon_shard" meta={itemConst.moon_shard} width={32} height={24} />}
     </div>
   )

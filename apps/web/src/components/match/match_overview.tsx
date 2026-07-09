@@ -5,10 +5,7 @@ import { lobbyTypeName, regionName } from '@/lib/dotaconst'
 import { opendota } from '@/lib/opendota'
 import { rankBadge, rankName } from '@/lib/rank'
 import {
-  AGHS_SCEPTER_CDN,
-  AGHS_SHARD_CDN,
   cdnFallback,
-  dotaIconUrl,
   formatDuration,
   heroIconFromPath,
   heroIconUrl,
@@ -194,51 +191,52 @@ function overallPercentile(player: MatchPlayer): number {
 /* Portrait card (team view)                                           */
 /* ------------------------------------------------------------------ */
 
-/* Scepter/Shard badge: shows the real shop item icon when the player
-   personally bought it (whether still held or sold later), or a visually
-   distinct "Blessing" badge when the upgrade came from Aghanim's Blessing
-   instead (Roshan-dropped, consumed instantly on an ally, no item ever
-   enters their inventory, so showing the shop icon there would be
-   misleading). */
-function AghsBadge({ kind, source }: { kind: 'scepter' | 'shard'; source: 'held' | 'sold' | 'blessing' }) {
-  if (source === 'held' || source === 'sold') {
-    const name = kind === 'scepter' ? 'ultimate_scepter' : 'aghanims_shard'
-    const base = kind === 'scepter' ? "Aghanim's Scepter" : "Aghanim's Shard"
-    const label = source === 'sold' ? `${base} (bought earlier, later sold)` : base
-    return (
-      <div
-        className="overflow-hidden"
-        style={{ width: 36, height: 27, background: 'rgba(13,16,18,0.9)', border: `1px solid ${C.panelBorder}` }}
-        title={label}
-      >
-        <img
-          src={itemIconUrl(name)}
-          alt={label}
-          className="h-full w-full object-cover"
-          onError={(e) => {
-            const img = e.currentTarget
-            if (!img.src.includes('cdn.cloudflare')) {
-              img.src = `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/${name}.png`
-            } else {
-              img.onerror = null
-              img.style.opacity = '0.12'
-            }
-          }}
-        />
-      </div>
-    )
-  }
+// Gold border flags "sold"/"blessing" as a buff callout rather than "they
+// currently hold this item"; "held" keeps the plain item-frame look since
+// it really is just the item.
+const BUFF_BORDER = '2px solid #d4af37'
 
-  const src = dotaIconUrl(kind === 'scepter' ? 'aghs_scepter' : 'aghs_shard')
-  const fallback = kind === 'scepter' ? AGHS_SCEPTER_CDN : AGHS_SHARD_CDN
-  const label = kind === 'scepter' ? "Aghanim's Blessing (Scepter effect)" : "Aghanim's Blessing (Shard effect)"
+/* Scepter/Shard badge: always the real shop item icon (same asset the
+   Items grid would show), so it stays recognizable regardless of source.
+   "held"/"sold" mean the player personally bought it; "blessing" means the
+   upgrade came from Aghanim's Blessing instead (Roshan-dropped, consumed
+   instantly on an ally, no item ever enters their inventory), which still
+   uses the item icon (there's no separate icon for an item that doesn't
+   exist) but with the same buff border as "sold". */
+function AghsBadge({ kind, source }: { kind: 'scepter' | 'shard'; source: 'held' | 'sold' | 'blessing' }) {
+  const name = kind === 'scepter' ? 'ultimate_scepter' : 'aghanims_shard'
+  const base = kind === 'scepter' ? "Aghanim's Scepter" : "Aghanim's Shard"
+  const label =
+    source === 'sold'
+      ? `${base} (bought earlier, later sold)`
+      : source === 'blessing'
+        ? `Aghanim's Blessing (${kind === 'scepter' ? 'Scepter' : 'Shard'} effect)`
+        : base
   return (
     <div
-      className="flex items-center justify-center overflow-hidden"
-      style={{ width: 36, height: 27, background: '#1a1408', border: '1px solid #6b5423' }}
+      className="overflow-hidden"
+      style={{
+        width: 36,
+        height: 27,
+        background: 'rgba(13,16,18,0.9)',
+        border: source === 'held' ? `1px solid ${C.panelBorder}` : BUFF_BORDER,
+      }}
       title={label}
     >
-      <img src={src} alt={label} style={{ width: 22, height: 22 }} onError={cdnFallback(fallback)} />
+      <img
+        src={itemIconUrl(name)}
+        alt={label}
+        className="h-full w-full object-cover"
+        onError={(e) => {
+          const img = e.currentTarget
+          if (!img.src.includes('cdn.cloudflare')) {
+            img.src = `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/${name}.png`
+          } else {
+            img.onerror = null
+            img.style.opacity = '0.12'
+          }
+        }}
+      />
     </div>
   )
 }
