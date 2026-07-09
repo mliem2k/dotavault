@@ -194,16 +194,27 @@ function overallPercentile(player: MatchPlayer): number {
 function HeroPortraitCard({
   player,
   hero,
+  idToName,
   onClick,
 }: {
   player: MatchPlayer
   hero: HeroStat | undefined
+  idToName: Map<number, string>
   onClick: () => void
 }) {
   const playerName = usePlayerName(player)
   const proName = usePlayerProName(player, playerName)
-  const hasScepter = (player.aghanims_scepter ?? 0) > 0
-  const hasShard = (player.aghanims_shard ?? 0) > 0
+  // aghanims_scepter/aghanims_shard reflect OpenDota's permanent_buffs parse,
+  // which is sometimes empty even when the item is clearly in the final
+  // inventory (e.g. permanent_buffs came back [] for a player with
+  // ultimate_scepter sitting in item_0). Cross-check the final item slots
+  // too, same "finalItems" convention itemsAtTime uses, so Aghanim's
+  // Blessing (a permanent buff with no inventory item) still works via the
+  // boolean field while a regularly-purchased Scepter/Shard isn't missed.
+  const finalItemNames = [player.item_0, player.item_1, player.item_2, player.item_3, player.item_4, player.item_5]
+    .map((id) => idToName.get(id))
+  const hasScepter = (player.aghanims_scepter ?? 0) > 0 || finalItemNames.includes('ultimate_scepter')
+  const hasShard = (player.aghanims_shard ?? 0) > 0 || finalItemNames.includes('aghanims_shard')
 
   return (
     <div className="flex flex-col items-center shrink-0" style={{ width: 118 }}>
@@ -1093,6 +1104,7 @@ export function MatchOverview({
                   key={p.player_slot}
                   player={p}
                   hero={heroMap.get(p.hero_id)}
+                  idToName={idToName}
                   onClick={() => selectHero(p)}
                 />
               ))}
@@ -1104,6 +1116,7 @@ export function MatchOverview({
                   key={p.player_slot}
                   player={p}
                   hero={heroMap.get(p.hero_id)}
+                  idToName={idToName}
                   onClick={() => selectHero(p)}
                 />
               ))}
@@ -1161,6 +1174,7 @@ export function MatchOverview({
             key={p.player_slot}
             player={p}
             hero={heroMap.get(p.hero_id)}
+            idToName={idToName}
             onClick={() => selectHero(p)}
           />
         ))}
