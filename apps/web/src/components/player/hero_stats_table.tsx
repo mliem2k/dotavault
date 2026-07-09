@@ -48,7 +48,7 @@ export function HeroStatsTable({
     <Table className="text-sm">
       <TableHeader>
         <TableRow className="hover:bg-transparent text-left text-xs text-muted">
-          <TableHead className="h-auto px-0 pb-2 font-normal text-muted">
+          <TableHead className="h-auto px-0 pb-2 font-normal text-muted whitespace-normal">
             <SortHeader label="Hero" sortKey="hero" active={sortKey === 'hero'} dir={sortDir} onClick={onSort} />
           </TableHead>
           <TableHead className="h-auto px-0 pb-2 text-right font-mono font-normal text-muted">
@@ -65,9 +65,9 @@ export function HeroStatsTable({
           return (
             <TableRow
               key={ph.hero_id}
-              className={`border-border/50 ${i % 2 === 1 ? 'bg-white/[0.02]' : ''}`}
+              className={`hover:bg-transparent border-border/50 ${i % 2 === 1 ? 'bg-white/[0.02]' : ''}`}
             >
-              <TableCell className="p-0 py-1.5">
+              <TableCell className="p-0 py-1.5 whitespace-normal">
                 <Link
                   to="/hero/$heroName"
                   params={{ heroName: hero?.name.replace('npc_dota_hero_', '') ?? String(ph.hero_id) }}
