@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { SortDir } from '@/lib/sortable'
+import { cn } from '@/lib/utils'
 
 /* Clickable column header with an up/down arrow indicator, dimmed when this
    column isn't the active sort. Works inside a div-based header row or a
@@ -25,8 +26,12 @@ export function SortHeader<K extends string>({
     <button
       type="button"
       onClick={() => onClick(sortKey)}
-      className={`inline-flex items-center gap-1 uppercase cursor-pointer hover:text-white transition-colors min-h-[44px] ${className ?? ''}`}
-      style={{ color: active ? '#ffffff' : 'inherit', ...style }}
+      className={cn(
+        'inline-flex items-center gap-1 uppercase cursor-pointer hover:text-white transition-colors min-h-[44px]',
+        active ? 'text-white' : 'text-inherit',
+        className
+      )}
+      style={style}
     >
       <span>{label}</span>
       <span
