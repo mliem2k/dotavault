@@ -7,8 +7,16 @@ import { opendota } from '@/lib/opendota'
 import { applySort, useSort } from '@/lib/sortable'
 import { usePageTitle } from '@/lib/title'
 
+type LeaguesSearch = { q?: string; tier?: string; sort?: SortKey; dir?: 'asc' | 'desc' }
+
 export const Route = createFileRoute('/leagues')({
   component: LeaguesPage,
+  validateSearch: (search: Record<string, unknown>): LeaguesSearch => ({
+    q: typeof search.q === 'string' && search.q ? search.q : undefined,
+    tier: typeof search.tier === 'string' && search.tier ? search.tier : undefined,
+    sort: search.sort === 'name' || search.sort === 'tier' ? search.sort : undefined,
+    dir: search.dir === 'asc' || search.dir === 'desc' ? search.dir : undefined,
+  }),
 })
 
 /* League browser: search OpenDota's full league directory and jump into a
@@ -32,10 +40,13 @@ type SortKey = 'name' | 'tier'
 
 function LeaguesPage() {
   usePageTitle('Leagues')
-  const [search, setSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [tier, setTier] = useState<string>('all')
-  const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('tier', 'asc')
+  const urlSearch = Route.useSearch()
+  const navigate = Route.useNavigate()
+
+  const [search, setSearch] = useState(urlSearch.q ?? '')
+  const [debouncedSearch, setDebouncedSearch] = useState(urlSearch.q ?? '')
+  const [tier, setTier] = useState<string>(urlSearch.tier ?? 'all')
+  const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>(urlSearch.sort ?? 'tier', urlSearch.dir ?? 'asc')
 
   // Debounce so every keystroke doesn't re-filter/re-sort the full leagues
   // list (up to 300 rows deep); only the settled value feeds the memo below.
@@ -43,6 +54,21 @@ function LeaguesPage() {
     const id = setTimeout(() => setDebouncedSearch(search), 200)
     return () => clearTimeout(id)
   }, [search])
+
+  // Mirror filters/sort into the URL (replace, not push, so the back button
+  // doesn't step through every keystroke) so a filtered/sorted view is
+  // shareable and survives a refresh.
+  useEffect(() => {
+    navigate({
+      search: {
+        q: debouncedSearch || undefined,
+        tier: tier !== 'all' ? tier : undefined,
+        sort: sortKey !== 'tier' ? sortKey : undefined,
+        dir: !(sortKey === 'tier' && sortDir === 'asc') ? sortDir : undefined,
+      },
+      replace: true,
+    })
+  }, [debouncedSearch, tier, sortKey, sortDir, navigate])
 
   const leagues = useQuery({
     queryKey: ['leagues_list'],
@@ -112,7 +138,8 @@ function LeaguesPage() {
                 className="px-3 py-2 text-[12px] uppercase cursor-pointer"
                 style={{
                   background: tier === t ? '#24222a' : 'transparent',
-                  color: tier === t ? '#dcd6c8' : '#8a8474',
+                  color: '#fff',
+                  textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)',
                   letterSpacing: '1px',
                   fontFamily: 'var(--font-dota)',
                 }}
@@ -122,7 +149,10 @@ function LeaguesPage() {
             ))}
           </div>
           {leagues.data && (
-            <span className="text-[12px] sm:ml-auto" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+            <span
+              className="text-[12px] sm:ml-auto"
+              style={{ color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.7)', fontFamily: 'var(--font-dota)' }}
+            >
               {rows.length} of {leagues.data.length.toLocaleString()} leagues
             </span>
           )}
