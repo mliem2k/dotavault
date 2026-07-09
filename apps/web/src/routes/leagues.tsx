@@ -28,13 +28,16 @@ export const Route = createFileRoute('/leagues')({
    columns here; there's nothing to sort. Name and Tier are the only real,
    sortable fields. */
 
+// OpenDota's actual tier values (checked against a full live pull of all
+// ~10k leagues): premium, professional, amateur, excluded (non-competitive/
+// exhibition, not offered as a filter), and null. There is no "minor" tier
+// in the data, so it's deliberately not one of these options.
 const TIER_LABELS: Record<string, string> = {
   premium: 'Premium',
   professional: 'Professional',
   amateur: 'Amateur',
-  minor: 'Minor',
 }
-const TIER_ORDER: Record<string, number> = { premium: 0, professional: 1, minor: 2, amateur: 3 }
+const TIER_ORDER: Record<string, number> = { premium: 0, professional: 1, amateur: 2 }
 
 type SortKey = 'name' | 'tier'
 
@@ -123,7 +126,7 @@ function LeaguesPage() {
           style={{ background: 'rgba(12,11,14,0.72)' }}
         />
         <div className="flex flex-wrap items-center border border-border">
-          {['all', 'premium', 'professional', 'minor', 'amateur'].map((t) => (
+          {['all', 'premium', 'professional', 'amateur'].map((t) => (
             <button
               key={t}
               type="button"
