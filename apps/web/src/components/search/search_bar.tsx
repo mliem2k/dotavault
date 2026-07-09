@@ -2,6 +2,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { Loader2, Search, Swords, User } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { SearchResult } from 'types'
+import { Input } from '@/components/ui/input'
 import { opendota } from '@/lib/opendota'
 import { resolveVanitySteamId, STEAM64_BASE } from '@/lib/steam'
 
@@ -229,7 +230,7 @@ export function SearchBar() {
   return (
     <div className="relative w-full max-w-3xl">
       <div
-        className="flex items-center gap-3 px-5 border border-[#24222a] transition-colors focus-within:border-[#c9a94a]"
+        className="flex items-center gap-3 px-5 border border-border transition-colors focus-within:border-gold"
         style={{
           background: 'rgba(12,11,14,0.72)',
           boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.6)',
@@ -237,7 +238,7 @@ export function SearchBar() {
         }}
       >
         <Search className="h-5 w-5 flex-shrink-0" style={{ color: '#5a6070' }} />
-        <input
+        <Input
           value={query}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
@@ -248,17 +249,16 @@ export function SearchBar() {
           aria-controls="search-results-listbox"
           aria-autocomplete="list"
           aria-activedescendant={activeOptionId}
-          className="w-full bg-transparent outline-none"
+          className="h-auto w-full rounded-none border-0 bg-transparent px-0 py-0 text-foreground shadow-none outline-none focus-visible:ring-0"
           style={{
             fontFamily: 'Radiance, "Noto Sans", sans-serif',
             fontSize: 17,
-            color: '#dcd6c8',
             letterSpacing: '0.01em',
           }}
         />
         {resolving
           ? <Loader2 className="h-4 w-4 motion-safe:animate-spin flex-shrink-0" style={{ color: '#5a6070' }} />
-          : <kbd style={{ fontFamily: 'inherit', fontSize: 11, color: '#8a8474', border: '1px solid #2a2a30', padding: '2px 6px', borderRadius: 3, flexShrink: 0 }}>Enter</kbd>
+          : <kbd className="text-muted" style={{ fontFamily: 'inherit', fontSize: 11, border: '1px solid #2a2a30', padding: '2px 6px', borderRadius: 3, flexShrink: 0 }}>Enter</kbd>
         }
       </div>
 
@@ -266,8 +266,8 @@ export function SearchBar() {
         <div
           id="search-results-listbox"
           role="listbox"
-          className="absolute top-full z-50 mt-1 w-full py-1"
-          style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a', boxShadow: '0 16px 48px rgba(0,0,0,0.8)' }}
+          className="absolute top-full z-50 mt-1 w-full py-1 border border-border"
+          style={{ background: 'rgba(12,11,14,0.72)', boxShadow: '0 16px 48px rgba(0,0,0,0.8)' }}
         >
           {/* Options are real Links (not buttons) so ctrl/cmd/middle-click can
               open a result in a new tab, same as any other link on the site;
@@ -287,13 +287,13 @@ export function SearchBar() {
               style={activeOptionId === 'search-option-resolved' ? { background: 'rgba(255,255,255,0.06)' } : undefined}
             >
               {parsed.dest.kind === 'match'
-                ? <Swords className="h-4 w-4 flex-shrink-0" style={{ color: '#c9a94a' }} />
-                : <User className="h-4 w-4 flex-shrink-0" style={{ color: '#c9a94a' }} />}
+                ? <Swords className="h-4 w-4 flex-shrink-0 text-gold" />
+                : <User className="h-4 w-4 flex-shrink-0 text-gold" />}
               <div>
-                <div style={{ fontSize: 14, color: '#dcd6c8', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>
+                <div className="text-foreground" style={{ fontSize: 14, fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>
                   {parsed.dest.kind === 'match' ? 'View Match' : 'View Player'}
                 </div>
-                <div className="font-mono" style={{ fontSize: 12, color: '#8a8474', marginTop: 1 }}>#{parsed.dest.id}</div>
+                <div className="font-mono text-muted" style={{ fontSize: 12, marginTop: 1 }}>#{parsed.dest.id}</div>
               </div>
             </Link>
           )}
@@ -312,10 +312,10 @@ export function SearchBar() {
                 ...(activeOptionId === 'search-option-vanity' ? { background: 'rgba(255,255,255,0.06)' } : undefined),
               }}
             >
-              <User className="h-4 w-4 flex-shrink-0" style={{ color: '#c9a94a' }} />
+              <User className="h-4 w-4 flex-shrink-0 text-gold" />
               <div>
-                <div style={{ fontSize: 14, color: '#dcd6c8', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>Steam Profile</div>
-                <div className="font-mono" style={{ fontSize: 12, color: '#8a8474', marginTop: 1 }}>#{vanityResult} · {parsed.url}</div>
+                <div className="text-foreground" style={{ fontSize: 14, fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>Steam Profile</div>
+                <div className="font-mono text-muted" style={{ fontSize: 12, marginTop: 1 }}>#{vanityResult} · {parsed.url}</div>
               </div>
             </Link>
           )}
@@ -339,14 +339,14 @@ export function SearchBar() {
                   alt=""
                   className="h-8 w-8 rounded-full object-cover flex-shrink-0"
                 />
-                <span style={{ fontSize: 15, color: '#dcd6c8', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>{r.personaname}</span>
+                <span className="text-foreground" style={{ fontSize: 15, fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>{r.personaname}</span>
               </Link>
             )
           })}
 
           {/* Vanity resolving state with no results yet */}
           {parsed?.type === 'vanity' && resolving && !vanityResult && results.length === 0 && (
-            <div className="px-5 py-3" style={{ fontSize: 13, color: '#8a8474', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>Resolving Steam ID…</div>
+            <div className="px-5 py-3 text-muted" style={{ fontSize: 13, fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>Resolving Steam ID…</div>
           )}
         </div>
       )}
