@@ -252,7 +252,7 @@ function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }
           }}
         />
         <Tabs value={attr} onValueChange={(v) => setAttr(v as (typeof ATTRS)[number]['key'])}>
-          <TabsList className="h-auto rounded-none border border-border bg-transparent p-0">
+          <TabsList className="group-data-[orientation=horizontal]/tabs:h-11 rounded-none border border-border bg-transparent p-0">
             {ATTRS.map((a) => (
               <TabsTrigger
                 key={a.key}
