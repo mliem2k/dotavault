@@ -14,7 +14,7 @@ function ItemTooltip({ meta, x, y }: { meta: ItemConst; x: number; y: number }) 
 
   return (
     <div
-      className="pointer-events-none"
+      className="pointer-events-none font-dota"
       style={{
         position: 'fixed',
         left: Math.max(8, left),
@@ -26,7 +26,6 @@ function ItemTooltip({ meta, x, y }: { meta: ItemConst; x: number; y: number }) 
         borderRadius: 4,
         boxShadow: '0 6px 24px rgba(0,0,0,0.7)',
         padding: '10px 12px',
-        fontFamily: 'var(--font-dota)',
       }}
     >
       <div className="flex items-center justify-between gap-3 mb-1">
@@ -50,7 +49,7 @@ function ItemTooltip({ meta, x, y }: { meta: ItemConst; x: number; y: number }) 
             <span style={{ color: '#5a8fc2' }}>Mana {meta.mc}</span>
           )}
           {typeof meta.cd === 'number' && meta.cd > 0 && (
-            <span style={{ color: '#c9a94a' }}>Cooldown {meta.cd}s</span>
+            <span className="text-gold">Cooldown {meta.cd}s</span>
           )}
         </div>
       )}
@@ -58,7 +57,7 @@ function ItemTooltip({ meta, x, y }: { meta: ItemConst; x: number; y: number }) 
       {attribs.length > 0 && (
         <div className="space-y-0.5 mb-1.5">
           {attribs.map((a, i) => (
-            <div key={i} className="text-[11px] leading-tight" style={{ color: '#8ec63f' }}>
+            <div key={i} className="text-[11px] leading-tight text-radiant">
               {(a.display ?? '').replace(/\{value\}/g, String(a.value)).trim()}
             </div>
           ))}

@@ -86,15 +86,15 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
                 img.src = heroIconFromPath(hero.icon)
               }}
             />
-            <span className="max-w-[130px] truncate text-[13px]" style={{ color: p.player_slot < 128 ? C.green : C.red }}>
+            <span className={`max-w-[130px] truncate text-[13px] ${p.player_slot < 128 ? 'text-radiant' : 'text-dire'}`}>
               {p.personaname ?? 'Anonymous'}
             </span>
           </div>
         </td>
-        <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: C.gold }}>
+        <td className="px-2 text-right text-[13px] tabular-nums text-gold">
           {p.actions_per_min ?? '-'}
         </td>
-        <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: C.white }}>
+        <td className="px-2 text-right text-[13px] tabular-nums text-white">
           {total ? total.toLocaleString() : '-'}
         </td>
         {columns.map((id) => {
@@ -102,10 +102,9 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
           return (
             <td key={id} className="px-1 py-1">
               <div
-                className="flex h-[22px] items-center justify-center text-[13px] tabular-nums"
+                className={`flex h-[22px] items-center justify-center text-[13px] tabular-nums ${v > 0 ? 'text-slate-foreground' : 'text-slate-border'}`}
                 style={{
                   background: v > 0 ? `rgba(159,191,63,${0.06 + 0.4 * (v / maxCell)})` : 'rgba(255,255,255,0.02)',
-                  color: v > 0 ? C.text : '#3a4147',
                 }}
               >
                 {v ? v.toLocaleString() : ''}
@@ -118,13 +117,13 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
   }
 
   return (
-    <div className="overflow-x-auto" style={{ background: C.panel, fontFamily: 'var(--font-dota)' }}>
-      <div className="px-4 py-3 text-[15px] uppercase" style={{ color: C.white, letterSpacing: '2px', background: C.panelDark }}>
+    <div className="overflow-x-auto font-dota" style={{ background: C.panel }}>
+      <div className="px-4 py-3 text-[15px] uppercase text-white" style={{ letterSpacing: '2px', background: C.panelDark }}>
         Actions
       </div>
       <table className="w-full border-collapse" style={{ minWidth: 1100 }}>
         <thead>
-          <tr className="text-[12px] uppercase" style={{ color: C.dim, letterSpacing: '1px' }}>
+          <tr className="text-[12px] uppercase text-slate-muted" style={{ letterSpacing: '1px' }}>
             <th className="px-3 py-2 text-left">
               <SortHeader label="Player" sortKey="player" active={sortKey === 'player'} dir={sortDir} onClick={onSort} />
             </th>

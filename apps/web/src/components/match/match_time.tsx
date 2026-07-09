@@ -314,7 +314,7 @@ export function GameTimeSlider({
             boxShadow: '0 1px 6px rgba(0,0,0,0.7)',
           }}
         >
-          <span className="text-[14px] tabular-nums px-1.5" style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}>
+          <span className="text-[14px] tabular-nums px-1.5 text-white font-dota">
             {formatClock(timeSec)}
           </span>
         </div>

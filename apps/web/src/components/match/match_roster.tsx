@@ -171,8 +171,8 @@ export function PlayerAvatar({
         src={url}
         alt=""
         loading="lazy"
-        className="shrink-0 object-cover rounded-full overflow-hidden"
-        style={{ width: size, height: size, border: '1px solid #2c3236' }}
+        className="shrink-0 object-cover rounded-full overflow-hidden border-slate-card"
+        style={{ width: size, height: size }}
         onError={(e) => {
           e.currentTarget.style.display = 'none'
         }}
@@ -181,10 +181,10 @@ export function PlayerAvatar({
   }
   return (
     <div
-      className="shrink-0 flex items-center justify-center rounded-full overflow-hidden"
-      style={{ width: size, height: size, background: active ? '#2c3236' : '#20262a', border: '1px solid #2c3236' }}
+      className={`shrink-0 flex items-center justify-center rounded-full overflow-hidden border-slate-card ${active ? 'bg-slate-card' : ''}`}
+      style={{ width: size, height: size, background: active ? undefined : '#20262a' }}
     >
-      <span style={{ fontSize: size * 0.45, color: '#8a8474', fontFamily: 'var(--font-dota)' }}>?</span>
+      <span className="font-dota" style={{ fontSize: size * 0.45, color: '#8a8474' }}>?</span>
     </div>
   )
 }
@@ -230,7 +230,7 @@ export function PlayerIdentityCell({
       onError={cdnFallback(heroLandscapeCdn(hero.name))}
     />
   ) : (
-    <div style={{ width: heroW, height: heroH, background: '#14181b' }} />
+    <div className="bg-slate-bg" style={{ width: heroW, height: heroH }} />
   )
 
   return (
@@ -260,20 +260,19 @@ export function PlayerIdentityCell({
         <div className="shrink-0">{heroImg}</div>
       )}
 
-      <div className="min-w-0 flex-1 text-left" style={{ fontFamily: 'var(--font-dota)' }}>
+      <div className="min-w-0 flex-1 text-left font-dota">
         {accountId && !linkless ? (
           <a
             href={`/player/${accountId}`}
-            className={`block ${small ? 'text-[13px]' : 'text-[15px]'} truncate hover:underline leading-tight`}
-            style={{ color: active ? '#14181b' : '#ffffff' }}
+            className={`block ${small ? 'text-[13px]' : 'text-[15px]'} truncate hover:underline leading-tight ${active ? 'text-slate-bg' : 'text-white'}`}
           >
             {playerName}
             {proName && <span className="opacity-70"> [{proName}]</span>}
           </a>
         ) : (
           <span
-            className={`block ${small ? 'text-[13px]' : 'text-[15px]'} truncate leading-tight`}
-            style={{ color: active ? '#14181b' : accountId ? '#ffffff' : '#c3cbd1' }}
+            className={`block ${small ? 'text-[13px]' : 'text-[15px]'} truncate leading-tight ${active ? 'text-slate-bg' : accountId ? 'text-white' : ''}`}
+            style={active || accountId ? undefined : { color: '#c3cbd1' }}
           >
             {playerName}
             {proName && <span className="opacity-70"> [{proName}]</span>}
@@ -281,13 +280,13 @@ export function PlayerIdentityCell({
         )}
         <div className="flex items-center gap-1.5 mt-0.5">
           <span
-            className="inline-flex items-center justify-center rounded-full shrink-0 tabular-nums"
+            className={`inline-flex items-center justify-center rounded-full shrink-0 tabular-nums ${active ? '' : 'text-slate-muted-light'}`}
             style={{
               width: small ? 14 : 17,
               height: small ? 14 : 17,
               fontSize: small ? 9 : 10,
               border: '1px solid #4a5258',
-              color: active ? '#3c444a' : '#8a97a0',
+              color: active ? '#3c444a' : undefined,
             }}
           >
             {levelOverride ?? player.level}
@@ -295,8 +294,8 @@ export function PlayerIdentityCell({
           {hero && (
             <a
               href={`/hero/${heroShort}`}
-              className={`${small ? 'text-[10px]' : 'text-[11px]'} uppercase truncate hover:underline`}
-              style={{ color: active ? '#3c444a' : '#8a97a0', letterSpacing: '1px' }}
+              className={`${small ? 'text-[10px]' : 'text-[11px]'} uppercase truncate hover:underline ${active ? '' : 'text-slate-muted-light'}`}
+              style={{ letterSpacing: '1px', color: active ? '#3c444a' : undefined }}
             >
               {hero.localized_name}
             </a>
@@ -336,27 +335,33 @@ export function TeamHeader({
     >
       {small ? (
         <div className="min-w-0 flex items-baseline gap-2">
-          <span className="text-[16px] leading-tight truncate" style={{ color }}>
+          <span
+            className={`text-[16px] leading-tight truncate ${isRadiant ? '' : 'text-dire'}`}
+            style={isRadiant ? { color } : undefined}
+          >
             {name}
           </span>
           <span className="text-[10px] uppercase leading-tight" style={{ color: '#8a8474', letterSpacing: '1px' }}>
-            Score: <span className="text-[12px]" style={{ color: '#ffffff' }}>{score}</span>
+            Score: <span className="text-[12px] text-white">{score}</span>
           </span>
         </div>
       ) : (
         <div className="min-w-0">
-          <div className="text-[20px] leading-tight truncate" style={{ color }}>
+          <div
+            className={`text-[20px] leading-tight truncate ${isRadiant ? '' : 'text-dire'}`}
+            style={isRadiant ? { color } : undefined}
+          >
             {name}
           </div>
           <div className="text-[11px] uppercase leading-tight" style={{ color: '#8a8474', letterSpacing: '1px' }}>
-            Score: <span className="text-[13px]" style={{ color: '#ffffff' }}>{score}</span>
+            Score: <span className="text-[13px] text-white">{score}</span>
           </div>
         </div>
       )}
       {isWinner && (
         <span
-          className="text-[10px] uppercase px-2 py-0.5 ml-auto shrink-0"
-          style={{ background: '#d8dee3', color: '#14181b', letterSpacing: '2px', transform: 'skewX(-12deg)' }}
+          className="text-[10px] uppercase px-2 py-0.5 ml-auto shrink-0 text-slate-bg"
+          style={{ background: '#d8dee3', letterSpacing: '2px', transform: 'skewX(-12deg)' }}
         >
           Winner
         </span>

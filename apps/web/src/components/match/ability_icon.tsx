@@ -25,7 +25,7 @@ function AbilityTooltip({ meta, isTalent, x, y }: { meta: AbilityConst; isTalent
 
   return (
     <div
-      className="pointer-events-none"
+      className="pointer-events-none font-dota"
       style={{
         position: 'fixed',
         left: Math.max(8, left),
@@ -37,7 +37,6 @@ function AbilityTooltip({ meta, isTalent, x, y }: { meta: AbilityConst; isTalent
         borderRadius: 4,
         boxShadow: '0 6px 24px rgba(0,0,0,0.7)',
         padding: '10px 12px',
-        fontFamily: 'var(--font-dota)',
       }}
     >
       <div className="flex items-center justify-between gap-2 mb-1">
@@ -45,7 +44,7 @@ function AbilityTooltip({ meta, isTalent, x, y }: { meta: AbilityConst; isTalent
           {isTalent ? cleanTalent(meta.dname ?? 'Talent') : (meta.dname ?? 'Ability')}
         </span>
         {isTalent && (
-          <span className="text-[11px] font-bold uppercase tracking-widest shrink-0" style={{ color: '#8ec63f' }}>
+          <span className="text-[11px] font-bold uppercase tracking-widest shrink-0 text-radiant">
             Talent
           </span>
         )}
@@ -64,7 +63,7 @@ function AbilityTooltip({ meta, isTalent, x, y }: { meta: AbilityConst; isTalent
             <span style={{ color: '#5a8fc2' }}>Mana {joinLevels(meta.mc as string | string[])}</span>
           )}
           {meta.cd != null && meta.cd !== 0 && (
-            <span style={{ color: '#c9a94a' }}>CD {joinLevels(meta.cd as string | string[])}s</span>
+            <span className="text-gold">CD {joinLevels(meta.cd as string | string[])}s</span>
           )}
         </div>
       ) : null}
@@ -82,7 +81,7 @@ function AbilityTooltip({ meta, isTalent, x, y }: { meta: AbilityConst; isTalent
               <span className="uppercase" style={{ color: '#77715f' }}>
                 {(a.header ?? a.key).replace(/:$/, '')}
               </span>
-              <span className="tabular-nums shrink-0" style={{ color: '#8ec63f' }}>{joinLevels(a.value)}</span>
+              <span className="tabular-nums shrink-0 text-radiant">{joinLevels(a.value)}</span>
             </div>
           ))}
         </div>

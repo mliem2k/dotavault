@@ -15,7 +15,7 @@ const C = {
 }
 
 function PickCard({ hero, order }: { hero: HeroStat | undefined; order: number }) {
-  if (!hero) return <div style={{ width: 138, height: 78, background: '#14181b' }} />
+  if (!hero) return <div className="bg-slate-bg" style={{ width: 138, height: 78 }} />
   return (
     <a href={`/hero/${heroSlug(hero.localized_name)}`} className="block hover:brightness-125" style={{ width: 138 }}>
       <div className="relative">
@@ -26,15 +26,15 @@ function PickCard({ hero, order }: { hero: HeroStat | undefined; order: number }
           onError={cdnFallback(heroLandscapeCdn(hero.name))}
         />
         <span
-          className="absolute top-0 left-0 px-1.5 text-[12px] tabular-nums"
-          style={{ background: 'rgba(8,10,12,0.85)', color: C.label, fontFamily: 'var(--font-dota)' }}
+          className="absolute top-0 left-0 px-1.5 text-[12px] tabular-nums text-slate-muted-light font-dota"
+          style={{ background: 'rgba(8,10,12,0.85)' }}
         >
           {order}
         </span>
       </div>
       <div
-        className="mt-1 text-[13px] uppercase truncate"
-        style={{ color: '#e8ecef', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}
+        className="mt-1 text-[13px] uppercase truncate text-slate-foreground-light font-dota"
+        style={{ letterSpacing: '1px' }}
       >
         {hero.localized_name}
       </div>
@@ -43,7 +43,7 @@ function PickCard({ hero, order }: { hero: HeroStat | undefined; order: number }
 }
 
 function BanThumb({ hero, order }: { hero: HeroStat | undefined; order: number }) {
-  if (!hero) return <div style={{ width: 92, height: 52, background: '#14181b' }} />
+  if (!hero) return <div className="bg-slate-bg" style={{ width: 92, height: 52 }} />
   return (
     <a
       href={`/hero/${heroSlug(hero.localized_name)}`}
@@ -63,8 +63,8 @@ function BanThumb({ hero, order }: { hero: HeroStat | undefined; order: number }
         style={{ background: 'linear-gradient(to top right, transparent 47%, rgba(201,74,56,0.9) 48%, rgba(201,74,56,0.9) 52%, transparent 53%)' }}
       />
       <span
-        className="absolute top-0 left-0 px-1 text-[11px] tabular-nums"
-        style={{ background: 'rgba(8,10,12,0.85)', color: C.dim, fontFamily: 'var(--font-dota)' }}
+        className="absolute top-0 left-0 px-1 text-[11px] tabular-nums text-slate-muted font-dota"
+        style={{ background: 'rgba(8,10,12,0.85)' }}
       >
         {order}
       </span>
@@ -82,7 +82,7 @@ export function DraftPanel({
   if (!picksBans || picksBans.length === 0) {
     return (
       <div className="flex items-center justify-center py-16">
-        <span className="text-sm" style={{ color: C.dim, fontFamily: 'var(--font-dota)' }}>
+        <span className="text-sm text-slate-muted font-dota">
           Draft data unavailable.
         </span>
       </div>
@@ -99,11 +99,9 @@ export function DraftPanel({
     return (
       <div style={{ background: C.panel }}>
         <div
-          className="text-[17px] px-4 py-3"
+          className={`text-[17px] px-4 py-3 font-dota ${isRadiant ? 'text-radiant' : 'text-dire'}`}
           style={{
-            color,
             background: C.panelDark,
-            fontFamily: 'var(--font-dota)',
             textShadow: `0 1px 3px rgba(0,0,0,0.9), 0 0 10px ${color}44`,
           }}
         >
@@ -111,7 +109,7 @@ export function DraftPanel({
         </div>
         <div className="p-4 space-y-4">
           <div>
-            <div className="mb-2 text-[13px] uppercase" style={{ color: C.label, letterSpacing: '2px', fontFamily: 'var(--font-dota)' }}>
+            <div className="mb-2 text-[13px] uppercase text-slate-muted-light font-dota" style={{ letterSpacing: '2px' }}>
               Picks
             </div>
             <div className="flex gap-2.5 flex-wrap">
@@ -122,7 +120,7 @@ export function DraftPanel({
           </div>
           {bans.length > 0 && (
             <div>
-              <div className="mb-2 text-[13px] uppercase" style={{ color: C.label, letterSpacing: '2px', fontFamily: 'var(--font-dota)' }}>
+              <div className="mb-2 text-[13px] uppercase text-slate-muted-light font-dota" style={{ letterSpacing: '2px' }}>
                 Bans
               </div>
               <div className="flex gap-2 flex-wrap">
