@@ -56,7 +56,7 @@ function LeaguesPage() {
 
   return (
     <div className="space-y-6 py-4">
-      <div>
+      <div className="text-center">
         <h1
           className="leading-none font-bold uppercase"
           style={{
@@ -77,7 +77,7 @@ function LeaguesPage() {
         </p>
       </div>
 
-      <div className="max-w-[720px] flex flex-wrap items-center gap-2">
+      <div className="max-w-[720px] mx-auto flex flex-wrap items-center gap-2">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -111,7 +111,7 @@ function LeaguesPage() {
         )}
       </div>
 
-      <div className="max-w-[720px]" style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+      <div className="max-w-[720px] mx-auto" style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
         {leagues.isPending && (
           <div className="flex justify-center py-16">
             <Spinner className="h-8 w-8" />
