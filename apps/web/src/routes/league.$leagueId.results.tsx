@@ -22,7 +22,7 @@ function ResultsLayout() {
   return (
     <div>
       <LeagueTabBar leagueId={leagueId} active="results" />
-      <div className={activeView === 'list' ? 'max-w-[720px]' : undefined}>
+      <div className={activeView === 'list' ? 'max-w-[720px] mx-auto' : undefined}>
         <Panel
           title="Results"
           action={

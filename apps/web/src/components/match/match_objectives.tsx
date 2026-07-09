@@ -136,7 +136,7 @@ export function MatchObjectives({
   }
 
   return (
-    <div className="max-w-[900px]" style={{ background: C.panel }}>
+    <div className="max-w-[900px] mx-auto" style={{ background: C.panel }}>
       <div
         className="text-[15px] uppercase px-4 py-3 text-white font-dota"
         style={{ letterSpacing: '2px', background: 'rgba(8,10,12,0.7)' }}

@@ -63,7 +63,7 @@ export function MatchChat({
   }
 
   return (
-    <div className="max-w-[980px] font-dota" style={{ background: C.panel }}>
+    <div className="max-w-[980px] mx-auto font-dota" style={{ background: C.panel }}>
       <div
         className="text-[15px] uppercase px-4 py-3 text-white"
         style={{ letterSpacing: '2px', background: C.panelDark }}

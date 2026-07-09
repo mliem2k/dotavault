@@ -19,7 +19,7 @@ function StatsTabPage() {
       ) : totals.data ? (
         <PlayerStats totals={totals.data} counts={countsQ.data} wl={wl} />
       ) : null}
-      <div className="max-w-[720px]" style={{ background: C.panel }}>
+      <div className="max-w-[720px] mx-auto" style={{ background: C.panel }}>
         <div
           className="text-[15px] uppercase px-4 py-3"
           style={{ color: C.white, letterSpacing: '2px', background: 'rgba(8,10,12,0.7)' }}
