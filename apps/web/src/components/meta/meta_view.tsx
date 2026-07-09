@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import type { HeroStat } from 'types'
 import { Spinner } from '@/components/ui/spinner'
 import { SortHeader } from '@/components/ui/sort_header'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { opendota } from '@/lib/opendota'
 import { RANK_NAMES } from '@/lib/rank'
 import { applySort, useSort } from '@/lib/sortable'
@@ -76,17 +77,14 @@ const winPct = (h: HeroStat, b: Bracket): number => {
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+    <div className="border border-border" style={{ background: 'rgba(12,11,14,0.72)' }}>
       <div
-        className="px-4 py-3 uppercase"
+        className="px-4 py-3 uppercase text-foreground font-display border-b border-border"
         style={{
           background: 'rgba(8,10,12,0.85)',
-          color: '#c8c2b4',
-          fontFamily: 'var(--font-display)',
           fontSize: 20,
           fontWeight: 500,
           letterSpacing: '3px',
-          borderBottom: '1px solid #24222a',
         }}
       >
         {title}
@@ -97,11 +95,11 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 }
 
 const LANES = [
-  { pos: 1, label: 'Safe Lane', color: '#8ec63f', filter: (h: HeroStat) => h.roles.includes('Carry') },
+  { pos: 1, label: 'Safe Lane', colorClass: 'text-radiant', filter: (h: HeroStat) => h.roles.includes('Carry') },
   {
     pos: 2,
     label: 'Mid Lane',
-    color: '#4fb0e0',
+    colorClass: 'text-int',
     filter: (h: HeroStat) =>
       !h.roles.includes('Carry') &&
       !h.roles.includes('Support') &&
@@ -119,7 +117,7 @@ const LANES = [
   {
     pos: 4,
     label: 'Soft Support',
-    color: '#c47adf',
+    colorClass: 'text-uni',
     filter: (h: HeroStat) => h.roles.includes('Support') && !h.roles.includes('Disabler'),
   },
   {
@@ -147,8 +145,8 @@ function LaneCard({ lane, heroes, bracket }: { lane: (typeof LANES)[0]; heroes: 
   return (
     <Panel title={lane.label}>
       <div
-        className="mb-3 text-[12px] font-bold uppercase tracking-widest"
-        style={{ color: lane.color, fontFamily: 'var(--font-dota)' }}
+        className={`mb-3 text-[12px] font-bold uppercase tracking-widest font-dota ${lane.colorClass ?? ''}`}
+        style={lane.colorClass ? undefined : { color: lane.color }}
       >
         Position {lane.pos}
       </div>
@@ -160,13 +158,9 @@ function LaneCard({ lane, heroes, bracket }: { lane: (typeof LANES)[0]; heroes: 
             <a
               key={h.id}
               href={`/hero/${heroSlug(h.localized_name)}`}
-              className="flex items-center gap-2 py-1.5 hover:bg-white/[0.03]"
-              style={{ borderTop: i === 0 ? undefined : '1px solid #1c1810' }}
+              className={`flex items-center gap-2 py-1.5 hover:bg-white/[0.03] ${i === 0 ? '' : 'border-t border-border'}`}
             >
-              <span
-                className="w-4 text-right tabular-nums text-[12px]"
-                style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}
-              >
+              <span className="w-4 text-right tabular-nums text-[12px] text-muted font-dota">
                 {i + 1}
               </span>
               <img
@@ -175,19 +169,17 @@ function LaneCard({ lane, heroes, bracket }: { lane: (typeof LANES)[0]; heroes: 
                 loading="lazy"
                 className="h-6 w-6 rounded-sm shrink-0"
               />
-              <span className="flex-1 text-[14px] truncate" style={{ color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}>
+              <span className="flex-1 text-[14px] truncate text-foreground font-dota">
                 {h.localized_name}
               </span>
               <span
-                className="text-[13px] font-semibold tabular-nums"
-                style={{
-                  color: wrPct >= 52 ? '#8ec63f' : wrPct < 48 ? '#d14a38' : '#dcd6c8',
-                  fontFamily: 'var(--font-dota)',
-                }}
+                className={`text-[13px] font-semibold tabular-nums font-dota ${
+                  wrPct >= 52 ? 'text-radiant' : wrPct < 48 ? 'text-dire' : 'text-foreground'
+                }`}
               >
                 {wrPct.toFixed(1)}%
               </span>
-              <span className="w-14 text-right text-[12px] tabular-nums" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+              <span className="w-14 text-right text-[12px] tabular-nums text-muted font-dota">
                 {picks.toLocaleString()}
               </span>
             </a>
@@ -253,42 +245,33 @@ function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search hero..."
           aria-label="Search heroes"
-          className="px-3 py-1.5 text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#c9a94a]"
+          className="px-3 py-1.5 text-[13px] border border-border text-foreground font-dota focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
           style={{
             background: 'rgba(8,10,12,0.7)',
-            border: '1px solid #24222a',
-            color: '#dcd6c8',
-            fontFamily: 'var(--font-dota)',
             width: 200,
           }}
         />
-        <div className="flex items-center" style={{ border: '1px solid #24222a' }}>
-          {ATTRS.map((a) => (
-            <button
-              key={a.key}
-              type="button"
-              onClick={() => setAttr(a.key)}
-              aria-pressed={attr === a.key}
-              className="min-h-11 px-2.5 py-1.5 text-[12px] uppercase cursor-pointer"
-              style={{
-                background: attr === a.key ? '#24222a' : 'transparent',
-                color: attr === a.key ? '#dcd6c8' : '#8a8474',
-                letterSpacing: '1px',
-                fontFamily: 'var(--font-dota)',
-              }}
-            >
-              {a.label}
-            </button>
-          ))}
-        </div>
-        <span className="ml-auto text-[12px]" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+        <Tabs value={attr} onValueChange={(v) => setAttr(v as (typeof ATTRS)[number]['key'])}>
+          <TabsList className="h-auto rounded-none border border-border bg-transparent p-0">
+            {ATTRS.map((a) => (
+              <TabsTrigger
+                key={a.key}
+                value={a.key}
+                className="min-h-11 flex-none rounded-none px-2.5 py-1.5 text-[12px] uppercase tracking-[1px] font-dota text-muted cursor-pointer data-[state=active]:bg-border data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              >
+                {a.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <span className="ml-auto text-[12px] text-muted font-dota">
           {rows.length} heroes
         </span>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-dota)' }}>
+        <table className="w-full border-collapse font-dota">
           <thead>
-            <tr className="text-[12px] font-bold uppercase tracking-widest" style={{ color: '#8a8474' }}>
+            <tr className="text-[12px] font-bold uppercase tracking-widest text-muted">
               <th className="pb-2 pr-2 text-right" style={{ width: 30 }}>#</th>
               {th('Hero', 'name', 'left')}
               <th className="pb-2 px-2 text-left">Attr</th>
@@ -305,50 +288,50 @@ function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }
               const wr = winPct(h, bracket)
               const pickRate = totalMatches > 0 ? (picks / totalMatches) * 100 : 0
               return (
-                <tr key={h.id} className="hover:bg-white/[0.03]" style={{ borderTop: '1px solid #1c1810' }}>
-                  <td className="py-1.5 pr-2 text-right text-[12px] tabular-nums" style={{ color: '#8a8474' }}>
+                <tr key={h.id} className="hover:bg-white/[0.03] border-t border-border">
+                  <td className="py-1.5 pr-2 text-right text-[12px] tabular-nums text-muted">
                     {i + 1}
                   </td>
                   <td className="px-2 py-1.5">
                     <a href={`/hero/${heroSlug(h.localized_name)}`} className="flex items-center gap-2 hover:underline">
                       <img src={heroIconUrl(h.name)} alt="" loading="lazy" className="h-6 w-6 rounded-sm" />
-                      <span className="text-[14px]" style={{ color: '#dcd6c8' }}>{h.localized_name}</span>
+                      <span className="text-[14px] text-foreground">{h.localized_name}</span>
                     </a>
                   </td>
-                  <td className="px-2 text-[12px] uppercase" style={{ color: '#8a8474' }}>
+                  <td className="px-2 text-[12px] uppercase text-muted">
                     {h.primary_attr === 'all' ? 'uni' : h.primary_attr}
                   </td>
-                  <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#dcd6c8' }}>
+                  <td className="px-2 text-right text-[13px] tabular-nums text-foreground">
                     {picks.toLocaleString()}
                   </td>
-                  <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#c9a94a' }}>
+                  <td className="px-2 text-right text-[13px] tabular-nums text-gold">
                     {pickRate.toFixed(1)}%
                   </td>
                   <td
-                    className="px-2 text-right text-[13px] font-semibold tabular-nums"
-                    style={{ color: wr >= 52 ? '#8ec63f' : wr < 48 ? '#d14a38' : '#dcd6c8' }}
+                    className={`px-2 text-right text-[13px] font-semibold tabular-nums ${
+                      wr >= 52 ? 'text-radiant' : wr < 48 ? 'text-dire' : 'text-foreground'
+                    }`}
                   >
                     {wr.toFixed(2)}%
                   </td>
                   {(bracket === 'pub' || bracket === 'turbo') && (() => {
                     const delta = trendDelta(h, bracket)
                     if (delta == null || Math.abs(delta) < 0.3) {
-                      return <td className="px-2 text-right text-[13px]" style={{ color: '#8a8474' }}>-</td>
+                      return <td className="px-2 text-right text-[13px] text-muted">-</td>
                     }
                     return (
                       <td
-                        className="px-2 text-right text-[13px] tabular-nums"
+                        className={`px-2 text-right text-[13px] tabular-nums ${delta > 0 ? 'text-radiant' : 'text-dire'}`}
                         title="Win rate, recent half of the window vs the earlier half"
-                        style={{ color: delta > 0 ? '#8ec63f' : '#d14a38' }}
                       >
-                        {delta > 0 ? '\u25b2' : '\u25bc'} {Math.abs(delta).toFixed(1)}
+                        {delta > 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}
                       </td>
                     )
                   })()}
                   {bracket === 'pro' && (
-                    <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#d14a38' }}>
+                    <td className="px-2 text-right text-[13px] tabular-nums text-dire">
                       {(h.pro_ban ?? 0).toLocaleString()}
-                      <span className="ml-1 text-[12px]" style={{ color: '#8a8474' }}>
+                      <span className="ml-1 text-[12px] text-muted">
                         ({(((h.pro_ban ?? 0) / totalProMatchesForBans) * 100).toFixed(0)}%)
                       </span>
                     </td>
@@ -402,7 +385,7 @@ export function MetaView({ bracket }: { bracket: Bracket }) {
   return (
     <div className="space-y-6 py-4">
       {/* Bracket selector, one URL per bracket */}
-      <div className="flex flex-wrap items-center gap-1" style={{ fontFamily: 'var(--font-dota)' }} role="tablist">
+      <div className="flex flex-wrap items-center gap-1 font-dota" role="tablist">
         {BRACKETS.map((b) => {
           const active = bracket === b.key
           const slug = slugOf(b.key)
@@ -413,11 +396,12 @@ export function MetaView({ bracket }: { bracket: Bracket }) {
               params={slug ? { bracket: slug } : undefined}
               role="tab"
               aria-current={active ? 'page' : undefined}
-              className="min-h-11 flex items-center gap-1.5 px-3 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125"
+              className={`min-h-11 flex items-center gap-1.5 px-3 py-1.5 text-[13px] uppercase cursor-pointer hover:brightness-125 border ${
+                active ? 'bg-border border-gold' : 'border-border text-muted'
+              }`}
               style={{
-                background: active ? '#24222a' : 'rgba(12,11,14,0.72)',
-                border: `1px solid ${active ? '#c9a94a' : '#24222a'}`,
-                color: active ? '#e8e2d4' : '#8a8474',
+                background: active ? undefined : 'rgba(12,11,14,0.72)',
+                color: active ? '#e8e2d4' : undefined,
                 letterSpacing: '1px',
               }}
             >
