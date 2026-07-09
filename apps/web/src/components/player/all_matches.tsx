@@ -142,11 +142,10 @@ type ResultFilter = 'all' | 'win' | 'loss'
 type SideFilter = 'all' | 'radiant' | 'dire'
 type NumOrAll = number | 'all'
 
+const SELECT_CLASS = 'bg-slate-bg text-slate-foreground border border-slate-card'
+
 function selectStyle(disabled?: boolean): React.CSSProperties {
   return {
-    background: '#14181b',
-    color: '#cfd4d8',
-    border: '1px solid #2c3236',
     opacity: disabled ? 0.4 : 1,
     cursor: disabled ? 'not-allowed' : 'pointer',
   }
@@ -304,7 +303,7 @@ export function AllMatches({
   })
 
   return (
-    <div className="max-w-[1100px] mx-auto" style={{ background: 'rgba(16,19,22,0.72)', fontFamily: 'var(--font-dota)' }}>
+    <div className="max-w-[1100px] mx-auto font-dota" style={{ background: 'rgba(16,19,22,0.72)' }}>
       {/* Filter toolbar */}
       <div
         className="flex items-center gap-2.5 px-3 py-2.5 flex-wrap"
@@ -313,7 +312,7 @@ export function AllMatches({
         <select
           value={heroFilter}
           onChange={(e) => setHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
+          className={`text-[13px] px-2 py-1.5 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
           style={selectStyle()}
         >
           <option value="all">My Hero</option>
@@ -328,7 +327,7 @@ export function AllMatches({
           value={withHeroFilter}
           disabled={proOnly}
           onChange={(e) => setWithHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
+          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
           style={selectStyle(proOnly)}
         >
           <option value="all">With Hero</option>
@@ -343,7 +342,7 @@ export function AllMatches({
           value={againstHeroFilter}
           disabled={proOnly}
           onChange={(e) => setAgainstHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
+          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
           style={selectStyle(proOnly)}
         >
           <option value="all">Against Hero</option>
@@ -358,7 +357,7 @@ export function AllMatches({
           value={withPlayerFilter}
           disabled={proOnly}
           onChange={(e) => setWithPlayerFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
+          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
           style={selectStyle(proOnly)}
         >
           <option value="all">With Player</option>
@@ -373,7 +372,7 @@ export function AllMatches({
           value={gameModeFilter}
           disabled={proOnly}
           onChange={(e) => setGameModeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
+          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
           style={selectStyle(proOnly)}
         >
           <option value="all">All Modes</option>
@@ -388,7 +387,7 @@ export function AllMatches({
           value={lobbyTypeFilter}
           disabled={proOnly}
           onChange={(e) => setLobbyTypeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
+          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
           style={selectStyle(proOnly)}
         >
           <option value="all">All Lobbies</option>
@@ -403,7 +402,7 @@ export function AllMatches({
           value={laneRoleFilter}
           disabled={proOnly}
           onChange={(e) => setLaneRoleFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
+          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
           style={selectStyle(proOnly)}
         >
           <option value="all">All Roles</option>
@@ -418,7 +417,7 @@ export function AllMatches({
           value={sideFilter}
           disabled={proOnly}
           onChange={(e) => setSideFilter(e.target.value as SideFilter)}
-          className="text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
+          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
           style={selectStyle(proOnly)}
         >
           <option value="all">Any Side</option>
@@ -429,7 +428,7 @@ export function AllMatches({
         <select
           value={dateFilter}
           onChange={(e) => setDateFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className="text-[13px] px-2 py-1.5 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
+          className={`text-[13px] px-2 py-1.5 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
           style={selectStyle()}
         >
           <option value="all">All Time</option>
@@ -440,18 +439,16 @@ export function AllMatches({
           ))}
         </select>
 
-        <div className="flex items-center" style={{ border: '1px solid #2c3236' }}>
+        <div className="flex items-center border border-slate-card">
           {(['all', 'win', 'loss'] as ResultFilter[]).map((r) => (
             <button
               key={r}
               type="button"
               onClick={() => setResultFilter(r)}
-              className="px-3 py-1.5 text-[12px] uppercase cursor-pointer transition-colors"
-              style={{
-                background: resultFilter === r ? '#2c3236' : 'transparent',
-                color: resultFilter === r ? '#ffffff' : '#8a97a0',
-                letterSpacing: '1px',
-              }}
+              className={`px-3 py-1.5 text-[12px] uppercase cursor-pointer transition-colors ${
+                resultFilter === r ? 'bg-slate-card text-white' : 'text-slate-muted-light'
+              }`}
+              style={{ letterSpacing: '1px' }}
             >
               {r === 'all' ? 'All' : r === 'win' ? 'Won' : 'Lost'}
             </button>
@@ -461,11 +458,11 @@ export function AllMatches({
         <button
           type="button"
           onClick={() => setProOnly((v) => !v)}
-          className="px-3 py-1.5 text-[12px] uppercase cursor-pointer transition-colors"
+          className={`px-3 py-1.5 text-[12px] uppercase cursor-pointer transition-colors border ${
+            proOnly ? 'text-gold border-gold' : 'text-slate-muted-light border-slate-card'
+          }`}
           style={{
             background: proOnly ? 'rgba(201,169,74,0.15)' : 'transparent',
-            color: proOnly ? '#c9a94a' : '#8a97a0',
-            border: `1px solid ${proOnly ? '#c9a94a' : '#2c3236'}`,
             letterSpacing: '1px',
           }}
         >
@@ -476,14 +473,14 @@ export function AllMatches({
           <button
             type="button"
             onClick={resetFilters}
-            className="text-[12px] uppercase cursor-pointer hover:text-white"
-            style={{ color: '#67757f', letterSpacing: '1px' }}
+            className="text-[12px] uppercase cursor-pointer hover:text-white text-slate-muted"
+            style={{ letterSpacing: '1px' }}
           >
             Reset Filters
           </button>
         )}
 
-        <span className="text-[12px] ml-auto" style={{ color: '#67757f' }}>
+        <span className="text-[12px] ml-auto text-slate-muted">
           {matches.length.toLocaleString()} loaded
         </span>
       </div>
@@ -492,8 +489,8 @@ export function AllMatches({
         <div className="min-w-[900px]">
           {/* Header row */}
           <div
-            className="flex items-center px-3 py-2.5 text-[12px] uppercase"
-            style={{ color: '#8a97a0', letterSpacing: '1px', background: 'rgba(8,10,12,0.55)' }}
+            className="flex items-center px-3 py-2.5 text-[12px] uppercase text-slate-muted-light"
+            style={{ letterSpacing: '1px', background: 'rgba(8,10,12,0.55)' }}
           >
             <SortHeader
               label="Date / Time"
@@ -539,7 +536,7 @@ export function AllMatches({
               <Spinner />
             </div>
           ) : sorted.length === 0 ? (
-            <div className="py-12 text-center text-[13px]" style={{ color: '#67757f' }}>
+            <div className="py-12 text-center text-[13px] text-slate-muted">
               No matches found for this filter.
             </div>
           ) : (
@@ -578,8 +575,8 @@ export function AllMatches({
                         className="absolute inset-0 z-0"
                         aria-label={`View match played ${d} ${t}`}
                       />
-                      <div className="w-[150px] shrink-0 text-[13px] tabular-nums pointer-events-none" style={{ color: '#e8ecef' }}>
-                        {d} <span style={{ color: '#8a97a0' }}>{t}</span>
+                      <div className="w-[150px] shrink-0 text-[13px] tabular-nums pointer-events-none text-slate-foreground-light">
+                        {d} <span className="text-slate-muted-light">{t}</span>
                       </div>
 
                       <div className="flex-1 min-w-0 flex items-center gap-2.5">
@@ -597,13 +594,12 @@ export function AllMatches({
                         {hero ? (
                           <a
                             href={`/hero/${heroSlug(hero.localized_name)}`}
-                            className="relative z-10 text-[14px] truncate hover:underline"
-                            style={{ color: '#e8ecef' }}
+                            className="relative z-10 text-[14px] truncate hover:underline text-slate-foreground-light"
                           >
                             {hero.localized_name}
                           </a>
                         ) : (
-                          <span className="text-[14px] truncate pointer-events-none" style={{ color: '#e8ecef' }}>
+                          <span className="text-[14px] truncate pointer-events-none text-slate-foreground-light">
                             {`Hero ${m.hero_id}`}
                           </span>
                         )}
@@ -619,34 +615,34 @@ export function AllMatches({
 
                       <div className="w-[90px] shrink-0 text-center pointer-events-none">
                         <span
-                          className="text-[14px] uppercase"
-                          style={{ color: won ? '#8fbf3f' : '#d14a38', letterSpacing: '1px' }}
+                          className={`text-[14px] uppercase ${won ? '' : 'text-dire'}`}
+                          style={{ color: won ? '#8fbf3f' : undefined, letterSpacing: '1px' }}
                         >
                           {won ? 'Won' : 'Lost'}
                         </span>
                       </div>
 
-                      <div className="w-[110px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none" style={{ color: '#e8ecef' }}>
+                      <div className="w-[110px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none text-slate-foreground-light">
                         {m.kills} / {m.deaths} / {m.assists}
                       </div>
 
-                      <div className="hidden sm:block w-[60px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none" style={{ color: '#cfd4d8' }}>
+                      <div className="hidden sm:block w-[60px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none text-slate-foreground">
                         {m.gold_per_min ?? '—'}
                       </div>
 
-                      <div className="hidden sm:block w-[60px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none" style={{ color: '#cfd4d8' }}>
+                      <div className="hidden sm:block w-[60px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none text-slate-foreground">
                         {m.xp_per_min ?? '—'}
                       </div>
 
-                      <div className="hidden md:block w-[50px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none" style={{ color: '#cfd4d8' }}>
+                      <div className="hidden md:block w-[50px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none text-slate-foreground">
                         {m.last_hits ?? '—'}
                       </div>
 
-                      <div className="w-[80px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none" style={{ color: '#e8ecef' }}>
+                      <div className="w-[80px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none text-slate-foreground-light">
                         {fmtDur(m.duration)}
                       </div>
 
-                      <div className="hidden sm:block w-[90px] shrink-0 text-right text-[13px] pr-2 truncate pointer-events-none" style={{ color: '#cfd4d8' }} title={m.typeLabel}>
+                      <div className="hidden sm:block w-[90px] shrink-0 text-right text-[13px] pr-2 truncate pointer-events-none text-slate-foreground" title={m.typeLabel}>
                         {m.typeLabel}
                       </div>
                     </div>
@@ -664,8 +660,8 @@ export function AllMatches({
             type="button"
             onClick={() => query.fetchNextPage()}
             disabled={query.isFetchingNextPage}
-            className="inline-flex items-center justify-center min-h-[44px] px-6 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-50"
-            style={{ background: '#1a2024', border: '1px solid #2c3236', color: '#cfd4d8', letterSpacing: '1px' }}
+            className="inline-flex items-center justify-center min-h-[44px] px-6 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-50 border border-slate-card text-slate-foreground"
+            style={{ background: '#1a2024', letterSpacing: '1px' }}
           >
             {query.isFetchingNextPage ? 'Loading…' : 'Load More'}
           </button>

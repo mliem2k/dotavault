@@ -2,6 +2,15 @@ import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { HeroStat, PlayerHero } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { applySort, useSort } from '@/lib/sortable'
 import { heroIconFromPath, winRate } from '@/lib/utils'
 
@@ -36,29 +45,29 @@ export function HeroStatsTable({
   const shown = showAll ? sorted : sorted.slice(0, SHOWN)
 
   return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="border-b border-border text-left text-xs text-muted">
-          <th className="pb-2 font-normal">
+    <Table className="text-sm">
+      <TableHeader>
+        <TableRow className="hover:bg-transparent text-left text-xs text-muted">
+          <TableHead className="h-auto px-0 pb-2 font-normal text-muted">
             <SortHeader label="Hero" sortKey="hero" active={sortKey === 'hero'} dir={sortDir} onClick={onSort} />
-          </th>
-          <th className="pb-2 font-normal text-right font-mono">
+          </TableHead>
+          <TableHead className="h-auto px-0 pb-2 text-right font-mono font-normal text-muted">
             <SortHeader label="Games" sortKey="games" active={sortKey === 'games'} dir={sortDir} onClick={onSort} className="justify-end" />
-          </th>
-          <th className="pb-2 font-normal text-right font-mono">
+          </TableHead>
+          <TableHead className="h-auto px-0 pb-2 text-right font-mono font-normal text-muted">
             <SortHeader label="Win%" sortKey="winrate" active={sortKey === 'winrate'} dir={sortDir} onClick={onSort} className="justify-end" />
-          </th>
-        </tr>
-      </thead>
-      <tbody>
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {shown.map((ph, i) => {
           const hero = heroMap.get(Number(ph.hero_id))
           return (
-            <tr
+            <TableRow
               key={ph.hero_id}
-              className={`border-b border-border/50 ${i % 2 === 1 ? 'bg-white/[0.02]' : ''}`}
+              className={`border-border/50 ${i % 2 === 1 ? 'bg-white/[0.02]' : ''}`}
             >
-              <td className="py-1.5">
+              <TableCell className="p-0 py-1.5">
                 <Link
                   to="/hero/$heroName"
                   params={{ heroName: hero?.name.replace('npc_dota_hero_', '') ?? String(ph.hero_id) }}
@@ -73,19 +82,19 @@ export function HeroStatsTable({
                   )}
                   <span>{hero?.localized_name ?? ph.hero_id}</span>
                 </Link>
-              </td>
-              <td className="py-1.5 text-right font-mono text-foreground">{ph.games}</td>
-              <td className="py-1.5 text-right font-mono text-foreground">
+              </TableCell>
+              <TableCell className="p-0 py-1.5 text-right font-mono text-foreground">{ph.games}</TableCell>
+              <TableCell className="p-0 py-1.5 text-right font-mono text-foreground">
                 {winRate(ph.win, ph.games)}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           )
         })}
-      </tbody>
+      </TableBody>
       {sorted.length > SHOWN && (
-        <tfoot>
-          <tr>
-            <td colSpan={3} className="pt-2 text-center">
+        <TableFooter className="border-t-0 bg-transparent font-normal">
+          <TableRow className="hover:bg-transparent">
+            <TableCell colSpan={3} className="p-0 pt-2 text-center">
               <button
                 type="button"
                 onClick={() => setShowAll((v) => !v)}
@@ -93,10 +102,10 @@ export function HeroStatsTable({
               >
                 {showAll ? 'Show Less' : `Show All ${sorted.length} Heroes`}
               </button>
-            </td>
-          </tr>
-        </tfoot>
+            </TableCell>
+          </TableRow>
+        </TableFooter>
       )}
-    </table>
+    </Table>
   )
 }

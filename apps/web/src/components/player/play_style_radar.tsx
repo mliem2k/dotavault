@@ -69,18 +69,18 @@ export function PlayStyleRadar({
     >
       {/* grid rings */}
       {[0.25, 0.5, 0.75, 1].map((f) => (
-        <path key={f} d={ringPath(f)} fill="none" stroke="#3a4147" strokeWidth={1} />
+        <path key={f} d={ringPath(f)} fill="none" className="stroke-slate-border" strokeWidth={1} />
       ))}
       {/* axes */}
       {AXES.map((_, i) => {
         const [x, y] = pointAt(i, R)
-        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#3a4147" strokeWidth={1} />
+        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} className="stroke-slate-border" strokeWidth={1} />
       })}
       {/* data polygon */}
-      <path d={dataPath} fill="rgba(201,169,74,0.3)" stroke="#c9a94a" strokeWidth={2} />
+      <path d={dataPath} fill="rgba(201,169,74,0.3)" className="stroke-gold" strokeWidth={2} />
       {values.map((v, i) => {
         const [x, y] = pointAt(i, R * Math.max(0.04, v))
-        return <circle key={i} cx={x} cy={y} r={2.5} fill="#c9a94a" />
+        return <circle key={i} cx={x} cy={y} r={2.5} className="fill-gold" />
       })}
       {/* labels */}
       {AXES.map((label, i) => {
@@ -92,7 +92,8 @@ export function PlayStyleRadar({
             y={y}
             textAnchor="middle"
             dominantBaseline="middle"
-            style={{ fontFamily: 'var(--font-dota)', fontSize: 10, fill: '#8a97a0', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+            className="font-dota fill-slate-muted-light"
+            style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}
           >
             {label}
           </text>
@@ -118,13 +119,10 @@ export function LifetimeStats({ totals }: { totals: Total[] }) {
   ]
   const row = ([value, label]: [string | number, string]) => (
     <div key={label} className="flex items-center gap-3">
-      <span
-        className="w-16 shrink-0 text-right text-[15px] tabular-nums"
-        style={{ color: '#c9a94a', fontFamily: 'var(--font-dota)' }}
-      >
+      <span className="w-16 shrink-0 text-right text-[15px] tabular-nums text-gold font-dota">
         {value}
       </span>
-      <span className="text-[13px]" style={{ color: '#cfd4d8', fontFamily: 'var(--font-dota)' }}>
+      <span className="text-[13px] text-slate-foreground font-dota">
         {label}
       </span>
     </div>
@@ -132,7 +130,7 @@ export function LifetimeStats({ totals }: { totals: Total[] }) {
   return (
     <div className="space-y-1.5">
       {averages.map(row)}
-      <div style={{ height: 1, background: '#3a4147', margin: '8px 0' }} />
+      <div className="bg-slate-border" style={{ height: 1, margin: '8px 0' }} />
       {lifetime.map(row)}
     </div>
   )

@@ -5,14 +5,12 @@ import { applySort, useSort } from '@/lib/sortable'
 /* Stats tab — lifetime totals plus win-rate breakdowns by side, lane role,
    game mode, and lobby type from OpenDota's totals/counts endpoints. */
 
+// `dim` and `green` are deliberately close-but-not-identical to the shared
+// muted/radiant tokens (not exact matches), so they stay as raw hex per the
+// token mapping reference rather than being guessed onto a token.
 const C = {
-  label: '#8a97a0',
   dim: '#8a8474',
-  text: '#cfd4d8',
-  white: '#ffffff',
-  gold: '#f2c94c',
   green: '#8fbf3f',
-  red: '#c94a38',
   panel: 'rgba(16,19,22,0.72)',
   panelDark: 'rgba(8,10,12,0.7)',
 }
@@ -42,10 +40,10 @@ function sum(totals: Total[], field: string): number {
 function StatTile({ value, label }: { value: string; label: string }) {
   return (
     <div className="px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
-      <div className="text-[22px] leading-tight tabular-nums" style={{ color: C.gold, fontFamily: 'var(--font-dota)' }}>
+      <div className="text-[22px] leading-tight tabular-nums text-gold font-dota">
         {value}
       </div>
-      <div className="text-[11px] uppercase mt-0.5" style={{ color: C.label, letterSpacing: '1px', fontFamily: 'var(--font-dota)' }}>
+      <div className="text-[11px] uppercase mt-0.5 text-slate-muted-light font-dota" style={{ letterSpacing: '1px' }}>
         {label}
       </div>
     </div>
@@ -77,12 +75,12 @@ function WinRateTable({
   return (
     <div style={{ background: C.panel }}>
       <div
-        className="text-[13px] uppercase px-3 py-2.5"
-        style={{ color: C.white, letterSpacing: '2px', background: C.panelDark, fontFamily: 'var(--font-dota)' }}
+        className="text-[13px] uppercase px-3 py-2.5 text-white font-dota"
+        style={{ letterSpacing: '2px', background: C.panelDark }}
       >
         {title}
       </div>
-      <div className="flex items-center gap-3 px-3 pt-2 text-[11px] uppercase" style={{ color: C.label, fontFamily: 'var(--font-dota)' }}>
+      <div className="flex items-center gap-3 px-3 pt-2 text-[11px] uppercase text-slate-muted-light font-dota">
         <SortHeader label="Label" sortKey="label" active={sortKey === 'label'} dir={sortDir} onClick={onSort} className="w-32 shrink-0" />
         <span className="flex-1" />
         <SortHeader label="Win Rate" sortKey="winrate" active={sortKey === 'winrate'} dir={sortDir} onClick={onSort} className="w-14 shrink-0 justify-end" />
@@ -93,16 +91,22 @@ function WinRateTable({
           const pct = (r.win / r.games) * 100
           return (
             <div key={r.label} className="flex items-center gap-3 py-1.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-              <span className="w-32 shrink-0 text-[14px] truncate" style={{ color: C.text, fontFamily: 'var(--font-dota)' }}>
+              <span className="w-32 shrink-0 text-[14px] truncate text-slate-foreground font-dota">
                 {r.label}
               </span>
-              <div className="flex-1 h-[6px]" style={{ background: '#2c3236' }}>
-                <div style={{ width: `${pct}%`, height: '100%', background: pct >= 50 ? C.green : C.red }} />
+              <div className="flex-1 h-[6px] bg-slate-card">
+                <div
+                  className={pct < 50 ? 'bg-dire' : ''}
+                  style={{ width: `${pct}%`, height: '100%', background: pct >= 50 ? C.green : undefined }}
+                />
               </div>
-              <span className="w-14 shrink-0 text-right text-[14px] tabular-nums" style={{ color: pct >= 50 ? C.green : C.red, fontFamily: 'var(--font-dota)' }}>
+              <span
+                className={`w-14 shrink-0 text-right text-[14px] tabular-nums font-dota ${pct < 50 ? 'text-dire' : ''}`}
+                style={{ color: pct >= 50 ? C.green : undefined }}
+              >
                 {pct.toFixed(1)}%
               </span>
-              <span className="w-20 shrink-0 text-right text-[13px] tabular-nums" style={{ color: C.dim, fontFamily: 'var(--font-dota)' }}>
+              <span className="w-20 shrink-0 text-right text-[13px] tabular-nums font-dota" style={{ color: C.dim }}>
                 {r.games.toLocaleString()}
               </span>
             </div>
@@ -160,8 +164,8 @@ export function PlayerStats({
       {/* Lifetime totals */}
       <div style={{ background: C.panel }}>
         <div
-          className="text-[15px] uppercase px-4 py-3"
-          style={{ color: C.white, letterSpacing: '2px', background: C.panelDark, fontFamily: 'var(--font-dota)' }}
+          className="text-[15px] uppercase px-4 py-3 text-white font-dota"
+          style={{ letterSpacing: '2px', background: C.panelDark }}
         >
           Lifetime Totals
         </div>

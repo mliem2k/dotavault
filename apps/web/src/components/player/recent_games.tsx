@@ -77,11 +77,11 @@ export function RecentGames({
   })
 
   return (
-    <div style={{ background: 'rgba(16,19,22,0.72)', fontFamily: 'var(--font-dota)' }}>
+    <div className="font-dota" style={{ background: 'rgba(16,19,22,0.72)' }}>
       {/* header */}
       <div
-        className="flex items-center px-3 py-2.5 text-[12px] uppercase"
-        style={{ color: '#8a97a0', letterSpacing: '1px', background: 'rgba(8,10,12,0.7)' }}
+        className="flex items-center px-3 py-2.5 text-[12px] uppercase text-slate-muted-light"
+        style={{ letterSpacing: '1px', background: 'rgba(8,10,12,0.7)' }}
       >
         <div className="hidden sm:flex w-[150px] shrink-0">
           <SortHeader
@@ -150,11 +150,8 @@ export function RecentGames({
               className="absolute inset-0 z-0"
               aria-label={`View match played ${d} ${t}`}
             />
-            <div
-              className="hidden sm:block w-[150px] shrink-0 text-[13px] tabular-nums pointer-events-none"
-              style={{ color: '#e8ecef' }}
-            >
-              {d} <span style={{ color: '#8a97a0' }}>{t}</span>
+            <div className="hidden sm:block w-[150px] shrink-0 text-[13px] tabular-nums pointer-events-none text-slate-foreground-light">
+              {d} <span className="text-slate-muted-light">{t}</span>
             </div>
 
             <div className="flex-1 min-w-0 flex items-center gap-2.5">
@@ -172,22 +169,20 @@ export function RecentGames({
               {hero ? (
                 <a
                   href={`/hero/${heroSlug(hero.localized_name)}`}
-                  className="relative z-10 text-[14px] truncate hover:underline"
-                  style={{ color: '#e8ecef' }}
+                  className="relative z-10 text-[14px] truncate hover:underline text-slate-foreground-light"
                 >
                   {hero.localized_name}
                 </a>
               ) : (
-                <span className="text-[14px] truncate pointer-events-none" style={{ color: '#e8ecef' }}>
+                <span className="text-[14px] truncate pointer-events-none text-slate-foreground-light">
                   {`Hero ${m.hero_id}`}
                 </span>
               )}
               {leagueByMatchId.get(m.match_id) && (
                 <span
-                  className="shrink-0 px-1.5 py-0.5 text-[11px] font-bold uppercase truncate max-w-[220px]"
+                  className="shrink-0 px-1.5 py-0.5 text-[11px] font-bold uppercase truncate max-w-[220px] text-gold"
                   style={{
                     background: 'rgba(201,169,74,0.12)',
-                    color: '#c9a94a',
                     letterSpacing: '0.5px',
                   }}
                   title={leagueByMatchId.get(m.match_id)?.league_name ?? undefined}
@@ -199,24 +194,18 @@ export function RecentGames({
 
             <div className="w-[80px] sm:w-[110px] shrink-0 text-center pointer-events-none">
               <span
-                className="text-[14px] uppercase"
-                style={{ color: won ? '#8fbf3f' : '#d14a38', letterSpacing: '1px' }}
+                className={`text-[14px] uppercase ${won ? '' : 'text-dire'}`}
+                style={{ color: won ? '#8fbf3f' : undefined, letterSpacing: '1px' }}
               >
                 {won ? 'Won' : 'Lost'}
               </span>
             </div>
 
-            <div
-              className="w-[60px] sm:w-[80px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none"
-              style={{ color: '#e8ecef' }}
-            >
+            <div className="w-[60px] sm:w-[80px] shrink-0 text-right text-[13px] tabular-nums pointer-events-none text-slate-foreground-light">
               {fmtDur(m.duration)}
             </div>
 
-            <div
-              className="hidden sm:block w-[90px] shrink-0 text-right text-[13px] pr-2 pointer-events-none"
-              style={{ color: '#cfd4d8' }}
-            >
+            <div className="hidden sm:block w-[90px] shrink-0 text-right text-[13px] pr-2 pointer-events-none text-slate-foreground">
               {type}
             </div>
           </div>
