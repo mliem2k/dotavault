@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
+import { SortHeader } from '@/components/ui/sort_header'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
+import { applySort, useSort } from '@/lib/sortable'
 import { usePageTitle } from '@/lib/title'
 
 export const Route = createFileRoute('/leagues')({
@@ -10,7 +12,13 @@ export const Route = createFileRoute('/leagues')({
 })
 
 /* League browser: search OpenDota's full league directory and jump into a
-   league's own scoped report (draft stats, standings, matches). */
+   league's own scoped report (draft stats, standings, matches).
+
+   OpenDota's /leagues endpoint only ever returns leagueid/name/tier/ticket/
+   banner (checked against a full live pull of all ~10k leagues), no start
+   date, end date, or prize pool for any league, so those can't be sortable
+   columns here; there's nothing to sort. Name and Tier are the only real,
+   sortable fields. */
 
 const TIER_LABELS: Record<string, string> = {
   premium: 'Premium',
@@ -20,11 +28,14 @@ const TIER_LABELS: Record<string, string> = {
 }
 const TIER_ORDER: Record<string, number> = { premium: 0, professional: 1, minor: 2, amateur: 3 }
 
+type SortKey = 'name' | 'tier'
+
 function LeaguesPage() {
   usePageTitle('Leagues')
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [tier, setTier] = useState<string>('all')
+  const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('tier', 'asc')
 
   // Debounce so every keystroke doesn't re-filter/re-sort the full leagues
   // list (up to 300 rows deep); only the settled value feeds the memo below.
@@ -44,15 +55,16 @@ function LeaguesPage() {
     if (tier !== 'all') list = list.filter((l) => (l.tier ?? '') === tier)
     const q = debouncedSearch.trim().toLowerCase()
     if (q) list = list.filter((l) => l.name?.toLowerCase().includes(q))
-    return [...list]
-      .sort((a, b) => {
-        const ta = TIER_ORDER[a.tier ?? ''] ?? 9
-        const tb = TIER_ORDER[b.tier ?? ''] ?? 9
-        if (ta !== tb) return ta - tb
-        return b.leagueid - a.leagueid
-      })
-      .slice(0, 300)
-  }, [leagues.data, debouncedSearch, tier])
+    const sorted = applySort(list, sortDir, (a, b) => {
+      if (sortKey === 'name') return (a.name ?? '').localeCompare(b.name ?? '')
+      const ta = TIER_ORDER[a.tier ?? ''] ?? 9
+      const tb = TIER_ORDER[b.tier ?? ''] ?? 9
+      // Tier ties (most of the list) fall back to most-recently-created
+      // first, same as the old fixed default, rather than an arbitrary order.
+      return ta !== tb ? ta - tb : b.leagueid - a.leagueid
+    })
+    return sorted.slice(0, 300)
+  }, [leagues.data, debouncedSearch, tier, sortKey, sortDir])
 
   return (
     <div className="space-y-6 py-4">
@@ -77,7 +89,7 @@ function LeaguesPage() {
         </p>
       </div>
 
-      <div className="max-w-[720px] mx-auto flex flex-wrap items-center gap-2">
+      <div className="max-w-[720px] mx-auto space-y-2">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -86,32 +98,47 @@ function LeaguesPage() {
           className="w-full px-3 py-2 text-[14px] outline-none focus-visible:ring-2 focus-visible:ring-[#c9a94a] sm:w-[280px]"
           style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a', color: '#dcd6c8', fontFamily: 'var(--font-dota)' }}
         />
-        <div className="flex items-center" style={{ border: '1px solid #24222a' }}>
-          {['all', 'premium', 'professional', 'minor', 'amateur'].map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTier(t)}
-              className="px-3 py-2 text-[12px] uppercase cursor-pointer"
-              style={{
-                background: tier === t ? '#24222a' : 'transparent',
-                color: tier === t ? '#dcd6c8' : '#8a8474',
-                letterSpacing: '1px',
-                fontFamily: 'var(--font-dota)',
-              }}
-            >
-              {t === 'all' ? 'All Tiers' : (TIER_LABELS[t] ?? t)}
-            </button>
-          ))}
+        {/* Own row, and the tier group itself wraps: 5 buttons plus the count
+            text crowded onto one line with the search input above ran out of
+            room and started overlapping/squeezing together on narrower
+            viewports. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center" style={{ border: '1px solid #24222a' }}>
+            {['all', 'premium', 'professional', 'minor', 'amateur'].map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTier(t)}
+                className="px-3 py-2 text-[12px] uppercase cursor-pointer"
+                style={{
+                  background: tier === t ? '#24222a' : 'transparent',
+                  color: tier === t ? '#dcd6c8' : '#8a8474',
+                  letterSpacing: '1px',
+                  fontFamily: 'var(--font-dota)',
+                }}
+              >
+                {t === 'all' ? 'All Tiers' : (TIER_LABELS[t] ?? t)}
+              </button>
+            ))}
+          </div>
+          {leagues.data && (
+            <span className="text-[12px] sm:ml-auto" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
+              {rows.length} of {leagues.data.length.toLocaleString()} leagues
+            </span>
+          )}
         </div>
-        {leagues.data && (
-          <span className="ml-auto text-[12px]" style={{ color: '#8a8474', fontFamily: 'var(--font-dota)' }}>
-            {rows.length} of {leagues.data.length.toLocaleString()} leagues
-          </span>
-        )}
       </div>
 
       <div className="max-w-[720px] mx-auto" style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+        {leagues.data && rows.length > 0 && (
+          <div
+            className="flex items-center gap-3 px-4 py-2 text-[12px] uppercase"
+            style={{ color: '#8a8474', letterSpacing: '1px', fontFamily: 'var(--font-dota)', borderBottom: '1px solid #1c1810' }}
+          >
+            <SortHeader label="Name" sortKey="name" active={sortKey === 'name'} dir={sortDir} onClick={onSort} className="flex-1" />
+            <SortHeader label="Tier" sortKey="tier" active={sortKey === 'tier'} dir={sortDir} onClick={onSort} className="shrink-0" />
+          </div>
+        )}
         {leagues.isPending && (
           <div className="flex justify-center py-16">
             <Spinner className="h-8 w-8" />
