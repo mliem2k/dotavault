@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { HeroBenchmarks, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { lobbyTypeName, regionName } from '@/lib/dotaconst'
 import { opendota } from '@/lib/opendota'
@@ -868,6 +868,23 @@ export function MatchOverview({
       setParseState('failed')
     }
   }
+
+  // Poll for the parsed match every 15s once a parse has been requested,
+  // stopping as soon as it comes back parsed (match.version set) or after
+  // ~5 minutes (OpenDota's typical parse time) so we don't poll forever if
+  // the job stalls.
+  const queryClient = useQueryClient()
+  useEffect(() => {
+    if (parseState !== 'requested' || match.version != null) return
+    let attempts = 0
+    const MAX_ATTEMPTS = 20
+    const id = setInterval(() => {
+      attempts += 1
+      queryClient.invalidateQueries({ queryKey: ['match', String(match.match_id)] })
+      if (attempts >= MAX_ATTEMPTS) clearInterval(id)
+    }, 15000)
+    return () => clearInterval(id)
+  }, [parseState, match.version, match.match_id, queryClient])
   const radiant = match.players.filter((p) => p.player_slot < 128)
   const dire = match.players.filter((p) => p.player_slot >= 128)
 
@@ -1062,7 +1079,8 @@ export function MatchOverview({
       </div>
       {parseState === 'requested' && (
         <div className="text-[13px]" style={{ color: '#8a97a0' }}>
-          Parse queued at OpenDota — full stats usually appear within a few minutes. Refresh to check.
+          Parse queued at OpenDota. This page checks automatically and will update once full stats are ready
+          (usually within a few minutes).
         </div>
       )}
       <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-2">
