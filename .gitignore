@@ -1,4 +1,6 @@
 .superpowers/
+docs/superpowers/
+.claude/worktrees/
 node_modules
 dist
 .env
