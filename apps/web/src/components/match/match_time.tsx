@@ -60,6 +60,27 @@ export function itemsAtTime(
   return ids
 }
 
+// aghanims_scepter/aghanims_shard/moonshard summarize OpenDota's parsed
+// permanent_buffs array, which can come back empty even when the item is
+// clearly owned (seen on a real match: permanent_buffs: [] for a player with
+// ultimate_scepter sitting in item_0). Scepter/Shard stay in the final
+// inventory once bought, so cross-check the item slots as a fallback; Moon
+// Shard is consumed on use and never sits in a slot, so its only fallback is
+// the purchase log.
+export function hasScepterBuff(player: MatchPlayer, idToName: Map<number, string>): boolean {
+  const finalItems = [player.item_0, player.item_1, player.item_2, player.item_3, player.item_4, player.item_5]
+  return (player.aghanims_scepter ?? 0) > 0 || finalItems.some((id) => idToName.get(id) === 'ultimate_scepter')
+}
+
+export function hasShardBuff(player: MatchPlayer, idToName: Map<number, string>): boolean {
+  const finalItems = [player.item_0, player.item_1, player.item_2, player.item_3, player.item_4, player.item_5]
+  return (player.aghanims_shard ?? 0) > 0 || finalItems.some((id) => idToName.get(id) === 'aghanims_shard')
+}
+
+export function hasMoonshardBuff(player: MatchPlayer): boolean {
+  return (player.moonshard ?? 0) > 0 || (player.purchase_log ?? []).some((e) => e.key === 'moon_shard')
+}
+
 export type TimedStats = {
   netWorth: number
   kills: number

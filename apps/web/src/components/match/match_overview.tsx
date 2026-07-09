@@ -18,7 +18,7 @@ import {
 } from '@/lib/utils'
 import { ItemIcon } from './item_icon'
 import { PlayerAvatar, PlayerNameLink, usePlayerName, usePlayerProName } from './match_roster'
-import { GameTimeSlider, hasTimeline, itemsAtTime, statsAtTime, type TimedStats } from './match_time'
+import { GameTimeSlider, hasScepterBuff, hasShardBuff, hasTimeline, itemsAtTime, statsAtTime, type TimedStats } from './match_time'
 
 const GAME_MODES: Record<number, string> = {
   1: 'All Pick',
@@ -204,17 +204,8 @@ function HeroPortraitCard({
 }) {
   const playerName = usePlayerName(player)
   const proName = usePlayerProName(player, playerName)
-  // aghanims_scepter/aghanims_shard reflect OpenDota's permanent_buffs parse,
-  // which is sometimes empty even when the item is clearly in the final
-  // inventory (e.g. permanent_buffs came back [] for a player with
-  // ultimate_scepter sitting in item_0). Cross-check the final item slots
-  // too, same "finalItems" convention itemsAtTime uses, so Aghanim's
-  // Blessing (a permanent buff with no inventory item) still works via the
-  // boolean field while a regularly-purchased Scepter/Shard isn't missed.
-  const finalItemNames = [player.item_0, player.item_1, player.item_2, player.item_3, player.item_4, player.item_5]
-    .map((id) => idToName.get(id))
-  const hasScepter = (player.aghanims_scepter ?? 0) > 0 || finalItemNames.includes('ultimate_scepter')
-  const hasShard = (player.aghanims_shard ?? 0) > 0 || finalItemNames.includes('aghanims_shard')
+  const hasScepter = hasScepterBuff(player, idToName)
+  const hasShard = hasShardBuff(player, idToName)
 
   return (
     <div className="flex flex-col items-center shrink-0" style={{ width: 118 }}>
