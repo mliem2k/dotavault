@@ -105,6 +105,12 @@ const num = (color: string, size = 16, weight = 400) => (v: number | string) => 
 )
 
 /* Support items purchased + total gold spent on them. */
+// Distinct support-item icons that fit the fixed icons zone (see
+// SUPPORT_ITEMS_ICONS_W below) without growing the row: 5 * 32px icons + 4 *
+// 6px gaps = 184px, inside a 188px zone.
+const MAX_VISIBLE_SUPPORT_ITEMS = 5
+const SUPPORT_ITEMS_ICONS_W = 188
+
 function SupportItemsGroup({
   player,
   itemConst,
@@ -123,11 +129,19 @@ function SupportItemsGroup({
   }
   const entries = [...counts.entries()]
   const gold = entries.reduce((s, [name, n]) => s + n * (itemConst[name]?.cost ?? 0), 0)
+  const overflow = entries.length > MAX_VISIBLE_SUPPORT_ITEMS
+  const visible = overflow ? entries.slice(0, MAX_VISIBLE_SUPPORT_ITEMS - 1) : entries
+  const extraCount = entries.length - visible.length
 
   return (
-    <div className="flex items-center gap-1.5 px-2 shrink-0" style={{ minWidth: 250 }}>
-      <div className="flex items-center gap-1.5 flex-1">
-        {entries.map(([name, n]) => (
+    // Fixed width (not minWidth) so every row's box is exactly the same
+    // size regardless of how many distinct items a player bought — a
+    // minWidth-only box grows past it once content needs more room,
+    // which shifts the gold total (and every column after it) out of
+    // alignment row to row.
+    <div className="flex items-center gap-1.5 px-2 shrink-0" style={{ width: 266 }}>
+      <div className="flex items-center gap-1.5 shrink-0 overflow-hidden" style={{ width: SUPPORT_ITEMS_ICONS_W }}>
+        {visible.map(([name, n]) => (
           <div key={name} className="relative shrink-0">
             <ItemIcon name={name} meta={itemConst[name]} width={32} height={24} />
             {n > 1 && (
@@ -140,6 +154,15 @@ function SupportItemsGroup({
             )}
           </div>
         ))}
+        {extraCount > 0 && (
+          <div
+            className="flex items-center justify-center shrink-0 rounded-sm text-[11px] tabular-nums"
+            style={{ width: 32, height: 24, background: '#12100c', border: '1px solid #241f16', color: '#8a97a0' }}
+            title={`${extraCount} more support item type${extraCount > 1 ? 's' : ''}`}
+          >
+            +{extraCount}
+          </div>
+        )}
       </div>
       <span className="w-14 text-right text-[15px] tabular-nums" style={{ color: '#f2c94c', fontFamily: 'var(--font-dota)' }}>
         {gold > 0 ? gold.toLocaleString() : '0'}
@@ -167,7 +190,10 @@ function BuffsGroup({
   ].filter((n): n is string => n != null)
 
   return (
-    <div className="flex items-center gap-1.5 px-2 shrink-0" style={{ minWidth: 124 }}>
+    // Fixed width, not minWidth: there are only ever at most 3 possible
+    // buffs so this never needs to grow, but width (not minWidth) keeps the
+    // box the same size in a 0-buff row too, matching every other section.
+    <div className="flex items-center gap-1.5 px-2 shrink-0" style={{ width: 124 }}>
       {names.map((name) => (
         <ItemIcon key={name} name={name} meta={itemConst[name]} width={32} height={24} />
       ))}
@@ -488,7 +514,7 @@ export function MatchScoreboard({
           ),
         )}
         {hasPurchases && (
-          <div role="columnheader" className="flex items-center shrink-0 pl-2" style={{ minWidth: 266 }}>
+          <div role="columnheader" className="flex items-center shrink-0 pl-2" style={{ width: 266 }}>
             <span className="text-[13px] uppercase flex-1" style={{ color: '#8a97a0', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}>
               Support Items
             </span>
@@ -497,7 +523,7 @@ export function MatchScoreboard({
           </div>
         )}
         {hasBuffs && (
-          <div role="columnheader" className="flex items-center shrink-0 pl-2" style={{ minWidth: 140 }}>
+          <div role="columnheader" className="flex items-center shrink-0 pl-2" style={{ width: 140 }}>
             <span className="text-[13px] uppercase" style={{ color: '#8a97a0', fontFamily: 'var(--font-dota)', letterSpacing: '1px' }}>
               Buffs
             </span>
@@ -505,11 +531,15 @@ export function MatchScoreboard({
         )}
         {maxAbilities > 0 && (
           <div role="columnheader" className="flex items-center gap-[3px] px-2 shrink-0">
+            {/* width matches AbilityIcon's default 26px size exactly (not a
+                round number like 29) so each header number stays lined up
+                with its own ability icon below instead of drifting right
+                by 3px per slot as the sequence gets longer. */}
             {Array.from({ length: maxAbilities }, (_, i) => (
               <span
                 key={i}
                 className="inline-block text-center tabular-nums text-[13px]"
-                style={{ width: 29, color: '#8a97a0', fontFamily: 'var(--font-dota)' }}
+                style={{ width: 26, color: '#8a97a0', fontFamily: 'var(--font-dota)' }}
               >
                 {i + 1}
               </span>
