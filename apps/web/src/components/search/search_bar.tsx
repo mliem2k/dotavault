@@ -1,4 +1,4 @@
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { Loader2, Search, Swords, User } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { SearchResult } from 'types'
@@ -99,17 +99,34 @@ export function SearchBar() {
   const trimmed = query.trim()
   const parsed = trimmed ? parseInput(trimmed) : null
 
-  function go(dest: Destination) {
+  function destRoute(dest: Destination) {
+    return dest.kind === 'match'
+      ? ({ to: '/match/$matchId', params: { matchId: dest.id } } as const)
+      : ({ to: '/player/$accountId', params: { accountId: dest.id } } as const)
+  }
+
+  function clearSearch() {
     setOpen(false)
     setQuery('')
     setResults([])
     setVanityResult(null)
     setActiveIndex(-1)
-    if (dest.kind === 'match') {
-      navigate({ to: '/match/$matchId', params: { matchId: dest.id } })
-    } else {
-      navigate({ to: '/player/$accountId', params: { accountId: dest.id } })
-    }
+  }
+
+  // Used by keyboard selection (Enter), which always fully navigates.
+  function go(dest: Destination) {
+    clearSearch()
+    navigate(destRoute(dest))
+  }
+
+  // Used by the option Links' onClick: a plain click behaves like go() (Link
+  // already handled the navigation itself, this just runs the cleanup), but
+  // a ctrl/cmd/shift/middle click opens the destination in a new tab via the
+  // real href, so the current tab's search state is left alone instead of
+  // being cleared out from under the user.
+  function handleOptionClick(e: React.MouseEvent) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return
+    clearSearch()
   }
 
   // Flattened, ordered list of the entries actually rendered in the dropdown,
@@ -252,13 +269,20 @@ export function SearchBar() {
           className="absolute top-full z-50 mt-1 w-full py-1"
           style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a', boxShadow: '0 16px 48px rgba(0,0,0,0.8)' }}
         >
+          {/* Options are real Links (not buttons) so ctrl/cmd/middle-click can
+              open a result in a new tab, same as any other link on the site;
+              handleOptionClick only runs the search-clearing cleanup for a
+              plain click, since a modified click leaves the current tab's
+              search open while the new tab loads. */}
+
           {/* Deterministic resolved entry */}
           {parsed?.type === 'resolved' && (
-            <button
+            <Link
               id="search-option-resolved"
               role="option"
               aria-selected={activeOptionId === 'search-option-resolved'}
-              onClick={() => go(parsed.dest)}
+              {...destRoute(parsed.dest)}
+              onClick={handleOptionClick}
               className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-white/[0.04]"
               style={activeOptionId === 'search-option-resolved' ? { background: 'rgba(255,255,255,0.06)' } : undefined}
             >
@@ -271,16 +295,17 @@ export function SearchBar() {
                 </div>
                 <div className="font-mono" style={{ fontSize: 12, color: '#8a8474', marginTop: 1 }}>#{parsed.dest.id}</div>
               </div>
-            </button>
+            </Link>
           )}
 
           {/* Vanity URL resolved entry */}
           {parsed?.type === 'vanity' && vanityResult && (
-            <button
+            <Link
               id="search-option-vanity"
               role="option"
               aria-selected={activeOptionId === 'search-option-vanity'}
-              onClick={() => go({ kind: 'player', id: vanityResult })}
+              {...destRoute({ kind: 'player', id: vanityResult })}
+              onClick={handleOptionClick}
               className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-white/[0.04]"
               style={{
                 borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -292,19 +317,20 @@ export function SearchBar() {
                 <div style={{ fontSize: 14, color: '#dcd6c8', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>Steam Profile</div>
                 <div className="font-mono" style={{ fontSize: 12, color: '#8a8474', marginTop: 1 }}>#{vanityResult} · {parsed.url}</div>
               </div>
-            </button>
+            </Link>
           )}
 
           {/* Name search results */}
           {results.map((r) => {
             const id = `search-option-result-${r.account_id}`
             return (
-              <button
+              <Link
                 key={r.account_id}
                 id={id}
                 role="option"
                 aria-selected={activeOptionId === id}
-                onClick={() => go({ kind: 'player', id: String(r.account_id) })}
+                {...destRoute({ kind: 'player', id: String(r.account_id) })}
+                onClick={handleOptionClick}
                 className="flex w-full items-center gap-3 px-5 py-2.5 text-left hover:bg-white/[0.04]"
                 style={activeOptionId === id ? { background: 'rgba(255,255,255,0.06)' } : undefined}
               >
@@ -314,7 +340,7 @@ export function SearchBar() {
                   className="h-8 w-8 rounded-full object-cover flex-shrink-0"
                 />
                 <span style={{ fontSize: 15, color: '#dcd6c8', fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>{r.personaname}</span>
-              </button>
+              </Link>
             )
           })}
 
