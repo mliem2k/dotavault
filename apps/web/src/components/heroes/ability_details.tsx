@@ -124,8 +124,8 @@ export function AbilityDetails({
       {/* Left: video with selector row below */}
       <div ref={leftColRef} className="shrink-0 flex flex-col" style={{ width: '100%', maxWidth: 640 }}>
         <div
-          className="relative overflow-hidden"
-          style={{ aspectRatio: '16 / 9', background: '#08080a', boxShadow: '0 0 32px 8px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)' }}
+          className="relative overflow-hidden bg-background"
+          style={{ aspectRatio: '16 / 9', boxShadow: '0 0 32px 8px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)' }}
         >
           <video
             key={name}
@@ -180,15 +180,15 @@ export function AbilityDetails({
       {/* Right: details panel */}
       <div className="flex-1 min-w-0 flex flex-col" style={{ background: 'rgb(0,0,0)', minHeight: 0, padding: '20px 20px 15px', maxHeight: rightMaxH ?? undefined, overflowY: rightMaxH ? 'auto' : undefined }}>
         {/* Name + icon + description */}
-        <div className="flex items-start gap-4 pb-4" style={{ borderBottom: '1px solid #1c1810' }}>
-          <div className="shrink-0" style={{ border: '1px solid #2a2620' }}>
+        <div className="flex items-start gap-4 pb-4 border-b border-border">
+          <div className="shrink-0 border border-border">
             <AbilityIcon entry={entry} size={84} />
             {entry.aghs && (
               <div
-                className="flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-widest px-1 py-0.5"
+                className={`flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-widest px-1 py-0.5 ${entry.aghs === 'scepter' ? 'text-accent' : ''}`}
                 style={{
                   background: entry.aghs === 'scepter' ? '#12233a' : '#1a2338',
-                  color: entry.aghs === 'scepter' ? '#5a8fc2' : '#8fb0e0',
+                  color: entry.aghs === 'scepter' ? undefined : '#8fb0e0',
                 }}
               >
                 <img
@@ -202,10 +202,8 @@ export function AbilityDetails({
           </div>
           <div className="min-w-0">
             <div
-              className="uppercase leading-tight mb-2"
+              className="uppercase leading-tight mb-2 text-white font-display"
               style={{
-                color: '#fff',
-                fontFamily: 'var(--font-display)',
                 fontSize: 22,
                 fontWeight: 700,
                 letterSpacing: '1px',
@@ -214,8 +212,7 @@ export function AbilityDetails({
               {a?.dname ?? name}
             </div>
             <div
-              className="text-[15px] leading-snug"
-              style={{ color: '#c8c2b4', fontFamily: 'var(--font-dota)' }}
+              className="text-[15px] leading-snug text-foreground font-dota"
             >
               {entry.aghs ? entry.aghsDesc : a?.desc}
             </div>
@@ -225,22 +222,20 @@ export function AbilityDetails({
         {/* Behavior / type row: left col = Ability + Damage, right col = Pierces + Dispellable stacked */}
         {(a?.behavior || a?.dmg_type || a?.bkbpierce != null || a?.dispellable != null) && (
           <div
-            className="flex gap-x-4 py-4"
-            style={{ borderBottom: '1px solid #1c1810' }}
+            className="flex gap-x-4 py-4 border-b border-border"
           >
             {/* Left: targeting type and damage type */}
             <div className="flex-1 flex flex-col gap-y-1">
               {a?.behavior && (
                 <div className="flex items-baseline gap-1.5">
                   <span
-                    className="text-[13px] uppercase font-bold tracking-wider shrink-0"
-                    style={{ color: '#7a8a99', fontFamily: 'var(--font-dota)' }}
+                    className="text-[13px] uppercase font-bold tracking-wider shrink-0 font-dota"
+                    style={{ color: '#7a8a99' }}
                   >
                     Ability:
                   </span>
                   <span
-                    className="text-[14px] font-bold"
-                    style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}
+                    className="text-[14px] font-bold text-white font-dota"
                   >
                     {(Array.isArray(a.behavior)
                       ? a.behavior.filter((b) =>
@@ -253,14 +248,13 @@ export function AbilityDetails({
               {a?.dmg_type && (
                 <div className="flex items-baseline gap-1.5">
                   <span
-                    className="text-[13px] uppercase font-bold tracking-wider shrink-0"
-                    style={{ color: '#7a8a99', fontFamily: 'var(--font-dota)' }}
+                    className="text-[13px] uppercase font-bold tracking-wider shrink-0 font-dota"
+                    style={{ color: '#7a8a99' }}
                   >
                     Damage:
                   </span>
                   <span
-                    className="text-[14px] font-bold"
-                    style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}
+                    className="text-[14px] font-bold text-white font-dota"
                   >
                     {String(a.dmg_type)}
                   </span>
@@ -273,17 +267,13 @@ export function AbilityDetails({
                 {a?.bkbpierce != null && (
                   <div className="flex items-baseline gap-1.5">
                     <span
-                      className="text-[13px] uppercase font-bold tracking-wider shrink-0"
-                      style={{ color: '#7a8a99', fontFamily: 'var(--font-dota)' }}
+                      className="text-[13px] uppercase font-bold tracking-wider shrink-0 font-dota"
+                      style={{ color: '#7a8a99' }}
                     >
                       Pierces Spell Immunity:
                     </span>
                     <span
-                      className="text-[14px] font-bold"
-                      style={{
-                        color: String(a.bkbpierce) === 'Yes' ? '#8ec63f' : '#ffffff',
-                        fontFamily: 'var(--font-dota)',
-                      }}
+                      className={`text-[14px] font-bold font-dota ${String(a.bkbpierce) === 'Yes' ? 'text-radiant' : 'text-white'}`}
                     >
                       {String(a.bkbpierce)}
                     </span>
@@ -292,14 +282,13 @@ export function AbilityDetails({
                 {a?.dispellable != null && (
                   <div className="flex items-baseline gap-1.5">
                     <span
-                      className="text-[13px] uppercase font-bold tracking-wider shrink-0"
-                      style={{ color: '#7a8a99', fontFamily: 'var(--font-dota)' }}
+                      className="text-[13px] uppercase font-bold tracking-wider shrink-0 font-dota"
+                      style={{ color: '#7a8a99' }}
                     >
                       Dispellable:
                     </span>
                     <span
-                      className="text-[14px] font-bold"
-                      style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}
+                      className="text-[14px] font-bold text-white font-dota"
                     >
                       {String(a.dispellable)}
                     </span>
@@ -312,19 +301,18 @@ export function AbilityDetails({
 
         {/* Attributes: stacked "LABEL: value" lines */}
         {attribs.length > 0 && (
-          <div className="py-4" style={{ borderBottom: '1px solid #1c1810' }}>
+          <div className="py-4 border-b border-border">
             {attribs.map((x, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: static attrib list
               <div key={i} className="flex items-baseline gap-2 py-0.5">
                 <span
-                  className="text-[12px] uppercase font-bold tracking-wider shrink-0"
-                  style={{ color: '#7a8a99', fontFamily: 'var(--font-dota)' }}
+                  className="text-[12px] uppercase font-bold tracking-wider shrink-0 font-dota"
+                  style={{ color: '#7a8a99' }}
                 >
                   {(x.header ?? '').replace(/:$/, '')}:
                 </span>
                 <span
-                  className="text-[15px] font-bold tabular-nums"
-                  style={{ color: '#ffffff', fontFamily: 'var(--font-dota)' }}
+                  className="text-[15px] font-bold tabular-nums text-white font-dota"
                 >
                   {joinLv(x.value)}
                 </span>
@@ -336,8 +324,7 @@ export function AbilityDetails({
         {/* Cooldown + mana */}
         {(hasCd || hasMc) && (
           <div
-            className="flex items-center justify-between py-4"
-            style={{ borderBottom: a?.lore && !entry.aghs ? '1px solid #1c1810' : undefined }}
+            className={`flex items-center justify-between py-4 ${a?.lore && !entry.aghs ? 'border-b border-border' : ''}`}
           >
             {hasCd && (
               <div className="flex items-center gap-2">
@@ -350,8 +337,8 @@ export function AbilityDetails({
                   }}
                 />
                 <span
-                  className="text-[16px] font-bold tabular-nums"
-                  style={{ color: '#8b9bc8', fontFamily: 'var(--font-dota)' }}
+                  className="text-[16px] font-bold tabular-nums font-dota"
+                  style={{ color: '#8b9bc8' }}
                 >
                   {joinLv(a?.cd)}
                 </span>
@@ -368,8 +355,8 @@ export function AbilityDetails({
                   }}
                 />
                 <span
-                  className="text-[16px] font-bold tabular-nums"
-                  style={{ color: '#00a4db', fontFamily: 'var(--font-dota)' }}
+                  className="text-[16px] font-bold tabular-nums font-dota"
+                  style={{ color: '#00a4db' }}
                 >
                   {joinLv(a?.mc as string | string[])}
                 </span>
@@ -382,12 +369,10 @@ export function AbilityDetails({
         {a?.lore && !entry.aghs && (
           <div className="py-4">
             <div
-              className="text-[13px] italic leading-relaxed px-3 py-2"
+              className="text-[13px] italic leading-relaxed px-3 py-2 font-dota border border-border"
               style={{
                 color: '#77715f',
-                fontFamily: 'var(--font-dota)',
                 background: 'rgba(255,255,255,0.03)',
-                border: '1px solid #1c1810',
               }}
             >
               {a.lore}

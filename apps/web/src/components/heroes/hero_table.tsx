@@ -1,5 +1,13 @@
 import { useState } from 'react'
 import type { HeroStat } from 'types'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { heroBracketTotal, heroIconUrl, heroSlug, winRate } from '@/lib/utils'
 
 type SortKey = 'winrate' | 'pickrate' | 'banrate' | 'name'
@@ -67,15 +75,15 @@ export function HeroTable({ heroes }: { heroes: HeroStat[] }) {
           </button>
         ))}
       </div>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs text-muted">
-            <th className="pb-2 font-normal w-8">Rank</th>
+      <Table>
+        <TableHeader>
+          <TableRow className="border-border text-left text-xs text-muted hover:bg-transparent">
+            <TableHead className="h-auto px-0 pb-2 font-normal w-8 text-muted">Rank</TableHead>
             {(['name', 'winrate', 'pickrate', 'banrate'] as SortKey[]).map((key) => (
-              <th
+              <TableHead
                 key={key}
                 aria-sort={sort === key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
-                className={`pb-2 font-normal ${key === 'name' ? '' : 'text-right'}`}
+                className={`h-auto px-0 pb-2 font-normal ${key === 'name' ? '' : 'text-right'}`}
               >
                 <button
                   type="button"
@@ -89,23 +97,23 @@ export function HeroTable({ heroes }: { heroes: HeroStat[] }) {
                     <span className="ml-0.5 opacity-60">{sortDir === 'desc' ? '↓' : '↑'}</span>
                   )}
                 </button>
-              </th>
+              </TableHead>
             ))}
-            <th className="pb-2 font-normal text-right">Roles</th>
-          </tr>
-        </thead>
-        <tbody>
+            <TableHead className="h-auto px-0 pb-2 font-normal text-right text-muted">Roles</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {sorted.map((h, idx) => {
             const picks = heroBracketTotal(h, 'pick')
             const wins = heroBracketTotal(h, 'win')
             const wr = picks > 0 ? wins / picks : 0
             return (
-              <tr
+              <TableRow
                 key={h.id}
-                className={`border-b border-border/50 ${idx % 2 === 1 ? 'bg-white/[0.02]' : ''}`}
+                className={`border-border/50 ${idx % 2 === 1 ? 'bg-white/[0.02]' : ''}`}
               >
-                <td className="py-1.5 font-mono text-xs text-muted">{idx + 1}</td>
-                <td className="py-1.5" colSpan={2}>
+                <TableCell className="p-0 py-1.5 font-mono text-xs text-muted">{idx + 1}</TableCell>
+                <TableCell className="p-0 py-1.5" colSpan={2}>
                   <a href={`/hero/${heroSlug(h.localized_name)}`} className="flex items-center gap-2 hover:text-accent">
                     <img
                       src={heroIconUrl(h.name)}
@@ -115,22 +123,22 @@ export function HeroTable({ heroes }: { heroes: HeroStat[] }) {
                     <span className="text-foreground">{h.localized_name}</span>
                     <span className="text-xs text-muted">{h.primary_attr}</span>
                   </a>
-                </td>
-                <td className={`py-1.5 text-right font-mono text-xs font-semibold ${wr >= 0.52 ? 'text-radiant' : wr < 0.48 && picks > 0 ? 'text-dire' : 'text-foreground'}`}>
+                </TableCell>
+                <TableCell className={`p-0 py-1.5 text-right font-mono text-xs font-semibold ${wr >= 0.52 ? 'text-radiant' : wr < 0.48 && picks > 0 ? 'text-dire' : 'text-foreground'}`}>
                   {winRate(wins, picks)}
-                </td>
-                <td className="py-1.5 text-right font-mono text-xs text-muted">
+                </TableCell>
+                <TableCell className="p-0 py-1.5 text-right font-mono text-xs text-muted">
                   {picks.toLocaleString()}
-                </td>
-                <td className="py-1.5 text-right font-mono text-xs text-muted">{h.pro_ban}</td>
-                <td className="py-1.5 text-right text-xs text-muted max-w-[120px]">
+                </TableCell>
+                <TableCell className="p-0 py-1.5 text-right font-mono text-xs text-muted">{h.pro_ban}</TableCell>
+                <TableCell className="p-0 py-1.5 text-right text-xs text-muted max-w-[120px] whitespace-normal">
                   {h.roles?.slice(0, 3).join(', ') ?? '—'}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   )
 }
