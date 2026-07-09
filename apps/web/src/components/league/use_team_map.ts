@@ -4,6 +4,23 @@ import { opendota } from '@/lib/opendota'
 
 export type TeamInfo = { name: string | null; tag: string | null; logo_url: string | null }
 
+// Firing all missing-team lookups at once (a 24+ team league standings
+// page, say) is exactly the kind of burst that trips OpenDota's rate
+// limiter; a handful come back 429 even with the retry in opendota.ts's
+// get(). Cap how many are in flight at once instead of one big Promise.all.
+async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length)
+  let next = 0
+  async function worker() {
+    while (next < items.length) {
+      const i = next++
+      results[i] = await fn(items[i])
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
+  return results
+}
+
 // The bulk /teams endpoint only returns OpenDota's top ~1000 teams by
 // rating, so older, smaller, or regional teams (a 2013 qualifier bracket,
 // say) fall back to "Team <id>" even though OpenDota does have their name,
@@ -31,15 +48,17 @@ export function useTeamMap(relevantTeamIds: (number | null | undefined)[]): Map<
   const fallback = useQuery({
     queryKey: ['team_fallback_info', missingIds],
     queryFn: async () => {
-      const entries = await Promise.all(
-        missingIds.map(async (id): Promise<[number, TeamInfo | null]> => {
+      const entries = await mapWithConcurrency(
+        missingIds,
+        5,
+        async (id): Promise<[number, TeamInfo | null]> => {
           try {
             const t = await opendota.team(id)
             return [id, { name: t.name ?? null, tag: t.tag ?? null, logo_url: t.logo_url ?? null }]
           } catch {
             return [id, null]
           }
-        }),
+        },
       )
       return new Map(entries.filter((e): e is [number, TeamInfo] => e[1] != null))
     },

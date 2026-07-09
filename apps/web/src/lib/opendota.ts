@@ -31,14 +31,33 @@ export type ProMatchRow = {
   last_hits: number | null
 }
 
+// OpenDota's public API rate-limits fairly aggressively under bursts (pages
+// that fan out many per-item requests, e.g. per-team name lookups on a
+// league standings page, routinely see a chunk of them come back 429).
+// Since call sites like use_team_map.ts swallow individual failures with
+// their own try/catch (so a permanently-fallback-labeled team never
+// recovers even after the burst passes), retry a 429 here at the fetch
+// layer instead, honoring Retry-After when present.
+async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response> {
+  const maxAttempts = 3
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const res = await fetch(url, init)
+    if (res.status !== 429 || attempt === maxAttempts - 1) return res
+    const retryAfterSec = Number(res.headers.get('retry-after'))
+    const delayMs = Number.isFinite(retryAfterSec) && retryAfterSec > 0 ? retryAfterSec * 1000 : 500 * 2 ** attempt
+    await new Promise((resolve) => setTimeout(resolve, delayMs))
+  }
+  return fetch(url, init)
+}
+
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`)
+  const res = await fetchWithRetry(`${BASE}${path}`)
   if (!res.ok) throw new Error(`OpenDota ${res.status}: ${path}`)
   return res.json() as Promise<T>
 }
 
 async function post<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, { method: 'POST' })
+  const res = await fetchWithRetry(`${BASE}${path}`, { method: 'POST' })
   if (!res.ok) throw new Error(`OpenDota ${res.status}: ${path}`)
   return res.json() as Promise<T>
 }
