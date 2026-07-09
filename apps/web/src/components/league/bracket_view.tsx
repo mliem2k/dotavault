@@ -1,18 +1,20 @@
 import { memo, useMemo, useState } from 'react'
-import { formatDuration } from '@/lib/utils'
+import { cn, formatDuration } from '@/lib/utils'
 import { inferBracket, isAdjacentRound, isWinningContinuation } from './infer_bracket'
 import type { Series } from './series'
 import { useBracketLayout } from './use_bracket_layout'
 
-const LINE_COLOR_NEUTRAL = '#5a5648'
-const LINE_COLOR_WINNER = '#8ec63f'
+// SVG stroke attributes take raw color values, not classNames, so these reference
+// the same design tokens as text-muted / text-radiant via CSS custom properties.
+const LINE_COLOR_NEUTRAL = 'var(--color-muted)'
+const LINE_COLOR_WINNER = 'var(--color-radiant)'
 
 type TeamInfo = { name: string | null; tag: string | null; logo_url: string | null }
 
 function TeamLabel({ id, name }: { id: number | null; name: string }) {
   if (id == null) {
     return (
-      <span className="truncate text-[13px]" style={{ fontFamily: 'var(--font-dota)' }}>
+      <span className="truncate text-[13px] font-dota">
         {name}
       </span>
     )
@@ -21,8 +23,7 @@ function TeamLabel({ id, name }: { id: number | null; name: string }) {
     <a
       href={`/team/${id}`}
       onClick={(e) => e.stopPropagation()}
-      className="truncate text-[13px] hover:underline"
-      style={{ color: 'inherit', fontFamily: 'var(--font-dota)' }}
+      className="truncate text-[13px] text-inherit hover:underline font-dota"
     >
       {name}
     </a>
@@ -45,10 +46,10 @@ const BracketCard = memo(function BracketCard({
 
   const row = (id: number | null, name: string, score: number, won: boolean) => (
     <div className="flex items-center justify-between gap-2 px-2.5 py-1.5" style={{ background: won ? 'rgba(142,198,63,0.08)' : 'transparent' }}>
-      <span style={{ color: won ? '#8ec63f' : '#8a8474', fontWeight: won ? 600 : 400, minWidth: 0 }}>
+      <span className={cn(won ? 'text-radiant' : 'text-muted')} style={{ fontWeight: won ? 600 : 400, minWidth: 0 }}>
         <TeamLabel id={id} name={name} />
       </span>
-      <span className="shrink-0 text-[13px] font-bold tabular-nums" style={{ color: won ? '#8ec63f' : '#5a5648' }}>
+      <span className={cn('shrink-0 text-[13px] font-bold tabular-nums', won ? 'text-radiant' : 'text-muted')}>
         {score}
       </span>
     </div>
@@ -67,13 +68,13 @@ const BracketCard = memo(function BracketCard({
       role="button"
       tabIndex={0}
       aria-expanded={expanded}
-      className="w-[160px] cursor-pointer sm:w-[220px]"
-      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #1c1810' }}
+      className="w-[160px] cursor-pointer border border-border sm:w-[220px]"
+      style={{ background: 'rgba(255,255,255,0.03)' }}
     >
       {row(s.teamA, teamA?.name ?? (s.teamA ? `Team ${s.teamA}` : 'TBD'), s.scoreA, aWon)}
-      <div style={{ borderTop: '1px solid #1c1810' }}>{row(s.teamB, teamB?.name ?? (s.teamB ? `Team ${s.teamB}` : 'TBD'), s.scoreB, !aWon)}</div>
+      <div className="border-t border-border">{row(s.teamB, teamB?.name ?? (s.teamB ? `Team ${s.teamB}` : 'TBD'), s.scoreB, !aWon)}</div>
       {expanded && (
-        <div className="flex flex-wrap gap-1 p-1.5" style={{ borderTop: '1px solid #1c1810' }}>
+        <div className="flex flex-wrap gap-1 border-t border-border p-1.5">
           {s.games.map((g) => {
             const radiantIsA = g.radiant_team_id === s.teamA
             const aWonGame = radiantIsA ? g.radiant_win : !g.radiant_win
@@ -82,11 +83,14 @@ const BracketCard = memo(function BracketCard({
                 key={g.match_id}
                 href={`/match/${g.match_id}`}
                 onClick={(e) => e.stopPropagation()}
-                className="px-1.5 py-1 text-[11px] tabular-nums hover:bg-white/[0.05]"
-                style={{ background: 'rgba(255,255,255,0.03)', color: '#8a8474', fontFamily: 'var(--font-dota)' }}
+                className="px-1.5 py-1 text-[11px] tabular-nums text-muted hover:bg-white/[0.05] font-dota"
+                style={{ background: 'rgba(255,255,255,0.03)' }}
                 title={`${formatDuration(g.duration)} · ${g.radiant_score ?? '?'}-${g.dire_score ?? '?'}`}
               >
-                <span style={{ color: aWonGame ? '#8ec63f' : '#c73f2d' }}>{aWonGame ? 'W' : 'L'}</span> {formatDuration(g.duration)}
+                {/* #c73f2d is not in the Token Mapping Reference (close to but distinct from
+                    text-dire's #d14a38/#c94a38) so it is kept as a raw inline style, per the
+                    Task 5/6 precedent of not guessing on off-table hex values. */}
+                <span className={cn(aWonGame && 'text-radiant')} style={!aWonGame ? { color: '#c73f2d' } : undefined}>{aWonGame ? 'W' : 'L'}</span> {formatDuration(g.duration)}
               </a>
             )
           })}
@@ -160,7 +164,7 @@ export function BracketView({ series, teamMap }: { series: Series[]; teamMap: Ma
 
   return (
     <div>
-      <div className="pb-3 text-[12px]" style={{ color: '#5a5648' }}>
+      <div className="pb-3 text-[12px] text-muted">
         Approximate round grouping inferred from match order, Valve doesn't publish official bracket
         positions through this data source.
       </div>
@@ -176,7 +180,7 @@ export function BracketView({ series, teamMap }: { series: Series[]; teamMap: Ma
           />
           {rounds.map((round, i) => (
             <div key={i} className="flex shrink-0 flex-col gap-3 sm:gap-4">
-              <div className="text-[12px] font-bold uppercase tracking-widest" style={{ color: '#8a8474' }}>
+              <div className="text-[12px] font-bold uppercase tracking-widest text-muted">
                 Round {i + 1}
               </div>
               {round.map((s) => (

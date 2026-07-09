@@ -8,10 +8,10 @@ export function Panel({
   children: React.ReactNode
 }) {
   return (
-    <div style={{ background: 'rgba(12,11,14,0.72)', border: '1px solid #24222a' }}>
+    <div className="border border-border" style={{ background: 'rgba(12,11,14,0.72)' }}>
       <div
-        className="flex items-center justify-between gap-3 px-4 py-3 uppercase"
-        style={{ color: '#dcd6c8', fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, letterSpacing: '3px', borderBottom: '1px solid #24222a' }}
+        className="flex items-center justify-between gap-3 px-4 py-3 uppercase text-foreground font-display border-b border-border"
+        style={{ fontSize: 20, fontWeight: 500, letterSpacing: '3px' }}
       >
         <span>{title}</span>
         {action}
