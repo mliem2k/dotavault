@@ -506,66 +506,6 @@ function ItemPopularitySection({
   )
 }
 
-// Permanent, always-visible counterpart to the hover tooltip on the small
-// Talents icon in the header (see the "Talents" group.hover block above) —
-// same data, same visual language, just not gated behind a hover so it
-// actually reads as page content rather than a discoverability trap.
-function TalentTreeSection({
-  talentRows,
-}: {
-  talentRows: { lvl: number; left: string; right: string }[]
-}) {
-  if (talentRows.length === 0) return null
-
-  const choice = (text: string) => {
-    if (!text) return null
-    const { sign, value, unit, text: rest } = parseTalent(text)
-    return (
-      <>
-        {sign && value && (
-          <span className="font-bold text-gold">
-            {sign}
-            {value}
-            {unit}{' '}
-          </span>
-        )}
-        {rest}
-      </>
-    )
-  }
-
-  return (
-    <StatPanel title="Talent Tree">
-      <div className="space-y-2">
-        {talentRows.map(({ lvl, left, right }) => (
-          <div key={lvl} className="flex items-center gap-3">
-            <div className="flex-1 text-right text-[14px] leading-snug text-foreground font-dota">
-              {choice(left)}
-            </div>
-            <div
-              className="shrink-0 flex items-center justify-center rounded-full font-display"
-              style={{
-                width: 34,
-                height: 34,
-                background: '#222',
-                border: '2px solid #85601f',
-                color: '#e7d292',
-                fontSize: 15,
-                fontWeight: 700,
-              }}
-            >
-              {lvl}
-            </div>
-            <div className="flex-1 text-left text-[14px] leading-snug text-foreground font-dota">
-              {choice(right)}
-            </div>
-          </div>
-        ))}
-      </div>
-    </StatPanel>
-  )
-}
-
 // Win rate by skill bracket (Herald through Immortal), from heroStats'
 // 1_pick/1_win..8_pick/8_win fields — data the page already fetches for
 // every hero via heroStats(), just not used for this purpose yet.
@@ -1745,7 +1685,6 @@ function HeroDetailPage() {
           charts read better at that narrower measure than stretched wide. */}
       {hero && (
         <div className="max-w-[1040px] mx-auto space-y-6">
-          {talentRows.length > 0 && <TalentTreeSection talentRows={talentRows} />}
           {laneRoles.data && <LanePresenceSection laneRoles={laneRoles.data} />}
           {matchups.data && <MatchupsSection heroMap={heroMap} matchups={matchups.data} />}
           <MetaTrendsSection hero={hero} />
@@ -1838,6 +1777,7 @@ function HeroDetailPage() {
                 <img
                   src={cropUrl(prevHero.name)}
                   alt={prevHero.localized_name}
+                  className="hidden lg:block"
                   style={{ ...cropStyle, left: 0 }}
                 />
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -1920,6 +1860,7 @@ function HeroDetailPage() {
                 <img
                   src={cropUrl(nextHero.name)}
                   alt={nextHero.localized_name}
+                  className="hidden lg:block"
                   style={{ ...cropStyle, right: 0 }}
                 />
               </a>
