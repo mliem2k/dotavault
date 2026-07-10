@@ -91,4 +91,10 @@ export type HeroStat = {
   '8_win': number
   null_pick: number
   null_win: number
+  // Trailing daily-bucket counts, most recent first (today's bucket is
+  // naturally lower since that day's matches are still being processed).
+  pub_pick_trend?: number[]
+  pub_win_trend?: number[]
+  turbo_picks_trend?: number[]
+  turbo_wins_trend?: number[]
 }

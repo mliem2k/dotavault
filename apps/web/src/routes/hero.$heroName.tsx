@@ -1,14 +1,28 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useMemo, useRef, useState } from 'react'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import type { HeroStat } from 'types'
 import { AbilityDetails } from '@/components/heroes/ability_details'
 import { Spinner } from '@/components/ui/spinner'
 import { datafeed } from '@/lib/datafeed'
 import { opendota } from '@/lib/opendota'
+import { RANK_NAMES, rankBadge, rankName } from '@/lib/rank'
 import { usePageTitle } from '@/lib/title'
 import {
   abilityIconCdn,
   abilityIconUrl,
+  formatDuration,
   heroIconUrl,
   heroLandscapeCdn,
   heroSlug,
@@ -298,8 +312,8 @@ function MatchupsSection({
         .map((m) => ({ ...m, wr: (m.wins / m.games_played) * 100 })),
     [matchups],
   )
-  const best = useMemo(() => [...rated].sort((a, b) => b.wr - a.wr).slice(0, 5), [rated])
-  const worst = useMemo(() => [...rated].sort((a, b) => a.wr - b.wr).slice(0, 5), [rated])
+  const best = useMemo(() => [...rated].sort((a, b) => b.wr - a.wr).slice(0, 10), [rated])
+  const worst = useMemo(() => [...rated].sort((a, b) => a.wr - b.wr).slice(0, 10), [rated])
 
   const row = (m: { hero_id: number; games_played: number; wr: number }, good: boolean) => {
     const h = heroMap.get(m.hero_id)
@@ -492,6 +506,308 @@ function ItemPopularitySection({
   )
 }
 
+// Permanent, always-visible counterpart to the hover tooltip on the small
+// Talents icon in the header (see the "Talents" group.hover block above) —
+// same data, same visual language, just not gated behind a hover so it
+// actually reads as page content rather than a discoverability trap.
+function TalentTreeSection({
+  talentRows,
+}: {
+  talentRows: { lvl: number; left: string; right: string }[]
+}) {
+  if (talentRows.length === 0) return null
+
+  const choice = (text: string) => {
+    if (!text) return null
+    const { sign, value, unit, text: rest } = parseTalent(text)
+    return (
+      <>
+        {sign && value && (
+          <span className="font-bold text-gold">
+            {sign}
+            {value}
+            {unit}{' '}
+          </span>
+        )}
+        {rest}
+      </>
+    )
+  }
+
+  return (
+    <StatPanel title="Talent Tree">
+      <div className="space-y-2">
+        {talentRows.map(({ lvl, left, right }) => (
+          <div key={lvl} className="flex items-center gap-3">
+            <div className="flex-1 text-right text-[14px] leading-snug text-foreground font-dota">
+              {choice(left)}
+            </div>
+            <div
+              className="shrink-0 flex items-center justify-center rounded-full font-display"
+              style={{
+                width: 34,
+                height: 34,
+                background: '#222',
+                border: '2px solid #85601f',
+                color: '#e7d292',
+                fontSize: 15,
+                fontWeight: 700,
+              }}
+            >
+              {lvl}
+            </div>
+            <div className="flex-1 text-left text-[14px] leading-snug text-foreground font-dota">
+              {choice(right)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </StatPanel>
+  )
+}
+
+// Win rate by skill bracket (Herald through Immortal), from heroStats'
+// 1_pick/1_win..8_pick/8_win fields — data the page already fetches for
+// every hero via heroStats(), just not used for this purpose yet.
+const META_BRACKET_MIN_GAMES = 20
+
+function MetaTrendsSection({ hero }: { hero: HeroStat }) {
+  const rows = useMemo(() => {
+    const out: { bracket: string; wr: number; games: number }[] = []
+    for (let tier = 1; tier <= 8; tier++) {
+      const picks = Number(hero[`${tier}_pick` as keyof HeroStat] ?? 0)
+      const wins = Number(hero[`${tier}_win` as keyof HeroStat] ?? 0)
+      if (picks < META_BRACKET_MIN_GAMES) continue
+      out.push({ bracket: RANK_NAMES[tier], wr: (wins / picks) * 100, games: picks })
+    }
+    return out
+  }, [hero])
+
+  if (rows.length === 0) return null
+
+  return (
+    <StatPanel title="Win Rate by Bracket">
+      <ResponsiveContainer width="100%" height={220}>
+        <BarChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+          <XAxis dataKey="bracket" tick={{ fill: '#888', fontSize: 11 }} />
+          <YAxis
+            tick={{ fill: '#888', fontSize: 10 }}
+            width={36}
+            tickFormatter={(v) => `${v}%`}
+            domain={[(dataMin: number) => Math.max(0, Math.floor(dataMin - 3)), 'auto']}
+          />
+          <Tooltip
+            contentStyle={{ background: '#111', border: '1px solid #333', fontSize: 11 }}
+            formatter={(v, _name, item) => [
+              `${(v as number).toFixed(1)}%`,
+              `${item.payload.games.toLocaleString()} games`,
+            ]}
+          />
+          <Bar dataKey="wr" fill="var(--color-gold)" radius={[2, 2, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </StatPanel>
+  )
+}
+
+// Win rate / pick rate over the last ~7 daily buckets. heroStats' *_trend
+// arrays are ordered most-recent-first (today's bucket is naturally lower
+// since that day's matches are still being parsed), so reverse them to read
+// left-to-right as oldest-to-newest, the usual chart convention.
+function TrendChartSection({ hero }: { hero: HeroStat }) {
+  const pickTrend = hero.pub_pick_trend
+  const winTrend = hero.pub_win_trend
+  if (!pickTrend || !winTrend || pickTrend.length === 0) return null
+
+  const days = pickTrend.length
+  const data = Array.from({ length: days }, (_, i) => {
+    const idx = days - 1 - i
+    const picks = pickTrend[idx] ?? 0
+    const wins = winTrend[idx] ?? 0
+    return {
+      day: i - (days - 1),
+      picks,
+      wr: picks > 0 ? (wins / picks) * 100 : null,
+    }
+  })
+
+  return (
+    <StatPanel title="Recent Trends">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div>
+          <div className="text-[13px] font-bold uppercase tracking-widest mb-2 text-muted">
+            Win Rate
+          </div>
+          <ResponsiveContainer width="100%" height={160}>
+            <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+              <XAxis
+                dataKey="day"
+                tick={{ fill: '#888', fontSize: 10 }}
+                tickFormatter={(d) => (d === 0 ? 'Today' : `${d}d`)}
+              />
+              <YAxis
+                tick={{ fill: '#888', fontSize: 10 }}
+                width={36}
+                tickFormatter={(v) => `${v}%`}
+                domain={['auto', 'auto']}
+              />
+              <Tooltip
+                contentStyle={{ background: '#111', border: '1px solid #333', fontSize: 11 }}
+                formatter={(v) => [
+                  v == null ? 'No data' : `${(v as number).toFixed(1)}%`,
+                  'Win rate',
+                ]}
+                labelFormatter={(d) => (d === 0 ? 'Today' : `${d}d ago`)}
+              />
+              <Line
+                type="monotone"
+                dataKey="wr"
+                stroke="var(--color-gold)"
+                strokeWidth={1.5}
+                dot={false}
+                connectNulls
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <div>
+          <div className="text-[13px] font-bold uppercase tracking-widest mb-2 text-muted">
+            Matches Played
+          </div>
+          <ResponsiveContainer width="100%" height={160}>
+            <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+              <XAxis
+                dataKey="day"
+                tick={{ fill: '#888', fontSize: 10 }}
+                tickFormatter={(d) => (d === 0 ? 'Today' : `${d}d`)}
+              />
+              <YAxis tick={{ fill: '#888', fontSize: 10 }} width={36} />
+              <Tooltip
+                contentStyle={{ background: '#111', border: '1px solid #333', fontSize: 11 }}
+                formatter={(v) => [(v as number).toLocaleString(), 'Matches']}
+                labelFormatter={(d) => (d === 0 ? 'Today' : `${d}d ago`)}
+              />
+              <Line
+                type="monotone"
+                dataKey="picks"
+                stroke="var(--color-slate-muted-light)"
+                strokeWidth={1.5}
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </StatPanel>
+  )
+}
+
+function PlayerRankingsSection({
+  players,
+}: {
+  players: {
+    account_id: number
+    score: number
+    personaname: string | null
+    avatar: string | null
+    rank_tier: number | null
+  }[]
+}) {
+  const top = players.slice(0, 10)
+  if (top.length === 0) return null
+
+  return (
+    <StatPanel title="Player Rankings">
+      <div className="space-y-1">
+        {top.map((p, i) => {
+          const badge = rankBadge(p.rank_tier)
+          return (
+            <a
+              key={p.account_id}
+              href={`/player/${p.account_id}`}
+              className="flex items-center gap-3 py-1.5 hover:bg-white/[0.03] border-t border-border"
+            >
+              <span className="w-5 shrink-0 text-right text-[13px] tabular-nums text-muted">
+                {i + 1}
+              </span>
+              {p.avatar && <img src={p.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full" />}
+              <span className="min-w-0 flex-1 truncate text-[15px] text-foreground font-dota">
+                {p.personaname ?? `Player ${p.account_id}`}
+              </span>
+              {badge && (
+                <img
+                  src={badge.medal}
+                  alt={rankName(p.rank_tier)}
+                  title={rankName(p.rank_tier)}
+                  className="h-6 w-6 shrink-0"
+                />
+              )}
+              <span className="w-16 shrink-0 text-right text-[14px] font-bold tabular-nums text-gold font-dota">
+                {Math.round(p.score).toLocaleString()}
+              </span>
+            </a>
+          )
+        })}
+      </div>
+    </StatPanel>
+  )
+}
+
+function NotableMatchesSection({
+  matches,
+}: {
+  matches: {
+    match_id: number
+    start_time: number
+    duration: number
+    radiant_win: boolean
+    league_name: string | null
+    radiant: boolean
+    account_id: number | null
+    kills: number
+    deaths: number
+    assists: number
+  }[]
+}) {
+  const top = matches.slice(0, 8)
+  if (top.length === 0) return null
+
+  return (
+    <StatPanel title="Notable Matches">
+      <div className="space-y-1">
+        {top.map((m) => {
+          const won = m.radiant === m.radiant_win
+          return (
+            <a
+              key={m.match_id}
+              href={`/match/${m.match_id}`}
+              className="flex items-center gap-3 py-1.5 hover:bg-white/[0.03] border-t border-border"
+            >
+              <span
+                className={`w-14 shrink-0 text-[13px] font-bold uppercase font-dota ${won ? 'text-radiant' : 'text-dire'}`}
+              >
+                {won ? 'Won' : 'Lost'}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[14px] text-muted font-dota">
+                {m.league_name ?? 'Public Match'}
+              </span>
+              <span className="shrink-0 text-[14px] tabular-nums text-foreground font-dota">
+                {m.kills}/{m.deaths}/{m.assists}
+              </span>
+              <span className="w-16 shrink-0 text-right text-[13px] tabular-nums text-muted font-dota">
+                {formatDuration(m.duration)}
+              </span>
+            </a>
+          )
+        })}
+      </div>
+    </StatPanel>
+  )
+}
+
 function HeroDetailPage() {
   const { heroName } = Route.useParams()
   const heroStats = useQuery({ queryKey: ['heroes'], queryFn: () => opendota.heroStats() })
@@ -579,6 +895,18 @@ function HeroDetailPage() {
     queryFn: () => opendota.heroLaneRoles(hero!.id),
     enabled: !!hero?.id,
     staleTime: 60 * 60 * 1000,
+  })
+  const topPlayers = useQuery({
+    queryKey: ['hero_top_players', hero?.id],
+    queryFn: () => opendota.heroTopPlayers(hero!.id),
+    enabled: !!hero?.id,
+    staleTime: 60 * 60 * 1000,
+  })
+  const recentMatches = useQuery({
+    queryKey: ['hero_recent_matches', hero?.id],
+    queryFn: () => opendota.heroRecentMatches(hero!.id),
+    enabled: !!hero?.id,
+    staleTime: 15 * 60 * 1000,
   })
   // Whether the header's lore is expanded to its full history inline.
   const [loreOpen, setLoreOpen] = useState(false)
@@ -1417,12 +1745,17 @@ function HeroDetailPage() {
           charts read better at that narrower measure than stretched wide. */}
       {hero && (
         <div className="max-w-[1040px] mx-auto space-y-6">
+          {talentRows.length > 0 && <TalentTreeSection talentRows={talentRows} />}
           {laneRoles.data && <LanePresenceSection laneRoles={laneRoles.data} />}
           {matchups.data && <MatchupsSection heroMap={heroMap} matchups={matchups.data} />}
+          <MetaTrendsSection hero={hero} />
+          <TrendChartSection hero={hero} />
           {durations.data && <DurationSection durations={durations.data} />}
           {itemPopularity.data && (
             <ItemPopularitySection popularity={itemPopularity.data} idToName={itemIdToName} />
           )}
+          {topPlayers.data && <PlayerRankingsSection players={topPlayers.data} />}
+          {recentMatches.data && <NotableMatchesSection matches={recentMatches.data} />}
         </div>
       )}
 

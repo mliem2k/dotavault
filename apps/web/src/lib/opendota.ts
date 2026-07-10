@@ -145,6 +145,41 @@ export const opendota = {
   // Win rate against every other hero, from this hero's own matches.
   heroMatchups: (id: string) =>
     get<{ hero_id: number; games_played: number; wins: number }[]>(`/heroes/${id}/matchups`),
+  // Top players by hero score for this hero (precomputed, fast — not derived
+  // from a live query, unlike the aggregations elsewhere in this file that
+  // hit the SQL Explorer directly).
+  heroTopPlayers: (heroId: number) =>
+    get<{
+      hero_id: number
+      rankings: {
+        account_id: number
+        score: number
+        personaname: string | null
+        avatar: string | null
+        rank_tier: number | null
+      }[]
+    }>(`/rankings?hero_id=${heroId}`).then((r) => r.rankings),
+  // Recent notable (tournament/league) matches featuring this hero. Real
+  // response fields are narrower than the API's documented schema (no team
+  // names/ids come back in practice), just enough to link to the match and
+  // show who played it and how it went.
+  heroRecentMatches: (heroId: number) =>
+    get<
+      {
+        match_id: number
+        start_time: number
+        duration: number
+        radiant_win: boolean
+        leagueid: number
+        league_name: string | null
+        radiant: boolean
+        player_slot: number
+        account_id: number | null
+        kills: number
+        deaths: number
+        assists: number
+      }[]
+    >(`/heroes/${heroId}/matches`),
   // Most-purchased items per game phase (counts, not win rates; OpenDota
   // doesn't expose a per-item win rate for this breakdown).
   heroItemPopularity: (id: string) =>
@@ -154,16 +189,29 @@ export const opendota = {
       mid_game_items: Record<string, number>
       late_game_items: Record<string, number>
     }>(`/heroes/${id}/itemPopularity`),
-  // Win rate by lane role (1 safe, 2 mid, 3 off), last 60 days. heroId is
-  // always our own numeric hero.id, never free text, so string
-  // interpolation here can't be injected (same pattern as the league
-  // report's leagueid-scoped queries).
-  heroLaneRoles: (heroId: number) => {
-    const sql = `SELECT lane_role, count(*)::int as picks, sum(CASE WHEN (pm.player_slot < 128) = m.radiant_win THEN 1 ELSE 0 END)::int as wins FROM player_matches pm JOIN matches m ON pm.match_id = m.match_id WHERE pm.hero_id = ${heroId} AND lane_role IS NOT NULL AND m.start_time > extract(epoch from now() - interval '60 days') GROUP BY lane_role`
-    return get<{ rows: { lane_role: number; picks: number; wins: number }[] }>(
-      `/explorer?sql=${encodeURIComponent(sql)}`,
-    ).then((r) => r.rows)
-  },
+  // Win rate by lane role (1 safe, 2 mid, 3 off, 4 jungle). Was previously a
+  // SQL Explorer query joining player_matches to matches by hero_id — that
+  // times out server-side every time (confirmed empirically: player_matches
+  // has no usable hero_id index on the Explorer's read replica, so it hits
+  // the ~15s statement timeout regardless of how the query is shaped),
+  // which meant this silently returned no data for every hero on the site.
+  // /scenarios/laneRoles is a real precomputed endpoint instead: each row is
+  // one duration-bucket "time" checkpoint (900/1800/2700/3600/5400s), so sum
+  // across buckets per lane_role to get the total picks/wins, matching how
+  // the sibling /heroes/:id/durations endpoint's bins already work.
+  heroLaneRoles: (heroId: number) =>
+    get<{ hero_id: number; lane_role: number; time: number; games: string; wins: string }[]>(
+      `/scenarios/laneRoles?hero_id=${heroId}`,
+    ).then((rows) => {
+      const totals = new Map<number, { picks: number; wins: number }>()
+      for (const r of rows) {
+        const cur = totals.get(r.lane_role) ?? { picks: 0, wins: 0 }
+        cur.picks += Number(r.games)
+        cur.wins += Number(r.wins)
+        totals.set(r.lane_role, cur)
+      }
+      return [...totals.entries()].map(([lane_role, t]) => ({ lane_role, ...t }))
+    }),
   proMatches: (lessThan?: number) =>
     get<ProMatch[]>(`/proMatches${lessThan ? `?less_than_match_id=${lessThan}` : ''}`),
   teamsList: () =>
