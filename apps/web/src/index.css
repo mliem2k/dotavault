@@ -1,6 +1,6 @@
-@import '@fontsource-variable/geist';
-@import '@fontsource-variable/geist-mono';
-@import 'tailwindcss';
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -9,44 +9,44 @@
 /* Valve's actual Dota 2 web fonts, self-hosted from public/fonts.
    Radiance = UI text (--font-dota), Reaver = display serif (--font-display). */
 @font-face {
-  font-family: 'Radiance';
-  src: url('/fonts/radiance.woff') format('woff');
+  font-family: "Radiance";
+  src: url("/fonts/radiance.woff") format("woff");
   font-weight: 400;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Radiance';
-  src: url('/fonts/radiance-semibold.woff') format('woff');
+  font-family: "Radiance";
+  src: url("/fonts/radiance-semibold.woff") format("woff");
   font-weight: 600 700;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Radiance';
-  src: url('/fonts/radiance-bold.woff') format('woff');
+  font-family: "Radiance";
+  src: url("/fonts/radiance-bold.woff") format("woff");
   font-weight: 800 900;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Reaver';
-  src: url('/fonts/Reaver-Regular.woff') format('woff');
+  font-family: "Reaver";
+  src: url("/fonts/Reaver-Regular.woff") format("woff");
   font-weight: 400;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Reaver';
-  src: url('/fonts/Reaver-SemiBold.woff') format('woff');
+  font-family: "Reaver";
+  src: url("/fonts/Reaver-SemiBold.woff") format("woff");
   font-weight: 600;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Reaver';
-  src: url('/fonts/Reaver-Bold.woff') format('woff');
+  font-family: "Reaver";
+  src: url("/fonts/Reaver-Bold.woff") format("woff");
   font-weight: 700;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Reaver';
-  src: url('/fonts/Reaver-Black.woff') format('woff');
+  font-family: "Reaver";
+  src: url("/fonts/Reaver-Black.woff") format("woff");
   font-weight: 800 900;
   font-display: swap;
 }
@@ -67,10 +67,10 @@
   --color-int: #4fb0e0;
   --color-uni: #c47adf;
   /* Radiance (Dota 2's UI font) is the global default everywhere. */
-  --font-sans: 'Radiance', 'Geist Variable', sans-serif;
-  --font-mono: 'Geist Mono Variable', monospace;
-  --font-dota: 'Radiance', 'Geist Variable', sans-serif;
-  --font-display: 'Reaver', serif;
+  --font-sans: "Radiance", "Geist Variable", sans-serif;
+  --font-mono: "Geist Mono Variable", monospace;
+  --font-dota: "Radiance", "Geist Variable", sans-serif;
+  --font-display: "Reaver", serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -137,7 +137,7 @@ html {
 
 body {
   background-color: #08080a;
-  background-image: url('/backgrounds/greyfade.jpg');
+  background-image: url("/backgrounds/greyfade.jpg");
   background-size: cover;
   background-position: top center;
   /* fixed (not scroll): scroll sizes "cover" against the full scrollable

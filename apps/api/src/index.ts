@@ -1,9 +1,10 @@
-import { cron } from '@elysiajs/cron'
 import { cors } from '@elysiajs/cors'
+import { cron } from '@elysiajs/cron'
 import { openapi } from '@elysiajs/openapi'
 import { Elysia } from 'elysia'
 import { deleteExpired } from './lib/cache'
 import { env } from './lib/env'
+import { checkRateLimit, clientIp } from './lib/rate-limit'
 import { heroesPlugin } from './routes/heroes'
 import { matchesPlugin } from './routes/matches'
 import { playersPlugin } from './routes/players'
@@ -11,26 +12,52 @@ import { proPlugin } from './routes/pro'
 import { replayPlugin } from './routes/replay'
 import { searchPlugin } from './routes/search'
 
+// Generous general-purpose limit — this is a public read-only API with no
+// per-user quota, just abuse mitigation. The replay endpoint has its own
+// tighter concurrency cap (see routes/replay.ts) on top of this.
+const GENERAL_RATE_LIMIT = 240
+const GENERAL_RATE_WINDOW_MS = 60_000
+
 const app = new Elysia()
   .use(
     openapi({
       path: '/docs',
       documentation: { info: { title: 'dotavault API', version: '1.0.0' } },
-    })
+    }),
   )
   .use(
     cors({
       origin: ['https://dotavault.mliem.com', 'http://localhost:5173', 'http://localhost:5174'],
       credentials: true,
-    })
+    }),
   )
   .use(
     cron({
       name: 'cache-cleanup',
       pattern: '*/30 * * * *',
       run: deleteExpired,
-    })
+    }),
   )
+  .onRequest(({ set }) => {
+    set.headers['X-Content-Type-Options'] = 'nosniff'
+    set.headers['X-Frame-Options'] = 'DENY'
+    set.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    set.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+  })
+  .onBeforeHandle(({ set, request }) => {
+    const { pathname } = new URL(request.url)
+    if (pathname === '/health') return
+    const { allowed, retryAfter } = checkRateLimit(
+      clientIp(request),
+      GENERAL_RATE_LIMIT,
+      GENERAL_RATE_WINDOW_MS,
+    )
+    if (!allowed) {
+      set.status = 429
+      set.headers['Retry-After'] = String(retryAfter)
+      return { error: 'Too many requests' }
+    }
+  })
   .get('/health', () => ({ ok: true }))
   .use(playersPlugin)
   .use(matchesPlugin)

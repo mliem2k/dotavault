@@ -2,7 +2,10 @@
   "name": "dotavault",
   "private": true,
   "packageManager": "bun@1.3.14",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
@@ -11,8 +14,8 @@
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.2",
-    "turbo": "^2.10.2",
+    "@biomejs/biome": "^2.5.3",
+    "turbo": "^2.10.4",
     "typescript": "7"
   },
   "dependencies": {
