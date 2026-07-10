@@ -1,6 +1,13 @@
 import { Link } from '@tanstack/react-router'
 import type { HeroStat, Match, MatchPlayer } from 'types'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
 import { orderedTeams } from './match_roster'
 
@@ -20,8 +27,17 @@ function fmtClock(sec: number): string {
 
 // linked=false for the one call site already nested inside a <Link> (the
 // teamfight summary row), since an <a> can't nest inside another <a>.
-function HeroIcon({ hero, size = 28, linked = true }: { hero: HeroStat | undefined; size?: number; linked?: boolean }) {
-  if (!hero) return <span className="inline-block bg-slate-bg" style={{ width: size, height: size }} />
+function HeroIcon({
+  hero,
+  size = 28,
+  linked = true,
+}: {
+  hero: HeroStat | undefined
+  size?: number
+  linked?: boolean
+}) {
+  if (!hero)
+    return <span className="inline-block bg-slate-bg" style={{ width: size, height: size }} />
   const img = (
     <img
       src={heroIconUrl(hero.name)}
@@ -55,13 +71,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 /* ---- Kill matrix: rows kill columns ---- */
-function KillMatrix({
-  match,
-  heroMap,
-}: {
-  match: Match
-  heroMap: Map<number, HeroStat>
-}) {
+function KillMatrix({ match, heroMap }: { match: Match; heroMap: Map<number, HeroStat> }) {
   const { radiant, dire } = orderedTeams(match)
   const all = [...radiant, ...dire]
   const killsOn = (p: MatchPlayer, victim: HeroStat | undefined) =>
@@ -89,12 +99,15 @@ function KillMatrix({
                 <TableRow key={p.player_slot} className="hover:bg-transparent border-none">
                   <TableCell className="p-[3px] pr-2">
                     <div className="flex items-center gap-1.5">
-                      <span className={`inline-block ${isRadiant ? 'bg-radiant' : 'bg-dire'}`} style={{ width: 3, height: 30 }} />
+                      <span
+                        className={`inline-block ${isRadiant ? 'bg-radiant' : 'bg-dire'}`}
+                        style={{ width: 3, height: 30 }}
+                      />
                       <HeroIcon hero={heroMap.get(p.hero_id)} size={36} />
                     </div>
                   </TableCell>
                   {all.map((v) => {
-                    const sameTeam = (v.player_slot < 128) === isRadiant
+                    const sameTeam = v.player_slot < 128 === isRadiant
                     const n = sameTeam ? 0 : killsOn(p, heroMap.get(v.hero_id))
                     return (
                       <TableCell
@@ -120,22 +133,14 @@ function KillMatrix({
             })}
           </TableBody>
         </Table>
-        <div className="mt-2.5 text-[13px] text-slate-muted font-dota">
-          Rows kill columns.
-        </div>
+        <div className="mt-2.5 text-[13px] text-slate-muted font-dota">Rows kill columns.</div>
       </div>
     </div>
   )
 }
 
 /* ---- Chronological kill log ---- */
-function KillLogList({
-  match,
-  heroMap,
-}: {
-  match: Match
-  heroMap: Map<number, HeroStat>
-}) {
+function KillLogList({ match, heroMap }: { match: Match; heroMap: Map<number, HeroStat> }) {
   const heroByName = new Map([...heroMap.values()].map((h) => [h.name, h]))
   const events = match.players
     .flatMap((p) =>
@@ -153,14 +158,20 @@ function KillLogList({
   return (
     <div style={{ background: C.panel }}>
       <SectionTitle>Kill Log</SectionTitle>
-      <div className="p-4 grid gap-x-10 gap-y-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))' }}>
+      <div
+        className="p-4 grid gap-x-10 gap-y-2"
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))' }}
+      >
         {events.map((e, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: static event list
           <div key={i} className="flex items-center gap-2">
             <span className="w-14 text-right text-[14px] tabular-nums shrink-0 text-slate-muted font-dota">
               {fmtClock(e.time)}
             </span>
-            <span className={e.radiant ? 'bg-radiant' : 'bg-dire'} style={{ width: 3, height: 24 }} />
+            <span
+              className={e.radiant ? 'bg-radiant' : 'bg-dire'}
+              style={{ width: 3, height: 24 }}
+            />
             <HeroIcon hero={e.killer} size={30} />
             <span className="text-[13px] text-slate-muted">killed</span>
             <HeroIcon hero={e.victim} size={30} />
@@ -172,13 +183,7 @@ function KillLogList({
 }
 
 /* ---- Teamfights ---- */
-function Teamfights({
-  match,
-  heroMap,
-}: {
-  match: Match
-  heroMap: Map<number, HeroStat>
-}) {
+function Teamfights({ match, heroMap }: { match: Match; heroMap: Map<number, HeroStat> }) {
   const fights = match.teamfights ?? []
   if (fights.length === 0) return null
 
@@ -211,7 +216,10 @@ function Teamfights({
                 <div className="text-[17px] tabular-nums text-white">
                   {fmtClock(f.start)} <span className="text-slate-muted">–</span> {fmtClock(f.end)}
                 </div>
-                <div className="text-[12px] uppercase text-slate-muted" style={{ letterSpacing: '1px' }}>
+                <div
+                  className="text-[12px] uppercase text-slate-muted"
+                  style={{ letterSpacing: '1px' }}
+                >
                   {f.deaths} deaths
                 </div>
               </div>
@@ -221,16 +229,36 @@ function Teamfights({
                 {f.players.map((tp, idx) => {
                   const mp = match.players[idx]
                   const kills = Object.values(tp.killed ?? {}).reduce((s, n) => s + n, 0)
-                  if (!mp || (tp.damage === 0 && tp.deaths === 0 && kills === 0 && tp.gold_delta === 0)) return null
+                  if (
+                    !mp ||
+                    (tp.damage === 0 && tp.deaths === 0 && kills === 0 && tp.gold_delta === 0)
+                  )
+                    return null
                   const hero = heroMap.get(mp.hero_id)
                   return (
                     // biome-ignore lint/suspicious/noArrayIndexKey: aligned to players order
-                    <div key={idx} className="relative" title={`${hero?.localized_name}: ${tp.damage.toLocaleString()} dmg, ${kills} kills${tp.deaths ? ', died' : ''}`}>
-                      <div className={mp.player_slot < 128 ? 'border-t-2 border-radiant' : 'border-t-2 border-dire'} style={{ opacity: tp.deaths ? 0.45 : 1 }}>
+                    <div
+                      key={idx}
+                      className="relative"
+                      title={`${hero?.localized_name}: ${tp.damage.toLocaleString()} dmg, ${kills} kills${tp.deaths ? ', died' : ''}`}
+                    >
+                      <div
+                        className={
+                          mp.player_slot < 128
+                            ? 'border-t-2 border-radiant'
+                            : 'border-t-2 border-dire'
+                        }
+                        style={{ opacity: tp.deaths ? 0.45 : 1 }}
+                      >
                         <HeroIcon hero={hero} size={42} linked={false} />
                       </div>
                       {tp.deaths > 0 && (
-                        <span className="absolute inset-0 flex items-center justify-center text-[20px]" style={{ color: '#ff6a5a' }}>✕</span>
+                        <span
+                          className="absolute inset-0 flex items-center justify-center text-[20px]"
+                          style={{ color: '#ff6a5a' }}
+                        >
+                          ✕
+                        </span>
                       )}
                     </div>
                   )
@@ -238,8 +266,12 @@ function Teamfights({
               </div>
 
               <div className="w-48 shrink-0 text-right font-dota">
-                <div className={`text-[16px] tabular-nums ${winner === 'radiant' ? 'text-radiant' : 'text-dire'}`}>
-                  {winner === 'radiant' ? 'Radiant' : 'Dire'} +{Math.abs(radGold - direGold).toLocaleString()} <span className="text-gold">gold</span>
+                <div
+                  className={`text-[16px] tabular-nums ${winner === 'radiant' ? 'text-radiant' : 'text-dire'}`}
+                >
+                  {winner === 'radiant' ? 'Radiant' : 'Dire'} +
+                  {Math.abs(radGold - direGold).toLocaleString()}{' '}
+                  <span className="text-gold">gold</span>
                 </div>
               </div>
             </Link>
@@ -250,13 +282,7 @@ function Teamfights({
   )
 }
 
-export function MatchCombat({
-  match,
-  heroStats,
-}: {
-  match: Match
-  heroStats: HeroStat[]
-}) {
+export function MatchCombat({ match, heroStats }: { match: Match; heroStats: HeroStat[] }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const hasKilled = match.players.some((p) => Object.keys(p.killed ?? {}).length > 0)
 

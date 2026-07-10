@@ -3,11 +3,16 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { SortHeader } from '@/components/ui/sort_header'
 import { Spinner } from '@/components/ui/spinner'
-import { countryFlagUrl, divisionLabel, divisionShort, findLeaderboardPositions } from '@/lib/leaderboard'
+import {
+  countryFlagUrl,
+  divisionLabel,
+  divisionShort,
+  findLeaderboardPositions,
+} from '@/lib/leaderboard'
 import { opendota } from '@/lib/opendota'
 import { applySort, useSort } from '@/lib/sortable'
-import { usePageTitle } from '@/lib/title'
 import { tiChampionships } from '@/lib/ti_champions'
+import { usePageTitle } from '@/lib/title'
 import { formatDuration, formatTimeAgo } from '@/lib/utils'
 
 export const Route = createFileRoute('/pro')({
@@ -18,7 +23,15 @@ export const Route = createFileRoute('/pro')({
    scores (filterable by league, load more), team ratings, and notable
    players. Data: OpenDota proMatches / teams / proPlayers. */
 
-function Panel({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) {
+function Panel({
+  title,
+  children,
+  right,
+}: {
+  title: string
+  children: React.ReactNode
+  right?: React.ReactNode
+}) {
   return (
     <div className="border border-border" style={{ background: 'rgba(12,11,14,0.72)' }}>
       <div
@@ -117,7 +130,10 @@ function ProMatches() {
                 {m.league_name && (
                   // #77715f is not in the Token Mapping Reference (close to but distinct
                   // from #8a8474/#5a5648 text-muted) — left as-is per task instructions.
-                  <div className="mt-0.5 truncate text-[13px] font-dota" style={{ color: '#77715f' }}>
+                  <div
+                    className="mt-0.5 truncate text-[13px] font-dota"
+                    style={{ color: '#77715f' }}
+                  >
                     {m.league_name}
                   </div>
                 )}
@@ -210,11 +226,38 @@ function TopTeams() {
           <span className="w-5 shrink-0" />
           <span className="h-7 w-7 shrink-0" />
           <div className="min-w-0 flex-1">
-            <SortHeader label="Team" sortKey="name" active={sortKey === 'name'} dir={sortDir} onClick={onSort} />
+            <SortHeader
+              label="Team"
+              sortKey="name"
+              active={sortKey === 'name'}
+              dir={sortDir}
+              onClick={onSort}
+            />
           </div>
-          <SortHeader label="W" sortKey="wins" active={sortKey === 'wins'} dir={sortDir} onClick={onSort} className="w-10 shrink-0 justify-end" />
-          <SortHeader label="L" sortKey="losses" active={sortKey === 'losses'} dir={sortDir} onClick={onSort} className="w-10 shrink-0 justify-end" />
-          <SortHeader label="Win%" sortKey="winrate" active={sortKey === 'winrate'} dir={sortDir} onClick={onSort} className="w-14 shrink-0 justify-end" />
+          <SortHeader
+            label="W"
+            sortKey="wins"
+            active={sortKey === 'wins'}
+            dir={sortDir}
+            onClick={onSort}
+            className="w-10 shrink-0 justify-end"
+          />
+          <SortHeader
+            label="L"
+            sortKey="losses"
+            active={sortKey === 'losses'}
+            dir={sortDir}
+            onClick={onSort}
+            className="w-10 shrink-0 justify-end"
+          />
+          <SortHeader
+            label="Win%"
+            sortKey="winrate"
+            active={sortKey === 'winrate'}
+            dir={sortDir}
+            onClick={onSort}
+            className="w-14 shrink-0 justify-end"
+          />
           <SortHeader
             label="Rating"
             sortKey="rating"
@@ -254,18 +297,23 @@ function TopTeams() {
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="truncate text-[14px] text-foreground font-dota">
-                  {t.name}
-                </span>
+                <span className="truncate text-[14px] text-foreground font-dota">{t.name}</span>
                 {tiChampionships(t.team_id).length > 0 && (
                   <span
                     className="shrink-0 px-1.5 py-0.5 text-[11px] font-bold uppercase text-gold"
-                    style={{ background: 'transparent', border: '1px solid rgba(242,201,76,0.5)', letterSpacing: '0.5px' }}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid rgba(242,201,76,0.5)',
+                      letterSpacing: '0.5px',
+                    }}
                     title={`The International Champion: ${tiChampionships(t.team_id)
                       .map((c) => (c.wonAs ? `TI${c.year} as ${c.wonAs}` : `TI${c.year}`))
                       .join(', ')}`}
                   >
-                    TI {tiChampionships(t.team_id).map((c) => c.year).join('/')}
+                    TI{' '}
+                    {tiChampionships(t.team_id)
+                      .map((c) => c.year)
+                      .join('/')}
                   </span>
                 )}
               </div>
@@ -273,7 +321,14 @@ function TopTeams() {
                 {t.wins}W · {t.losses}L
                 <span
                   className="ml-2"
-                  style={{ color: wr >= 55 ? 'var(--color-radiant)' : wr < 45 ? 'var(--color-dire)' : 'var(--color-muted)' }}
+                  style={{
+                    color:
+                      wr >= 55
+                        ? 'var(--color-radiant)'
+                        : wr < 45
+                          ? 'var(--color-dire)'
+                          : 'var(--color-muted)',
+                  }}
                 >
                   {wr.toFixed(0)}%
                 </span>
@@ -332,13 +387,20 @@ function ProPlayers() {
     const withRank: typeof notable = []
     const without: typeof notable = []
     for (const p of notable) (rankMap?.has(String(p.account_id)) ? withRank : without).push(p)
-    withRank.sort((a, b) => (rankMap?.get(String(a.account_id))?.rank ?? 0) - (rankMap?.get(String(b.account_id))?.rank ?? 0))
+    withRank.sort(
+      (a, b) =>
+        (rankMap?.get(String(a.account_id))?.rank ?? 0) -
+        (rankMap?.get(String(b.account_id))?.rank ?? 0),
+    )
     return { ranked: withRank, unranked: without }
   }, [notable, ranks.data])
 
   const RANKED_SLOTS = 12
   const TOTAL_SLOTS = 20
-  const shown = [...ranked.slice(0, RANKED_SLOTS), ...unranked.slice(0, TOTAL_SLOTS - Math.min(ranked.length, RANKED_SLOTS))]
+  const shown = [
+    ...ranked.slice(0, RANKED_SLOTS),
+    ...unranked.slice(0, TOTAL_SLOTS - Math.min(ranked.length, RANKED_SLOTS)),
+  ]
 
   return (
     <Panel title="Pro Players">
@@ -370,9 +432,7 @@ function ProPlayers() {
               <div className="truncate text-[14px] text-foreground font-dota">
                 {p.name ?? p.personaname}
               </div>
-              <div className="truncate text-[13px] text-muted font-dota">
-                {p.team_name}
-              </div>
+              <div className="truncate text-[13px] text-muted font-dota">{p.team_name}</div>
             </div>
             {pos && (
               <span

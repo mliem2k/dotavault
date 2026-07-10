@@ -1,17 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { DraftPanel } from '@/components/match/draft_panel'
+import { MatchActions } from '@/components/match/match_actions'
+import { MatchBuildings } from '@/components/match/match_buildings'
+import { MatchCasts } from '@/components/match/match_casts'
 import { MatchChat } from '@/components/match/match_chat'
 import { MatchCombat } from '@/components/match/match_combat'
+import { MatchCosmetics } from '@/components/match/match_cosmetics'
 import { MatchDamage } from '@/components/match/match_damage'
+import { MatchFantasy } from '@/components/match/match_fantasy'
 import { MatchFarm } from '@/components/match/match_farm'
 import { MatchGraphs } from '@/components/match/match_graphs'
-import { MatchBuildings } from '@/components/match/match_buildings'
-import { MatchActions } from '@/components/match/match_actions'
-import { MatchCasts } from '@/components/match/match_casts'
-import { MatchCosmetics } from '@/components/match/match_cosmetics'
-import { MatchFantasy } from '@/components/match/match_fantasy'
-import { MatchStory } from '@/components/match/match_story'
 import { MatchLaning } from '@/components/match/match_laning'
 import { MatchLog } from '@/components/match/match_log'
 import { MatchObjectives } from '@/components/match/match_objectives'
@@ -19,6 +18,7 @@ import { MatchOverview } from '@/components/match/match_overview'
 import { MatchPerformance } from '@/components/match/match_performance'
 import { MatchPurchases } from '@/components/match/match_purchases'
 import { MatchScoreboard } from '@/components/match/match_scoreboard'
+import { MatchStory } from '@/components/match/match_story'
 import { MatchVision } from '@/components/match/match_vision'
 import { ReplayViewer } from '@/components/match/replay_viewer'
 import { Spinner } from '@/components/ui/spinner'
@@ -126,9 +126,12 @@ function MatchPage() {
   const hasFantasy = m.players.some((p) => p.teamfight_participation != null)
   const hasStory = m.players.some((p) => (p.kills_log?.length ?? 0) > 0)
   const hasCosmetics = m.players.some((p) => (p.cosmetics?.length ?? 0) > 0)
-  const hasLog = m.players.some((p) => (p.kills_log?.length ?? 0) > 0 || (p.obs_log?.length ?? 0) > 0)
+  const hasLog = m.players.some(
+    (p) => (p.kills_log?.length ?? 0) > 0 || (p.obs_log?.length ?? 0) > 0,
+  )
   const hasBuildings =
-    (m.objectives ?? []).some((o) => o.type === 'building_kill') || m.players.some((p) => p.damage != null)
+    (m.objectives ?? []).some((o) => o.type === 'building_kill') ||
+    m.players.some((p) => p.damage != null)
   const hasVision = m.players.some((p) => (p.obs_log?.length ?? 0) + (p.sen_log?.length ?? 0) > 0)
   const hasChat = (m.chat?.length ?? 0) > 0
 
@@ -157,7 +160,11 @@ function MatchPage() {
   ]
 
   const activeTab = availableTabs.includes(tab as Tab) ? (tab as Tab) : 'overview'
-  const loading = <div className="flex justify-center py-12"><Spinner /></div>
+  const loading = (
+    <div className="flex justify-center py-12">
+      <Spinner />
+    </div>
+  )
 
   /* Two-level navigation: standalone entries plus groups of related tabs,
      so the strip stays readable now that there are ~20 possible tabs.
@@ -175,9 +182,10 @@ function MatchPage() {
     { label: 'more', tabs: ['story', 'chat', 'cosmetics'] },
     { label: 'replay', tabs: ['replay'] },
   ]
-  const navEntries = NAV.map((g) => ({ ...g, tabs: g.tabs.filter((t) => availableTabs.includes(t)) })).filter(
-    (g) => g.tabs.length > 0,
-  )
+  const navEntries = NAV.map((g) => ({
+    ...g,
+    tabs: g.tabs.filter((t) => availableTabs.includes(t)),
+  })).filter((g) => g.tabs.length > 0)
   const activeGroup = navEntries.find((g) => g.tabs.includes(activeTab))
   const TAB_LABELS: Partial<Record<Tab, string>> = {
     combat: 'kills',
@@ -198,7 +206,9 @@ function MatchPage() {
               {i > 0 && (
                 // #3f464d is not in the Token Mapping Reference — left as-is per
                 // task instructions.
-                <span className="mx-2.5 text-[13px]" style={{ color: '#3f464d' }}>/</span>
+                <span className="mx-2.5 text-[13px]" style={{ color: '#3f464d' }}>
+                  /
+                </span>
               )}
               <Link
                 to="/match/$matchId/$tab"
@@ -223,14 +233,19 @@ function MatchPage() {
       {activeGroup && activeGroup.tabs.length > 1 && (
         <div
           className="flex items-center flex-wrap mb-3 px-3 py-2 font-dota"
-          style={{ background: 'rgba(8,10,12,0.35)', borderTop: '1px solid rgba(255,255,255,0.05)' }}
+          style={{
+            background: 'rgba(8,10,12,0.35)',
+            borderTop: '1px solid rgba(255,255,255,0.05)',
+          }}
         >
           {activeGroup.tabs.map((t, i) => (
             <span key={t} className="flex items-center">
               {i > 0 && (
                 // #3f464d is not in the Token Mapping Reference — left as-is per
                 // task instructions.
-                <span className="mx-2 text-[13px]" style={{ color: '#3f464d' }}>·</span>
+                <span className="mx-2 text-[13px]" style={{ color: '#3f464d' }}>
+                  ·
+                </span>
               )}
               <Link
                 to="/match/$matchId/$tab"
@@ -241,7 +256,8 @@ function MatchPage() {
                   // task instructions.
                   color: activeTab === t ? 'var(--color-gold)' : '#7d8b95',
                   letterSpacing: '2px',
-                  borderBottom: activeTab === t ? '1px solid var(--color-gold)' : '1px solid transparent',
+                  borderBottom:
+                    activeTab === t ? '1px solid var(--color-gold)' : '1px solid transparent',
                   paddingBottom: 1,
                 }}
               >
@@ -255,8 +271,15 @@ function MatchPage() {
 
       {activeTab === 'overview' &&
         (heroStats.data ? (
-          <MatchOverview match={m} heroStats={heroStats.data} idToName={idToName} itemConst={itemConst} />
-        ) : loading)}
+          <MatchOverview
+            match={m}
+            heroStats={heroStats.data}
+            idToName={idToName}
+            itemConst={itemConst}
+          />
+        ) : (
+          loading
+        ))}
 
       {activeTab === 'scoreboard' &&
         (heroStats.data ? (
@@ -268,20 +291,36 @@ function MatchPage() {
             abilities={abilitiesData.data ?? {}}
             abilityIds={abilityIdsData.data ?? {}}
           />
-        ) : loading)}
+        ) : (
+          loading
+        ))}
 
       {activeTab === 'graphs' &&
         (heroStats.data ? (
-          <MatchGraphs match={m} heroStats={heroStats.data} idToName={idToName} itemConst={itemConst} />
-        ) : loading)}
+          <MatchGraphs
+            match={m}
+            heroStats={heroStats.data}
+            idToName={idToName}
+            itemConst={itemConst}
+          />
+        ) : (
+          loading
+        ))}
 
       {activeTab === 'combat' &&
         (heroStats.data ? <MatchCombat match={m} heroStats={heroStats.data} /> : loading)}
 
       {activeTab === 'damage' &&
         (heroStats.data ? (
-          <MatchDamage match={m} heroStats={heroStats.data} abilities={abilitiesData.data ?? {}} itemConst={itemConst} />
-        ) : loading)}
+          <MatchDamage
+            match={m}
+            heroStats={heroStats.data}
+            abilities={abilitiesData.data ?? {}}
+            itemConst={itemConst}
+          />
+        ) : (
+          loading
+        ))}
 
       {activeTab === 'performance' &&
         (heroStats.data ? <MatchPerformance match={m} heroStats={heroStats.data} /> : loading)}
@@ -292,7 +331,9 @@ function MatchPage() {
       {activeTab === 'purchases' &&
         (heroStats.data ? (
           <MatchPurchases players={m.players} heroStats={heroStats.data} itemConst={itemConst} />
-        ) : loading)}
+        ) : (
+          loading
+        ))}
 
       {activeTab === 'buildings' &&
         (heroStats.data ? <MatchBuildings match={m} heroStats={heroStats.data} /> : loading)}
@@ -302,8 +343,15 @@ function MatchPage() {
 
       {activeTab === 'casts' &&
         (heroStats.data ? (
-          <MatchCasts match={m} heroStats={heroStats.data} abilityConst={abilitiesData.data ?? {}} itemConst={itemConst} />
-        ) : loading)}
+          <MatchCasts
+            match={m}
+            heroStats={heroStats.data}
+            abilityConst={abilitiesData.data ?? {}}
+            itemConst={itemConst}
+          />
+        ) : (
+          loading
+        ))}
 
       {activeTab === 'log' &&
         (heroStats.data ? <MatchLog match={m} heroStats={heroStats.data} /> : loading)}
@@ -326,15 +374,28 @@ function MatchPage() {
       {activeTab === 'draft' &&
         (hasDraft && heroStats.data ? (
           <DraftPanel picksBans={m.picks_bans ?? []} heroStats={heroStats.data} />
-        ) : loading)}
+        ) : (
+          loading
+        ))}
 
       {activeTab === 'vision' &&
-        (heroStats.data ? <MatchVision players={m.players} heroStats={heroStats.data} duration={m.duration} /> : loading)}
+        (heroStats.data ? (
+          <MatchVision players={m.players} heroStats={heroStats.data} duration={m.duration} />
+        ) : (
+          loading
+        ))}
 
       {activeTab === 'chat' &&
         (hasChat && heroStats.data ? (
-          <MatchChat chat={m.chat ?? []} players={m.players} heroStats={heroStats.data} chatWheel={chatWheelData.data ?? {}} />
-        ) : loading)}
+          <MatchChat
+            chat={m.chat ?? []}
+            players={m.players}
+            heroStats={heroStats.data}
+            chatWheel={chatWheelData.data ?? {}}
+          />
+        ) : (
+          loading
+        ))}
 
       {activeTab === 'replay' &&
         (heroStats.data ? (
@@ -346,7 +407,9 @@ function MatchPage() {
             abilityConst={abilitiesData.data ?? {}}
             initialTime={jumpToTime}
           />
-        ) : loading)}
+        ) : (
+          loading
+        ))}
     </div>
   )
 }

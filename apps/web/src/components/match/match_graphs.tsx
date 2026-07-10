@@ -3,10 +3,10 @@ import type { HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { ItemIcon } from './item_icon'
 import {
-  MatchRosterSidebar,
-  PLAYER_COLORS,
   levelFromXp,
+  MatchRosterSidebar,
   orderedTeams,
+  PLAYER_COLORS,
   useRosterMetrics,
 } from './match_roster'
 
@@ -24,9 +24,21 @@ const MODE_LABELS: Record<Mode, string> = {
 }
 
 const CONSUMABLES = new Set([
-  'ward_observer', 'ward_sentry', 'ward_dispenser', 'tango', 'tango_single', 'flask',
-  'clarity', 'enchanted_mango', 'faerie_fire', 'tpscroll', 'dust', 'smoke_of_deceit',
-  'branches', 'blood_grenade', 'seer_stone',
+  'ward_observer',
+  'ward_sentry',
+  'ward_dispenser',
+  'tango',
+  'tango_single',
+  'flask',
+  'clarity',
+  'enchanted_mango',
+  'faerie_fire',
+  'tpscroll',
+  'dust',
+  'smoke_of_deceit',
+  'branches',
+  'blood_grenade',
+  'seer_stone',
 ])
 
 function fmtGold(v: number): string {
@@ -56,14 +68,32 @@ function GridAndAxis({
   for (let mm = 10; mm < minutes; mm += 10) {
     const x = (mm / minutes) * VB_W
     lines.push(
-      <line key={`g${mm}`} x1={x} y1={0} x2={x} y2={vbH} stroke="#2a3136" strokeWidth={1} vectorEffect="non-scaling-stroke" />,
+      <line
+        key={`g${mm}`}
+        x1={x}
+        y1={0}
+        x2={x}
+        y2={vbH}
+        stroke="#2a3136"
+        strokeWidth={1}
+        vectorEffect="non-scaling-stroke"
+      />,
     )
   }
   return (
     <>
       {lines}
       {yTicks?.map((t, i) => (
-        <line key={`y${i}`} x1={0} y1={t.y} x2={VB_W} y2={t.y} stroke="#1f2529" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+        <line
+          key={`y${i}`}
+          x1={0}
+          y1={t.y}
+          x2={VB_W}
+          y2={t.y}
+          stroke="#1f2529"
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+        />
       ))}
     </>
   )
@@ -89,6 +119,9 @@ function TimeLabels({ minutes }: { minutes: number }) {
    logistic squash: NOT a trained model like Stratz's, just a transparent
    heuristic (10k combined advantage is about 88% favored). */
 function WinProbChart({ match, vbH }: { match: Match; vbH: number }) {
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+
   const gold = match.radiant_gold_adv ?? []
   const xp = match.radiant_xp_adv ?? []
   const n = Math.max(gold.length, xp.length)
@@ -105,8 +138,6 @@ function WinProbChart({ match, vbH }: { match: Match; vbH: number }) {
   const pts: [number, number][] = prob.map((p, i) => [xAt(i), yAt(p)])
   const area = `${toPath(pts)} L${xAt(n - 1)} ${mid} L0 ${mid} Z`
 
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
   const onMove = (e: React.MouseEvent) => {
     const el = wrapRef.current
     if (!el) return
@@ -118,8 +149,19 @@ function WinProbChart({ match, vbH }: { match: Match; vbH: number }) {
 
   return (
     <div className="flex-1 min-w-0">
-      <div ref={wrapRef} className="relative" style={{ height: vbH }} onMouseMove={onMove} onMouseLeave={() => setHoverIdx(null)}>
-        <svg viewBox={`0 0 ${VB_W} ${vbH}`} preserveAspectRatio="none" className="w-full" style={{ height: vbH }}>
+      <div
+        ref={wrapRef}
+        className="relative"
+        style={{ height: vbH }}
+        onMouseMove={onMove}
+        onMouseLeave={() => setHoverIdx(null)}
+      >
+        <svg
+          viewBox={`0 0 ${VB_W} ${vbH}`}
+          preserveAspectRatio="none"
+          className="w-full"
+          style={{ height: vbH }}
+        >
           <defs>
             <linearGradient id="wpFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#9fbf3f" stopOpacity="0.4" />
@@ -129,11 +171,33 @@ function WinProbChart({ match, vbH }: { match: Match; vbH: number }) {
             </linearGradient>
           </defs>
           <GridAndAxis minutes={n} vbH={vbH} />
-          <line x1={0} y1={mid} x2={VB_W} y2={mid} stroke="#3a4147" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+          <line
+            x1={0}
+            y1={mid}
+            x2={VB_W}
+            y2={mid}
+            stroke="#3a4147"
+            strokeWidth={1.5}
+            vectorEffect="non-scaling-stroke"
+          />
           <path d={area} fill="url(#wpFill)" />
-          <path d={toPath(pts)} fill="none" stroke="#e8ecef" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+          <path
+            d={toPath(pts)}
+            fill="none"
+            stroke="#e8ecef"
+            strokeWidth={2}
+            vectorEffect="non-scaling-stroke"
+          />
           {hoverIdx != null && (
-            <line x1={xAt(hoverIdx)} y1={0} x2={xAt(hoverIdx)} y2={vbH} stroke="#67757f" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+            <line
+              x1={xAt(hoverIdx)}
+              y1={0}
+              x2={xAt(hoverIdx)}
+              y2={vbH}
+              stroke="#67757f"
+              strokeWidth={1}
+              vectorEffect="non-scaling-stroke"
+            />
           )}
         </svg>
         {hp != null && hoverIdx != null && (
@@ -147,7 +211,8 @@ function WinProbChart({ match, vbH }: { match: Match; vbH: number }) {
               whiteSpace: 'nowrap',
             }}
           >
-            {hoverIdx}:00 · {hp >= 0.5 ? 'Radiant' : 'Dire'} {Math.round((hp >= 0.5 ? hp : 1 - hp) * 100)}%
+            {hoverIdx}:00 · {hp >= 0.5 ? 'Radiant' : 'Dire'}{' '}
+            {Math.round((hp >= 0.5 ? hp : 1 - hp) * 100)}%
           </div>
         )}
       </div>
@@ -160,6 +225,9 @@ function WinProbChart({ match, vbH }: { match: Match; vbH: number }) {
 }
 
 function TeamAdvantageChart({ match, vbH }: { match: Match; vbH: number }) {
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+
   const gold = match.radiant_gold_adv ?? []
   const xp = match.radiant_xp_adv ?? []
   const n = Math.max(gold.length, xp.length)
@@ -175,8 +243,6 @@ function TeamAdvantageChart({ match, vbH }: { match: Match; vbH: number }) {
   // Area fill for gold advantage (green above midline, red below)
   const goldArea = `${toPath(goldPts)} L${xAt(n - 1)} ${mid} L0 ${mid} Z`
 
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
   const onMove = (e: React.MouseEvent) => {
     const el = wrapRef.current
     if (!el) return
@@ -191,8 +257,19 @@ function TeamAdvantageChart({ match, vbH }: { match: Match; vbH: number }) {
 
   return (
     <div className="flex-1 min-w-0">
-      <div ref={wrapRef} className="relative" style={{ height: vbH }} onMouseMove={onMove} onMouseLeave={() => setHoverIdx(null)}>
-        <svg viewBox={`0 0 ${VB_W} ${vbH}`} preserveAspectRatio="none" className="w-full" style={{ height: vbH }}>
+      <div
+        ref={wrapRef}
+        className="relative"
+        style={{ height: vbH }}
+        onMouseMove={onMove}
+        onMouseLeave={() => setHoverIdx(null)}
+      >
+        <svg
+          viewBox={`0 0 ${VB_W} ${vbH}`}
+          preserveAspectRatio="none"
+          className="w-full"
+          style={{ height: vbH }}
+        >
           <defs>
             <linearGradient id="advGreen" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#9fbf3f" stopOpacity="0.35" />
@@ -202,20 +279,56 @@ function TeamAdvantageChart({ match, vbH }: { match: Match; vbH: number }) {
             </linearGradient>
           </defs>
           <GridAndAxis minutes={n} vbH={vbH} />
-          <line x1={0} y1={mid} x2={VB_W} y2={mid} stroke="#3a4147" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+          <line
+            x1={0}
+            y1={mid}
+            x2={VB_W}
+            y2={mid}
+            stroke="#3a4147"
+            strokeWidth={1.5}
+            vectorEffect="non-scaling-stroke"
+          />
           <path d={goldArea} fill="url(#advGreen)" />
-          <path d={toPath(goldPts)} fill="none" stroke="#cb9b25" strokeWidth={2} vectorEffect="non-scaling-stroke" />
-          <path d={toPath(xpPts)} fill="none" stroke="#5a8fc2" strokeWidth={1.5} vectorEffect="non-scaling-stroke" strokeDasharray="4 3" />
+          <path
+            d={toPath(goldPts)}
+            fill="none"
+            stroke="#cb9b25"
+            strokeWidth={2}
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            d={toPath(xpPts)}
+            fill="none"
+            stroke="#5a8fc2"
+            strokeWidth={1.5}
+            vectorEffect="non-scaling-stroke"
+            strokeDasharray="4 3"
+          />
           {hoverIdx != null && (
             <>
-              <circle cx={xAt(hoverIdx)} cy={yAt(gv)} r={3} fill="#cb9b25" vectorEffect="non-scaling-stroke" />
-              <circle cx={xAt(hoverIdx)} cy={yAt(xv)} r={3} fill="#5a8fc2" vectorEffect="non-scaling-stroke" />
+              <circle
+                cx={xAt(hoverIdx)}
+                cy={yAt(gv)}
+                r={3}
+                fill="#cb9b25"
+                vectorEffect="non-scaling-stroke"
+              />
+              <circle
+                cx={xAt(hoverIdx)}
+                cy={yAt(xv)}
+                r={3}
+                fill="#5a8fc2"
+                vectorEffect="non-scaling-stroke"
+              />
             </>
           )}
         </svg>
         {hoverIdx != null && (
           <>
-            <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: `${hoverPct}%`, width: 1, background: '#5a606688' }} />
+            <div
+              className="absolute top-0 bottom-0 pointer-events-none"
+              style={{ left: `${hoverPct}%`, width: 1, background: '#5a606688' }}
+            />
             <div
               className="absolute pointer-events-none rounded font-dota border border-slate-border"
               style={{
@@ -227,16 +340,32 @@ function TeamAdvantageChart({ match, vbH }: { match: Match; vbH: number }) {
                 zIndex: 5,
               }}
             >
-              <div className="text-[10px] uppercase tracking-wider mb-1 tabular-nums text-slate-muted">{hoverIdx}:00</div>
+              <div className="text-[10px] uppercase tracking-wider mb-1 tabular-nums text-slate-muted">
+                {hoverIdx}:00
+              </div>
               <div className="flex items-center gap-1.5 text-[11px] leading-tight">
-                <span className="rounded-sm" style={{ width: 8, height: 8, background: '#cb9b25' }} />
+                <span
+                  className="rounded-sm"
+                  style={{ width: 8, height: 8, background: '#cb9b25' }}
+                />
                 <span style={{ color: '#b8c2c9' }}>Net Worth</span>
-                <span className={`ml-auto tabular-nums font-semibold ${gv >= 0 ? 'text-radiant' : 'text-dire'}`}>{advLabel(gv)}</span>
+                <span
+                  className={`ml-auto tabular-nums font-semibold ${gv >= 0 ? 'text-radiant' : 'text-dire'}`}
+                >
+                  {advLabel(gv)}
+                </span>
               </div>
               <div className="flex items-center gap-1.5 text-[11px] leading-tight mt-0.5">
-                <span className="rounded-sm" style={{ width: 8, height: 8, background: '#5a8fc2' }} />
+                <span
+                  className="rounded-sm"
+                  style={{ width: 8, height: 8, background: '#5a8fc2' }}
+                />
                 <span style={{ color: '#b8c2c9' }}>XP</span>
-                <span className={`ml-auto tabular-nums font-semibold ${xv >= 0 ? 'text-radiant' : 'text-dire'}`}>{advLabel(xv)}</span>
+                <span
+                  className={`ml-auto tabular-nums font-semibold ${xv >= 0 ? 'text-radiant' : 'text-dire'}`}
+                >
+                  {advLabel(xv)}
+                </span>
               </div>
             </div>
           </>
@@ -244,8 +373,14 @@ function TeamAdvantageChart({ match, vbH }: { match: Match; vbH: number }) {
       </div>
       <TimeLabels minutes={n} />
       <div className="flex items-center gap-4 mt-1 text-[11px] font-dota">
-        <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-[2px]" style={{ background: '#cb9b25' }} /><span className="text-slate-muted-light">Net Worth adv.</span></span>
-        <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-[2px]" style={{ background: '#5a8fc2' }} /><span className="text-slate-muted-light">XP adv.</span></span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-4 h-[2px]" style={{ background: '#cb9b25' }} />
+          <span className="text-slate-muted-light">Net Worth adv.</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-4 h-[2px]" style={{ background: '#5a8fc2' }} />
+          <span className="text-slate-muted-light">XP adv.</span>
+        </span>
         <span className="ml-auto text-slate-muted">Positive = Radiant ahead</span>
       </div>
     </div>
@@ -265,10 +400,18 @@ function PlayerLinesChart({
   visibleSlots: Set<number>
   vbH: number
 }) {
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const players = match.players
   const series = players.map((p) => {
-    const raw = metric === 'networth' ? (p.gold_t ?? []) : metric === 'lasthits' ? (p.lh_t ?? []) : (p.xp_t ?? [])
+    const raw =
+      metric === 'networth'
+        ? (p.gold_t ?? [])
+        : metric === 'lasthits'
+          ? (p.lh_t ?? [])
+          : (p.xp_t ?? [])
     const data = metric === 'level' ? raw.map(levelFromXp) : raw
     return { player: p, data }
   })
@@ -288,10 +431,11 @@ function PlayerLinesChart({
   const yTicks =
     metric === 'level'
       ? [5, 10, 15, 20, 25, 30].map((lv) => ({ y: yAt(lv), label: String(lv) }))
-      : [0.25, 0.5, 0.75, 1].map((f) => ({ y: yAt(maxVal * f), label: fmtGold(Math.round(maxVal * f)) }))
+      : [0.25, 0.5, 0.75, 1].map((f) => ({
+          y: yAt(maxVal * f),
+          label: fmtGold(Math.round(maxVal * f)),
+        }))
 
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
   const onMove = (e: React.MouseEvent) => {
     const el = wrapRef.current
     if (!el) return
@@ -324,7 +468,12 @@ function PlayerLinesChart({
         onMouseMove={onMove}
         onMouseLeave={() => setHoverIdx(null)}
       >
-        <svg viewBox={`0 0 ${VB_W} ${vbH}`} preserveAspectRatio="none" className="w-full" style={{ height: vbH }}>
+        <svg
+          viewBox={`0 0 ${VB_W} ${vbH}`}
+          preserveAspectRatio="none"
+          className="w-full"
+          style={{ height: vbH }}
+        >
           <GridAndAxis minutes={n} vbH={vbH} yTicks={yTicks} />
           {shown.map((s) => {
             const color = PLAYER_COLORS[s.player.player_slot] ?? '#888'
@@ -345,13 +494,25 @@ function PlayerLinesChart({
             shown.map((s) => {
               const color = PLAYER_COLORS[s.player.player_slot] ?? '#888'
               const v = s.data[Math.min(hoverIdx, s.data.length - 1)] ?? 0
-              return <circle key={s.player.player_slot} cx={xAt(hoverIdx)} cy={yAt(v)} r={3} fill={color} vectorEffect="non-scaling-stroke" />
+              return (
+                <circle
+                  key={s.player.player_slot}
+                  cx={xAt(hoverIdx)}
+                  cy={yAt(v)}
+                  r={3}
+                  fill={color}
+                  vectorEffect="non-scaling-stroke"
+                />
+              )
             })}
         </svg>
 
         {hoverIdx != null && (
           <>
-            <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: `${hoverPct}%`, width: 1, background: '#5a606688' }} />
+            <div
+              className="absolute top-0 bottom-0 pointer-events-none"
+              style={{ left: `${hoverPct}%`, width: 1, background: '#5a606688' }}
+            />
             <div
               className="absolute pointer-events-none rounded font-dota border border-slate-border"
               style={{
@@ -368,8 +529,14 @@ function PlayerLinesChart({
                 {hoverIdx}:00
               </div>
               {hoverRows.map((r) => (
-                <div key={r.name} className="flex items-center gap-1.5 text-[11px] leading-tight py-0.5">
-                  <span className="shrink-0 rounded-sm" style={{ width: 3, height: 16, background: r.color }} />
+                <div
+                  key={r.name}
+                  className="flex items-center gap-1.5 text-[11px] leading-tight py-0.5"
+                >
+                  <span
+                    className="shrink-0 rounded-sm"
+                    style={{ width: 3, height: 16, background: r.color }}
+                  />
                   {r.hero && (
                     <img
                       src={heroIconUrl(r.hero.name)}
@@ -383,7 +550,9 @@ function PlayerLinesChart({
                       }}
                     />
                   )}
-                  <span className="flex-1 min-w-0 truncate" style={{ color: '#b8c2c9' }}>{r.name}</span>
+                  <span className="flex-1 min-w-0 truncate" style={{ color: '#b8c2c9' }}>
+                    {r.name}
+                  </span>
                   <span className="tabular-nums font-semibold ml-2 text-slate-foreground">
                     {metric === 'networth' ? r.v.toLocaleString() : r.v}
                   </span>
@@ -428,7 +597,15 @@ function PlayerItemsTimeline({
         {/* baseline */}
         <div
           className="absolute"
-          style={{ top: y, left: 0, right: 0, height: 2, background: color, opacity: 0.35, transform: 'translateY(-50%)' }}
+          style={{
+            top: y,
+            left: 0,
+            right: 0,
+            height: 2,
+            background: color,
+            opacity: 0.35,
+            transform: 'translateY(-50%)',
+          }}
         />
         {purchases.map((e, i) => {
           const leftPct = Math.max(0, Math.min(100, (e.time / durationSec) * 100))
@@ -457,8 +634,17 @@ function PlayerItemsTimeline({
   const grid: JSX.Element[] = []
   for (let mm = 10; mm < minutes; mm += 10) {
     grid.push(
-      <div key={mm} className="absolute top-0 bottom-0 bg-slate-bg" style={{ left: `${((mm * 60) / durationSec) * 100}%`, width: 1 }}>
-        <span className="absolute text-[11px] tabular-nums text-slate-muted font-dota" style={{ top: '50%', left: 4 }}>{mm}:00</span>
+      <div
+        key={mm}
+        className="absolute top-0 bottom-0 bg-slate-bg"
+        style={{ left: `${((mm * 60) / durationSec) * 100}%`, width: 1 }}
+      >
+        <span
+          className="absolute text-[11px] tabular-nums text-slate-muted font-dota"
+          style={{ top: '50%', left: 4 }}
+        >
+          {mm}:00
+        </span>
       </div>,
     )
   }
@@ -523,7 +709,8 @@ export function MatchGraphs({
       return next
     })
   }
-  const perPlayerMode = activeMode === 'networth' || activeMode === 'level' || activeMode === 'lasthits'
+  const perPlayerMode =
+    activeMode === 'networth' || activeMode === 'level' || activeMode === 'lasthits'
 
   // Position presets derived from lane role + farm priority, index 0..4 = pos 1..5.
   const { radiant: radTeam, dire: direTeam } = orderedTeams(match)
@@ -543,7 +730,9 @@ export function MatchGraphs({
     const pos4 = pick(3) // remaining offlane → soft support
     const out: (MatchPlayer | undefined)[] = [pos1, pos2, pos3, pos4, pos5]
     // Fill any gaps (missing lane data) with leftover players by net worth.
-    const leftover = team.filter((p) => !used.has(p.player_slot)).sort((a, b) => b.net_worth - a.net_worth)
+    const leftover = team
+      .filter((p) => !used.has(p.player_slot))
+      .sort((a, b) => b.net_worth - a.net_worth)
     for (let i = 0; i < 5; i++) if (!out[i]) out[i] = leftover.shift()
     return out
   }
@@ -596,7 +785,9 @@ export function MatchGraphs({
               type="button"
               onClick={allSlots}
               className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-sm border border-slate-bg ${visibleSlots.size === match.players.length ? 'text-slate-foreground-light bg-slate-card' : 'text-slate-muted-light'}`}
-              style={{ background: visibleSlots.size === match.players.length ? undefined : '#15181b' }}
+              style={{
+                background: visibleSlots.size === match.players.length ? undefined : '#15181b',
+              }}
             >
               All
             </button>
@@ -641,10 +832,41 @@ export function MatchGraphs({
                 so shrink their viewbox to keep the column at roster height. */}
             {activeMode === 'team' && <TeamAdvantageChart match={match} vbH={rosterH - 46} />}
             {activeMode === 'winprob' && <WinProbChart match={match} vbH={rosterH - 46} />}
-            {activeMode === 'networth' && <PlayerLinesChart match={match} heroStats={heroStats} metric="networth" visibleSlots={visibleSlots} vbH={rosterH - 22} />}
-            {activeMode === 'level' && <PlayerLinesChart match={match} heroStats={heroStats} metric="level" visibleSlots={visibleSlots} vbH={rosterH - 22} />}
-            {activeMode === 'lasthits' && <PlayerLinesChart match={match} heroStats={heroStats} metric="lasthits" visibleSlots={visibleSlots} vbH={rosterH - 22} />}
-            {activeMode === 'items' && <PlayerItemsTimeline match={match} itemConst={itemConst} rowH={rowH} headerH={headerH} />}
+            {activeMode === 'networth' && (
+              <PlayerLinesChart
+                match={match}
+                heroStats={heroStats}
+                metric="networth"
+                visibleSlots={visibleSlots}
+                vbH={rosterH - 22}
+              />
+            )}
+            {activeMode === 'level' && (
+              <PlayerLinesChart
+                match={match}
+                heroStats={heroStats}
+                metric="level"
+                visibleSlots={visibleSlots}
+                vbH={rosterH - 22}
+              />
+            )}
+            {activeMode === 'lasthits' && (
+              <PlayerLinesChart
+                match={match}
+                heroStats={heroStats}
+                metric="lasthits"
+                visibleSlots={visibleSlots}
+                vbH={rosterH - 22}
+              />
+            )}
+            {activeMode === 'items' && (
+              <PlayerItemsTimeline
+                match={match}
+                itemConst={itemConst}
+                rowH={rowH}
+                headerH={headerH}
+              />
+            )}
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { LeagueTabBar, type LeagueTab } from '@/components/league/league_tab_bar'
+import { type LeagueTab, LeagueTabBar } from '@/components/league/league_tab_bar'
 import { Panel } from '@/components/league/panel'
 import { useTeamMap } from '@/components/league/use_team_map'
 import { SortHeader } from '@/components/ui/sort_header'
@@ -40,7 +40,10 @@ function DraftPanel({
   })
   const { key: sortKey, dir: sortDir, onSort } = useSort<DraftSortKey>('picks', 'desc')
 
-  const banByHero = useMemo(() => new Map((banStats.data ?? []).map((b) => [b.hero_id, b.bans])), [banStats.data])
+  const banByHero = useMemo(
+    () => new Map((banStats.data ?? []).map((b) => [b.hero_id, b.bans])),
+    [banStats.data],
+  )
   const allStats = heroStats.data ?? []
   const maxPick = Math.max(1, ...allStats.map((h) => h.picks))
   const sorted = applySort(allStats, sortDir, (a, b) => {
@@ -75,16 +78,43 @@ function DraftPanel({
         <thead>
           <tr className="text-[12px] font-bold uppercase tracking-widest text-muted">
             <th className="pb-2 text-left">
-              <SortHeader label="Hero" sortKey="hero" active={sortKey === 'hero'} dir={sortDir} onClick={onSort} />
+              <SortHeader
+                label="Hero"
+                sortKey="hero"
+                active={sortKey === 'hero'}
+                dir={sortDir}
+                onClick={onSort}
+              />
             </th>
             <th className="pb-2 px-2 text-right">
-              <SortHeader label="Picks" sortKey="picks" active={sortKey === 'picks'} dir={sortDir} onClick={onSort} className="justify-end" />
+              <SortHeader
+                label="Picks"
+                sortKey="picks"
+                active={sortKey === 'picks'}
+                dir={sortDir}
+                onClick={onSort}
+                className="justify-end"
+              />
             </th>
             <th className="pb-2 px-2 text-right">
-              <SortHeader label="Win Rate" sortKey="winrate" active={sortKey === 'winrate'} dir={sortDir} onClick={onSort} className="justify-end" />
+              <SortHeader
+                label="Win Rate"
+                sortKey="winrate"
+                active={sortKey === 'winrate'}
+                dir={sortDir}
+                onClick={onSort}
+                className="justify-end"
+              />
             </th>
             <th className="pb-2 px-2 text-right">
-              <SortHeader label="Bans" sortKey="bans" active={sortKey === 'bans'} dir={sortDir} onClick={onSort} className="justify-end" />
+              <SortHeader
+                label="Bans"
+                sortKey="bans"
+                active={sortKey === 'bans'}
+                dir={sortDir}
+                onClick={onSort}
+                className="justify-end"
+              />
             </th>
           </tr>
         </thead>
@@ -97,8 +127,16 @@ function DraftPanel({
               <tr key={h.hero_id} className="border-t border-border">
                 <td className="py-1.5">
                   {hero ? (
-                    <a href={`/hero/${heroSlug(hero.localized_name)}`} className="flex items-center gap-2 hover:underline">
-                      <img src={heroIconUrl(hero.name)} alt="" loading="lazy" className="h-6 w-6 rounded-sm" />
+                    <a
+                      href={`/hero/${heroSlug(hero.localized_name)}`}
+                      className="flex items-center gap-2 hover:underline"
+                    >
+                      <img
+                        src={heroIconUrl(hero.name)}
+                        alt=""
+                        loading="lazy"
+                        className="h-6 w-6 rounded-sm"
+                      />
                       <span className="truncate text-[14px] text-foreground">
                         {hero.localized_name}
                       </span>
@@ -113,8 +151,14 @@ function DraftPanel({
                 </td>
                 <td className="px-2 text-right text-[13px] tabular-nums text-foreground">
                   <div className="flex items-center justify-end gap-2">
-                    <div className="h-[6px]" style={{ width: 60, background: 'rgba(255,255,255,0.06)' }}>
-                      <div className="bg-gold" style={{ width: `${(h.picks / maxPick) * 100}%`, height: '100%' }} />
+                    <div
+                      className="h-[6px]"
+                      style={{ width: 60, background: 'rgba(255,255,255,0.06)' }}
+                    >
+                      <div
+                        className="bg-gold"
+                        style={{ width: `${(h.picks / maxPick) * 100}%`, height: '100%' }}
+                      />
                     </div>
                     {h.picks}
                   </div>
@@ -127,7 +171,10 @@ function DraftPanel({
                 </td>
                 {/* #c73f2d is not in the Token Mapping Reference (close to but distinct
                     from #d14a38/#c94a38 text-dire) — left as-is per task instructions. */}
-                <td className="px-2 text-right text-[13px] tabular-nums" style={{ color: '#c73f2d' }}>
+                <td
+                  className="px-2 text-right text-[13px] tabular-nums"
+                  style={{ color: '#c73f2d' }}
+                >
                   {bans || '-'}
                 </td>
               </tr>
@@ -148,7 +195,10 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
     staleTime: 10 * 60 * 1000,
   })
   const navigate = useNavigate()
-  const relevantTeamIds = useMemo(() => (standings.data ?? []).map((s) => s.team_id), [standings.data])
+  const relevantTeamIds = useMemo(
+    () => (standings.data ?? []).map((s) => s.team_id),
+    [standings.data],
+  )
   const teamMap = useTeamMap(relevantTeamIds)
   const { key: sortKey, dir: sortDir, onSort } = useSort<StandingsSortKey>('winrate', 'desc')
 
@@ -190,16 +240,43 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
             <tr className="text-[12px] font-bold uppercase tracking-widest text-muted">
               <th className="pb-2 pr-2 text-right w-8">#</th>
               <th className="pb-2 text-left">
-                <SortHeader label="Team" sortKey="team" active={sortKey === 'team'} dir={sortDir} onClick={onSort} />
+                <SortHeader
+                  label="Team"
+                  sortKey="team"
+                  active={sortKey === 'team'}
+                  dir={sortDir}
+                  onClick={onSort}
+                />
               </th>
               <th className="pb-2 px-3 text-right">
-                <SortHeader label="W" sortKey="wins" active={sortKey === 'wins'} dir={sortDir} onClick={onSort} className="justify-end" />
+                <SortHeader
+                  label="W"
+                  sortKey="wins"
+                  active={sortKey === 'wins'}
+                  dir={sortDir}
+                  onClick={onSort}
+                  className="justify-end"
+                />
               </th>
               <th className="pb-2 px-3 text-right">
-                <SortHeader label="L" sortKey="losses" active={sortKey === 'losses'} dir={sortDir} onClick={onSort} className="justify-end" />
+                <SortHeader
+                  label="L"
+                  sortKey="losses"
+                  active={sortKey === 'losses'}
+                  dir={sortDir}
+                  onClick={onSort}
+                  className="justify-end"
+                />
               </th>
               <th className="pb-2 pl-3 text-right">
-                <SortHeader label="Win Rate" sortKey="winrate" active={sortKey === 'winrate'} dir={sortDir} onClick={onSort} className="justify-end" />
+                <SortHeader
+                  label="Win Rate"
+                  sortKey="winrate"
+                  active={sortKey === 'winrate'}
+                  dir={sortDir}
+                  onClick={onSort}
+                  className="justify-end"
+                />
               </th>
             </tr>
           </thead>
@@ -211,7 +288,9 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
               return (
                 <tr
                   key={s.team_id}
-                  onClick={() => navigate({ to: '/team/$teamId', params: { teamId: String(s.team_id) } })}
+                  onClick={() =>
+                    navigate({ to: '/team/$teamId', params: { teamId: String(s.team_id) } })
+                  }
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
@@ -229,7 +308,11 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
                     {/* Real link so this cell (unlike the rest of the row, which
                         only navigates via the row's own click/keydown handlers)
                         supports ctrl+click/middle-click to open in a new tab. */}
-                    <a href={`/team/${s.team_id}`} className="flex items-center gap-2.5" onClick={(e) => e.stopPropagation()}>
+                    <a
+                      href={`/team/${s.team_id}`}
+                      className="flex items-center gap-2.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {team?.logo_url ? (
                         <img
                           src={team.logo_url}
@@ -252,7 +335,10 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
                     {s.wins}
                   </td>
                   {/* #c73f2d is not in the Token Mapping Reference — left as-is per task instructions. */}
-                  <td className="px-3 text-right text-[14px] tabular-nums" style={{ color: '#c73f2d' }}>
+                  <td
+                    className="px-3 text-right text-[14px] tabular-nums"
+                    style={{ color: '#c73f2d' }}
+                  >
                     {s.losses}
                   </td>
                   <td
@@ -317,13 +403,24 @@ function RosterPanel({ leagueId }: { leagueId: number }) {
           try {
             const p = await opendota.player(String(id))
             if (p.profile?.personaname) {
-              return [id, { name: p.profile.personaname, avatar: p.profile.avatarfull ?? null, isPrivate: false }]
+              return [
+                id,
+                {
+                  name: p.profile.personaname,
+                  avatar: p.profile.avatarfull ?? null,
+                  isPrivate: false,
+                },
+              ]
             }
           } catch {
             // fall through to the Steam lookup below
           }
           const steam = await fetchSteamProfile(id)
-          if (steam) return [id, { name: steam.personaname, avatar: steam.avatarfull, isPrivate: !steam.isPublic }]
+          if (steam)
+            return [
+              id,
+              { name: steam.personaname, avatar: steam.avatarfull, isPrivate: !steam.isPublic },
+            ]
           return [id, null]
         }),
       )
@@ -366,7 +463,10 @@ function RosterPanel({ leagueId }: { leagueId: number }) {
           const team = teamMap.get(g.teamId)
           return (
             <div key={g.teamId}>
-              <a href={`/team/${g.teamId}`} className="flex items-center gap-2 py-1 hover:opacity-80">
+              <a
+                href={`/team/${g.teamId}`}
+                className="flex items-center gap-2 py-1 hover:opacity-80"
+              >
                 {team?.logo_url ? (
                   <img
                     src={team.logo_url}
@@ -396,10 +496,18 @@ function RosterPanel({ leagueId }: { leagueId: number }) {
                       className="flex items-center gap-2 py-1.5 hover:bg-white/[0.03]"
                     >
                       {!pro && fallback?.avatar && (
-                        <img src={fallback.avatar} alt="" loading="lazy" className="h-4 w-4 shrink-0 rounded-full" />
+                        <img
+                          src={fallback.avatar}
+                          alt=""
+                          loading="lazy"
+                          className="h-4 w-4 shrink-0 rounded-full"
+                        />
                       )}
                       <span className="min-w-0 flex-1 truncate text-[13px] text-foreground font-dota">
-                        {pro?.name ?? pro?.personaname ?? fallback?.name ?? `Player ${p.account_id}`}
+                        {pro?.name ??
+                          pro?.personaname ??
+                          fallback?.name ??
+                          `Player ${p.account_id}`}
                       </span>
                       {!pro && fallback?.isPrivate && (
                         <span
@@ -441,7 +549,10 @@ function LeagueTabPage() {
     staleTime: 60 * 60 * 1000,
     enabled: activeTab === 'draft',
   })
-  const heroMap = useMemo(() => new Map((heroStats.data ?? []).map((h) => [h.id, h])), [heroStats.data])
+  const heroMap = useMemo(
+    () => new Map((heroStats.data ?? []).map((h) => [h.id, h])),
+    [heroStats.data],
+  )
 
   return (
     <div>

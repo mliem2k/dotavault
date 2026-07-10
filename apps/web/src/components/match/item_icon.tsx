@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { ItemConst } from 'types'
-import { itemIconUrl, ITEM_CDN_FALLBACK } from '@/lib/utils'
+import { ITEM_CDN_FALLBACK, itemIconUrl } from '@/lib/utils'
 
 function ItemTooltip({ meta, x, y }: { meta: ItemConst; x: number; y: number }) {
   // Clamp to viewport (tooltip ~ 300px wide)
@@ -33,10 +33,15 @@ function ItemTooltip({ meta, x, y }: { meta: ItemConst; x: number; y: number }) 
           {meta.dname ?? 'Unknown Item'}
         </span>
         {meta.cost != null && meta.cost > 0 && (
-          <span className="flex items-center gap-1 text-[13px] font-bold shrink-0" style={{ color: '#d8bf6a' }}>
+          <span
+            className="flex items-center gap-1 text-[13px] font-bold shrink-0"
+            style={{ color: '#d8bf6a' }}
+          >
             <svg width="11" height="11" viewBox="0 0 10 10" fill="none">
               <circle cx="5" cy="5" r="4.5" fill="#c8961e" />
-              <text x="5" y="7.5" textAnchor="middle" fontSize="6" fill="#fff" fontWeight="bold">$</text>
+              <text x="5" y="7.5" textAnchor="middle" fontSize="6" fill="#fff" fontWeight="bold">
+                $
+              </text>
             </svg>
             {meta.cost.toLocaleString()}
           </span>
@@ -77,7 +82,10 @@ function ItemTooltip({ meta, x, y }: { meta: ItemConst; x: number; y: number }) 
       )}
 
       {meta.lore && (
-        <div className="text-[10px] leading-snug italic pt-1" style={{ color: '#5a5446', borderTop: '1px solid #241f16' }}>
+        <div
+          className="text-[10px] leading-snug italic pt-1"
+          style={{ color: '#5a5446', borderTop: '1px solid #241f16' }}
+        >
           {meta.lore.length > 160 ? `${meta.lore.slice(0, 160)}…` : meta.lore}
         </div>
       )}
@@ -110,7 +118,15 @@ export function ItemIcon({
       onMouseEnter={name ? (e) => setPos({ x: e.clientX, y: e.clientY }) : undefined}
       onMouseMove={name ? (e) => setPos({ x: e.clientX, y: e.clientY }) : undefined}
       onMouseLeave={() => setPos(null)}
-      onFocus={name ? (e) => setPos({ x: e.currentTarget.getBoundingClientRect().left, y: e.currentTarget.getBoundingClientRect().bottom }) : undefined}
+      onFocus={
+        name
+          ? (e) =>
+              setPos({
+                x: e.currentTarget.getBoundingClientRect().left,
+                y: e.currentTarget.getBoundingClientRect().bottom,
+              })
+          : undefined
+      }
       onBlur={() => setPos(null)}
     >
       {name ? (

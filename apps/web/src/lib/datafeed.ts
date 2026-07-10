@@ -125,7 +125,9 @@ function resolveDesc(a: RawAbility): string {
       const sv = (a.special_values ?? []).find((v) => v.name === key)
       const vals = sv?.values_float ?? sv?.values_int
       if (!vals || vals.length === 0) return ''
-      return [...new Set(vals)].map((v) => (Number.isInteger(v) ? String(v) : String(+v.toFixed(2)))).join('/')
+      return [...new Set(vals)]
+        .map((v) => (Number.isInteger(v) ? String(v) : String(+v.toFixed(2))))
+        .join('/')
     })
     .replace(/%%/g, '%')
     .replace(/<[^>]*>/g, '')

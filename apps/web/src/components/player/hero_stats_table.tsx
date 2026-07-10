@@ -49,13 +49,33 @@ export function HeroStatsTable({
       <TableHeader>
         <TableRow className="hover:bg-transparent text-left text-xs text-muted">
           <TableHead className="h-auto px-0 pb-2 font-normal text-muted whitespace-normal">
-            <SortHeader label="Hero" sortKey="hero" active={sortKey === 'hero'} dir={sortDir} onClick={onSort} />
+            <SortHeader
+              label="Hero"
+              sortKey="hero"
+              active={sortKey === 'hero'}
+              dir={sortDir}
+              onClick={onSort}
+            />
           </TableHead>
           <TableHead className="h-auto px-0 pb-2 text-right font-mono font-normal text-muted">
-            <SortHeader label="Games" sortKey="games" active={sortKey === 'games'} dir={sortDir} onClick={onSort} className="justify-end" />
+            <SortHeader
+              label="Games"
+              sortKey="games"
+              active={sortKey === 'games'}
+              dir={sortDir}
+              onClick={onSort}
+              className="justify-end"
+            />
           </TableHead>
           <TableHead className="h-auto px-0 pb-2 text-right font-mono font-normal text-muted">
-            <SortHeader label="Win%" sortKey="winrate" active={sortKey === 'winrate'} dir={sortDir} onClick={onSort} className="justify-end" />
+            <SortHeader
+              label="Win%"
+              sortKey="winrate"
+              active={sortKey === 'winrate'}
+              dir={sortDir}
+              onClick={onSort}
+              className="justify-end"
+            />
           </TableHead>
         </TableRow>
       </TableHeader>
@@ -70,7 +90,9 @@ export function HeroStatsTable({
               <TableCell className="p-0 py-1.5 whitespace-normal">
                 <Link
                   to="/hero/$heroName"
-                  params={{ heroName: hero?.name.replace('npc_dota_hero_', '') ?? String(ph.hero_id) }}
+                  params={{
+                    heroName: hero?.name.replace('npc_dota_hero_', '') ?? String(ph.hero_id),
+                  }}
                   className="flex items-center gap-2 hover:text-accent"
                 >
                   {hero && (
@@ -83,7 +105,9 @@ export function HeroStatsTable({
                   <span>{hero?.localized_name ?? ph.hero_id}</span>
                 </Link>
               </TableCell>
-              <TableCell className="p-0 py-1.5 text-right font-mono text-foreground">{ph.games}</TableCell>
+              <TableCell className="p-0 py-1.5 text-right font-mono text-foreground">
+                {ph.games}
+              </TableCell>
               <TableCell className="p-0 py-1.5 text-right font-mono text-foreground">
                 {winRate(ph.win, ph.games)}
               </TableCell>

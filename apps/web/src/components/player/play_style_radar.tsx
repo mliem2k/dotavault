@@ -74,7 +74,17 @@ export function PlayStyleRadar({
       {/* axes */}
       {AXES.map((_, i) => {
         const [x, y] = pointAt(i, R)
-        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} className="stroke-slate-border" strokeWidth={1} />
+        return (
+          <line
+            key={i}
+            x1={cx}
+            y1={cy}
+            x2={x}
+            y2={y}
+            className="stroke-slate-border"
+            strokeWidth={1}
+          />
+        )
       })}
       {/* data polygon */}
       <path d={dataPath} fill="rgba(201,169,74,0.3)" className="stroke-gold" strokeWidth={2} />
@@ -122,9 +132,7 @@ export function LifetimeStats({ totals }: { totals: Total[] }) {
       <span className="w-16 shrink-0 text-right text-[15px] tabular-nums text-gold font-dota">
         {value}
       </span>
-      <span className="text-[13px] text-slate-foreground font-dota">
-        {label}
-      </span>
+      <span className="text-[13px] text-slate-foreground font-dota">{label}</span>
     </div>
   )
   return (

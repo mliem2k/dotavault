@@ -32,13 +32,20 @@ export function MatchCosmetics({ match, heroStats }: { match: Match; heroStats: 
 
   return (
     <div className="font-dota" style={{ background: C.panel }}>
-      <div className="px-4 py-3 text-[15px] uppercase text-white" style={{ letterSpacing: '2px', background: C.panelDark }}>
+      <div
+        className="px-4 py-3 text-[15px] uppercase text-white"
+        style={{ letterSpacing: '2px', background: C.panelDark }}
+      >
         Cosmetics
       </div>
       {withItems.map((p) => {
         const hero = heroMap.get(p.hero_id)
         return (
-          <div key={p.player_slot} className="px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div
+            key={p.player_slot}
+            className="px-4 py-3"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+          >
             <div className="mb-2 flex items-center gap-2">
               <span style={{ width: 3, height: 22, background: playerColor(p.player_slot) }} />
               <img
@@ -55,7 +62,9 @@ export function MatchCosmetics({ match, heroStats }: { match: Match; heroStats: 
               <span className={`text-[13px] ${p.player_slot < 128 ? 'text-radiant' : 'text-dire'}`}>
                 {hero?.localized_name ?? 'Unknown'}
               </span>
-              <span className="truncate text-[13px] text-slate-muted">{p.personaname ?? 'Anonymous'}</span>
+              <span className="truncate text-[13px] text-slate-muted">
+                {p.personaname ?? 'Anonymous'}
+              </span>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {(p.cosmetics ?? []).map((c) => {
@@ -80,7 +89,10 @@ export function MatchCosmetics({ match, heroStats }: { match: Match; heroStats: 
                         }}
                       />
                     )}
-                    <span className={`text-[13px] ${rarityColor ? '' : 'text-slate-foreground'}`} style={rarityColor ? { color: rarityColor } : undefined}>
+                    <span
+                      className={`text-[13px] ${rarityColor ? '' : 'text-slate-foreground'}`}
+                      style={rarityColor ? { color: rarityColor } : undefined}
+                    >
                       {c.name ?? `Item ${c.item_id}`}
                     </span>
                   </div>

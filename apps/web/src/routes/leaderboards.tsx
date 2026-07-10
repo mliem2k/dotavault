@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, Outlet, createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { DIVISIONS, type LeaderboardEntry } from '@/lib/leaderboard'
 import { LeaderboardDataContext, type ProRef } from '@/lib/leaderboard_data_context'

@@ -15,7 +15,9 @@ function StatsTabPage() {
   return (
     <div className="mt-3 space-y-4">
       {totals.isPending || countsQ.isPending ? (
-        <div className="flex justify-center py-10"><Spinner /></div>
+        <div className="flex justify-center py-10">
+          <Spinner />
+        </div>
       ) : totals.data ? (
         <PlayerStats totals={totals.data} counts={countsQ.data} wl={wl} />
       ) : null}
@@ -28,7 +30,9 @@ function StatsTabPage() {
         </div>
         <div className="p-4">
           {playerHeroes.isPending || heroStats.isPending ? (
-            <div className="flex justify-center py-8"><Spinner /></div>
+            <div className="flex justify-center py-8">
+              <Spinner />
+            </div>
           ) : playerHeroes.data && heroStats.data ? (
             <HeroStatsTable playerHeroes={playerHeroes.data} heroStats={heroStats.data} />
           ) : null}

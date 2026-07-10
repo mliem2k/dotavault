@@ -1,5 +1,5 @@
-import { env } from './env'
 import { cacheGet, cacheSet } from './cache'
+import { env } from './env'
 
 const BASE = 'https://api.opendota.com/api'
 

@@ -21,7 +21,11 @@ export const onRequestGet = async (context: Ctx): Promise<Response> => {
   const json = (data: unknown, status = 200, extra: Record<string, string> = {}) =>
     new Response(JSON.stringify(data), {
       status,
-      headers: { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*', ...extra },
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'access-control-allow-origin': '*',
+        ...extra,
+      },
     })
 
   if (!ALLOWED.has(endpoint)) return json({ error: 'not found' }, 404)

@@ -4,18 +4,18 @@ import { useMemo, useRef, useState } from 'react'
 import { AbilityDetails } from '@/components/heroes/ability_details'
 import { Spinner } from '@/components/ui/spinner'
 import { datafeed } from '@/lib/datafeed'
-import { usePageTitle } from '@/lib/title'
 import { opendota } from '@/lib/opendota'
+import { usePageTitle } from '@/lib/title'
 import {
-  INNATE_ICON_CDN,
-  ITEM_CDN_FALLBACK,
-  TALENTS_ICON_CDN,
   abilityIconCdn,
   abilityIconUrl,
   heroIconUrl,
   heroLandscapeCdn,
   heroSlug,
+  INNATE_ICON_CDN,
+  ITEM_CDN_FALLBACK,
   itemIconUrl,
+  TALENTS_ICON_CDN,
 } from '@/lib/utils'
 
 export const Route = createFileRoute('/hero/$heroName')({
@@ -97,14 +97,28 @@ function HistoryText({ text }: { text: string }) {
   )
 }
 
-function parseTalent(dname: string): { sign: string | null; value: string | null; unit: string; text: string } {
+function parseTalent(dname: string): {
+  sign: string | null
+  value: string | null
+  unit: string
+  text: string
+} {
   // Explicit numeric: "+10 All Attributes", "+5s Reflection Duration"
-  const explicit = dname.match(/^([+\-])(\d+)([a-z%]*)\s+(.+)$/i)
-  if (explicit) return { sign: explicit[1], value: explicit[2], unit: explicit[3], text: explicit[4] }
+  const explicit = dname.match(/^([+-])(\d+)([a-z%]*)\s+(.+)$/i)
+  if (explicit)
+    return { sign: explicit[1], value: explicit[2], unit: explicit[3], text: explicit[4] }
   // Template value: "+{s:bonus_x}s Description", "-{s:...}% Description"
-  const template = dname.match(/^([+\-])\{[^}]*\}([a-z%]*)\s+(.+)$/i)
+  const template = dname.match(/^([+-])\{[^}]*\}([a-z%]*)\s+(.+)$/i)
   if (template) return { sign: template[1], value: null, unit: template[2], text: template[3] }
-  return { sign: null, value: null, unit: '', text: dname.replace(/\{[^}]*\}/g, '').replace(/\s+/g, ' ').trim() }
+  return {
+    sign: null,
+    value: null,
+    unit: '',
+    text: dname
+      .replace(/\{[^}]*\}/g, '')
+      .replace(/\s+/g, ' ')
+      .trim(),
+  }
 }
 
 // The nine canonical Dota role categories, shown in the header stat bar (dota2.com order).
@@ -125,10 +139,7 @@ function IconStat({ icon, value }: { icon: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2.5 py-[3px]">
       <img src={statIconUrl(icon)} alt="" className="h-[22px] w-[22px] shrink-0 opacity-90" />
-      <span
-        className="text-[14px] tabular-nums text-white font-dota"
-        style={{ fontWeight: 600 }}
-      >
+      <span className="text-[14px] tabular-nums text-white font-dota" style={{ fontWeight: 600 }}>
         {value}
       </span>
     </div>
@@ -161,9 +172,7 @@ function AttrRow({ attrKey, base, gain }: { attrKey: string; base: number; gain:
       >
         {base}
       </span>
-      <span className="text-[15px] tabular-nums text-muted">
-        +{gain.toFixed(1)}
-      </span>
+      <span className="text-[15px] tabular-nums text-muted">+{gain.toFixed(1)}</span>
     </div>
   )
 }
@@ -213,7 +222,11 @@ const LANE_ORDER = [2, 1, 3]
 // what OpenDota's lane_role field actually distinguishes cleanly; a
 // carry-vs-support split within a lane isn't reliably derivable from
 // public match data without a much fuzzier heuristic).
-function LanePresenceSection({ laneRoles }: { laneRoles: { lane_role: number; picks: number; wins: number }[] }) {
+function LanePresenceSection({
+  laneRoles,
+}: {
+  laneRoles: { lane_role: number; picks: number; wins: number }[]
+}) {
   const total = laneRoles.reduce((s, l) => s + l.picks, 0)
   if (total === 0) return null
   const rows = LANE_ORDER.map((lr) => laneRoles.find((l) => l.lane_role === lr)).filter(
@@ -345,7 +358,11 @@ function MatchupsSection({
 // game is either 0% or 100%).
 const DURATION_MIN_GAMES = 50
 
-function DurationSection({ durations }: { durations: { duration_bin: number; games_played: number; wins: number }[] }) {
+function DurationSection({
+  durations,
+}: {
+  durations: { duration_bin: number; games_played: number; wins: number }[]
+}) {
   const rows = useMemo(
     () =>
       [...durations]
@@ -367,7 +384,11 @@ function DurationSection({ durations }: { durations: { duration_bin: number; gam
     <StatPanel title="Win Rate by Game Length">
       <div className="flex items-end justify-center gap-2 sm:gap-3 overflow-x-auto py-2">
         {rows.map((r) => (
-          <div key={r.duration_bin} className="flex shrink-0 flex-col items-center" style={{ width: 48 }}>
+          <div
+            key={r.duration_bin}
+            className="flex shrink-0 flex-col items-center"
+            style={{ width: 48 }}
+          >
             <div
               className={`text-[14px] font-semibold tabular-nums mb-1 font-dota ${
                 r.wr >= 52 ? 'text-radiant' : r.wr < 48 ? 'text-dire' : 'text-muted'
@@ -393,7 +414,10 @@ function DurationSection({ durations }: { durations: { duration_bin: number; gam
   )
 }
 
-const ITEM_PHASES: { key: 'start_game_items' | 'early_game_items' | 'mid_game_items' | 'late_game_items'; label: string }[] = [
+const ITEM_PHASES: {
+  key: 'start_game_items' | 'early_game_items' | 'mid_game_items' | 'late_game_items'
+  label: string
+}[] = [
   { key: 'start_game_items', label: 'Starting' },
   { key: 'early_game_items', label: 'Early Game' },
   { key: 'mid_game_items', label: 'Mid Game' },
@@ -442,13 +466,20 @@ function ItemPopularitySection({
                         data-item-name={name}
                         onError={(e) => {
                           const img = e.currentTarget
-                          if (!img.src.includes(ITEM_CDN_FALLBACK)) img.src = `${ITEM_CDN_FALLBACK}/${name}.png`
+                          if (!img.src.includes(ITEM_CDN_FALLBACK))
+                            img.src = `${ITEM_CDN_FALLBACK}/${name}.png`
                         }}
                         className="h-7 w-11 shrink-0 rounded-sm object-cover"
                       />
                     )}
-                    <div className="h-[4px] flex-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                      <div className="bg-gold" style={{ width: `${(t.count / maxCount) * 100}%`, height: '100%' }} />
+                    <div
+                      className="h-[4px] flex-1"
+                      style={{ background: 'rgba(255,255,255,0.06)' }}
+                    >
+                      <div
+                        className="bg-gold"
+                        style={{ width: `${(t.count / maxCount) * 100}%`, height: '100%' }}
+                      />
                     </div>
                   </div>
                 )
@@ -498,7 +529,13 @@ function HeroDetailPage() {
   usePageTitle(hero?.localized_name)
 
   const heroMap = useMemo(
-    () => new Map((heroStats.data ?? []).map((h) => [h.id, { localized_name: h.localized_name, name: h.name }])),
+    () =>
+      new Map(
+        (heroStats.data ?? []).map((h) => [
+          h.id,
+          { localized_name: h.localized_name, name: h.name },
+        ]),
+      ),
     [heroStats.data],
   )
   const itemIdToName = useMemo(
@@ -507,7 +544,8 @@ function HeroDetailPage() {
   )
   // Prev / next hero (alphabetical), used by the top-right nav and the footer.
   const sortedHeroes = useMemo(
-    () => [...(heroStats.data ?? [])].sort((a, b) => a.localized_name.localeCompare(b.localized_name)),
+    () =>
+      [...(heroStats.data ?? [])].sort((a, b) => a.localized_name.localeCompare(b.localized_name)),
     [heroStats.data],
   )
 
@@ -584,7 +622,8 @@ function HeroDetailPage() {
     return s
   })()
   const abilityList = (ha?.abilities ?? []).filter((a) => {
-    if (!a || a === 'generic_hidden' || a.startsWith('special_') || aghsNewSkills.has(a)) return false
+    if (!a || a === 'generic_hidden' || a.startsWith('special_') || aghsNewSkills.has(a))
+      return false
     const ab = abilities.data?.[a]
     if (ab?.is_innate) return false
     const beh = ab?.behavior
@@ -596,7 +635,8 @@ function HeroDetailPage() {
   // Only true innates get the circular icon. Hidden non-innate abilities are
   // toggle sub-states of other skills (e.g. Techies' Detonate Tazer) — skip.
   const innateList = (ha?.abilities ?? []).filter((a) => {
-    if (!a || a === 'generic_hidden' || a.startsWith('special_') || aghsNewSkills.has(a)) return false
+    if (!a || a === 'generic_hidden' || a.startsWith('special_') || aghsNewSkills.has(a))
+      return false
     return abilities.data?.[a]?.is_innate === true
   })
   const meta = heroData.data
@@ -759,7 +799,11 @@ function HeroDetailPage() {
           >
             {[...Array(6)].map((_, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: static decoration
-              <span key={i} className="bg-white" style={{ width: 9, height: 9, display: 'block' }} />
+              <span
+                key={i}
+                className="bg-white"
+                style={{ width: 9, height: 9, display: 'block' }}
+              />
             ))}
           </a>
           {nextHero && (
@@ -952,11 +996,20 @@ function HeroDetailPage() {
                       <div
                         key={lvl}
                         className="flex items-center"
-                        style={{ height: 50, background: 'rgba(0,0,0,0.5)', marginBottom: 4, padding: '0 14px' }}
+                        style={{
+                          height: 50,
+                          background: 'rgba(0,0,0,0.5)',
+                          marginBottom: 4,
+                          padding: '0 14px',
+                        }}
                       >
                         <div
                           className="flex-1 text-center font-dota"
-                          style={{ fontSize: 13, lineHeight: 1.25, color: 'rgba(255,255,255,0.73)' }}
+                          style={{
+                            fontSize: 13,
+                            lineHeight: 1.25,
+                            color: 'rgba(255,255,255,0.73)',
+                          }}
                         >
                           {left}
                         </div>
@@ -980,7 +1033,11 @@ function HeroDetailPage() {
                         </div>
                         <div
                           className="flex-1 text-center font-dota"
-                          style={{ fontSize: 13, lineHeight: 1.25, color: 'rgba(255,255,255,0.73)' }}
+                          style={{
+                            fontSize: 13,
+                            lineHeight: 1.25,
+                            color: 'rgba(255,255,255,0.73)',
+                          }}
                         >
                           {right}
                         </div>
@@ -997,7 +1054,9 @@ function HeroDetailPage() {
                   (ab?.dname ? meta?.abilityDescs?.[ab.dname.toLowerCase()] : undefined)
                 const beh = Array.isArray(ab?.behavior)
                   ? (ab.behavior as string[]).filter((b) => b !== 'Hidden').join(' / ')
-                  : ab?.behavior ? String(ab.behavior) : null
+                  : ab?.behavior
+                    ? String(ab.behavior)
+                    : null
                 const attribs = (ab?.attrib ?? []).filter(
                   (x) => x.header && x.value != null && x.value !== '' && !x.generated,
                 )
@@ -1095,7 +1154,11 @@ function HeroDetailPage() {
                         <div
                           key={i}
                           className="flex justify-between"
-                          style={{ borderTop: '1px solid #1e1a12', paddingTop: 4, paddingBottom: 4 }}
+                          style={{
+                            borderTop: '1px solid #1e1a12',
+                            paddingTop: 4,
+                            paddingBottom: 4,
+                          }}
                         >
                           <span
                             className="text-muted font-dota"
@@ -1113,7 +1176,9 @@ function HeroDetailPage() {
                               fontWeight: 700,
                             }}
                           >
-                            {Array.isArray(x.value) ? (x.value as (string | number)[]).join(' / ') : String(x.value)}
+                            {Array.isArray(x.value)
+                              ? (x.value as (string | number)[]).join(' / ')
+                              : String(x.value)}
                           </span>
                         </div>
                       ))}
@@ -1270,8 +1335,14 @@ function HeroDetailPage() {
                     : `${hero.base_attack_min}-${hero.base_attack_max}`
                 }
               />
-              <IconStat icon="attack_time" value={meta ? String(+meta.attack_rate.toFixed(2)) : '1.7'} />
-              <IconStat icon="attack_range" value={String(meta?.attack_range ?? hero.attack_range)} />
+              <IconStat
+                icon="attack_time"
+                value={meta ? String(+meta.attack_rate.toFixed(2)) : '1.7'}
+              />
+              <IconStat
+                icon="attack_range"
+                value={String(meta?.attack_range ?? hero.attack_range)}
+              />
               {meta && <IconStat icon="projectile_speed" value={meta.projectile_speed} />}
             </StatGroup>
 
@@ -1357,7 +1428,9 @@ function HeroDetailPage() {
           {laneRoles.data && <LanePresenceSection laneRoles={laneRoles.data} />}
           {matchups.data && <MatchupsSection heroMap={heroMap} matchups={matchups.data} />}
           {durations.data && <DurationSection durations={durations.data} />}
-          {itemPopularity.data && <ItemPopularitySection popularity={itemPopularity.data} idToName={itemIdToName} />}
+          {itemPopularity.data && (
+            <ItemPopularitySection popularity={itemPopularity.data} idToName={itemIdToName} />
+          )}
         </div>
       )}
 
@@ -1365,29 +1438,54 @@ function HeroDetailPage() {
       {(() => {
         const IMG = 'https://cdn.steamstatic.com/apps/dota2/images/dota_react'
         const cropUrl = (n: string) => `${IMG}/heroes/crops/${n.replace('npc_dota_hero_', '')}.png`
-        const ATTR_ICON: Record<string, string> = { str: 'hero_strength', agi: 'hero_agility', int: 'hero_intelligence', all: 'hero_universal' }
+        const ATTR_ICON: Record<string, string> = {
+          str: 'hero_strength',
+          agi: 'hero_agility',
+          int: 'hero_intelligence',
+          all: 'hero_universal',
+        }
         const attrIcon = (attr: string) => `${IMG}/icons/${ATTR_ICON[attr] ?? 'hero_universal'}.png`
         const BG = `url("${IMG}/backgrounds/grey_painterly_wide.png")`
         const linkBase: React.CSSProperties = {
-          position: 'relative', display: 'flex', alignItems: 'center', height: '100%',
-          width: '45%', backgroundImage: BG, backgroundSize: 'cover', backgroundPosition: 'center',
-          textDecoration: 'none', padding: '0 30px',
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          height: '100%',
+          width: '45%',
+          backgroundImage: BG,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          textDecoration: 'none',
+          padding: '0 30px',
           transition: 'filter 0.15s',
         }
         const nameStyle: React.CSSProperties = {
-          fontSize: 28, fontWeight: 700, textTransform: 'uppercase',
+          fontSize: 28,
+          fontWeight: 700,
+          textTransform: 'uppercase',
           letterSpacing: '1px',
-          maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          maxWidth: '100%',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
         }
         // #9f9f9f is not in the Token Mapping Reference (close to but distinct from
         // #8a8474 text-muted) — left as-is per task instructions.
         const labelStyle: React.CSSProperties = {
-          fontSize: 15, color: '#9f9f9f', textTransform: 'uppercase',
-          letterSpacing: '2px', marginBottom: 5,
+          fontSize: 15,
+          color: '#9f9f9f',
+          textTransform: 'uppercase',
+          letterSpacing: '2px',
+          marginBottom: 5,
         }
         const cropStyle: React.CSSProperties = {
-          position: 'absolute', bottom: -20, width: 400, height: 250, maxWidth: '90%',
-          objectFit: 'contain', pointerEvents: 'none',
+          position: 'absolute',
+          bottom: -20,
+          width: 400,
+          height: 250,
+          maxWidth: '90%',
+          objectFit: 'contain',
+          pointerEvents: 'none',
         }
         return (
           <div
@@ -1395,12 +1493,15 @@ function HeroDetailPage() {
             style={{
               fontFamily: 'Radiance, "Noto Sans", sans-serif',
               boxSizing: 'border-box',
-              width: 'calc(100% + 3rem)', height: 150,
+              width: 'calc(100% + 3rem)',
+              height: 150,
               // #111 is not in the Token Mapping Reference (close to but distinct from
               // bg-background/bg-card) — left as-is per task instructions.
               backgroundColor: '#111',
               marginTop: 40,
-              display: 'flex', flexDirection: 'row', alignItems: 'center',
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
             }}
           >
             {prevHero ? (
@@ -1409,30 +1510,56 @@ function HeroDetailPage() {
                 className="hover:brightness-125 text-white"
                 style={{ ...linkBase, justifyContent: 'flex-end' }}
               >
-                <img src={cropUrl(prevHero.name)} alt={prevHero.localized_name} style={{ ...cropStyle, left: 0 }} />
+                <img
+                  src={cropUrl(prevHero.name)}
+                  alt={prevHero.localized_name}
+                  style={{ ...cropStyle, left: 0 }}
+                />
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={labelStyle}>Previous Hero</div>
-                  <div className="text-white font-display" style={nameStyle}>{prevHero.localized_name}</div>
+                  <div className="text-white font-display" style={nameStyle}>
+                    {prevHero.localized_name}
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                    <img src={attrIcon(prevHero.primary_attr)} alt="" style={{ width: 24, height: 24 }} />
-                    <div className="text-white" style={{ fontSize: 16, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    <img
+                      src={attrIcon(prevHero.primary_attr)}
+                      alt=""
+                      style={{ width: 24, height: 24 }}
+                    />
+                    <div
+                      className="text-white"
+                      style={{ fontSize: 16, textTransform: 'uppercase', letterSpacing: '1px' }}
+                    >
                       {prevHero.attack_type}
                     </div>
                   </div>
                 </div>
               </a>
-            ) : <div style={{ width: '45%' }} />}
+            ) : (
+              <div style={{ width: '45%' }} />
+            )}
 
             <a
               href="/heroes"
               className="hover:bg-white/10 text-white"
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                flex: 1, height: '100%', textDecoration: 'none', gap: 10 }}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flex: 1,
+                height: '100%',
+                textDecoration: 'none',
+                gap: 10,
+              }}
             >
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 14px)', gap: 5 }}>
                 {[...Array(6)].map((_, i) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: static decoration
-                  <div key={i} style={{ width: 14, height: 14, background: 'rgba(255,255,255,0.85)' }} />
+                  <div
+                    key={i}
+                    style={{ width: 14, height: 14, background: 'rgba(255,255,255,0.85)' }}
+                  />
                 ))}
               </div>
               <div style={{ fontSize: 15, letterSpacing: '2px', textTransform: 'uppercase' }}>
@@ -1448,21 +1575,35 @@ function HeroDetailPage() {
               >
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={labelStyle}>Next Hero</div>
-                  <div className="text-white font-display" style={nameStyle}>{nextHero.localized_name}</div>
+                  <div className="text-white font-display" style={nameStyle}>
+                    {nextHero.localized_name}
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                    <img src={attrIcon(nextHero.primary_attr)} alt="" style={{ width: 24, height: 24 }} />
-                    <div className="text-white" style={{ fontSize: 16, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    <img
+                      src={attrIcon(nextHero.primary_attr)}
+                      alt=""
+                      style={{ width: 24, height: 24 }}
+                    />
+                    <div
+                      className="text-white"
+                      style={{ fontSize: 16, textTransform: 'uppercase', letterSpacing: '1px' }}
+                    >
                       {nextHero.attack_type}
                     </div>
                   </div>
                 </div>
-                <img src={cropUrl(nextHero.name)} alt={nextHero.localized_name} style={{ ...cropStyle, right: 0 }} />
+                <img
+                  src={cropUrl(nextHero.name)}
+                  alt={nextHero.localized_name}
+                  style={{ ...cropStyle, right: 0 }}
+                />
               </a>
-            ) : <div style={{ width: '45%' }} />}
+            ) : (
+              <div style={{ width: '45%' }} />
+            )}
           </div>
         )
       })()}
-
     </div>
   )
 }

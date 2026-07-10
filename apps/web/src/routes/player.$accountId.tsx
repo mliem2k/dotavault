@@ -1,10 +1,10 @@
-import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link, Outlet, createFileRoute, useLocation, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet, useLocation, useNavigate } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { Spinner } from '@/components/ui/spinner'
-import { PlayerDataContext } from '@/lib/player_data_context'
 import { divisionLabel, divisionShort, findLeaderboardPosition } from '@/lib/leaderboard'
 import { opendota } from '@/lib/opendota'
+import { PlayerDataContext } from '@/lib/player_data_context'
 import { rankBadge, rankName } from '@/lib/rank'
 import { fetchSteamProfile, resolveVanitySteamId } from '@/lib/steam'
 import { usePageTitle } from '@/lib/title'
@@ -31,7 +31,11 @@ function PlayerPage() {
   const { accountId } = Route.useParams()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const activeTab = pathname.includes('/matches') ? 'matches' : pathname.includes('/stats') ? 'stats' : 'profile'
+  const activeTab = pathname.includes('/matches')
+    ? 'matches'
+    : pathname.includes('/stats')
+      ? 'stats'
+      : 'profile'
   const activeFeed = pathname.endsWith('/teammates') ? 'teammates' : 'recent'
 
   // /player/mliem etc: the id in the URL is a Steam vanity slug, not a
@@ -53,7 +57,10 @@ function PlayerPage() {
   const player = useQuery({
     queryKey: ['player', accountId],
     queryFn: async () => {
-      const [player, wl] = await Promise.all([opendota.player(accountId), opendota.playerWL(accountId)])
+      const [player, wl] = await Promise.all([
+        opendota.player(accountId),
+        opendota.playerWL(accountId),
+      ])
       return { player, wl }
     },
     enabled: isNumeric,
@@ -124,10 +131,13 @@ function PlayerPage() {
   const rankTier = player.data?.player.rank_tier ?? null
   const isImmortal = rankTier != null && Math.floor(rankTier / 10) === 8
   const personaName = player.data?.player.profile?.personaname ?? steamFallback.data?.personaname
-  const proNameForAccount = proPlayers.data?.find((pp) => pp.account_id === Number(accountId) && pp.is_pro)?.name
+  const proNameForAccount = proPlayers.data?.find(
+    (pp) => pp.account_id === Number(accountId) && pp.is_pro,
+  )?.name
   const leaderboardPos = useQuery({
     queryKey: ['leaderboard_position', accountId, personaName, proNameForAccount],
-    queryFn: () => findLeaderboardPosition([personaName, proNameForAccount].filter((n): n is string => !!n)),
+    queryFn: () =>
+      findLeaderboardPosition([personaName, proNameForAccount].filter((n): n is string => !!n)),
     enabled: isImmortal && !!personaName,
     staleTime: 30 * 60 * 1000,
   })
@@ -139,7 +149,9 @@ function PlayerPage() {
       return (
         <div className="flex flex-col items-center gap-3 py-20">
           <Spinner className="h-8 w-8" />
-          <span className="text-sm" style={{ color: C.labelBright }}>Resolving Steam profile…</span>
+          <span className="text-sm" style={{ color: C.labelBright }}>
+            Resolving Steam profile…
+          </span>
         </div>
       )
     }
@@ -161,7 +173,11 @@ function PlayerPage() {
     return (
       <div className="text-sm text-muted py-20 text-center">
         Couldn't load this player right now (OpenDota may be rate-limited).{' '}
-        <button type="button" onClick={() => player.refetch()} className="underline text-gold cursor-pointer">
+        <button
+          type="button"
+          onClick={() => player.refetch()}
+          className="underline text-gold cursor-pointer"
+        >
           Try again
         </button>
       </div>
@@ -174,29 +190,46 @@ function PlayerPage() {
     return (
       <div className="flex flex-col items-center gap-3 py-20">
         <Spinner className="h-8 w-8" />
-        <span className="text-sm" style={{ color: C.labelBright }}>Resolving Steam profile…</span>
+        <span className="text-sm" style={{ color: C.labelBright }}>
+          Resolving Steam profile…
+        </span>
       </div>
     )
   }
   const resolvedProfile = openDotaProfile
-    ? { personaname: openDotaProfile.personaname, avatarfull: openDotaProfile.avatarfull, account_id: openDotaProfile.account_id, isPrivate: false }
+    ? {
+        personaname: openDotaProfile.personaname,
+        avatarfull: openDotaProfile.avatarfull,
+        account_id: openDotaProfile.account_id,
+        isPrivate: false,
+      }
     : steamFallback.data
-      ? { personaname: steamFallback.data.personaname, avatarfull: steamFallback.data.avatarfull, account_id: Number(accountId), isPrivate: !steamFallback.data.isPublic }
+      ? {
+          personaname: steamFallback.data.personaname,
+          avatarfull: steamFallback.data.avatarfull,
+          account_id: Number(accountId),
+          isPrivate: !steamFallback.data.isPublic,
+        }
       : null
   if (!resolvedProfile) return <div className="text-sm text-muted">Player not found.</div>
 
-  const p = { ...player.data.player, profile: { personaname: resolvedProfile.personaname, account_id: resolvedProfile.account_id } }
+  const p = {
+    ...player.data.player,
+    profile: { personaname: resolvedProfile.personaname, account_id: resolvedProfile.account_id },
+  }
   const wl = player.data.wl
   const totalGames = wl.win + wl.lose
   const proInfo = proPlayers.data?.find((pp) => pp.account_id === Number(accountId) && pp.is_pro)
   // Most recent name first, current persona name excluded, deduplicated
   // (Steam lets a name repeat across separate name-change events).
-  const previousNames = [...new Set(
-    (p.aliases ?? [])
-      .filter((a) => a.personaname && a.personaname !== resolvedProfile.personaname)
-      .sort((a, b) => new Date(b.name_since).getTime() - new Date(a.name_since).getTime())
-      .map((a) => a.personaname),
-  )]
+  const previousNames = [
+    ...new Set(
+      (p.aliases ?? [])
+        .filter((a) => a.personaname && a.personaname !== resolvedProfile.personaname)
+        .sort((a, b) => new Date(b.name_since).getTime() - new Date(a.name_since).getTime())
+        .map((a) => a.personaname),
+    ),
+  ]
   const badge = rankBadge(p.rank_tier)
   const heroesPlayed = (playerHeroes.data ?? []).filter((h) => h.games > 0).length
   const heroMap = new Map((heroStats.data ?? []).map((h) => [h.id, h]))
@@ -204,8 +237,12 @@ function PlayerPage() {
 
   const bigStat = (label: string, value: string) => (
     <div>
-      <div className="text-[12px] uppercase" style={{ color: C.label, letterSpacing: '2px' }}>{label}</div>
-      <div className="text-[30px] leading-tight tabular-nums" style={{ color: C.white }}>{value}</div>
+      <div className="text-[12px] uppercase" style={{ color: C.label, letterSpacing: '2px' }}>
+        {label}
+      </div>
+      <div className="text-[30px] leading-tight tabular-nums" style={{ color: C.white }}>
+        {value}
+      </div>
     </div>
   )
 
@@ -243,20 +280,41 @@ function PlayerPage() {
     >
       <div className="flex flex-col gap-0 font-dota">
         {/* Tab strip — PROFILE / MATCHES / STATS */}
-        <div className="flex items-center gap-1 flex-wrap mt-3 mb-3 px-3 py-2.5" style={{ background: 'rgba(8,10,12,0.55)' }}>
-          <Link to="/player/$accountId/profile" params={{ accountId }} className={tabLinkClass(activeTab === 'profile')} style={tabLinkStyle(activeTab === 'profile')}>
+        <div
+          className="flex items-center gap-1 flex-wrap mt-3 mb-3 px-3 py-2.5"
+          style={{ background: 'rgba(8,10,12,0.55)' }}
+        >
+          <Link
+            to="/player/$accountId/profile"
+            params={{ accountId }}
+            className={tabLinkClass(activeTab === 'profile')}
+            style={tabLinkStyle(activeTab === 'profile')}
+          >
             Profile
           </Link>
-          <Link to="/player/$accountId/matches" params={{ accountId }} className={tabLinkClass(activeTab === 'matches')} style={tabLinkStyle(activeTab === 'matches')}>
+          <Link
+            to="/player/$accountId/matches"
+            params={{ accountId }}
+            className={tabLinkClass(activeTab === 'matches')}
+            style={tabLinkStyle(activeTab === 'matches')}
+          >
             Matches
           </Link>
-          <Link to="/player/$accountId/stats" params={{ accountId }} className={tabLinkClass(activeTab === 'stats')} style={tabLinkStyle(activeTab === 'stats')}>
+          <Link
+            to="/player/$accountId/stats"
+            params={{ accountId }}
+            className={tabLinkClass(activeTab === 'stats')}
+            style={tabLinkStyle(activeTab === 'stats')}
+          >
             Stats
           </Link>
         </div>
 
         {/* Header bar */}
-        <div className="flex items-center flex-wrap gap-4 px-4 py-3" style={{ background: 'rgba(8,10,12,0.9)' }}>
+        <div
+          className="flex items-center flex-wrap gap-4 px-4 py-3"
+          style={{ background: 'rgba(8,10,12,0.9)' }}
+        >
           <img
             src={resolvedProfile.avatarfull}
             alt={resolvedProfile.personaname}
@@ -272,7 +330,11 @@ function PlayerPage() {
                   className="shrink-0 px-1.5 py-0.5 text-[12px] uppercase"
                   // #3a352a is not in the Token Mapping Reference (close to but distinct
                   // from #2a2620/#24222a border-border) — left as-is per task instructions.
-                  style={{ color: C.labelBright, border: '1px solid #3a352a', letterSpacing: '1px' }}
+                  style={{
+                    color: C.labelBright,
+                    border: '1px solid #3a352a',
+                    letterSpacing: '1px',
+                  }}
                 >
                   Private
                 </span>
@@ -292,7 +354,10 @@ function PlayerPage() {
                 </a>
               )}
             </div>
-            <div className="flex items-center gap-2 text-[13px] uppercase" style={{ color: C.green, letterSpacing: '2px' }}>
+            <div
+              className="flex items-center gap-2 text-[13px] uppercase"
+              style={{ color: C.green, letterSpacing: '2px' }}
+            >
               {rankName(p.rank_tier)}
               {leaderboardPos.data && (
                 <span
@@ -307,7 +372,11 @@ function PlayerPage() {
               )}
             </div>
             {previousNames.length > 0 && (
-              <div className="text-[12px] truncate" style={{ color: C.text }} title={previousNames.join(', ')}>
+              <div
+                className="text-[12px] truncate"
+                style={{ color: C.text }}
+                title={previousNames.join(', ')}
+              >
                 Also known as: {previousNames.slice(0, 4).join(', ')}
                 {previousNames.length > 4 ? ` +${previousNames.length - 4} more` : ''}
               </div>
@@ -318,8 +387,14 @@ function PlayerPage() {
             {bigStat('Matches', totalGames.toLocaleString())}
             {bigStat('Win Rate', winRate(wl.win, totalGames))}
             <div className="flex flex-col items-end">
-              <div className="text-[12px] uppercase" style={{ color: C.label, letterSpacing: '1px' }}>
-                Friend ID: <span className="tabular-nums" style={{ color: C.white }}>{p.profile.account_id}</span>
+              <div
+                className="text-[12px] uppercase"
+                style={{ color: C.label, letterSpacing: '1px' }}
+              >
+                Friend ID:{' '}
+                <span className="tabular-nums" style={{ color: C.white }}>
+                  {p.profile.account_id}
+                </span>
               </div>
             </div>
           </div>

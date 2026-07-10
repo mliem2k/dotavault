@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { HeroStat, Match, MatchPlayer } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { MAP_MAX, MAP_MIN } from '@/lib/buildings'
 import { playerColor } from '@/lib/dotaconst'
 import { applySort, useSort } from '@/lib/sortable'
@@ -33,7 +40,9 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
     () => match.players.filter((p) => p.lane_pos && Object.keys(p.lane_pos).length > 0),
     [match.players],
   )
-  const [visible, setVisible] = useState<Set<number>>(() => new Set(withData.map((p) => p.player_slot)))
+  const [visible, setVisible] = useState<Set<number>>(
+    () => new Set(withData.map((p) => p.player_slot)),
+  )
 
   function toggle(slot: number) {
     setVisible((prev) => {
@@ -95,7 +104,8 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
     }
   }, [draw])
 
-  const at10 = (arr: number[] | null | undefined) => arr?.[Math.min(10, (arr?.length ?? 1) - 1)] ?? null
+  const at10 = (arr: number[] | null | undefined) =>
+    arr?.[Math.min(10, (arr?.length ?? 1) - 1)] ?? null
 
   const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('eff', 'desc')
 
@@ -118,18 +128,32 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
         return (a.lane_efficiency_pct ?? -1) - (b.lane_efficiency_pct ?? -1)
     }
   }
-  const radiantSorted = applySort(match.players.filter((p) => p.player_slot < 128), sortDir, compare)
-  const direSorted = applySort(match.players.filter((p) => p.player_slot >= 128), sortDir, compare)
+  const radiantSorted = applySort(
+    match.players.filter((p) => p.player_slot < 128),
+    sortDir,
+    compare,
+  )
+  const direSorted = applySort(
+    match.players.filter((p) => p.player_slot >= 128),
+    sortDir,
+    compare,
+  )
 
   const statRow = (p: MatchPlayer) => {
     const hero = heroMap.get(p.hero_id)
     const isRadiant = p.player_slot < 128
     return (
-      <TableRow key={p.player_slot} className="hover:bg-transparent border-t border-white/5 border-x-0 border-b-0">
+      <TableRow
+        key={p.player_slot}
+        className="hover:bg-transparent border-t border-white/5 border-x-0 border-b-0"
+      >
         <TableCell className="p-0 px-2 py-1.5 whitespace-normal">
           <div className="flex items-center gap-2">
             <span style={{ width: 3, height: 20, background: playerColor(p.player_slot) }} />
-            <a href={hero ? `/hero/${heroSlug(hero.localized_name)}` : '#'} className="block shrink-0">
+            <a
+              href={hero ? `/hero/${heroSlug(hero.localized_name)}` : '#'}
+              className="block shrink-0"
+            >
               <img
                 src={hero ? heroIconUrl(hero.name) : ''}
                 alt=""
@@ -143,15 +167,19 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
                 }}
               />
             </a>
-            <span className={`max-w-[120px] truncate text-[13px] ${isRadiant ? 'text-radiant' : 'text-dire'}`}>
+            <span
+              className={`max-w-[120px] truncate text-[13px] ${isRadiant ? 'text-radiant' : 'text-dire'}`}
+            >
               {p.personaname ?? 'Anonymous'}
             </span>
           </div>
         </TableCell>
         <TableCell className="p-0 px-2 text-[13px] text-slate-foreground whitespace-normal">
-          {p.lane_role ? LANE_NAMES[p.lane_role] ?? '?' : '?'}
+          {p.lane_role ? (LANE_NAMES[p.lane_role] ?? '?') : '?'}
         </TableCell>
-        <TableCell className={`p-0 px-2 text-right text-[13px] tabular-nums ${p.lane_efficiency_pct != null && p.lane_efficiency_pct >= 60 ? 'text-gold' : 'text-slate-foreground'}`}>
+        <TableCell
+          className={`p-0 px-2 text-right text-[13px] tabular-nums ${p.lane_efficiency_pct != null && p.lane_efficiency_pct >= 60 ? 'text-gold' : 'text-slate-foreground'}`}
+        >
           {p.lane_efficiency_pct != null ? `${p.lane_efficiency_pct}%` : '-'}
         </TableCell>
         <TableCell className="p-0 px-2 text-right text-[13px] tabular-nums text-slate-foreground">
@@ -170,7 +198,10 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
   return (
     <div className="flex flex-wrap gap-4 font-dota">
       <div className="min-w-[420px] flex-1" style={{ background: C.panel }}>
-        <div className="flex flex-wrap items-center gap-2 px-4 py-2.5" style={{ background: C.panelDark }}>
+        <div
+          className="flex flex-wrap items-center gap-2 px-4 py-2.5"
+          style={{ background: C.panelDark }}
+        >
           <span className="text-[15px] uppercase text-white" style={{ letterSpacing: '2px' }}>
             Laning Phase
           </span>
@@ -208,7 +239,12 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
           </div>
         </div>
         <div className="flex justify-center p-4">
-          <canvas ref={canvasRef} width={560} height={560} className="w-full max-w-[560px] border border-slate-bg" />
+          <canvas
+            ref={canvasRef}
+            width={560}
+            height={560}
+            className="w-full max-w-[560px] border border-slate-bg"
+          />
         </div>
         <p className="px-4 pb-4 text-center text-[13px] text-slate-muted">
           Position heatmap during the laning phase, colored per player. Toggle heroes above.
@@ -216,29 +252,78 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
       </div>
 
       <div className="w-[430px] shrink-0 self-start" style={{ background: C.panel }}>
-        <div className="px-4 py-3 text-[15px] uppercase text-white" style={{ letterSpacing: '2px', background: C.panelDark }}>
+        <div
+          className="px-4 py-3 text-[15px] uppercase text-white"
+          style={{ letterSpacing: '2px', background: C.panelDark }}
+        >
           Lane Performance at 10:00
         </div>
         <Table className="w-full">
           <TableHeader>
-            <TableRow className="hover:bg-transparent text-left text-[12px] uppercase text-slate-muted border-none" style={{ letterSpacing: '1px' }}>
+            <TableRow
+              className="hover:bg-transparent text-left text-[12px] uppercase text-slate-muted border-none"
+              style={{ letterSpacing: '1px' }}
+            >
               <TableHead className="h-auto px-2 py-2">
-                <SortHeader label="Player" sortKey="player" active={sortKey === 'player'} dir={sortDir} onClick={onSort} />
+                <SortHeader
+                  label="Player"
+                  sortKey="player"
+                  active={sortKey === 'player'}
+                  dir={sortDir}
+                  onClick={onSort}
+                />
               </TableHead>
               <TableHead className="h-auto px-2">
-                <SortHeader label="Lane" sortKey="lane" active={sortKey === 'lane'} dir={sortDir} onClick={onSort} />
+                <SortHeader
+                  label="Lane"
+                  sortKey="lane"
+                  active={sortKey === 'lane'}
+                  dir={sortDir}
+                  onClick={onSort}
+                />
               </TableHead>
-              <TableHead className="h-auto px-2 text-right" title="Lane efficiency: share of the maximum possible lane farm">
-                <SortHeader label="Eff" sortKey="eff" active={sortKey === 'eff'} dir={sortDir} onClick={onSort} className="justify-end" />
+              <TableHead
+                className="h-auto px-2 text-right"
+                title="Lane efficiency: share of the maximum possible lane farm"
+              >
+                <SortHeader
+                  label="Eff"
+                  sortKey="eff"
+                  active={sortKey === 'eff'}
+                  dir={sortDir}
+                  onClick={onSort}
+                  className="justify-end"
+                />
               </TableHead>
               <TableHead className="h-auto px-2 text-right">
-                <SortHeader label="LH / DN" sortKey="lh" active={sortKey === 'lh'} dir={sortDir} onClick={onSort} className="justify-end" />
+                <SortHeader
+                  label="LH / DN"
+                  sortKey="lh"
+                  active={sortKey === 'lh'}
+                  dir={sortDir}
+                  onClick={onSort}
+                  className="justify-end"
+                />
               </TableHead>
               <TableHead className="h-auto px-2 text-right">
-                <SortHeader label="Gold" sortKey="gold" active={sortKey === 'gold'} dir={sortDir} onClick={onSort} className="justify-end" />
+                <SortHeader
+                  label="Gold"
+                  sortKey="gold"
+                  active={sortKey === 'gold'}
+                  dir={sortDir}
+                  onClick={onSort}
+                  className="justify-end"
+                />
               </TableHead>
               <TableHead className="h-auto px-2 text-right">
-                <SortHeader label="XP" sortKey="xp" active={sortKey === 'xp'} dir={sortDir} onClick={onSort} className="justify-end" />
+                <SortHeader
+                  label="XP"
+                  sortKey="xp"
+                  active={sortKey === 'xp'}
+                  dir={sortDir}
+                  onClick={onSort}
+                  className="justify-end"
+                />
               </TableHead>
             </TableRow>
           </TableHeader>

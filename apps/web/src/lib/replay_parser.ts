@@ -104,11 +104,15 @@ export async function startReplayParse(
   salt?: number | null,
 ): Promise<ReplayStatus> {
   const body = cluster != null && salt != null ? { cluster, salt } : undefined
-  const { data, error } = await withColdStartRetry(() => api.replay({ matchId: String(matchId) }).parse.post(body))
+  const { data, error } = await withColdStartRetry(() =>
+    api.replay({ matchId: String(matchId) }).parse.post(body),
+  )
   return toStatus(data, error)
 }
 
 export async function getReplayStatus(matchId: number): Promise<ReplayStatus> {
-  const { data, error } = await withColdStartRetry(() => api.replay({ matchId: String(matchId) }).get())
+  const { data, error } = await withColdStartRetry(() =>
+    api.replay({ matchId: String(matchId) }).get(),
+  )
   return toStatus(data, error)
 }

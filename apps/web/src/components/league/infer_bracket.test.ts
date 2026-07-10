@@ -61,7 +61,8 @@ describe('inferBracket', () => {
     const semi2 = makeSeries('semi2', 3, 4, 100)
     const final = makeSeries('final', 1, 3, 200)
     const { rounds } = inferBracket([padding1, padding2, padding3, semi1, semi2, final])
-    const roundOfKey = (key: string) => rounds.findIndex((round) => round.some((s) => s.key === key))
+    const roundOfKey = (key: string) =>
+      rounds.findIndex((round) => round.some((s) => s.key === key))
     expect(roundOfKey('semi1')).toBe(roundOfKey('semi2'))
     expect(roundOfKey('final')).toBe(roundOfKey('semi1') + 1)
   })

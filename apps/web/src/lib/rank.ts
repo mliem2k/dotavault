@@ -1,4 +1,14 @@
-export const RANK_NAMES = ['', 'Herald', 'Guardian', 'Crusader', 'Archon', 'Legend', 'Ancient', 'Divine', 'Immortal']
+export const RANK_NAMES = [
+  '',
+  'Herald',
+  'Guardian',
+  'Crusader',
+  'Archon',
+  'Legend',
+  'Ancient',
+  'Divine',
+  'Immortal',
+]
 
 export function rankName(rankTier: number | null): string {
   if (!rankTier) return 'Unranked'

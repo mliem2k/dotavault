@@ -92,7 +92,12 @@ function ResultsViewPage() {
                   >
                     {/* #c73f2d is not in the Token Mapping Reference (close to but distinct from
                         text-dire's #d14a38/#c94a38) — left as raw inline style per established precedent. */}
-                    <span className={aWonGame ? 'text-radiant' : undefined} style={!aWonGame ? { color: '#c73f2d' } : undefined}>{aWonGame ? 'W' : 'L'}</span>{' '}
+                    <span
+                      className={aWonGame ? 'text-radiant' : undefined}
+                      style={!aWonGame ? { color: '#c73f2d' } : undefined}
+                    >
+                      {aWonGame ? 'W' : 'L'}
+                    </span>{' '}
                     {formatDuration(g.duration)}
                   </a>
                 )

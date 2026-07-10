@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
 import type { HeroBenchmarks, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { lobbyTypeName, regionName } from '@/lib/dotaconst'
@@ -12,14 +12,22 @@ import {
   heroIconUrl,
   heroLandscapeCdn,
   heroLandscapeUrl,
-  heroVertCdn,
   heroSlug,
+  heroVertCdn,
   heroVertUrl,
   itemIconUrl,
 } from '@/lib/utils'
 import { ItemIcon } from './item_icon'
 import { PlayerAvatar, PlayerNameLink, usePlayerName, usePlayerProName } from './match_roster'
-import { GameTimeSlider, hasTimeline, itemsAtTime, scepterSource, shardSource, statsAtTime, type TimedStats } from './match_time'
+import {
+  GameTimeSlider,
+  hasTimeline,
+  itemsAtTime,
+  scepterSource,
+  shardSource,
+  statsAtTime,
+  type TimedStats,
+} from './match_time'
 
 const GAME_MODES: Record<number, string> = {
   1: 'All Pick',
@@ -41,23 +49,74 @@ const RENDER = 'https://cdn.steamstatic.com/apps/dota2/videos/dota_react/heroes/
    crops use this as the object-position x so off-center models (Sven, Ember
    Spirit, Kunkka, ...) stay in frame. Heroes near 50% are omitted. */
 const RENDER_CENTER_X: Record<string, number> = {
-  abaddon: 57, abyssal_underlord: 53, alchemist: 56, ancient_apparition: 54,
-  axe: 62, bane: 54, bounty_hunter: 54, brewmaster: 57,
-  bristleback: 68, centaur: 54, dark_seer: 53, dawnbreaker: 46,
-  dazzle: 57, doom_bringer: 56, dragon_knight: 60, drow_ranger: 57,
-  ember_spirit: 67, enigma: 58, grimstroke: 55, huskar: 44,
-  jakiro: 58, juggernaut: 56, keeper_of_the_light: 57, kunkka: 68,
-  legion_commander: 57, life_stealer: 46, lion: 57, luna: 54,
-  mars: 56, medusa: 58, meepo: 53, monkey_king: 64,
-  morphling: 56, naga_siren: 58, necrolyte: 55, nevermore: 53,
-  night_stalker: 55, nyx_assassin: 43, ogre_magi: 46, omniknight: 53,
-  oracle: 56, pangolier: 65, phantom_assassin: 57, phantom_lancer: 57,
-  primal_beast: 47, puck: 55, pudge: 57, pugna: 43,
-  rattletrap: 56, razor: 54, riki: 46, shadow_demon: 53,
-  slardar: 42, snapfire: 57, sniper: 41, spectre: 58,
-  spirit_breaker: 59, storm_spirit: 54, sven: 62, templar_assassin: 46,
-  terrorblade: 57, tidehunter: 53, tiny: 46, troll_warlord: 60,
-  tusk: 58, ursa: 56, vengefulspirit: 63, void_spirit: 53,
+  abaddon: 57,
+  abyssal_underlord: 53,
+  alchemist: 56,
+  ancient_apparition: 54,
+  axe: 62,
+  bane: 54,
+  bounty_hunter: 54,
+  brewmaster: 57,
+  bristleback: 68,
+  centaur: 54,
+  dark_seer: 53,
+  dawnbreaker: 46,
+  dazzle: 57,
+  doom_bringer: 56,
+  dragon_knight: 60,
+  drow_ranger: 57,
+  ember_spirit: 67,
+  enigma: 58,
+  grimstroke: 55,
+  huskar: 44,
+  jakiro: 58,
+  juggernaut: 56,
+  keeper_of_the_light: 57,
+  kunkka: 68,
+  legion_commander: 57,
+  life_stealer: 46,
+  lion: 57,
+  luna: 54,
+  mars: 56,
+  medusa: 58,
+  meepo: 53,
+  monkey_king: 64,
+  morphling: 56,
+  naga_siren: 58,
+  necrolyte: 55,
+  nevermore: 53,
+  night_stalker: 55,
+  nyx_assassin: 43,
+  ogre_magi: 46,
+  omniknight: 53,
+  oracle: 56,
+  pangolier: 65,
+  phantom_assassin: 57,
+  phantom_lancer: 57,
+  primal_beast: 47,
+  puck: 55,
+  pudge: 57,
+  pugna: 43,
+  rattletrap: 56,
+  razor: 54,
+  riki: 46,
+  shadow_demon: 53,
+  slardar: 42,
+  snapfire: 57,
+  sniper: 41,
+  spectre: 58,
+  spirit_breaker: 59,
+  storm_spirit: 54,
+  sven: 62,
+  templar_assassin: 46,
+  terrorblade: 57,
+  tidehunter: 53,
+  tiny: 46,
+  troll_warlord: 60,
+  tusk: 58,
+  ursa: 56,
+  vengefulspirit: 63,
+  void_spirit: 53,
   windrunner: 53,
 }
 
@@ -66,7 +125,6 @@ function renderObjectPosition(hero: HeroStat): string {
   const short = hero.name.replace('npc_dota_hero_', '')
   return `${RENDER_CENTER_X[short] ?? 50}% top`
 }
-
 
 // Animated hero render, falling back to the self-hosted static portrait if the
 // clip is unavailable.
@@ -84,7 +142,11 @@ function HeroRender({
   const [failed, setFailed] = useState(false)
   const playedRef = useRef(false)
   const shortName = hero.name.replace('npc_dota_hero_', '')
-  const style = { objectPosition, transform: scale !== 1 ? `scale(${scale})` : undefined, transformOrigin: 'center top' }
+  const style = {
+    objectPosition,
+    transform: scale !== 1 ? `scale(${scale})` : undefined,
+    transformOrigin: 'center top',
+  }
 
   // Fall back to the static portrait if the clip isn't playable in time.
   useEffect(() => {
@@ -104,8 +166,13 @@ function HeroRender({
         style={style}
         onError={(e) => {
           const img = e.currentTarget
-          if (img.dataset.fb !== '1') { img.dataset.fb = '1'; img.src = heroVertCdn(hero.name) }
-          else { img.onerror = null; img.src = heroIconFromPath(hero.icon) }
+          if (img.dataset.fb !== '1') {
+            img.dataset.fb = '1'
+            img.src = heroVertCdn(hero.name)
+          } else {
+            img.onerror = null
+            img.src = heroIconFromPath(hero.icon)
+          }
         }}
       />
     )
@@ -120,7 +187,9 @@ function HeroRender({
       poster={`${RENDER}/${shortName}.png`}
       className={className}
       style={style}
-      onCanPlay={() => { playedRef.current = true }}
+      onCanPlay={() => {
+        playedRef.current = true
+      }}
       onError={() => setFailed(true)}
     >
       <source type="video/webm" src={`${RENDER}/${shortName}.webm`} />
@@ -132,7 +201,9 @@ function HeroRender({
 const GoldIcon = ({ size = 12 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 10 10" fill="none" className="inline-block shrink-0">
     <circle cx="5" cy="5" r="4.5" fill="#e5b12c" />
-    <text x="5" y="7.5" textAnchor="middle" fontSize="6" fill="#5a4106" fontWeight="bold">$</text>
+    <text x="5" y="7.5" textAnchor="middle" fontSize="6" fill="#5a4106" fontWeight="bold">
+      $
+    </text>
   </svg>
 )
 
@@ -192,7 +263,13 @@ const BUFF_BORDER = '2px solid #d4af37'
    instantly on an ally, no item ever enters their inventory), which still
    uses the item icon (there's no separate icon for an item that doesn't
    exist) but with the same buff border as "sold". */
-function AghsBadge({ kind, source }: { kind: 'scepter' | 'shard'; source: 'held' | 'sold' | 'blessing' }) {
+function AghsBadge({
+  kind,
+  source,
+}: {
+  kind: 'scepter' | 'shard'
+  source: 'held' | 'sold' | 'blessing'
+}) {
   const name = kind === 'scepter' ? 'ultimate_scepter' : 'aghanims_shard'
   const base = kind === 'scepter' ? "Aghanim's Scepter" : "Aghanim's Shard"
   const label =
@@ -256,16 +333,18 @@ function HeroPortraitCard({
         type="button"
         onClick={onClick}
         className="group relative overflow-hidden flex flex-col w-full text-left cursor-pointer"
-        style={{ height: 360, background: 'rgba(13,16,18,0.9)', boxShadow: '0 2px 10px rgba(0,0,0,0.5)' }}
+        style={{
+          height: 360,
+          background: 'rgba(13,16,18,0.9)',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
+        }}
       >
         {/* Player name strip above the portrait */}
         <div
           className="shrink-0 flex items-center justify-center px-1.5 text-center"
           style={{ minHeight: 42, background: 'rgba(10,12,14,0.85)' }}
         >
-          <span
-            className="block text-[13px] leading-tight line-clamp-2 group-hover:text-white text-slate-foreground-light font-dota"
-          >
+          <span className="block text-[13px] leading-tight line-clamp-2 group-hover:text-white text-slate-foreground-light font-dota">
             {playerName}
           </span>
           {proName && (
@@ -289,12 +368,17 @@ function HeroPortraitCard({
           )}
           <div
             className="absolute inset-0"
-            style={{ background: 'linear-gradient(180deg, transparent 70%, rgba(6,8,10,0.9) 100%)' }}
+            style={{
+              background: 'linear-gradient(180deg, transparent 70%, rgba(6,8,10,0.9) 100%)',
+            }}
           />
         </div>
 
         {/* Net worth + KDA below the artwork */}
-        <div className="shrink-0 px-2 py-1.5 flex flex-col items-center text-center" style={{ background: 'rgba(10,12,14,0.85)' }}>
+        <div
+          className="shrink-0 px-2 py-1.5 flex flex-col items-center text-center"
+          style={{ background: 'rgba(10,12,14,0.85)' }}
+        >
           <div className="flex items-center justify-center gap-1 mb-0.5">
             <GoldIcon size={12} />
             <span className="text-[14px] leading-none tabular-nums text-gold font-dota">
@@ -302,7 +386,9 @@ function HeroPortraitCard({
             </span>
           </div>
           <div className="text-[14px] tabular-nums leading-none font-dota">
-            <span className="text-white" style={{ fontWeight: 700 }}>{player.kills}</span>
+            <span className="text-white" style={{ fontWeight: 700 }}>
+              {player.kills}
+            </span>
             <span className="text-slate-muted"> / </span>
             <span className="text-slate-foreground">{player.deaths}</span>
             <span className="text-slate-muted"> / </span>
@@ -400,7 +486,10 @@ function PlayStyleBars({ style }: { style: PlayStyle }) {
               {label}
             </span>
             <div className="flex-1 h-[5px] overflow-hidden bg-slate-border">
-              <div className="h-full" style={{ width: `${(val / 10) * 100}%`, background: '#a9c53d' }} />
+              <div
+                className="h-full"
+                style={{ width: `${(val / 10) * 100}%`, background: '#a9c53d' }}
+              />
             </div>
             <span className="w-7 shrink-0 text-[11px] tabular-nums text-slate-foreground-light font-dota">
               {val.toFixed(1)}
@@ -428,7 +517,13 @@ function laneScoreAt10(players: MatchPlayer[]): number {
   }, 0)
 }
 
-function HeroIconRow({ players, heroMap }: { players: MatchPlayer[]; heroMap: Map<number, HeroStat> }) {
+function HeroIconRow({
+  players,
+  heroMap,
+}: {
+  players: MatchPlayer[]
+  heroMap: Map<number, HeroStat>
+}) {
   return (
     <div className="flex gap-1">
       {players.map((p) => {
@@ -468,9 +563,21 @@ function LaneResults({ match, heroMap }: { match: Match; heroMap: Map<number, He
   // Physical lanes: Radiant safe lane and Dire off lane share the bottom
   // lane, and vice versa for top. Mid faces mid.
   const lanes: { name: string; rad: MatchPlayer[]; dir: MatchPlayer[] }[] = [
-    { name: 'Top Lane', rad: radiant.filter((p) => p.lane_role === 3), dir: dire.filter((p) => p.lane_role === 1) },
-    { name: 'Middle Lane', rad: radiant.filter((p) => p.lane_role === 2), dir: dire.filter((p) => p.lane_role === 2) },
-    { name: 'Bottom Lane', rad: radiant.filter((p) => p.lane_role === 1), dir: dire.filter((p) => p.lane_role === 3) },
+    {
+      name: 'Top Lane',
+      rad: radiant.filter((p) => p.lane_role === 3),
+      dir: dire.filter((p) => p.lane_role === 1),
+    },
+    {
+      name: 'Middle Lane',
+      rad: radiant.filter((p) => p.lane_role === 2),
+      dir: dire.filter((p) => p.lane_role === 2),
+    },
+    {
+      name: 'Bottom Lane',
+      rad: radiant.filter((p) => p.lane_role === 1),
+      dir: dire.filter((p) => p.lane_role === 3),
+    },
   ]
 
   return (
@@ -480,8 +587,10 @@ function LaneResults({ match, heroMap }: { match: Match; heroMap: Map<number, He
         const ds = laneScoreAt10(lane.dir)
         const ratio = ds > 0 ? rs / ds : rs > 0 ? 2 : 1
         const verdict = ratio >= 1.15 ? 'radiant' : ratio <= 0.87 ? 'dire' : 'even'
-        const verdictText = verdict === 'radiant' ? 'Radiant Won' : verdict === 'dire' ? 'Dire Won' : 'Even'
-        const verdictColorClass = verdict === 'radiant' ? 'text-radiant' : verdict === 'dire' ? 'text-dire' : ''
+        const verdictText =
+          verdict === 'radiant' ? 'Radiant Won' : verdict === 'dire' ? 'Dire Won' : 'Even'
+        const verdictColorClass =
+          verdict === 'radiant' ? 'text-radiant' : verdict === 'dire' ? 'text-dire' : ''
         return (
           <div
             key={lane.name}
@@ -494,8 +603,18 @@ function LaneResults({ match, heroMap }: { match: Match; heroMap: Map<number, He
               <span className="text-[11px] uppercase text-slate-muted">vs</span>
               <HeroIconRow players={lane.dir} heroMap={heroMap} />
             </div>
-            <div className={`text-[13px] uppercase ${verdictColorClass}`} style={{ letterSpacing: '1px', color: verdict === 'even' ? '#aab8c2' : undefined }}>{verdictText}</div>
-            <div className="text-[11px] uppercase text-slate-muted" style={{ letterSpacing: '1px' }}>{lane.name}</div>
+            <div
+              className={`text-[13px] uppercase ${verdictColorClass}`}
+              style={{ letterSpacing: '1px', color: verdict === 'even' ? '#aab8c2' : undefined }}
+            >
+              {verdictText}
+            </div>
+            <div
+              className="text-[11px] uppercase text-slate-muted"
+              style={{ letterSpacing: '1px' }}
+            >
+              {lane.name}
+            </div>
           </div>
         )
       })}
@@ -512,7 +631,8 @@ function KillBreakdown({ match, heroMap }: { match: Match; heroMap: Map<number, 
   if (!hasData || match.duration <= 0) return null
 
   const BUCKETS = 5
-  const bucketOf = (t: number) => Math.min(BUCKETS - 1, Math.max(0, Math.floor((t / match.duration) * BUCKETS)))
+  const bucketOf = (t: number) =>
+    Math.min(BUCKETS - 1, Math.max(0, Math.floor((t / match.duration) * BUCKETS)))
   const perPlayer = new Map<number, number[]>()
   for (const p of match.players) {
     const buckets = Array(BUCKETS).fill(0) as number[]
@@ -527,14 +647,23 @@ function KillBreakdown({ match, heroMap }: { match: Match; heroMap: Map<number, 
     const totals = Array(BUCKETS).fill(0) as number[]
     for (const p of players) {
       const b = perPlayer.get(p.player_slot)
-      if (b) b.forEach((v, i) => { totals[i] += v })
+      if (b)
+        b.forEach((v, i) => {
+          totals[i] += v
+        })
     }
     const teamTotal = totals.reduce((s, v) => s + v, 0)
     const maxCell = Math.max(1, ...players.flatMap((p) => perPlayer.get(p.player_slot) ?? []))
     return (
       <div className="flex-1 border border-slate-bg" style={{ background: 'rgba(10,12,14,0.72)' }}>
-        <div className="flex items-center justify-between px-3 py-2" style={{ background: 'rgba(8,10,12,0.7)' }}>
-          <span className={`text-[13px] uppercase ${team === 'radiant' ? 'text-radiant' : 'text-dire'}`} style={{ letterSpacing: '2px' }}>
+        <div
+          className="flex items-center justify-between px-3 py-2"
+          style={{ background: 'rgba(8,10,12,0.7)' }}
+        >
+          <span
+            className={`text-[13px] uppercase ${team === 'radiant' ? 'text-radiant' : 'text-dire'}`}
+            style={{ letterSpacing: '2px' }}
+          >
             {team === 'radiant' ? 'Radiant' : 'Dire'}
           </span>
           <span className="text-[13px] tabular-nums text-white">{teamTotal} kills</span>
@@ -544,8 +673,15 @@ function KillBreakdown({ match, heroMap }: { match: Match; heroMap: Map<number, 
           const buckets = perPlayer.get(p.player_slot) ?? []
           const total = buckets.reduce((s, v) => s + v, 0)
           return (
-            <div key={p.player_slot} className="flex items-center gap-2 px-3 py-1" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-              <a href={hero ? `/hero/${heroSlug(hero.localized_name)}` : '#'} className="block shrink-0">
+            <div
+              key={p.player_slot}
+              className="flex items-center gap-2 px-3 py-1"
+              style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+            >
+              <a
+                href={hero ? `/hero/${heroSlug(hero.localized_name)}` : '#'}
+                className="block shrink-0"
+              >
                 <img
                   src={hero ? heroIconUrl(hero.name) : ''}
                   alt=""
@@ -559,7 +695,9 @@ function KillBreakdown({ match, heroMap }: { match: Match; heroMap: Map<number, 
                   }}
                 />
               </a>
-              <span className="w-6 shrink-0 text-right text-[12px] tabular-nums text-white">{total}</span>
+              <span className="w-6 shrink-0 text-right text-[12px] tabular-nums text-white">
+                {total}
+              </span>
               <div className="flex flex-1 gap-1">
                 {buckets.map((v, i) => (
                   <div
@@ -568,7 +706,10 @@ function KillBreakdown({ match, heroMap }: { match: Match; heroMap: Map<number, 
                     className={`flex h-[18px] flex-1 items-center justify-center text-[11px] tabular-nums ${v > 0 ? 'text-white' : ''}`}
                     title={`${bucketLabel(i)}: ${v} kills`}
                     style={{
-                      background: v > 0 ? `rgba(${team === 'radiant' ? '159,191,63' : '201,74,56'},${0.12 + 0.5 * (v / maxCell)})` : 'rgba(255,255,255,0.03)',
+                      background:
+                        v > 0
+                          ? `rgba(${team === 'radiant' ? '159,191,63' : '201,74,56'},${0.12 + 0.5 * (v / maxCell)})`
+                          : 'rgba(255,255,255,0.03)',
                       color: v > 0 ? undefined : '#4a5157',
                     }}
                   >
@@ -579,7 +720,10 @@ function KillBreakdown({ match, heroMap }: { match: Match; heroMap: Map<number, 
             </div>
           )
         })}
-        <div className="flex items-center gap-2 px-3 py-1" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <div
+          className="flex items-center gap-2 px-3 py-1"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
+        >
           <span style={{ width: 22 }} />
           <span className="w-6 shrink-0" />
           <div className="flex flex-1 gap-1">
@@ -602,12 +746,21 @@ function KillBreakdown({ match, heroMap }: { match: Match; heroMap: Map<number, 
 
   return (
     <div className="mx-auto mt-4 max-w-[1080px] font-dota">
-      <div className="mb-2 text-center text-[13px] uppercase" style={{ color: '#aab8c2', letterSpacing: '2px' }}>
+      <div
+        className="mb-2 text-center text-[13px] uppercase"
+        style={{ color: '#aab8c2', letterSpacing: '2px' }}
+      >
         Kill Breakdown
       </div>
       <div className="flex gap-3">
-        {renderTeam(match.players.filter((p) => p.player_slot < 128), 'radiant')}
-        {renderTeam(match.players.filter((p) => p.player_slot >= 128), 'dire')}
+        {renderTeam(
+          match.players.filter((p) => p.player_slot < 128),
+          'radiant',
+        )}
+        {renderTeam(
+          match.players.filter((p) => p.player_slot >= 128),
+          'dire',
+        )}
       </div>
     </div>
   )
@@ -616,11 +769,15 @@ function KillBreakdown({ match, heroMap }: { match: Match; heroMap: Map<number, 
 function DeltaValue({ value, delta }: { value: number; delta: number | null }) {
   const color = delta == null ? undefined : delta >= 0 ? '#7ac74f' : '#d95f4a'
   return (
-    <span className={`text-[13px] font-semibold tabular-nums font-dota ${delta == null ? 'text-slate-foreground-light' : ''}`} style={{ color }}>
+    <span
+      className={`text-[13px] font-semibold tabular-nums font-dota ${delta == null ? 'text-slate-foreground-light' : ''}`}
+      style={{ color }}
+    >
       {value.toLocaleString()}
       {delta != null && (
         <span className="text-[12px] ml-1">
-          ({delta >= 0 ? '+' : ''}{delta})
+          ({delta >= 0 ? '+' : ''}
+          {delta})
         </span>
       )}
     </span>
@@ -652,7 +809,10 @@ function VsAveragesBox({
 
   const row = (label: string, value: number, delta: number | null) => (
     <div className="flex items-baseline gap-1.5">
-      <span className="text-[11px] uppercase text-slate-muted-light font-dota" style={{ letterSpacing: '1px' }}>
+      <span
+        className="text-[11px] uppercase text-slate-muted-light font-dota"
+        style={{ letterSpacing: '1px' }}
+      >
         {label}:
       </span>
       <DeltaValue value={value} delta={delta} />
@@ -684,10 +844,19 @@ function VsAveragesBox({
           className="relative h-[6px]"
           style={{ background: 'linear-gradient(90deg, #a63426 0%, #2c3236 50%, #4a9a3a 100%)' }}
         >
-          <div className="absolute top-[-3px] bottom-[-3px] bg-slate-muted-light" style={{ left: '50%', width: 1 }} />
+          <div
+            className="absolute top-[-3px] bottom-[-3px] bg-slate-muted-light"
+            style={{ left: '50%', width: 1 }}
+          />
           <div
             className="absolute -translate-x-1/2 overflow-hidden"
-            style={{ left: `${pct * 100}%`, bottom: 2, width: 26, height: 26, filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.8))' }}
+            style={{
+              left: `${pct * 100}%`,
+              bottom: 2,
+              width: 26,
+              height: 26,
+              filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.8))',
+            }}
           >
             {hero && (
               <a href={`/hero/${heroSlug(hero.localized_name)}`} className="block h-full w-full">
@@ -696,7 +865,10 @@ function VsAveragesBox({
             )}
           </div>
         </div>
-        <div className="text-center text-[10px] uppercase mt-1 text-slate-muted-light font-dota" style={{ letterSpacing: '2px' }}>
+        <div
+          className="text-center text-[10px] uppercase mt-1 text-slate-muted-light font-dota"
+          style={{ letterSpacing: '2px' }}
+        >
           Average
         </div>
       </div>
@@ -742,7 +914,10 @@ function DetailPanel({
       {/* Info column */}
       <div className="flex-1 min-w-[300px] space-y-3" style={{ maxWidth: 360 }}>
         {/* Name panel — player avatar + profile link */}
-        <div className="flex items-center gap-3 px-3 py-2.5" style={{ background: 'rgba(8,10,12,0.9)' }}>
+        <div
+          className="flex items-center gap-3 px-3 py-2.5"
+          style={{ background: 'rgba(8,10,12,0.9)' }}
+        >
           {player.account_id ? (
             <a href={`/player/${player.account_id}`} className="shrink-0 hover:brightness-125">
               <PlayerAvatar accountId={player.account_id} active={false} size={48} />
@@ -755,7 +930,10 @@ function DetailPanel({
               player={player}
               className="block text-[24px] leading-tight truncate text-white font-dota"
             />
-            <div className="text-[12px] uppercase font-dota" style={{ color: '#86a34c', letterSpacing: '2px' }}>
+            <div
+              className="text-[12px] uppercase font-dota"
+              style={{ color: '#86a34c', letterSpacing: '2px' }}
+            >
               Lvl {stats.level}{' '}
               {hero && (
                 <a href={`/hero/${heroSlug(hero.localized_name)}`} className="hover:underline">
@@ -771,7 +949,11 @@ function DetailPanel({
           {items.map((id, i) => {
             const name = id ? (idToName.get(id) ?? null) : null
             return (
-              <div key={i} className="border border-slate-bg" style={{ background: 'rgba(10,13,15,0.9)' }}>
+              <div
+                key={i}
+                className="border border-slate-bg"
+                style={{ background: 'rgba(10,13,15,0.9)' }}
+              >
                 <ItemIcon
                   name={name}
                   meta={name ? itemConst[name] : undefined}
@@ -814,7 +996,9 @@ function DetailPanel({
           </span>
         </div>
         <div className="text-[21px] tabular-nums mt-0.5 text-center font-dota">
-          <span className="text-white" style={{ fontWeight: 700 }}>{stats.kills}</span>
+          <span className="text-white" style={{ fontWeight: 700 }}>
+            {stats.kills}
+          </span>
           <span className="text-slate-muted"> / </span>
           <span className="text-slate-foreground">{stats.deaths}</span>
           <span className="text-slate-muted"> / </span>
@@ -871,7 +1055,9 @@ export function MatchOverview({
           ? `http://replay${match.cluster}.valve.net/570/${match.match_id}_${match.replay_salt}.dem.bz2`
           : null))
       : null
-  const [parseState, setParseState] = useState<'idle' | 'requesting' | 'requested' | 'failed'>('idle')
+  const [parseState, setParseState] = useState<'idle' | 'requesting' | 'requested' | 'failed'>(
+    'idle',
+  )
   async function requestParse() {
     if (parseState === 'requesting' || parseState === 'requested') return
     setParseState('requesting')
@@ -914,7 +1100,12 @@ export function MatchOverview({
   const direSelectedRef = useRef<HTMLDivElement>(null)
   const radiantSelectedRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    const target = selDire != null ? direSelectedRef.current : selRadiant != null ? radiantSelectedRef.current : null
+    const target =
+      selDire != null
+        ? direSelectedRef.current
+        : selRadiant != null
+          ? radiantSelectedRef.current
+          : null
     target?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' })
   }, [selRadiant, selDire])
 
@@ -940,7 +1131,10 @@ export function MatchOverview({
   const lobby = lobbyTypeName(match.lobby_type)
   // Median rank tier across ranked players (rank_tier is null for hidden
   // profiles), same idea as the "average rank" other sites show.
-  const tiers = match.players.map((p) => p.rank_tier).filter((t): t is number => t != null).sort((a, b) => a - b)
+  const tiers = match.players
+    .map((p) => p.rank_tier)
+    .filter((t): t is number => t != null)
+    .sort((a, b) => a - b)
   const avgRankTier = tiers.length ? tiers[Math.floor(tiers.length / 2)] : null
   const avgBadge = rankBadge(avgRankTier)
   // Comeback: the winner overcame a 10k+ gold deficit at some point.
@@ -970,7 +1164,9 @@ export function MatchOverview({
     </div>
   )
 
-  const teamLogo = (team: { name: string | null; team_id: number; logo_url: string | null } | null | undefined) =>
+  const teamLogo = (
+    team: { name: string | null; team_id: number; logo_url: string | null } | null | undefined,
+  ) =>
     team && (
       <a
         href={`/team/${team.team_id}`}
@@ -978,7 +1174,10 @@ export function MatchOverview({
         title={team.name ?? undefined}
       >
         {team.logo_url && <img src={team.logo_url} alt="" className="h-8 w-8 object-contain" />}
-        <span className="max-w-[90px] truncate text-[12px] uppercase font-dota" style={{ color: '#c8d2da', letterSpacing: '0.5px' }}>
+        <span
+          className="max-w-[90px] truncate text-[12px] uppercase font-dota"
+          style={{ color: '#c8d2da', letterSpacing: '0.5px' }}
+        >
           {team.name}
         </span>
       </a>
@@ -988,69 +1187,110 @@ export function MatchOverview({
     <div>
       {tournamentBanner}
       <div className="relative flex items-center justify-center py-4">
-      <div className="flex items-center gap-2 sm:gap-5">
-        <div className="flex flex-col items-center gap-1.5">
-          {isTournamentMatch && teamLogo(match.radiant_team)}
-          <span
-            className="tabular-nums text-radiant font-dota"
-            style={{ fontSize: 'clamp(32px, 9vw, 64px)', lineHeight: 1, textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(159,191,63,0.4)' }}
-          >
-            {match.radiant_score}
-          </span>
-        </div>
-        <div className="text-center font-dota">
-          <div className="text-[13px] uppercase" style={{ color: '#aab8c2', letterSpacing: '2px', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
-            {GAME_MODES[match.game_mode] ?? `Mode ${match.game_mode}`}
-            {lobby && lobby !== 'Normal' ? ` · ${lobby}` : ''}
+        <div className="flex items-center gap-2 sm:gap-5">
+          <div className="flex flex-col items-center gap-1.5">
+            {isTournamentMatch && teamLogo(match.radiant_team)}
+            <span
+              className="tabular-nums text-radiant font-dota"
+              style={{
+                fontSize: 'clamp(32px, 9vw, 64px)',
+                lineHeight: 1,
+                textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(159,191,63,0.4)',
+              }}
+            >
+              {match.radiant_score}
+            </span>
           </div>
-          <div className="text-[13px] uppercase" style={{ color: '#93a2ad', letterSpacing: '2px', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
-            Duration <span className="ml-1 text-[17px] text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>{formatDuration(match.duration)}</span>
-          </div>
-          <div className="flex items-center justify-center gap-1.5 text-[12px] uppercase" style={{ color: '#93a2ad', letterSpacing: '2px', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
-            {avgBadge && (
-              <span className="relative inline-block" style={{ width: 22, height: 22 }} title={rankName(avgRankTier)}>
-                <img src={avgBadge.medal} alt="" className="h-full w-full" />
-                {avgBadge.stars && <img src={avgBadge.stars} alt="" className="absolute inset-0 h-full w-full" />}
+          <div className="text-center font-dota">
+            <div
+              className="text-[13px] uppercase"
+              style={{
+                color: '#aab8c2',
+                letterSpacing: '2px',
+                textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+              }}
+            >
+              {GAME_MODES[match.game_mode] ?? `Mode ${match.game_mode}`}
+              {lobby && lobby !== 'Normal' ? ` · ${lobby}` : ''}
+            </div>
+            <div
+              className="text-[13px] uppercase"
+              style={{
+                color: '#93a2ad',
+                letterSpacing: '2px',
+                textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+              }}
+            >
+              Duration{' '}
+              <span
+                className="ml-1 text-[17px] text-white"
+                style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}
+              >
+                {formatDuration(match.duration)}
               </span>
-            )}
-            {avgRankTier != null && <span>{rankName(avgRankTier)}</span>}
-            {region && <span>{avgRankTier != null ? `· ${region}` : region}</span>}
+            </div>
+            <div
+              className="flex items-center justify-center gap-1.5 text-[12px] uppercase"
+              style={{
+                color: '#93a2ad',
+                letterSpacing: '2px',
+                textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+              }}
+            >
+              {avgBadge && (
+                <span
+                  className="relative inline-block"
+                  style={{ width: 22, height: 22 }}
+                  title={rankName(avgRankTier)}
+                >
+                  <img src={avgBadge.medal} alt="" className="h-full w-full" />
+                  {avgBadge.stars && (
+                    <img src={avgBadge.stars} alt="" className="absolute inset-0 h-full w-full" />
+                  )}
+                </span>
+              )}
+              {avgRankTier != null && <span>{rankName(avgRankTier)}</span>}
+              {region && <span>{avgRankTier != null ? `· ${region}` : region}</span>}
+            </div>
+          </div>
+          <div className="flex flex-col items-center gap-1.5">
+            {isTournamentMatch && teamLogo(match.dire_team)}
+            <span
+              className="tabular-nums text-dire font-dota"
+              style={{
+                fontSize: 'clamp(32px, 9vw, 64px)',
+                lineHeight: 1,
+                textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(201,74,56,0.4)',
+              }}
+            >
+              {match.dire_score}
+            </span>
           </div>
         </div>
-        <div className="flex flex-col items-center gap-1.5">
-          {isTournamentMatch && teamLogo(match.dire_team)}
-          <span
-            className="tabular-nums text-dire font-dota"
-            style={{ fontSize: 'clamp(32px, 9vw, 64px)', lineHeight: 1, textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 14px rgba(201,74,56,0.4)' }}
-          >
-            {match.dire_score}
-          </span>
-        </div>
-      </div>
-      <div className="absolute right-0 top-1/2 hidden -translate-y-1/2 text-right xl:block">
-        <div
-          className={`${winnerColorClass} font-dota`}
-          style={{
-            fontSize: 44,
-            textShadow: `0 2px 8px rgba(0,0,0,0.9), 0 0 24px ${winnerColor}88`,
-          }}
-        >
-          {winnerLabel}
-        </div>
-        {comeback && (
+        <div className="absolute right-0 top-1/2 hidden -translate-y-1/2 text-right xl:block">
           <div
-            className="mt-1 inline-block px-2.5 py-0.5 text-[13px] uppercase text-gold font-dota"
+            className={`${winnerColorClass} font-dota`}
             style={{
-              border: '1px solid rgba(242,201,76,0.5)',
-              background: 'rgba(242,201,76,0.08)',
-              letterSpacing: '2px',
+              fontSize: 44,
+              textShadow: `0 2px 8px rgba(0,0,0,0.9), 0 0 24px ${winnerColor}88`,
             }}
-            title="The winning team overcame a 10,000+ gold deficit"
           >
-            Comeback
+            {winnerLabel}
           </div>
-        )}
-      </div>
+          {comeback && (
+            <div
+              className="mt-1 inline-block px-2.5 py-0.5 text-[13px] uppercase text-gold font-dota"
+              style={{
+                border: '1px solid rgba(242,201,76,0.5)',
+                background: 'rgba(242,201,76,0.08)',
+                letterSpacing: '2px',
+              }}
+              title="The winning team overcame a 10,000+ gold deficit"
+            >
+              Comeback
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -1063,7 +1303,12 @@ export function MatchOverview({
           <a
             href={replayUrl}
             className="px-6 py-2 text-[15px] uppercase hover:brightness-125"
-            style={{ background: '#0e2233', border: '1px solid #24455f', color: '#4faee3', letterSpacing: '2px' }}
+            style={{
+              background: '#0e2233',
+              border: '1px solid #24455f',
+              color: '#4faee3',
+              letterSpacing: '2px',
+            }}
           >
             Download Replay
           </a>
@@ -1090,18 +1335,32 @@ export function MatchOverview({
       </div>
       {parseState === 'requested' && (
         <div className="text-[13px] text-slate-muted-light">
-          Parse queued at OpenDota. This page checks automatically and will update once full stats are ready
-          (usually within a few minutes).
+          Parse queued at OpenDota. This page checks automatically and will update once full stats
+          are ready (usually within a few minutes).
         </div>
       )}
       <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-2">
         <div className="flex items-baseline gap-3">
-          <span className="text-[13px] uppercase" style={{ color: '#4d6f85', letterSpacing: '2px' }}>Match ID</span>
-          <span className="text-[15px] tabular-nums" style={{ color: '#7fa8c4' }}>{match.match_id}</span>
+          <span
+            className="text-[13px] uppercase"
+            style={{ color: '#4d6f85', letterSpacing: '2px' }}
+          >
+            Match ID
+          </span>
+          <span className="text-[15px] tabular-nums" style={{ color: '#7fa8c4' }}>
+            {match.match_id}
+          </span>
         </div>
         <div className="flex items-baseline gap-3">
-          <span className="text-[13px] uppercase" style={{ color: '#4d6f85', letterSpacing: '2px' }}>Match Date / Time</span>
-          <span className="text-[15px] tabular-nums" style={{ color: '#7fa8c4' }}>{dateStr}</span>
+          <span
+            className="text-[13px] uppercase"
+            style={{ color: '#4d6f85', letterSpacing: '2px' }}
+          >
+            Match Date / Time
+          </span>
+          <span className="text-[15px] tabular-nums" style={{ color: '#7fa8c4' }}>
+            {dateStr}
+          </span>
         </div>
       </div>
     </div>

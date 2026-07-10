@@ -14,7 +14,7 @@ export const playersPlugin = new Elysia({ prefix: '/players' })
       ])
       return { player, wl }
     },
-    { params: t.Object({ id: t.String() }) }
+    { params: t.Object({ id: t.String() }) },
   )
   .get(
     '/:id/matches',
@@ -27,11 +27,10 @@ export const playersPlugin = new Elysia({ prefix: '/players' })
     {
       params: t.Object({ id: t.String() }),
       query: t.Object({ limit: t.Optional(t.Numeric()) }),
-    }
+    },
   )
   .get(
     '/:id/heroes',
-    async ({ params }) =>
-      fetchCached(`/players/${params.id}/heroes`, TTL) as Promise<PlayerHero[]>,
-    { params: t.Object({ id: t.String() }) }
+    async ({ params }) => fetchCached(`/players/${params.id}/heroes`, TTL) as Promise<PlayerHero[]>,
+    { params: t.Object({ id: t.String() }) },
   )

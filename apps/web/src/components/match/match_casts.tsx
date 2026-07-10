@@ -1,6 +1,13 @@
 import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { playerColor } from '@/lib/dotaconst'
-import { abilityIconCdn, abilityIconUrl, heroIconFromPath, heroIconUrl, itemIconUrl, ITEM_CDN_FALLBACK } from '@/lib/utils'
+import {
+  abilityIconCdn,
+  abilityIconUrl,
+  heroIconFromPath,
+  heroIconUrl,
+  ITEM_CDN_FALLBACK,
+  itemIconUrl,
+} from '@/lib/utils'
 
 /* Casts tab (OpenDota-style): per player, how often each ability and each
    active item was used (ability_uses / item_uses), plus hit counts
@@ -23,7 +30,15 @@ function sortedEntries(rec: Record<string, number> | null | undefined): [string,
   return Object.entries(rec ?? {}).sort((a, b) => b[1] - a[1])
 }
 
-function AbilityUse({ name, count, meta }: { name: string; count: number; meta: AbilityConst | undefined }) {
+function AbilityUse({
+  name,
+  count,
+  meta,
+}: {
+  name: string
+  count: number
+  meta: AbilityConst | undefined
+}) {
   return (
     <div
       className="flex items-center gap-1 px-1 py-0.5 border border-solid border-slate-bg"
@@ -50,7 +65,15 @@ function AbilityUse({ name, count, meta }: { name: string; count: number; meta: 
   )
 }
 
-function ItemUse({ name, count, meta }: { name: string; count: number; meta: ItemConst | undefined }) {
+function ItemUse({
+  name,
+  count,
+  meta,
+}: {
+  name: string
+  count: number
+  meta: ItemConst | undefined
+}) {
   return (
     <div
       className="flex items-center gap-1 px-1 py-0.5 border border-solid border-slate-bg"
@@ -111,7 +134,9 @@ function PlayerCasts({
         <span className={`text-[13px] ${isRadiant ? 'text-radiant' : 'text-dire'}`}>
           {hero?.localized_name ?? 'Unknown'}
         </span>
-        <span className="truncate text-[13px] text-slate-muted">{player.personaname ?? 'Anonymous'}</span>
+        <span className="truncate text-[13px] text-slate-muted">
+          {player.personaname ?? 'Anonymous'}
+        </span>
         <span className="ml-auto shrink-0 text-[12px] tabular-nums text-slate-muted">
           {attacks > 0 ? `${attacks.toLocaleString()} attacks landed` : ''}
           {tp > 0 ? `${attacks > 0 ? ' · ' : ''}${tp} TPs` : ''}
@@ -146,19 +171,34 @@ export function MatchCasts({
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const section = (players: MatchPlayer[], team: 'radiant' | 'dire') => (
     <div className="min-w-[480px] flex-1" style={{ background: C.panel }}>
-      <div className={`px-4 py-3 text-[15px] uppercase ${team === 'radiant' ? 'text-radiant' : 'text-dire'}`} style={{ letterSpacing: '2px', background: C.panelDark }}>
+      <div
+        className={`px-4 py-3 text-[15px] uppercase ${team === 'radiant' ? 'text-radiant' : 'text-dire'}`}
+        style={{ letterSpacing: '2px', background: C.panelDark }}
+      >
         {team === 'radiant' ? 'Radiant' : 'Dire'}
       </div>
       {players.map((p) => (
-        <PlayerCasts key={p.player_slot} player={p} hero={heroMap.get(p.hero_id)} abilityConst={abilityConst} itemConst={itemConst} />
+        <PlayerCasts
+          key={p.player_slot}
+          player={p}
+          hero={heroMap.get(p.hero_id)}
+          abilityConst={abilityConst}
+          itemConst={itemConst}
+        />
       ))}
     </div>
   )
 
   return (
     <div className="flex flex-wrap gap-4 font-dota">
-      {section(match.players.filter((p) => p.player_slot < 128), 'radiant')}
-      {section(match.players.filter((p) => p.player_slot >= 128), 'dire')}
+      {section(
+        match.players.filter((p) => p.player_slot < 128),
+        'radiant',
+      )}
+      {section(
+        match.players.filter((p) => p.player_slot >= 128),
+        'dire',
+      )}
     </div>
   )
 }

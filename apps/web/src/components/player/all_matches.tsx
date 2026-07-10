@@ -151,13 +151,7 @@ function selectStyle(disabled?: boolean): React.CSSProperties {
   }
 }
 
-export function AllMatches({
-  accountId,
-  heroStats,
-}: {
-  accountId: string
-  heroStats: HeroStat[]
-}) {
+export function AllMatches({ accountId, heroStats }: { accountId: string; heroStats: HeroStat[] }) {
   const [heroFilter, setHeroFilter] = useState<NumOrAll>('all')
   const [resultFilter, setResultFilter] = useState<ResultFilter>('all')
   const [gameModeFilter, setGameModeFilter] = useState<NumOrAll>('all')
@@ -172,7 +166,9 @@ export function AllMatches({
   const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>('date', 'desc')
 
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
-  const heroOptions = [...heroStats].sort((a, b) => a.localized_name.localeCompare(b.localized_name))
+  const heroOptions = [...heroStats].sort((a, b) =>
+    a.localized_name.localeCompare(b.localized_name),
+  )
 
   // Peers list doubles as the "With Player" dropdown; also used by the
   // Teammates tab (same query key), so this reuses that cache when warm.
@@ -264,13 +260,22 @@ export function AllMatches({
               // table needs must be listed explicitly or it silently comes
               // back undefined.
               project: [
-                'hero_id', 'start_time', 'version', 'kills', 'deaths', 'assists',
-                'average_rank', 'gold_per_min', 'xp_per_min', 'last_hits',
+                'hero_id',
+                'start_time',
+                'version',
+                'kills',
+                'deaths',
+                'assists',
+                'average_rank',
+                'gold_per_min',
+                'xp_per_min',
+                'last_hits',
               ],
             })
             .then((rows) => rows.map(toRow)),
     initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) => (lastPage.length < PAGE_SIZE ? undefined : allPages.length * PAGE_SIZE),
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length < PAGE_SIZE ? undefined : allPages.length * PAGE_SIZE,
     staleTime: 60 * 1000,
   })
 
@@ -326,7 +331,9 @@ export function AllMatches({
         <select
           value={withHeroFilter}
           disabled={proOnly}
-          onChange={(e) => setWithHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          onChange={(e) =>
+            setWithHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
+          }
           className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
           style={selectStyle(proOnly)}
         >
@@ -341,7 +348,9 @@ export function AllMatches({
         <select
           value={againstHeroFilter}
           disabled={proOnly}
-          onChange={(e) => setAgainstHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          onChange={(e) =>
+            setAgainstHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
+          }
           className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
           style={selectStyle(proOnly)}
         >
@@ -356,7 +365,9 @@ export function AllMatches({
         <select
           value={withPlayerFilter}
           disabled={proOnly}
-          onChange={(e) => setWithPlayerFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          onChange={(e) =>
+            setWithPlayerFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
+          }
           className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
           style={selectStyle(proOnly)}
         >
@@ -371,7 +382,9 @@ export function AllMatches({
         <select
           value={gameModeFilter}
           disabled={proOnly}
-          onChange={(e) => setGameModeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          onChange={(e) =>
+            setGameModeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
+          }
           className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
           style={selectStyle(proOnly)}
         >
@@ -386,7 +399,9 @@ export function AllMatches({
         <select
           value={lobbyTypeFilter}
           disabled={proOnly}
-          onChange={(e) => setLobbyTypeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          onChange={(e) =>
+            setLobbyTypeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
+          }
           className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
           style={selectStyle(proOnly)}
         >
@@ -401,7 +416,9 @@ export function AllMatches({
         <select
           value={laneRoleFilter}
           disabled={proOnly}
-          onChange={(e) => setLaneRoleFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          onChange={(e) =>
+            setLaneRoleFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
+          }
           className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
           style={selectStyle(proOnly)}
         >
@@ -512,13 +529,34 @@ export function AllMatches({
               className="w-[110px] shrink-0 justify-end"
             />
             <div className="hidden sm:flex w-[60px] shrink-0 justify-end">
-              <SortHeader label="GPM" sortKey="gpm" active={sortKey === 'gpm'} dir={sortDir} onClick={onSort} className="justify-end" />
+              <SortHeader
+                label="GPM"
+                sortKey="gpm"
+                active={sortKey === 'gpm'}
+                dir={sortDir}
+                onClick={onSort}
+                className="justify-end"
+              />
             </div>
             <div className="hidden sm:flex w-[60px] shrink-0 justify-end">
-              <SortHeader label="XPM" sortKey="xpm" active={sortKey === 'xpm'} dir={sortDir} onClick={onSort} className="justify-end" />
+              <SortHeader
+                label="XPM"
+                sortKey="xpm"
+                active={sortKey === 'xpm'}
+                dir={sortDir}
+                onClick={onSort}
+                className="justify-end"
+              />
             </div>
             <div className="hidden md:flex w-[50px] shrink-0 justify-end">
-              <SortHeader label="LH" sortKey="lh" active={sortKey === 'lh'} dir={sortDir} onClick={onSort} className="justify-end" />
+              <SortHeader
+                label="LH"
+                sortKey="lh"
+                active={sortKey === 'lh'}
+                dir={sortDir}
+                onClick={onSort}
+                className="justify-end"
+              />
             </div>
             <SortHeader
               label="Duration"
@@ -581,7 +619,10 @@ export function AllMatches({
 
                       <div className="flex-1 min-w-0 flex items-center gap-2.5">
                         {hero && (
-                          <a href={`/hero/${heroSlug(hero.localized_name)}`} className="relative z-10 shrink-0 block">
+                          <a
+                            href={`/hero/${heroSlug(hero.localized_name)}`}
+                            className="relative z-10 shrink-0 block"
+                          >
                             <img
                               src={heroLandscapeUrl(hero.name)}
                               alt=""
@@ -605,9 +646,17 @@ export function AllMatches({
                         )}
                       </div>
 
-                      <div className="w-[70px] shrink-0 flex items-center justify-center pointer-events-none" title={rankName(m.average_rank)}>
+                      <div
+                        className="w-[70px] shrink-0 flex items-center justify-center pointer-events-none"
+                        title={rankName(m.average_rank)}
+                      >
                         {badge ? (
-                          <img src={badge.medal} alt="" style={{ width: 24, height: 24 }} className="object-contain" />
+                          <img
+                            src={badge.medal}
+                            alt=""
+                            style={{ width: 24, height: 24 }}
+                            className="object-contain"
+                          />
                         ) : (
                           <span style={{ color: '#4d565c' }}>—</span>
                         )}
@@ -642,7 +691,10 @@ export function AllMatches({
                         {fmtDur(m.duration)}
                       </div>
 
-                      <div className="hidden sm:block w-[90px] shrink-0 text-right text-[13px] pr-2 truncate pointer-events-none text-slate-foreground" title={m.typeLabel}>
+                      <div
+                        className="hidden sm:block w-[90px] shrink-0 text-right text-[13px] pr-2 truncate pointer-events-none text-slate-foreground"
+                        title={m.typeLabel}
+                      >
                         {m.typeLabel}
                       </div>
                     </div>

@@ -56,7 +56,8 @@ async function fetchAllLeaderboards(): Promise<Map<string, LeaderboardPosition>>
     for (const entry of res.value.leaderboard) {
       const key = entry.name.toLowerCase()
       const existing = byName.get(key)
-      if (!existing || entry.rank < existing.rank) byName.set(key, { division: DIVISIONS[i].id, rank: entry.rank })
+      if (!existing || entry.rank < existing.rank)
+        byName.set(key, { division: DIVISIONS[i].id, rank: entry.rank })
     }
   })
   return byName
@@ -69,7 +70,9 @@ async function fetchAllLeaderboards(): Promise<Map<string, LeaderboardPosition>>
 // this same data (confirmed against a real account: OpenDota said rank 2,
 // Valve's live leaderboard actually had them at rank 1), so this is worth
 // checking directly rather than trusting that field.
-export async function findLeaderboardPosition(names: string[]): Promise<LeaderboardPosition | null> {
+export async function findLeaderboardPosition(
+  names: string[],
+): Promise<LeaderboardPosition | null> {
   const candidates = names.map((n) => n.toLowerCase()).filter(Boolean)
   if (candidates.length === 0) return null
   const byName = await fetchAllLeaderboards()

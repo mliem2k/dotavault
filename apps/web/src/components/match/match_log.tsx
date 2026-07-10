@@ -1,7 +1,14 @@
 import { Link } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import type { HeroStat, Match } from 'types'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { RUNE_NAMES } from '@/lib/dotaconst'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { extractObjectiveEvents } from './match_objectives'
@@ -132,7 +139,11 @@ function RunesSummary({ match, heroMap }: { match: Match; heroMap: Map<number, H
             <TableRow className="hover:bg-transparent border-none">
               <TableHead className="h-auto" />
               {cols.map((id) => (
-                <TableHead key={id} className="h-auto px-2 pb-1 text-[12px] uppercase text-slate-muted" style={{ letterSpacing: '1px' }}>
+                <TableHead
+                  key={id}
+                  className="h-auto px-2 pb-1 text-[12px] uppercase text-slate-muted"
+                  style={{ letterSpacing: '1px' }}
+                >
                   {RUNE_NAMES[id] ?? id}
                 </TableHead>
               ))}
@@ -159,7 +170,10 @@ function RunesSummary({ match, heroMap }: { match: Match; heroMap: Map<number, H
                     />
                   </TableCell>
                   {cols.map((id) => (
-                    <TableCell key={id} className={`p-0 px-2 text-center text-[13px] tabular-nums ${rec[id] ? 'text-slate-foreground' : 'text-slate-border'}`}>
+                    <TableCell
+                      key={id}
+                      className={`p-0 px-2 text-center text-[13px] tabular-nums ${rec[id] ? 'text-slate-foreground' : 'text-slate-border'}`}
+                    >
                       {rec[id] ?? ''}
                     </TableCell>
                   ))}
@@ -198,7 +212,10 @@ export function MatchLog({ match, heroStats }: { match: Match; heroStats: HeroSt
 
   return (
     <div className="font-dota" style={{ background: C.panel }}>
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3" style={{ background: C.panelDark }}>
+      <div
+        className="flex flex-wrap items-center gap-2 px-4 py-3"
+        style={{ background: C.panelDark }}
+      >
         <span className="text-[15px] uppercase text-white" style={{ letterSpacing: '2px' }}>
           Match Log
         </span>
@@ -253,7 +270,16 @@ export function MatchLog({ match, heroStats }: { match: Match; heroStats: HeroSt
               <span className="w-12 shrink-0 text-right tabular-nums text-slate-muted">
                 {formatClock(Math.max(0, e.time))}
               </span>
-              <span className={e.team === 'radiant' ? 'bg-radiant' : e.team === 'dire' ? 'bg-dire' : 'bg-slate-border'} style={{ width: 3, height: 18 }} />
+              <span
+                className={
+                  e.team === 'radiant'
+                    ? 'bg-radiant'
+                    : e.team === 'dire'
+                      ? 'bg-dire'
+                      : 'bg-slate-border'
+                }
+                style={{ width: 3, height: 18 }}
+              />
               <span className="w-6 shrink-0 text-center text-[14px]">{e.icon}</span>
               {hero && (
                 <img

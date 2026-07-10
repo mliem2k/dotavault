@@ -6,8 +6,8 @@
 import clusterMap from './dotaconstants/cluster.json'
 import gameModes from './dotaconstants/game_mode.json'
 import lobbyTypes from './dotaconstants/lobby_type.json'
-import playerColors from './dotaconstants/player_colors.json'
 import orderTypes from './dotaconstants/order_types.json'
+import playerColors from './dotaconstants/player_colors.json'
 import regions from './dotaconstants/region.json'
 
 function titleCase(s: string): string {

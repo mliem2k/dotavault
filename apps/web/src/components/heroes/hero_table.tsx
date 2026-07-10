@@ -13,8 +13,16 @@ import { heroBracketTotal, heroIconUrl, heroSlug, winRate } from '@/lib/utils'
 type SortKey = 'winrate' | 'pickrate' | 'banrate' | 'name'
 
 const ROLES = [
-  'All', 'Carry', 'Support', 'Nuker', 'Initiator',
-  'Disabler', 'Jungler', 'Durable', 'Escape', 'Pusher',
+  'All',
+  'Carry',
+  'Support',
+  'Nuker',
+  'Initiator',
+  'Disabler',
+  'Jungler',
+  'Durable',
+  'Escape',
+  'Pusher',
 ]
 
 const SORT_LABELS: Record<SortKey, string> = {
@@ -89,7 +97,9 @@ export function HeroTable({ heroes }: { heroes: HeroStat[] }) {
                   type="button"
                   onClick={() => handleSort(key)}
                   className={`cursor-pointer select-none bg-transparent font-normal ${
-                    sort === key ? 'text-foreground' : 'text-muted hover:text-foreground transition-colors'
+                    sort === key
+                      ? 'text-foreground'
+                      : 'text-muted hover:text-foreground transition-colors'
                   }`}
                 >
                   {SORT_LABELS[key]}
@@ -99,7 +109,9 @@ export function HeroTable({ heroes }: { heroes: HeroStat[] }) {
                 </button>
               </TableHead>
             ))}
-            <TableHead className="h-auto px-0 pb-2 font-normal text-right text-muted">Roles</TableHead>
+            <TableHead className="h-auto px-0 pb-2 font-normal text-right text-muted">
+              Roles
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -114,7 +126,10 @@ export function HeroTable({ heroes }: { heroes: HeroStat[] }) {
               >
                 <TableCell className="p-0 py-1.5 font-mono text-xs text-muted">{idx + 1}</TableCell>
                 <TableCell className="p-0 py-1.5" colSpan={2}>
-                  <a href={`/hero/${heroSlug(h.localized_name)}`} className="flex items-center gap-2 hover:text-accent">
+                  <a
+                    href={`/hero/${heroSlug(h.localized_name)}`}
+                    className="flex items-center gap-2 hover:text-accent"
+                  >
                     <img
                       src={heroIconUrl(h.name)}
                       alt={h.localized_name}
@@ -124,13 +139,17 @@ export function HeroTable({ heroes }: { heroes: HeroStat[] }) {
                     <span className="text-xs text-muted">{h.primary_attr}</span>
                   </a>
                 </TableCell>
-                <TableCell className={`p-0 py-1.5 text-right font-mono text-xs font-semibold ${wr >= 0.52 ? 'text-radiant' : wr < 0.48 && picks > 0 ? 'text-dire' : 'text-foreground'}`}>
+                <TableCell
+                  className={`p-0 py-1.5 text-right font-mono text-xs font-semibold ${wr >= 0.52 ? 'text-radiant' : wr < 0.48 && picks > 0 ? 'text-dire' : 'text-foreground'}`}
+                >
                   {winRate(wins, picks)}
                 </TableCell>
                 <TableCell className="p-0 py-1.5 text-right font-mono text-xs text-muted">
                   {picks.toLocaleString()}
                 </TableCell>
-                <TableCell className="p-0 py-1.5 text-right font-mono text-xs text-muted">{h.pro_ban}</TableCell>
+                <TableCell className="p-0 py-1.5 text-right font-mono text-xs text-muted">
+                  {h.pro_ban}
+                </TableCell>
                 <TableCell className="p-0 py-1.5 text-right text-xs text-muted max-w-[120px] whitespace-normal">
                   {h.roles?.slice(0, 3).join(', ') ?? '—'}
                 </TableCell>

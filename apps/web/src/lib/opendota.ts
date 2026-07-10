@@ -4,6 +4,7 @@ import type {
   HeroStat,
   ItemConst,
   Match,
+  Player,
   PlayerHero,
   PlayerMatch,
   PlayerWL,
@@ -11,7 +12,6 @@ import type {
   ProPlayer,
   SearchResult,
 } from 'types'
-import type { Player } from 'types'
 
 const BASE = 'https://api.opendota.com/api'
 
@@ -44,7 +44,10 @@ async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response
     const res = await fetch(url, init)
     if (res.status !== 429 || attempt === maxAttempts - 1) return res
     const retryAfterSec = Number(res.headers.get('retry-after'))
-    const delayMs = Number.isFinite(retryAfterSec) && retryAfterSec > 0 ? retryAfterSec * 1000 : 500 * 2 ** attempt
+    const delayMs =
+      Number.isFinite(retryAfterSec) && retryAfterSec > 0
+        ? retryAfterSec * 1000
+        : 500 * 2 ** attempt
     await new Promise((resolve) => setTimeout(resolve, delayMs))
   }
   return fetch(url, init)
@@ -95,7 +98,8 @@ export const opendota = {
     if (opts?.date != null) params.set('date', String(opts.date))
     if (opts?.withHeroId != null) params.set('with_hero_id', String(opts.withHeroId))
     if (opts?.againstHeroId != null) params.set('against_hero_id', String(opts.againstHeroId))
-    if (opts?.includedAccountId != null) params.set('included_account_id', String(opts.includedAccountId))
+    if (opts?.includedAccountId != null)
+      params.set('included_account_id', String(opts.includedAccountId))
     for (const p of opts?.project ?? []) params.append('project', p)
     return get<PlayerMatch[]>(`/players/${id}/matches?${params.toString()}`)
   },
@@ -117,22 +121,30 @@ export const opendota = {
       conditions.push(`player_matches.hero_id = ${Math.trunc(opts.heroId)}`)
     }
     if (opts?.win === 0 || opts?.win === 1) {
-      conditions.push(`((player_matches.player_slot < 128) = matches.radiant_win) = ${opts.win === 1}`)
+      conditions.push(
+        `((player_matches.player_slot < 128) = matches.radiant_win) = ${opts.win === 1}`,
+      )
     }
     if (opts?.date != null && Number.isFinite(opts.date)) {
-      conditions.push(`matches.start_time > extract(epoch from now() - interval '${Math.trunc(opts.date)} days')`)
+      conditions.push(
+        `matches.start_time > extract(epoch from now() - interval '${Math.trunc(opts.date)} days')`,
+      )
     }
     const sql = `SELECT matches.match_id, matches.start_time, matches.duration, leagues.name as league_name, player_matches.hero_id, player_matches.kills, player_matches.deaths, player_matches.assists, player_matches.player_slot, matches.radiant_win, player_matches.gold_per_min, player_matches.xp_per_min, player_matches.last_hits FROM player_matches JOIN matches USING(match_id) LEFT JOIN leagues USING(leagueid) WHERE ${conditions.join(' AND ')} ORDER BY matches.start_time DESC LIMIT ${limit} OFFSET ${offset}`
-    return get<{ rows: ProMatchRow[] }>(`/explorer?sql=${encodeURIComponent(sql)}`).then((r) => r.rows)
+    return get<{ rows: ProMatchRow[] }>(`/explorer?sql=${encodeURIComponent(sql)}`).then(
+      (r) => r.rows,
+    )
   },
   playerHeroes: (id: string) => get<PlayerHero[]>(`/players/${id}/heroes`),
   match: (id: string) => get<Match>(`/matches/${id}`),
   heroStats: () => get<HeroStat[]>('/heroStats'),
   heroBenchmarks: (heroId: number) => get<HeroBenchmarks>(`/benchmarks?hero_id=${heroId}`),
   // Win rate by game-length bucket (duration_bin is in seconds).
-  heroDurations: (id: string) => get<{ duration_bin: number; games_played: number; wins: number }[]>(`/heroes/${id}/durations`),
+  heroDurations: (id: string) =>
+    get<{ duration_bin: number; games_played: number; wins: number }[]>(`/heroes/${id}/durations`),
   // Win rate against every other hero, from this hero's own matches.
-  heroMatchups: (id: string) => get<{ hero_id: number; games_played: number; wins: number }[]>(`/heroes/${id}/matchups`),
+  heroMatchups: (id: string) =>
+    get<{ hero_id: number; games_played: number; wins: number }[]>(`/heroes/${id}/matchups`),
   // Most-purchased items per game phase (counts, not win rates; OpenDota
   // doesn't expose a per-item win rate for this breakdown).
   heroItemPopularity: (id: string) =>
@@ -176,9 +188,9 @@ export const opendota = {
   // text, so string interpolation here can't be injected.
   leagueSummary: (id: number) => {
     const sql = `SELECT count(*)::int as total_matches, min(start_time) as first_match, max(start_time) as last_match FROM matches WHERE leagueid = ${id}`
-    return get<{ rows: { total_matches: number; first_match: number | null; last_match: number | null }[] }>(
-      `/explorer?sql=${encodeURIComponent(sql)}`,
-    ).then((r) => r.rows[0])
+    return get<{
+      rows: { total_matches: number; first_match: number | null; last_match: number | null }[]
+    }>(`/explorer?sql=${encodeURIComponent(sql)}`).then((r) => r.rows[0])
   },
   leagueHeroStats: (id: number) => {
     const sql = `SELECT pm.hero_id, count(*)::int as picks, sum(CASE WHEN (pm.player_slot < 128) = m.radiant_win THEN 1 ELSE 0 END)::int as wins FROM player_matches pm JOIN matches m ON pm.match_id = m.match_id WHERE m.leagueid = ${id} GROUP BY pm.hero_id ORDER BY picks DESC`
@@ -188,9 +200,9 @@ export const opendota = {
   },
   leagueBanStats: (id: number) => {
     const sql = `SELECT (pb->>'hero_id')::int as hero_id, count(*)::int as bans FROM matches, unnest(picks_bans) pb WHERE leagueid = ${id} AND (pb->>'is_pick')::boolean = false GROUP BY hero_id ORDER BY bans DESC`
-    return get<{ rows: { hero_id: number; bans: number }[] }>(`/explorer?sql=${encodeURIComponent(sql)}`).then(
-      (r) => r.rows,
-    )
+    return get<{ rows: { hero_id: number; bans: number }[] }>(
+      `/explorer?sql=${encodeURIComponent(sql)}`,
+    ).then((r) => r.rows)
   },
   leagueTeamStandings: (id: number) => {
     const sql = `SELECT team_id, sum(wins)::int as wins, sum(losses)::int as losses FROM (SELECT radiant_team_id as team_id, CASE WHEN radiant_win THEN 1 ELSE 0 END as wins, CASE WHEN NOT radiant_win THEN 1 ELSE 0 END as losses FROM matches WHERE leagueid = ${id} AND radiant_team_id IS NOT NULL UNION ALL SELECT dire_team_id as team_id, CASE WHEN NOT radiant_win THEN 1 ELSE 0 END as wins, CASE WHEN radiant_win THEN 1 ELSE 0 END as losses FROM matches WHERE leagueid = ${id} AND dire_team_id IS NOT NULL) t GROUP BY team_id ORDER BY wins DESC`
@@ -223,9 +235,9 @@ export const opendota = {
   // they played it.
   leagueRoster: (id: number) => {
     const sql = `SELECT pm.account_id, CASE WHEN pm.player_slot < 128 THEN m.radiant_team_id ELSE m.dire_team_id END as team_id, count(*)::int as games, sum(CASE WHEN (pm.player_slot < 128) = m.radiant_win THEN 1 ELSE 0 END)::int as wins FROM player_matches pm JOIN matches m ON pm.match_id = m.match_id WHERE m.leagueid = ${id} AND pm.account_id IS NOT NULL GROUP BY pm.account_id, team_id ORDER BY team_id, games DESC`
-    return get<{ rows: { account_id: number; team_id: number | null; games: number; wins: number }[] }>(
-      `/explorer?sql=${encodeURIComponent(sql)}`,
-    ).then((r) => r.rows)
+    return get<{
+      rows: { account_id: number; team_id: number | null; games: number; wins: number }[]
+    }>(`/explorer?sql=${encodeURIComponent(sql)}`).then((r) => r.rows)
   },
   // Signal for refining a team roster's role display beyond OpenDota's own
   // fantasy_role (which only distinguishes Carry/Support/Offlane/Mid, not
@@ -247,8 +259,12 @@ export const opendota = {
     const gpmSql = `SELECT account_id, avg(gold_per_min)::int as avg_gpm FROM player_matches WHERE account_id IN (${ids.join(',')}) AND gold_per_min IS NOT NULL GROUP BY account_id`
     const laneSql = `SELECT account_id, lane_role, count(*)::int as games FROM player_matches WHERE account_id IN (${ids.join(',')}) AND lane_role IS NOT NULL GROUP BY account_id, lane_role`
     return Promise.all([
-      get<{ rows: { account_id: number; avg_gpm: number }[] }>(`/explorer?sql=${encodeURIComponent(gpmSql)}`),
-      get<{ rows: { account_id: number; lane_role: number; games: number }[] }>(`/explorer?sql=${encodeURIComponent(laneSql)}`),
+      get<{ rows: { account_id: number; avg_gpm: number }[] }>(
+        `/explorer?sql=${encodeURIComponent(gpmSql)}`,
+      ),
+      get<{ rows: { account_id: number; lane_role: number; games: number }[] }>(
+        `/explorer?sql=${encodeURIComponent(laneSql)}`,
+      ),
     ]).then(([gpm, lane]) => ({ gpm: gpm.rows, lane: lane.rows }))
   },
   // Which of a batch of matches were tournament matches, and which league.
@@ -261,7 +277,10 @@ export const opendota = {
   // integers before interpolation, so this can't be injected.
   matchesLeagueInfo: (matchIds: number[]) => {
     const ids = matchIds.map((id) => Math.trunc(id)).filter((id) => Number.isFinite(id))
-    if (ids.length === 0) return Promise.resolve([] as { match_id: number; leagueid: number; league_name: string | null }[])
+    if (ids.length === 0)
+      return Promise.resolve(
+        [] as { match_id: number; leagueid: number; league_name: string | null }[],
+      )
     const sql = `SELECT matches.match_id, matches.leagueid, leagues.name as league_name FROM matches LEFT JOIN leagues USING(leagueid) WHERE matches.match_id IN (${ids.join(',')}) AND matches.leagueid > 0`
     return get<{ rows: { match_id: number; leagueid: number; league_name: string | null }[] }>(
       `/explorer?sql=${encodeURIComponent(sql)}`,
@@ -281,7 +300,8 @@ export const opendota = {
     ),
   heroLore: () => get<Record<string, string>>('/constants/hero_lore'),
   aghsDesc: () => get<import('types').AghsDesc[]>('/constants/aghs_desc'),
-  playerTotals: (id: string) => get<{ field: string; n: number; sum: number }[]>(`/players/${id}/totals`),
+  playerTotals: (id: string) =>
+    get<{ field: string; n: number; sum: number }[]>(`/players/${id}/totals`),
   playerPeers: (id: string) =>
     get<
       {
@@ -299,5 +319,13 @@ export const opendota = {
     get<Record<string, Record<string, { games: number; win: number }>>>(`/players/${id}/counts`),
   requestParse: (matchId: string) => post<{ job: { jobId: number } }>(`/request/${matchId}`),
   team: (id: number) =>
-    get<{ team_id: number; name: string; tag: string; logo_url: string | null; wins: number; losses: number; rating: number }>(`/teams/${id}`),
+    get<{
+      team_id: number
+      name: string
+      tag: string
+      logo_url: string | null
+      wins: number
+      losses: number
+      rating: number
+    }>(`/teams/${id}`),
 }

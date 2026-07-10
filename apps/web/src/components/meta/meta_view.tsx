@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import type { HeroStat } from 'types'
-import { Spinner } from '@/components/ui/spinner'
 import { SortHeader } from '@/components/ui/sort_header'
+import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { opendota } from '@/lib/opendota'
 import { RANK_NAMES } from '@/lib/rank'
@@ -95,7 +95,12 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 }
 
 const LANES = [
-  { pos: 1, label: 'Safe Lane', colorClass: 'text-radiant', filter: (h: HeroStat) => h.roles.includes('Carry') },
+  {
+    pos: 1,
+    label: 'Safe Lane',
+    colorClass: 'text-radiant',
+    filter: (h: HeroStat) => h.roles.includes('Carry'),
+  },
   {
     pos: 2,
     label: 'Mid Lane',
@@ -131,7 +136,15 @@ const LANES = [
 // Rankings need a sample floor or 1-pick 100% heroes dominate every list.
 const minPicks = (b: Bracket): number => (b === 'pro' ? 10 : 100)
 
-function LaneCard({ lane, heroes, bracket }: { lane: (typeof LANES)[0]; heroes: HeroStat[]; bracket: Bracket }) {
+function LaneCard({
+  lane,
+  heroes,
+  bracket,
+}: {
+  lane: (typeof LANES)[0]
+  heroes: HeroStat[]
+  bracket: Bracket
+}) {
   const top = useMemo(
     () =>
       [...heroes]
@@ -212,7 +225,9 @@ function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }
   const rows = useMemo(() => {
     let list = heroes.filter((h) => picksOf(h, bracket) > 0)
     if (attr !== 'all') {
-      list = list.filter((h) => (attr === 'universal' ? h.primary_attr === 'all' : h.primary_attr === attr))
+      list = list.filter((h) =>
+        attr === 'universal' ? h.primary_attr === 'all' : h.primary_attr === attr,
+      )
     }
     const q = search.trim().toLowerCase()
     if (q) list = list.filter((h) => h.localized_name.toLowerCase().includes(q))
@@ -229,10 +244,23 @@ function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }
 
   const th = (label: string, k: SortKey, align: 'left' | 'right' = 'right') => {
     const active = key === k
-    const ariaSort: 'ascending' | 'descending' | 'none' = active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'
+    const ariaSort: 'ascending' | 'descending' | 'none' = active
+      ? dir === 'asc'
+        ? 'ascending'
+        : 'descending'
+      : 'none'
     return (
-      <th aria-sort={ariaSort} className={`pb-2 ${align === 'left' ? 'text-left' : 'text-right'} px-2`}>
-        <SortHeader label={label} sortKey={k} active={active} dir={dir} onClick={(sk) => onSort(sk as SortKey)} />
+      <th
+        aria-sort={ariaSort}
+        className={`pb-2 ${align === 'left' ? 'text-left' : 'text-right'} px-2`}
+      >
+        <SortHeader
+          label={label}
+          sortKey={k}
+          active={active}
+          dir={dir}
+          onClick={(sk) => onSort(sk as SortKey)}
+        />
       </th>
     )
   }
@@ -264,21 +292,23 @@ function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }
             ))}
           </TabsList>
         </Tabs>
-        <span className="ml-auto text-[12px] text-muted font-dota">
-          {rows.length} heroes
-        </span>
+        <span className="ml-auto text-[12px] text-muted font-dota">{rows.length} heroes</span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse font-dota">
           <thead>
             <tr className="text-[12px] font-bold uppercase tracking-widest text-muted">
-              <th className="pb-2 pr-2 text-right" style={{ width: 30 }}>#</th>
+              <th className="pb-2 pr-2 text-right" style={{ width: 30 }}>
+                #
+              </th>
               {th('Hero', 'name', 'left')}
               <th className="pb-2 px-2 text-left">Attr</th>
               {th('Picks', 'picks')}
               {th('Pick Rate', 'pickrate')}
               {th('Win Rate', 'winrate')}
-              {(bracket === 'pub' || bracket === 'turbo') && <th className="pb-2 px-2 text-right">Trend</th>}
+              {(bracket === 'pub' || bracket === 'turbo') && (
+                <th className="pb-2 px-2 text-right">Trend</th>
+              )}
               {bracket === 'pro' && th('Bans', 'banrate')}
             </tr>
           </thead>
@@ -293,8 +323,16 @@ function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }
                     {i + 1}
                   </td>
                   <td className="px-2 py-1.5">
-                    <a href={`/hero/${heroSlug(h.localized_name)}`} className="flex items-center gap-2 hover:underline">
-                      <img src={heroIconUrl(h.name)} alt="" loading="lazy" className="h-6 w-6 rounded-sm" />
+                    <a
+                      href={`/hero/${heroSlug(h.localized_name)}`}
+                      className="flex items-center gap-2 hover:underline"
+                    >
+                      <img
+                        src={heroIconUrl(h.name)}
+                        alt=""
+                        loading="lazy"
+                        className="h-6 w-6 rounded-sm"
+                      />
                       <span className="text-[14px] text-foreground">{h.localized_name}</span>
                     </a>
                   </td>
@@ -314,20 +352,21 @@ function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }
                   >
                     {wr.toFixed(2)}%
                   </td>
-                  {(bracket === 'pub' || bracket === 'turbo') && (() => {
-                    const delta = trendDelta(h, bracket)
-                    if (delta == null || Math.abs(delta) < 0.3) {
-                      return <td className="px-2 text-right text-[13px] text-muted">-</td>
-                    }
-                    return (
-                      <td
-                        className={`px-2 text-right text-[13px] tabular-nums ${delta > 0 ? 'text-radiant' : 'text-dire'}`}
-                        title="Win rate, recent half of the window vs the earlier half"
-                      >
-                        {delta > 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}
-                      </td>
-                    )
-                  })()}
+                  {(bracket === 'pub' || bracket === 'turbo') &&
+                    (() => {
+                      const delta = trendDelta(h, bracket)
+                      if (delta == null || Math.abs(delta) < 0.3) {
+                        return <td className="px-2 text-right text-[13px] text-muted">-</td>
+                      }
+                      return (
+                        <td
+                          className={`px-2 text-right text-[13px] tabular-nums ${delta > 0 ? 'text-radiant' : 'text-dire'}`}
+                          title="Win rate, recent half of the window vs the earlier half"
+                        >
+                          {delta > 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}
+                        </td>
+                      )
+                    })()}
                   {bracket === 'pro' && (
                     <td className="px-2 text-right text-[13px] tabular-nums text-dire">
                       {(h.pro_ban ?? 0).toLocaleString()}
@@ -345,7 +384,6 @@ function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }
     </Panel>
   )
 }
-
 
 /* URL slug per bracket: /meta is All Ranks, /meta/<slug> for the rest. */
 export const BRACKET_SLUGS: Record<string, Bracket> = {
@@ -405,7 +443,14 @@ export function MetaView({ bracket }: { bracket: Bracket }) {
                 letterSpacing: '1px',
               }}
             >
-              {b.medal && <img src={`/ranks/rank_icon_${b.medal}.webp`} alt="" loading="lazy" style={{ width: 20, height: 20 }} />}
+              {b.medal && (
+                <img
+                  src={`/ranks/rank_icon_${b.medal}.webp`}
+                  alt=""
+                  loading="lazy"
+                  style={{ width: 20, height: 20 }}
+                />
+              )}
               {b.label}
             </Link>
           )

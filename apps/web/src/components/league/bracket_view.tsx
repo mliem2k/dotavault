@@ -13,11 +13,7 @@ type TeamInfo = { name: string | null; tag: string | null; logo_url: string | nu
 
 function TeamLabel({ id, name }: { id: number | null; name: string }) {
   if (id == null) {
-    return (
-      <span className="truncate text-[13px] font-dota">
-        {name}
-      </span>
-    )
+    return <span className="truncate text-[13px] font-dota">{name}</span>
   }
   return (
     <a
@@ -45,11 +41,22 @@ const BracketCard = memo(function BracketCard({
   const aWon = s.scoreA > s.scoreB
 
   const row = (id: number | null, name: string, score: number, won: boolean) => (
-    <div className="flex items-center justify-between gap-2 px-2.5 py-1.5" style={{ background: won ? 'rgba(142,198,63,0.08)' : 'transparent' }}>
-      <span className={cn(won ? 'text-radiant' : 'text-muted')} style={{ fontWeight: won ? 600 : 400, minWidth: 0 }}>
+    <div
+      className="flex items-center justify-between gap-2 px-2.5 py-1.5"
+      style={{ background: won ? 'rgba(142,198,63,0.08)' : 'transparent' }}
+    >
+      <span
+        className={cn(won ? 'text-radiant' : 'text-muted')}
+        style={{ fontWeight: won ? 600 : 400, minWidth: 0 }}
+      >
         <TeamLabel id={id} name={name} />
       </span>
-      <span className={cn('shrink-0 text-[13px] font-bold tabular-nums', won ? 'text-radiant' : 'text-muted')}>
+      <span
+        className={cn(
+          'shrink-0 text-[13px] font-bold tabular-nums',
+          won ? 'text-radiant' : 'text-muted',
+        )}
+      >
         {score}
       </span>
     </div>
@@ -72,7 +79,9 @@ const BracketCard = memo(function BracketCard({
       style={{ background: 'rgba(255,255,255,0.03)' }}
     >
       {row(s.teamA, teamA?.name ?? (s.teamA ? `Team ${s.teamA}` : 'TBD'), s.scoreA, aWon)}
-      <div className="border-t border-border">{row(s.teamB, teamB?.name ?? (s.teamB ? `Team ${s.teamB}` : 'TBD'), s.scoreB, !aWon)}</div>
+      <div className="border-t border-border">
+        {row(s.teamB, teamB?.name ?? (s.teamB ? `Team ${s.teamB}` : 'TBD'), s.scoreB, !aWon)}
+      </div>
       {expanded && (
         <div className="flex flex-wrap gap-1 border-t border-border p-1.5">
           {s.games.map((g) => {
@@ -90,7 +99,13 @@ const BracketCard = memo(function BracketCard({
                 {/* #c73f2d is not in the Token Mapping Reference (close to but distinct from
                     text-dire's #d14a38/#c94a38) so it is kept as a raw inline style, per the
                     Task 5/6 precedent of not guessing on off-table hex values. */}
-                <span className={cn(aWonGame && 'text-radiant')} style={!aWonGame ? { color: '#c73f2d' } : undefined}>{aWonGame ? 'W' : 'L'}</span> {formatDuration(g.duration)}
+                <span
+                  className={cn(aWonGame && 'text-radiant')}
+                  style={!aWonGame ? { color: '#c73f2d' } : undefined}
+                >
+                  {aWonGame ? 'W' : 'L'}
+                </span>{' '}
+                {formatDuration(g.duration)}
               </a>
             )
           })}
@@ -111,7 +126,10 @@ function ConnectorLines({
   rounds: Series[][]
   parentOf: Map<string, { a?: string; b?: string }>
   seriesByKey: Map<string, Series>
-  positions: Record<string, { top: number; bottom: number; left: number; right: number; centerY: number }>
+  positions: Record<
+    string,
+    { top: number; bottom: number; left: number; right: number; centerY: number }
+  >
   width: number
   height: number
 }) {
@@ -148,7 +166,13 @@ function ConnectorLines({
     }
   }
   return (
-    <svg className="absolute inset-0" width={width} height={height} style={{ pointerEvents: 'none' }} aria-hidden="true">
+    <svg
+      className="absolute inset-0"
+      width={width}
+      height={height}
+      style={{ pointerEvents: 'none' }}
+      aria-hidden="true"
+    >
       {paths.map((p) => (
         <path key={p.key} d={p.d} stroke={p.color} strokeWidth={1.5} fill="none" />
       ))}
@@ -156,7 +180,13 @@ function ConnectorLines({
   )
 }
 
-export function BracketView({ series, teamMap }: { series: Series[]; teamMap: Map<number, TeamInfo> }) {
+export function BracketView({
+  series,
+  teamMap,
+}: {
+  series: Series[]
+  teamMap: Map<number, TeamInfo>
+}) {
   const { rounds, parentOf } = useMemo(() => inferBracket(series), [series])
   const seriesByKey = useMemo(() => new Map(series.map((s) => [s.key, s])), [series])
   const seriesKeys = useMemo(() => rounds.flat().map((s) => s.key), [rounds])

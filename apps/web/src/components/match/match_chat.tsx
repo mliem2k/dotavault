@@ -3,8 +3,16 @@ import { formatDuration, heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { PlayerNameLink } from './match_roster'
 
 const PLAYER_COLORS: Record<number, string> = {
-  0: '#3375FF', 1: '#66FFBF', 2: '#BF00BF', 3: '#F3F00B', 4: '#FF6600',
-  128: '#FE87C4', 129: '#A1B477', 130: '#65D9F7', 131: '#007A00', 132: '#A46900',
+  0: '#3375FF',
+  1: '#66FFBF',
+  2: '#BF00BF',
+  3: '#F3F00B',
+  4: '#FF6600',
+  128: '#FE87C4',
+  129: '#A1B477',
+  130: '#65D9F7',
+  131: '#007A00',
+  132: '#A46900',
 }
 
 const C = {
@@ -32,7 +40,10 @@ type ChatWheelEntry = { id: number; name?: string; message?: string; label?: str
 
 // "MissingHero" → "Missing hero", "Game_Is_Hard" → "Game is hard"
 function prettifyWheelName(name: string): string {
-  const words = name.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').split(/\s+/)
+  const words = name
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .split(/\s+/)
   return words.map((w, i) => (i === 0 ? w : w.toLowerCase())).join(' ')
 }
 
@@ -50,7 +61,9 @@ export function MatchChat({
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const playerBySlot = new Map(players.map((p) => [p.player_slot, p]))
 
-  const messages = chat.filter((m) => m.type === 'chat' || m.type === 'chatwheel' || m.type === 'say_team')
+  const messages = chat.filter(
+    (m) => m.type === 'chat' || m.type === 'chatwheel' || m.type === 'say_team',
+  )
 
   if (messages.length === 0) {
     return (
@@ -88,7 +101,11 @@ export function MatchChat({
 
           return (
             // biome-ignore lint/suspicious/noArrayIndexKey: static message list
-            <div key={i} className="flex items-center gap-3 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <div
+              key={i}
+              className="flex items-center gap-3 py-2"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+            >
               <span className="w-14 shrink-0 text-right text-[14px] tabular-nums text-slate-muted">
                 {formatDuration(Math.max(0, msg.time))}
               </span>
@@ -106,7 +123,11 @@ export function MatchChat({
                 />
               )}
               {player ? (
-                <PlayerNameLink player={player} className="shrink-0 text-[15px] font-semibold" style={{ color }} />
+                <PlayerNameLink
+                  player={player}
+                  className="shrink-0 text-[15px] font-semibold"
+                  style={{ color }}
+                />
               ) : (
                 <span className="shrink-0 text-[15px] font-semibold" style={{ color }}>
                   {hero?.localized_name ?? `Player ${msg.player_slot}`}
@@ -128,7 +149,9 @@ export function MatchChat({
                   Wheel
                 </span>
               )}
-              <span className="min-w-0 text-[16px] break-words text-slate-foreground-light">{text}</span>
+              <span className="min-w-0 text-[16px] break-words text-slate-foreground-light">
+                {text}
+              </span>
             </div>
           )
         })}

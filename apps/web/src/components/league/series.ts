@@ -31,7 +31,9 @@ export type Series = {
 export function buildSeries(matches: LeagueMatchRow[]): Series[] {
   const bySeriesId = new Map<string, LeagueMatchRow[]>()
   for (const m of matches) {
-    const pairKey = [m.radiant_team_id, m.dire_team_id].sort((a, b) => (a ?? 0) - (b ?? 0)).join('-')
+    const pairKey = [m.radiant_team_id, m.dire_team_id]
+      .sort((a, b) => (a ?? 0) - (b ?? 0))
+      .join('-')
     const key = m.series_id ? `s${m.series_id}-${pairKey}` : `m${m.match_id}`
     if (!bySeriesId.has(key)) bySeriesId.set(key, [])
     bySeriesId.get(key)?.push(m)
@@ -49,8 +51,24 @@ export function buildSeries(matches: LeagueMatchRow[]): Series[] {
       if (aWon) scoreA++
       else scoreB++
     }
-    const bestOf = games[0].series_type === 2 ? 5 : games[0].series_type === 1 ? 3 : games.length > 1 ? games.length : 1
-    out.push({ key, teamA, teamB, scoreA, scoreB, bestOf, games, lastStartTime: games[games.length - 1].start_time })
+    const bestOf =
+      games[0].series_type === 2
+        ? 5
+        : games[0].series_type === 1
+          ? 3
+          : games.length > 1
+            ? games.length
+            : 1
+    out.push({
+      key,
+      teamA,
+      teamB,
+      scoreA,
+      scoreB,
+      bestOf,
+      games,
+      lastStartTime: games[games.length - 1].start_time,
+    })
   }
   return out.sort((a, b) => b.lastStartTime - a.lastStartTime)
 }

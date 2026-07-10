@@ -96,7 +96,12 @@ export type ItemConst = {
   lore?: string
 }
 
-export type AbilityAttrib = { key: string; header?: string; value: string | string[]; generated?: boolean }
+export type AbilityAttrib = {
+  key: string
+  header?: string
+  value: string | string[]
+  generated?: boolean
+}
 
 export type AbilityConst = {
   dname?: string
@@ -204,12 +209,14 @@ export type MatchPlayer = {
   towers_killed?: number | null
   roshans_killed?: number | null
   firstblood_claimed?: number | null
-  cosmetics?: {
-    item_id: number
-    name: string | null
-    image_path?: string | null
-    item_rarity?: string | null
-  }[] | null
+  cosmetics?:
+    | {
+        item_id: number
+        name: string | null
+        image_path?: string | null
+        item_rarity?: string | null
+      }[]
+    | null
   ability_uses?: Record<string, number> | null
   item_uses?: Record<string, number> | null
   hero_hits?: Record<string, number> | null
@@ -253,7 +260,23 @@ export type Match = {
   series_type: number | null
   chat: ChatMessage[] | null
   players: MatchPlayer[]
-  league?: { leagueid: number; ticket: string | null; banner: string | null; tier: string | null; name: string | null } | null
-  radiant_team?: { team_id: number; name: string | null; tag: string | null; logo_url: string | null } | null
-  dire_team?: { team_id: number; name: string | null; tag: string | null; logo_url: string | null } | null
+  league?: {
+    leagueid: number
+    ticket: string | null
+    banner: string | null
+    tier: string | null
+    name: string | null
+  } | null
+  radiant_team?: {
+    team_id: number
+    name: string | null
+    tag: string | null
+    logo_url: string | null
+  } | null
+  dire_team?: {
+    team_id: number
+    name: string | null
+    tag: string | null
+    logo_url: string | null
+  } | null
 }

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Outlet, createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { opendota } from '@/lib/opendota'
 import { usePageTitle } from '@/lib/title'
@@ -99,9 +99,7 @@ function LeaguePage() {
           </div>
           {relatedLeagues.length > 0 && (
             <div className="border border-border" style={{ background: 'rgba(12,11,14,0.72)' }}>
-              <div
-                className="px-4 py-3 text-[13px] uppercase tracking-[0.15em] text-gold font-dota border-b border-border"
-              >
+              <div className="px-4 py-3 text-[13px] uppercase tracking-[0.15em] text-gold font-dota border-b border-border">
                 Qualifiers and related events
               </div>
               {relatedLeagues.map((l, i) => (

@@ -1,12 +1,20 @@
-import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
 import type { HeroStat, Match, MatchPlayer } from 'types'
 import { opendota } from '@/lib/opendota'
 import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl, heroSlug } from '@/lib/utils'
 
 export const PLAYER_COLORS: Record<number, string> = {
-  0: '#3375FF', 1: '#66FFBF', 2: '#BF00BF', 3: '#F3F00B', 4: '#FF6600',
-  128: '#FE87C4', 129: '#A1B477', 130: '#65D9F7', 131: '#007A00', 132: '#A46900',
+  0: '#3375FF',
+  1: '#66FFBF',
+  2: '#BF00BF',
+  3: '#F3F00B',
+  4: '#FF6600',
+  128: '#FE87C4',
+  129: '#A1B477',
+  130: '#65D9F7',
+  131: '#007A00',
+  132: '#A46900',
 }
 
 export const ROW_H = 62
@@ -44,9 +52,8 @@ export function useRosterMetrics(reserve = 36): {
 
 // Cumulative XP required to reach each level (index = level - 1).
 export const XP_TABLE = [
-  0, 230, 600, 1080, 1680, 2300, 2940, 3600, 4280, 5080, 5900, 6740, 7640, 8865,
-  10115, 11390, 12690, 14015, 15415, 16905, 18405, 20155, 22155, 24405, 26905,
-  29305, 32305, 35805, 39805, 44305,
+  0, 230, 600, 1080, 1680, 2300, 2940, 3600, 4280, 5080, 5900, 6740, 7640, 8865, 10115, 11390,
+  12690, 14015, 15415, 16905, 18405, 20155, 22155, 24405, 26905, 29305, 32305, 35805, 39805, 44305,
 ]
 
 export function levelFromXp(xp: number): number {
@@ -62,7 +69,17 @@ export function rankLabel(tier: number | null | undefined): string {
   if (!tier) return ''
   const level = Math.floor(tier / 10)
   const stars = tier % 10
-  const names = ['', 'Herald', 'Guardian', 'Crusader', 'Archon', 'Legend', 'Ancient', 'Divine', 'Immortal']
+  const names = [
+    '',
+    'Herald',
+    'Guardian',
+    'Crusader',
+    'Archon',
+    'Legend',
+    'Ancient',
+    'Divine',
+    'Immortal',
+  ]
   const name = names[level] ?? ''
   return level < 8 && stars ? `${name} ${stars}` : name
 }
@@ -91,9 +108,7 @@ export function usePlayerProfile(accountId: number | null | undefined) {
 /* Display name for a match player, falling back to the fetched profile. */
 export function usePlayerName(player: MatchPlayer): string {
   const profile = usePlayerProfile(player.account_id)
-  return (
-    player.personaname ?? player.name ?? profile.data?.profile?.personaname ?? 'Anonymous'
-  )
+  return player.personaname ?? player.name ?? profile.data?.profile?.personaname ?? 'Anonymous'
 }
 
 /* Pro nickname for a match player, when it differs from their persona name
@@ -184,7 +199,9 @@ export function PlayerAvatar({
       className={`shrink-0 flex items-center justify-center rounded-full overflow-hidden border-slate-card ${active ? 'bg-slate-card' : ''}`}
       style={{ width: size, height: size, background: active ? undefined : '#20262a' }}
     >
-      <span className="font-dota" style={{ fontSize: size * 0.45, color: '#8a8474' }}>?</span>
+      <span className="font-dota" style={{ fontSize: size * 0.45, color: '#8a8474' }}>
+        ?
+      </span>
     </div>
   )
 }
@@ -245,7 +262,11 @@ export function PlayerIdentityCell({
       }}
     >
       {accountId && !linkless ? (
-        <a href={`/player/${accountId}`} className="shrink-0 hover:brightness-125" onClick={(e) => e.stopPropagation()}>
+        <a
+          href={`/player/${accountId}`}
+          className="shrink-0 hover:brightness-125"
+          onClick={(e) => e.stopPropagation()}
+        >
           <PlayerAvatar accountId={accountId} active={active} size={avatarSize} />
         </a>
       ) : (
@@ -341,7 +362,10 @@ export function TeamHeader({
           >
             {name}
           </span>
-          <span className="text-[10px] uppercase leading-tight" style={{ color: '#8a8474', letterSpacing: '1px' }}>
+          <span
+            className="text-[10px] uppercase leading-tight"
+            style={{ color: '#8a8474', letterSpacing: '1px' }}
+          >
             Score: <span className="text-[12px] text-white">{score}</span>
           </span>
         </div>
@@ -353,7 +377,10 @@ export function TeamHeader({
           >
             {name}
           </div>
-          <div className="text-[11px] uppercase leading-tight" style={{ color: '#8a8474', letterSpacing: '1px' }}>
+          <div
+            className="text-[11px] uppercase leading-tight"
+            style={{ color: '#8a8474', letterSpacing: '1px' }}
+          >
             Score: <span className="text-[13px] text-white">{score}</span>
           </div>
         </div>
@@ -422,7 +449,13 @@ export function MatchRosterSidebar({
     const chip = showColors ? (
       <span
         className="shrink-0 rounded-sm"
-        style={{ width: 10, height: 10, marginLeft: 8, background: on ? color : 'transparent', border: `2px solid ${color}` }}
+        style={{
+          width: 10,
+          height: 10,
+          marginLeft: 8,
+          background: on ? color : 'transparent',
+          border: `2px solid ${color}`,
+        }}
       />
     ) : null
     const identity = (
@@ -452,7 +485,11 @@ export function MatchRosterSidebar({
       )
     }
     return (
-      <div key={p.player_slot} className="flex items-center" style={{ boxShadow: 'inset 0 -1px 0 #1b2023' }}>
+      <div
+        key={p.player_slot}
+        className="flex items-center"
+        style={{ boxShadow: 'inset 0 -1px 0 #1b2023' }}
+      >
         {chip}
         {identity}
       </div>

@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Outlet } from '@tanstack/react-router'
 
 // Layout for /match/$matchId/* — the actual tabs live in match.$matchId.$tab
 // and the bare-path redirect lives in match.$matchId.index, so this stays a

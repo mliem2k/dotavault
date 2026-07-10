@@ -39,7 +39,10 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
         totals.set(id, (totals.get(id) ?? 0) + n)
       }
     }
-    return [...totals.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id).slice(0, 10)
+    return [...totals.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => id)
+      .slice(0, 10)
   }, [match.players])
 
   const maxCell = useMemo(() => {
@@ -63,8 +66,16 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
         return (a.actions_per_min ?? 0) - (b.actions_per_min ?? 0)
     }
   }
-  const radiant = applySort(match.players.filter((p) => p.player_slot < 128), sortDir, compare)
-  const dire = applySort(match.players.filter((p) => p.player_slot >= 128), sortDir, compare)
+  const radiant = applySort(
+    match.players.filter((p) => p.player_slot < 128),
+    sortDir,
+    compare,
+  )
+  const dire = applySort(
+    match.players.filter((p) => p.player_slot >= 128),
+    sortDir,
+    compare,
+  )
 
   const row = (p: MatchPlayer) => {
     const hero = heroMap.get(p.hero_id)
@@ -86,7 +97,9 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
                 img.src = heroIconFromPath(hero.icon)
               }}
             />
-            <span className={`max-w-[130px] truncate text-[13px] ${p.player_slot < 128 ? 'text-radiant' : 'text-dire'}`}>
+            <span
+              className={`max-w-[130px] truncate text-[13px] ${p.player_slot < 128 ? 'text-radiant' : 'text-dire'}`}
+            >
               {p.personaname ?? 'Anonymous'}
             </span>
           </div>
@@ -104,7 +117,10 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
               <div
                 className={`flex h-[22px] items-center justify-center text-[13px] tabular-nums ${v > 0 ? 'text-slate-foreground' : 'text-slate-border'}`}
                 style={{
-                  background: v > 0 ? `rgba(159,191,63,${0.06 + 0.4 * (v / maxCell)})` : 'rgba(255,255,255,0.02)',
+                  background:
+                    v > 0
+                      ? `rgba(159,191,63,${0.06 + 0.4 * (v / maxCell)})`
+                      : 'rgba(255,255,255,0.02)',
                 }}
               >
                 {v ? v.toLocaleString() : ''}
@@ -118,20 +134,43 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
 
   return (
     <div className="overflow-x-auto font-dota" style={{ background: C.panel }}>
-      <div className="px-4 py-3 text-[15px] uppercase text-white" style={{ letterSpacing: '2px', background: C.panelDark }}>
+      <div
+        className="px-4 py-3 text-[15px] uppercase text-white"
+        style={{ letterSpacing: '2px', background: C.panelDark }}
+      >
         Actions
       </div>
       <table className="w-full border-collapse" style={{ minWidth: 1100 }}>
         <thead>
           <tr className="text-[12px] uppercase text-slate-muted" style={{ letterSpacing: '1px' }}>
             <th className="px-3 py-2 text-left">
-              <SortHeader label="Player" sortKey="player" active={sortKey === 'player'} dir={sortDir} onClick={onSort} />
+              <SortHeader
+                label="Player"
+                sortKey="player"
+                active={sortKey === 'player'}
+                dir={sortDir}
+                onClick={onSort}
+              />
             </th>
             <th className="px-2 text-right" title="Actions per minute">
-              <SortHeader label="APM" sortKey="apm" active={sortKey === 'apm'} dir={sortDir} onClick={onSort} className="justify-end" />
+              <SortHeader
+                label="APM"
+                sortKey="apm"
+                active={sortKey === 'apm'}
+                dir={sortDir}
+                onClick={onSort}
+                className="justify-end"
+              />
             </th>
             <th className="px-2 text-right">
-              <SortHeader label="Total" sortKey="total" active={sortKey === 'total'} dir={sortDir} onClick={onSort} className="justify-end" />
+              <SortHeader
+                label="Total"
+                sortKey="total"
+                active={sortKey === 'total'}
+                dir={sortDir}
+                onClick={onSort}
+                className="justify-end"
+              />
             </th>
             {columns.map((id) => (
               <th key={id} className="px-1 text-center" style={{ maxWidth: 90 }}>

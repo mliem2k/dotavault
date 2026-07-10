@@ -67,14 +67,21 @@ function currentJob(matchId: number): Job | null {
   const job = jobs.get(matchId)
   if (!job) return null
   // Let failed/gone states expire so a later retry can start fresh.
-  if ((job.phase === 'failed' || job.phase === 'gone') && Date.now() - job.updatedAt > FAILED_RETENTION_MS) {
+  if (
+    (job.phase === 'failed' || job.phase === 'gone') &&
+    Date.now() - job.updatedAt > FAILED_RETENTION_MS
+  ) {
     jobs.delete(matchId)
     return null
   }
   return job
 }
 
-async function runParser(matchId: number, cluster: number, salt: number): Promise<ReplayParseResult> {
+async function runParser(
+  matchId: number,
+  cluster: number,
+  salt: number,
+): Promise<ReplayParseResult> {
   running++
   try {
     const proc = Bun.spawn(
@@ -105,7 +112,10 @@ async function parseAndStore(matchId: number, cluster: number, salt: number): Pr
   jobs.delete(matchId)
 }
 
-async function orchestrate(matchId: number, hint?: { cluster: number; salt: number }): Promise<void> {
+async function orchestrate(
+  matchId: number,
+  hint?: { cluster: number; salt: number },
+): Promise<void> {
   try {
     if (hint) {
       await parseAndStore(matchId, hint.cluster, hint.salt)

@@ -33,25 +33,39 @@ function parseInput(raw: string): Parsed | null {
   const steamFmt = s.match(/^STEAM_\d:(\d):(\d+)$/i)
   if (steamFmt) {
     const accountId = String(BigInt(steamFmt[2]) * 2n + BigInt(steamFmt[1]))
-    return { type: 'resolved', dest: { kind: 'player', id: accountId }, label: `Account #${accountId}` }
+    return {
+      type: 'resolved',
+      dest: { kind: 'player', id: accountId },
+      label: `Account #${accountId}`,
+    }
   }
 
   // steamcommunity.com/profiles/<steam64>
   const profileUrl = s.match(/steamcommunity\.com\/profiles\/(\d+)/i)
   if (profileUrl) {
     const dest = numericDest(profileUrl[1])
-    return { type: 'resolved', dest, label: dest.kind === 'player' ? `Player #${dest.id}` : `Match #${dest.id}` }
+    return {
+      type: 'resolved',
+      dest,
+      label: dest.kind === 'player' ? `Player #${dest.id}` : `Match #${dest.id}`,
+    }
   }
 
   // steamcommunity.com/id/<vanity>
-  const communityId = s.match(/steamcommunity\.com\/id\/([^\/\s?#]+)/i)
+  const communityId = s.match(/steamcommunity\.com\/id\/([^/\s?#]+)/i)
   if (communityId) return { type: 'vanity', url: communityId[1] }
 
   // dotabuff / dotamax / opendota / stratz player URLs
-  const trackerUrl = s.match(/(?:dotabuff|dotamax|opendota|stratz)\.com\/(?:player[s]?\/(?:detail\/)?)?(\d+)/i)
+  const trackerUrl = s.match(
+    /(?:dotabuff|dotamax|opendota|stratz)\.com\/(?:player[s]?\/(?:detail\/)?)?(\d+)/i,
+  )
   if (trackerUrl) {
     const dest = numericDest(trackerUrl[1])
-    return { type: 'resolved', dest, label: dest.kind === 'player' ? `Player #${dest.id}` : `Match #${dest.id}` }
+    return {
+      type: 'resolved',
+      dest,
+      label: dest.kind === 'player' ? `Player #${dest.id}` : `Match #${dest.id}`,
+    }
   }
 
   // Any URL with a trailing number segment
@@ -59,14 +73,22 @@ function parseInput(raw: string): Parsed | null {
     const trailingNum = s.match(/\/(\d{5,})\/?(?:[?#].*)?$/)
     if (trailingNum) {
       const dest = numericDest(trailingNum[1])
-      return { type: 'resolved', dest, label: dest.kind === 'player' ? `Player #${dest.id}` : `Match #${dest.id}` }
+      return {
+        type: 'resolved',
+        dest,
+        label: dest.kind === 'player' ? `Player #${dest.id}` : `Match #${dest.id}`,
+      }
     }
   }
 
   // Pure number
   if (/^\d+$/.test(s)) {
     const dest = numericDest(s)
-    return { type: 'resolved', dest, label: dest.kind === 'player' ? `Player #${dest.id}` : `Match #${dest.id}` }
+    return {
+      type: 'resolved',
+      dest,
+      label: dest.kind === 'player' ? `Player #${dest.id}` : `Match #${dest.id}`,
+    }
   }
 
   // Single word (no spaces, no dots) → try as Steam vanity URL
@@ -137,7 +159,10 @@ export function SearchBar() {
     options.push({ id: 'search-option-resolved', select: () => go(parsed.dest) })
   }
   if (parsed?.type === 'vanity' && vanityResult) {
-    options.push({ id: 'search-option-vanity', select: () => go({ kind: 'player', id: vanityResult }) })
+    options.push({
+      id: 'search-option-vanity',
+      select: () => go({ kind: 'player', id: vanityResult }),
+    })
   }
   for (const r of results) {
     options.push({
@@ -156,10 +181,16 @@ export function SearchBar() {
     if (vanityDebounce.current) clearTimeout(vanityDebounce.current)
 
     const t = val.trim()
-    if (!t) { setOpen(false); return }
+    if (!t) {
+      setOpen(false)
+      return
+    }
 
     const p = parseInput(t)
-    if (!p) { setOpen(false); return }
+    if (!p) {
+      setOpen(false)
+      return
+    }
     setOpen(true)
 
     if (p.type === 'vanity') {
@@ -206,7 +237,10 @@ export function SearchBar() {
       setActiveIndex((i) => (i <= 0 ? options.length - 1 : i - 1))
       return
     }
-    if (e.key === 'Escape') { setOpen(false); return }
+    if (e.key === 'Escape') {
+      setOpen(false)
+      return
+    }
     if (e.key !== 'Enter' || !trimmed) return
 
     if (activeIndex >= 0 && activeIndex < options.length) {
@@ -224,7 +258,8 @@ export function SearchBar() {
     }
   }
 
-  const activeOptionId = activeIndex >= 0 && activeIndex < options.length ? options[activeIndex].id : undefined
+  const activeOptionId =
+    activeIndex >= 0 && activeIndex < options.length ? options[activeIndex].id : undefined
 
   return (
     <div className="relative w-full max-w-3xl">
@@ -255,10 +290,26 @@ export function SearchBar() {
             letterSpacing: '0.01em',
           }}
         />
-        {resolving
-          ? <Loader2 className="h-4 w-4 motion-safe:animate-spin flex-shrink-0" style={{ color: '#5a6070' }} />
-          : <kbd className="text-muted" style={{ fontFamily: 'inherit', fontSize: 11, border: '1px solid #2a2a30', padding: '2px 6px', borderRadius: 3, flexShrink: 0 }}>Enter</kbd>
-        }
+        {resolving ? (
+          <Loader2
+            className="h-4 w-4 motion-safe:animate-spin flex-shrink-0"
+            style={{ color: '#5a6070' }}
+          />
+        ) : (
+          <kbd
+            className="text-muted"
+            style={{
+              fontFamily: 'inherit',
+              fontSize: 11,
+              border: '1px solid #2a2a30',
+              padding: '2px 6px',
+              borderRadius: 3,
+              flexShrink: 0,
+            }}
+          >
+            Enter
+          </kbd>
+        )}
       </div>
 
       {open && (
@@ -283,16 +334,27 @@ export function SearchBar() {
               {...destRoute(parsed.dest)}
               onClick={handleOptionClick}
               className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-white/[0.04]"
-              style={activeOptionId === 'search-option-resolved' ? { background: 'rgba(255,255,255,0.06)' } : undefined}
+              style={
+                activeOptionId === 'search-option-resolved'
+                  ? { background: 'rgba(255,255,255,0.06)' }
+                  : undefined
+              }
             >
-              {parsed.dest.kind === 'match'
-                ? <Swords className="h-4 w-4 flex-shrink-0 text-gold" />
-                : <User className="h-4 w-4 flex-shrink-0 text-gold" />}
+              {parsed.dest.kind === 'match' ? (
+                <Swords className="h-4 w-4 flex-shrink-0 text-gold" />
+              ) : (
+                <User className="h-4 w-4 flex-shrink-0 text-gold" />
+              )}
               <div>
-                <div className="text-foreground" style={{ fontSize: 14, fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>
+                <div
+                  className="text-foreground"
+                  style={{ fontSize: 14, fontFamily: 'Radiance, "Noto Sans", sans-serif' }}
+                >
                   {parsed.dest.kind === 'match' ? 'View Match' : 'View Player'}
                 </div>
-                <div className="font-mono text-muted" style={{ fontSize: 12, marginTop: 1 }}>#{parsed.dest.id}</div>
+                <div className="font-mono text-muted" style={{ fontSize: 12, marginTop: 1 }}>
+                  #{parsed.dest.id}
+                </div>
               </div>
             </Link>
           )}
@@ -308,13 +370,22 @@ export function SearchBar() {
               className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-white/[0.04]"
               style={{
                 borderBottom: '1px solid rgba(255,255,255,0.06)',
-                ...(activeOptionId === 'search-option-vanity' ? { background: 'rgba(255,255,255,0.06)' } : undefined),
+                ...(activeOptionId === 'search-option-vanity'
+                  ? { background: 'rgba(255,255,255,0.06)' }
+                  : undefined),
               }}
             >
               <User className="h-4 w-4 flex-shrink-0 text-gold" />
               <div>
-                <div className="text-foreground" style={{ fontSize: 14, fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>Steam Profile</div>
-                <div className="font-mono text-muted" style={{ fontSize: 12, marginTop: 1 }}>#{vanityResult} · {parsed.url}</div>
+                <div
+                  className="text-foreground"
+                  style={{ fontSize: 14, fontFamily: 'Radiance, "Noto Sans", sans-serif' }}
+                >
+                  Steam Profile
+                </div>
+                <div className="font-mono text-muted" style={{ fontSize: 12, marginTop: 1 }}>
+                  #{vanityResult} · {parsed.url}
+                </div>
               </div>
             </Link>
           )}
@@ -338,14 +409,24 @@ export function SearchBar() {
                   alt=""
                   className="h-8 w-8 rounded-full object-cover flex-shrink-0"
                 />
-                <span className="text-foreground" style={{ fontSize: 15, fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>{r.personaname}</span>
+                <span
+                  className="text-foreground"
+                  style={{ fontSize: 15, fontFamily: 'Radiance, "Noto Sans", sans-serif' }}
+                >
+                  {r.personaname}
+                </span>
               </Link>
             )
           })}
 
           {/* Vanity resolving state with no results yet */}
           {parsed?.type === 'vanity' && resolving && !vanityResult && results.length === 0 && (
-            <div className="px-5 py-3 text-muted" style={{ fontSize: 13, fontFamily: 'Radiance, "Noto Sans", sans-serif' }}>Resolving Steam ID…</div>
+            <div
+              className="px-5 py-3 text-muted"
+              style={{ fontSize: 13, fontFamily: 'Radiance, "Noto Sans", sans-serif' }}
+            >
+              Resolving Steam ID…
+            </div>
           )}
         </div>
       )}

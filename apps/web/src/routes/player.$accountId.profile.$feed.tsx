@@ -15,14 +15,22 @@ function FeedPage() {
 
   if (activeFeed === 'recent') {
     return matches.isPending || heroStats.isPending ? (
-      <div className="flex justify-center py-8"><Spinner /></div>
+      <div className="flex justify-center py-8">
+        <Spinner />
+      </div>
     ) : matches.data && heroStats.data ? (
-      <RecentGames matches={matches.data} heroStats={heroStats.data} leagueInfo={matchesLeagueInfo.data} />
+      <RecentGames
+        matches={matches.data}
+        heroStats={heroStats.data}
+        leagueInfo={matchesLeagueInfo.data}
+      />
     ) : null
   }
 
   return peers.isPending ? (
-    <div className="flex justify-center py-8"><Spinner /></div>
+    <div className="flex justify-center py-8">
+      <Spinner />
+    </div>
   ) : peers.data ? (
     <Teammates peers={peers.data} />
   ) : null

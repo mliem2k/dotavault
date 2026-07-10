@@ -15,5 +15,5 @@ export const heroesPlugin = new Elysia()
       ])
       return { durations, timings }
     },
-    { params: t.Object({ id: t.String() }) }
+    { params: t.Object({ id: t.String() }) },
   )

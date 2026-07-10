@@ -2,7 +2,7 @@ import type { HeroStat, Match, MatchPlayer } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
 import { applySort, useSort } from '@/lib/sortable'
 import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
-import { TeamHeader, orderedTeams } from './match_roster'
+import { orderedTeams, TeamHeader } from './match_roster'
 
 /* Farm tab — where each player's gold came from (OpenDota gold_reasons),
    gold spent, and farming milestones. */
@@ -61,7 +61,13 @@ function GoldBar({ p }: { p: MatchPlayer }) {
   const total = parts.reduce((s, x) => s + x.value, 0)
   if (total === 0) return <span className="text-[14px] text-slate-muted">—</span>
   return (
-    <div className="flex h-[20px] w-full overflow-hidden" title={parts.filter((x) => x.value > 0).map((x) => `${x.label}: ${x.value.toLocaleString()}`).join('\n')}>
+    <div
+      className="flex h-[20px] w-full overflow-hidden"
+      title={parts
+        .filter((x) => x.value > 0)
+        .map((x) => `${x.label}: ${x.value.toLocaleString()}`)
+        .join('\n')}
+    >
       {parts.map(
         (x) =>
           x.value > 0 && (
@@ -72,13 +78,7 @@ function GoldBar({ p }: { p: MatchPlayer }) {
   )
 }
 
-export function MatchFarm({
-  match,
-  heroStats,
-}: {
-  match: Match
-  heroStats: HeroStat[]
-}) {
+export function MatchFarm({ match, heroStats }: { match: Match; heroStats: HeroStat[] }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const { radiant, dire } = orderedTeams(match)
   const maxEarned = Math.max(1, ...match.players.map((p) => p.total_gold ?? p.net_worth))
@@ -95,10 +95,38 @@ export function MatchFarm({
     >
       <div className="shrink-0" style={{ width: 240 }} />
       <div className="flex-1">Gold Sources</div>
-      <SortHeader label="Earned" sortKey="earned" active={sortKey === 'earned'} dir={sortDir} onClick={onSort} className="w-[100px] shrink-0 justify-end pr-2" />
-      <SortHeader label="Spent" sortKey="spent" active={sortKey === 'spent'} dir={sortDir} onClick={onSort} className="w-[100px] shrink-0 justify-end pr-2" />
-      <SortHeader label="LH @10" sortKey="lh10" active={sortKey === 'lh10'} dir={sortDir} onClick={onSort} className="w-[100px] shrink-0 justify-end pr-2" />
-      <SortHeader label="DN" sortKey="dn" active={sortKey === 'dn'} dir={sortDir} onClick={onSort} className="w-[100px] shrink-0 justify-end pr-2" />
+      <SortHeader
+        label="Earned"
+        sortKey="earned"
+        active={sortKey === 'earned'}
+        dir={sortDir}
+        onClick={onSort}
+        className="w-[100px] shrink-0 justify-end pr-2"
+      />
+      <SortHeader
+        label="Spent"
+        sortKey="spent"
+        active={sortKey === 'spent'}
+        dir={sortDir}
+        onClick={onSort}
+        className="w-[100px] shrink-0 justify-end pr-2"
+      />
+      <SortHeader
+        label="LH @10"
+        sortKey="lh10"
+        active={sortKey === 'lh10'}
+        dir={sortDir}
+        onClick={onSort}
+        className="w-[100px] shrink-0 justify-end pr-2"
+      />
+      <SortHeader
+        label="DN"
+        sortKey="dn"
+        active={sortKey === 'dn'}
+        dir={sortDir}
+        onClick={onSort}
+        className="w-[100px] shrink-0 justify-end pr-2"
+      />
     </div>
   )
 
@@ -107,7 +135,11 @@ export function MatchFarm({
     const earned = earnedGold(p)
     const lh10 = lhAt10(p)
     return (
-      <div key={p.player_slot} className="flex items-center px-2" style={{ height: 60, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+      <div
+        key={p.player_slot}
+        className="flex items-center px-2"
+        style={{ height: 60, borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+      >
         <div className="flex items-center gap-2.5 shrink-0" style={{ width: 240 }}>
           {hero && (
             <a href={`/hero/${heroSlug(hero.localized_name)}`} className="shrink-0 block">
@@ -134,7 +166,10 @@ export function MatchFarm({
             ) : null}
           </div>
         </div>
-        <div className="flex-1 pr-4" style={{ maxWidth: `${(earned / maxEarned) * 100}%`, minWidth: 60 }}>
+        <div
+          className="flex-1 pr-4"
+          style={{ maxWidth: `${(earned / maxEarned) * 100}%`, minWidth: 60 }}
+        >
           <GoldBar p={p} />
         </div>
         <div className="flex-none ml-auto flex">
@@ -178,7 +213,11 @@ export function MatchFarm({
       {/* legend */}
       <div className="flex items-center gap-5 flex-wrap px-1 pt-1">
         {GOLD_REASONS.map((r) => (
-          <span key={r.id} className="flex items-center gap-2 text-[13px] uppercase text-slate-muted-light font-dota" style={{ letterSpacing: '1px' }}>
+          <span
+            key={r.id}
+            className="flex items-center gap-2 text-[13px] uppercase text-slate-muted-light font-dota"
+            style={{ letterSpacing: '1px' }}
+          >
             <span style={{ width: 13, height: 13, background: r.color, display: 'inline-block' }} />
             {r.label}
           </span>

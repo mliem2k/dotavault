@@ -100,12 +100,17 @@ export function Navbar() {
           aria-expanded={open}
           className="ml-auto flex md:hidden h-11 w-11 shrink-0 items-center justify-center text-white"
         >
-          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-            {open ? (
-              <path d="M6 6l12 12M18 6L6 18" />
-            ) : (
-              <path d="M4 6h16M4 12h16M4 18h16" />
-            )}
+          <svg
+            viewBox="0 0 24 24"
+            width="26"
+            height="26"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 6h16M4 12h16M4 18h16" />}
           </svg>
         </button>
       </div>
@@ -113,7 +118,10 @@ export function Navbar() {
       {open && (
         <div
           className="md:hidden px-4 pb-5 pt-1 flex flex-col gap-1"
-          style={{ background: 'rgba(8,10,12,0.97)', borderTop: '1px solid rgba(255,255,255,0.08)' }}
+          style={{
+            background: 'rgba(8,10,12,0.97)',
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+          }}
         >
           {NAV_LINKS.map((l) => (
             <Link

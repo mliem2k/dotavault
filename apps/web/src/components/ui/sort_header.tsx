@@ -29,7 +29,7 @@ export function SortHeader<K extends string>({
       className={cn(
         'inline-flex items-center gap-1 uppercase cursor-pointer hover:text-white transition-colors min-h-[44px]',
         active ? 'text-white' : 'text-inherit',
-        className
+        className,
       )}
       style={style}
     >

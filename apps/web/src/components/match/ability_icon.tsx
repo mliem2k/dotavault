@@ -1,14 +1,23 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { AbilityConst } from 'types'
-import { INNATE_ICON_CDN, TALENTS_ICON_CDN, abilityIconCdn, abilityIconUrl, dotaIconUrl } from '@/lib/utils'
+import {
+  abilityIconCdn,
+  abilityIconUrl,
+  dotaIconUrl,
+  INNATE_ICON_CDN,
+  TALENTS_ICON_CDN,
+} from '@/lib/utils'
 
 // Innate abilities don't ship a per-ability icon — fall back to the generic one.
 const INNATE_ICON = dotaIconUrl('innate_icon')
 
 function cleanTalent(name: string): string {
   // Talent dnames embed unresolved templates like "{s:bonus_X}" — strip them.
-  return name.replace(/\{[^}]*\}/g, '').replace(/\s+/g, ' ').trim()
+  return name
+    .replace(/\{[^}]*\}/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function joinLevels(v: string | string[] | undefined): string {
@@ -16,7 +25,17 @@ function joinLevels(v: string | string[] | undefined): string {
   return Array.isArray(v) ? v.join(' / ') : String(v)
 }
 
-function AbilityTooltip({ meta, isTalent, x, y }: { meta: AbilityConst; isTalent: boolean; x: number; y: number }) {
+function AbilityTooltip({
+  meta,
+  isTalent,
+  x,
+  y,
+}: {
+  meta: AbilityConst
+  isTalent: boolean
+  x: number
+  y: number
+}) {
   const W = 300
   const left = Math.min(x + 16, window.innerWidth - W - 12)
   const top = Math.min(y + 16, window.innerHeight - 240)
@@ -60,7 +79,9 @@ function AbilityTooltip({ meta, isTalent, x, y }: { meta: AbilityConst; isTalent
       {(meta.mc != null && meta.mc !== 0 && meta.mc !== false) || meta.cd ? (
         <div className="flex items-center gap-3 mb-1.5 text-[11px]">
           {meta.mc != null && meta.mc !== 0 && meta.mc !== false && (
-            <span style={{ color: '#5a8fc2' }}>Mana {joinLevels(meta.mc as string | string[])}</span>
+            <span style={{ color: '#5a8fc2' }}>
+              Mana {joinLevels(meta.mc as string | string[])}
+            </span>
           )}
           {meta.cd != null && meta.cd !== 0 && (
             <span className="text-gold">CD {joinLevels(meta.cd as string | string[])}s</span>
@@ -122,7 +143,12 @@ export function AbilityIcon({
         onMouseEnter={(e) => setPos({ x: e.clientX, y: e.clientY })}
         onMouseMove={(e) => setPos({ x: e.clientX, y: e.clientY })}
         onMouseLeave={() => setPos(null)}
-        onFocus={(e) => setPos({ x: e.currentTarget.getBoundingClientRect().left, y: e.currentTarget.getBoundingClientRect().bottom })}
+        onFocus={(e) =>
+          setPos({
+            x: e.currentTarget.getBoundingClientRect().left,
+            y: e.currentTarget.getBoundingClientRect().bottom,
+          })
+        }
         onBlur={() => setPos(null)}
       >
         {img ? (
@@ -134,10 +160,19 @@ export function AbilityIcon({
             onError={(e) => {
               const el = e.currentTarget
               const step = el.dataset.step ?? '0'
-              if (step === '0') { el.dataset.step = '1'; el.src = abilityIconCdn(name, meta?.img) }
-              else if (step === '1') { el.dataset.step = '2'; el.src = INNATE_ICON; onLoadError?.() }
-              else if (step === '2') { el.dataset.step = '3'; el.src = INNATE_ICON_CDN }
-              else { el.style.opacity = '0.2' }
+              if (step === '0') {
+                el.dataset.step = '1'
+                el.src = abilityIconCdn(name, meta?.img)
+              } else if (step === '1') {
+                el.dataset.step = '2'
+                el.src = INNATE_ICON
+                onLoadError?.()
+              } else if (step === '2') {
+                el.dataset.step = '3'
+                el.src = INNATE_ICON_CDN
+              } else {
+                el.style.opacity = '0.2'
+              }
             }}
           />
         ) : (
@@ -149,7 +184,12 @@ export function AbilityIcon({
           />
         )}
       </div>
-      {pos && meta && createPortal(<AbilityTooltip meta={meta} isTalent={isTalent} x={pos.x} y={pos.y} />, document.body)}
+      {pos &&
+        meta &&
+        createPortal(
+          <AbilityTooltip meta={meta} isTalent={isTalent} x={pos.x} y={pos.y} />,
+          document.body,
+        )}
     </>
   )
 }

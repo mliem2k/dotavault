@@ -8,61 +8,286 @@
         "role": "primary",
         "displayName": "Aegis Gold",
         "canonical": "#c9a94a",
-        "tonalRamp": ["#3a2f16", "#5c4b22", "#7e672f", "#a1863c", "#c9a94a", "#d6bd72", "#e3d19b", "#f0e6c4"]
+        "tonalRamp": [
+          "#3a2f16",
+          "#5c4b22",
+          "#7e672f",
+          "#a1863c",
+          "#c9a94a",
+          "#d6bd72",
+          "#e3d19b",
+          "#f0e6c4"
+        ]
       },
       "gold-bright": {
         "role": "primary",
         "displayName": "Immortal Gold",
         "canonical": "#f2c94c",
-        "tonalRamp": ["#4a3a10", "#705819", "#967621", "#bd9531", "#f2c94c", "#f5d670", "#f8e299", "#fbefc2"]
+        "tonalRamp": [
+          "#4a3a10",
+          "#705819",
+          "#967621",
+          "#bd9531",
+          "#f2c94c",
+          "#f5d670",
+          "#f8e299",
+          "#fbefc2"
+        ]
       },
       "radiant-win": {
         "role": "secondary",
         "displayName": "Radiant Green",
         "canonical": "#8ec63f",
-        "tonalRamp": ["#233210", "#365019", "#496e22", "#5f8f2e", "#8ec63f", "#a8d466", "#c2e18f", "#dcefb8"]
+        "tonalRamp": [
+          "#233210",
+          "#365019",
+          "#496e22",
+          "#5f8f2e",
+          "#8ec63f",
+          "#a8d466",
+          "#c2e18f",
+          "#dcefb8"
+        ]
       },
       "radiant-win-alt": {
         "role": "secondary",
         "displayName": "Radiant Green (match-side)",
         "canonical": "#8fbf3f",
-        "tonalRamp": ["#233010", "#374c19", "#4a6822", "#61862e", "#8fbf3f", "#a9cf66", "#c3df8f", "#ddefb8"]
+        "tonalRamp": [
+          "#233010",
+          "#374c19",
+          "#4a6822",
+          "#61862e",
+          "#8fbf3f",
+          "#a9cf66",
+          "#c3df8f",
+          "#ddefb8"
+        ]
       },
       "dire-loss": {
         "role": "secondary",
         "displayName": "Dire Red",
         "canonical": "#d14a38",
-        "tonalRamp": ["#3d150e", "#5f2116", "#82301f", "#a83c29", "#d14a38", "#dd7364", "#e89c90", "#f3c5bd"]
+        "tonalRamp": [
+          "#3d150e",
+          "#5f2116",
+          "#82301f",
+          "#a83c29",
+          "#d14a38",
+          "#dd7364",
+          "#e89c90",
+          "#f3c5bd"
+        ]
       },
       "dire-loss-alt": {
         "role": "secondary",
         "displayName": "Dire Red (match-side)",
         "canonical": "#c94a38",
-        "tonalRamp": ["#3a150e", "#5b2116", "#7d301f", "#a23c29", "#c94a38", "#d87364", "#e79c90", "#f6c5bd"]
+        "tonalRamp": [
+          "#3a150e",
+          "#5b2116",
+          "#7d301f",
+          "#a23c29",
+          "#c94a38",
+          "#d87364",
+          "#e79c90",
+          "#f6c5bd"
+        ]
       },
-      "attr-strength": { "role": "tertiary", "displayName": "Strength Red", "canonical": "#e24b3a", "tonalRamp": ["#421710", "#651f18", "#8a2921", "#b1372a", "#e24b3a", "#e97465", "#f19c92", "#f9c5bf"] },
-      "attr-agility": { "role": "tertiary", "displayName": "Agility Green", "canonical": "#a2d240", "tonalRamp": ["#2b3510", "#425019", "#5a6c22", "#7fa02f", "#a2d240", "#b7dc68", "#cde690", "#e3f1b8"] },
-      "attr-intelligence": { "role": "tertiary", "displayName": "Intelligence Blue", "canonical": "#4fb0e0", "tonalRamp": ["#123240", "#1c4d61", "#276882", "#3a8ab3", "#4fb0e0", "#78c2e7", "#a1d4ee", "#cae7f5"] },
-      "attr-universal": { "role": "tertiary", "displayName": "Universal Purple", "canonical": "#c47adf", "tonalRamp": ["#37204a", "#54306f", "#714094", "#9c5cbe", "#c47adf", "#d29ce7", "#e0beef", "#eee0f7"] },
-      "accent-info": { "role": "tertiary", "displayName": "Scouting Blue", "canonical": "#5a8fc2", "tonalRamp": ["#182a3a", "#254159", "#325778", "#446f9d", "#5a8fc2", "#80a8d1", "#a6c2e0", "#ccdcef"] },
-      "bg-void": { "role": "neutral", "displayName": "Void Black", "canonical": "#0b0b0d", "tonalRamp": ["#000000", "#08080a", "#0b0b0d", "#1a1a1d", "#2c2c30", "#454549", "#6a6a6e", "#a0a0a3"] },
-      "bg-card": { "role": "neutral", "displayName": "Ember Card", "canonical": "#16130f", "tonalRamp": ["#000000", "#0d0b08", "#16130f", "#251f18", "#3a3226", "#584d3b", "#7f7157", "#b0a084"] },
-      "border-default": { "role": "neutral", "displayName": "Panel Border", "canonical": "#2a2620", "tonalRamp": ["#0a0908", "#161310", "#2a2620", "#443d32", "#645a49", "#8c8066", "#b6a888", "#ddd0b3"] },
-      "text-muted": { "role": "neutral", "displayName": "Muted Parchment", "canonical": "#8a8474", "tonalRamp": ["#1f1d19", "#332f28", "#4a453a", "#655e4f", "#8a8474", "#a49e8e", "#c1bcae", "#dedbd2"] },
-      "text-foreground": { "role": "neutral", "displayName": "Foreground Cream", "canonical": "#dcd6c8", "tonalRamp": ["#2c2a24", "#484338", "#655e4d", "#8a8163", "#b0a586", "#dcd6c8", "#e8e4da", "#f4f2ec"] }
+      "attr-strength": {
+        "role": "tertiary",
+        "displayName": "Strength Red",
+        "canonical": "#e24b3a",
+        "tonalRamp": [
+          "#421710",
+          "#651f18",
+          "#8a2921",
+          "#b1372a",
+          "#e24b3a",
+          "#e97465",
+          "#f19c92",
+          "#f9c5bf"
+        ]
+      },
+      "attr-agility": {
+        "role": "tertiary",
+        "displayName": "Agility Green",
+        "canonical": "#a2d240",
+        "tonalRamp": [
+          "#2b3510",
+          "#425019",
+          "#5a6c22",
+          "#7fa02f",
+          "#a2d240",
+          "#b7dc68",
+          "#cde690",
+          "#e3f1b8"
+        ]
+      },
+      "attr-intelligence": {
+        "role": "tertiary",
+        "displayName": "Intelligence Blue",
+        "canonical": "#4fb0e0",
+        "tonalRamp": [
+          "#123240",
+          "#1c4d61",
+          "#276882",
+          "#3a8ab3",
+          "#4fb0e0",
+          "#78c2e7",
+          "#a1d4ee",
+          "#cae7f5"
+        ]
+      },
+      "attr-universal": {
+        "role": "tertiary",
+        "displayName": "Universal Purple",
+        "canonical": "#c47adf",
+        "tonalRamp": [
+          "#37204a",
+          "#54306f",
+          "#714094",
+          "#9c5cbe",
+          "#c47adf",
+          "#d29ce7",
+          "#e0beef",
+          "#eee0f7"
+        ]
+      },
+      "accent-info": {
+        "role": "tertiary",
+        "displayName": "Scouting Blue",
+        "canonical": "#5a8fc2",
+        "tonalRamp": [
+          "#182a3a",
+          "#254159",
+          "#325778",
+          "#446f9d",
+          "#5a8fc2",
+          "#80a8d1",
+          "#a6c2e0",
+          "#ccdcef"
+        ]
+      },
+      "bg-void": {
+        "role": "neutral",
+        "displayName": "Void Black",
+        "canonical": "#0b0b0d",
+        "tonalRamp": [
+          "#000000",
+          "#08080a",
+          "#0b0b0d",
+          "#1a1a1d",
+          "#2c2c30",
+          "#454549",
+          "#6a6a6e",
+          "#a0a0a3"
+        ]
+      },
+      "bg-card": {
+        "role": "neutral",
+        "displayName": "Ember Card",
+        "canonical": "#16130f",
+        "tonalRamp": [
+          "#000000",
+          "#0d0b08",
+          "#16130f",
+          "#251f18",
+          "#3a3226",
+          "#584d3b",
+          "#7f7157",
+          "#b0a084"
+        ]
+      },
+      "border-default": {
+        "role": "neutral",
+        "displayName": "Panel Border",
+        "canonical": "#2a2620",
+        "tonalRamp": [
+          "#0a0908",
+          "#161310",
+          "#2a2620",
+          "#443d32",
+          "#645a49",
+          "#8c8066",
+          "#b6a888",
+          "#ddd0b3"
+        ]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Muted Parchment",
+        "canonical": "#8a8474",
+        "tonalRamp": [
+          "#1f1d19",
+          "#332f28",
+          "#4a453a",
+          "#655e4f",
+          "#8a8474",
+          "#a49e8e",
+          "#c1bcae",
+          "#dedbd2"
+        ]
+      },
+      "text-foreground": {
+        "role": "neutral",
+        "displayName": "Foreground Cream",
+        "canonical": "#dcd6c8",
+        "tonalRamp": [
+          "#2c2a24",
+          "#484338",
+          "#655e4d",
+          "#8a8163",
+          "#b0a586",
+          "#dcd6c8",
+          "#e8e4da",
+          "#f4f2ec"
+        ]
+      }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Page titles only (league name, match ID). The one place Reaver appears." },
-      "title": { "displayName": "Panel Title", "purpose": "Section header inside a Panel, uppercase, wide tracking." },
-      "body": { "displayName": "Body", "purpose": "Table cells, names, list rows. The workhorse text style." },
-      "label": { "displayName": "Label", "purpose": "Column headers, tab text, badges, round labels." },
-      "mono": { "displayName": "Numeric/Tabular", "purpose": "Scores, win rates, ranks, durations; always tabular-nums." }
+      "display": {
+        "displayName": "Display",
+        "purpose": "Page titles only (league name, match ID). The one place Reaver appears."
+      },
+      "title": {
+        "displayName": "Panel Title",
+        "purpose": "Section header inside a Panel, uppercase, wide tracking."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Table cells, names, list rows. The workhorse text style."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Column headers, tab text, badges, round labels."
+      },
+      "mono": {
+        "displayName": "Numeric/Tabular",
+        "purpose": "Scores, win rates, ranks, durations; always tabular-nums."
+      }
     },
     "shadows": [
-      { "name": "tooltip-float", "value": "0 6px 24px rgba(0,0,0,0.7)", "purpose": "Ability tooltips and hovering detail panels that need to read as above the layout." },
-      { "name": "portrait-glow", "value": "0 0 32px 8px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)", "purpose": "Ambient separation for a hero/ability image sitting over busy background art." },
-      { "name": "active-row-inset", "value": "inset 3px 0 0 var(--accent)", "purpose": "Marks the selected row in a roster or timeline list via a colored inset edge, not a lift." },
-      { "name": "text-legibility", "value": "0 1px 3px rgba(0,0,0,0.9)", "purpose": "Applied to text over background artwork or team logos as a contrast fix, not decoration." }
+      {
+        "name": "tooltip-float",
+        "value": "0 6px 24px rgba(0,0,0,0.7)",
+        "purpose": "Ability tooltips and hovering detail panels that need to read as above the layout."
+      },
+      {
+        "name": "portrait-glow",
+        "value": "0 0 32px 8px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)",
+        "purpose": "Ambient separation for a hero/ability image sitting over busy background art."
+      },
+      {
+        "name": "active-row-inset",
+        "value": "inset 3px 0 0 var(--accent)",
+        "purpose": "Marks the selected row in a roster or timeline list via a colored inset edge, not a lift."
+      },
+      {
+        "name": "text-legibility",
+        "value": "0 1px 3px rgba(0,0,0,0.9)",
+        "purpose": "Applied to text over background artwork or team logos as a contrast fix, not decoration."
+      }
     ],
     "motion": [],
     "breakpoints": []
@@ -128,9 +353,21 @@
       "Data honesty: incomplete or approximate data is labeled as such, never hidden or faked"
     ],
     "rules": [
-      { "name": "The Named-Color Rule", "body": "Every color in this system either comes from Dota 2's own UI/lore vocabulary (Radiant, Dire, Aegis Gold, the four attribute colors) or is a deliberately restrained neutral. If a new color is ever needed, ask first whether Dota 2 already has a name for it before inventing one.", "section": "colors" },
-      { "name": "The Uppercase-Label Rule", "body": "Any text acting as a label rather than content (section titles, column headers, tab text, badges) is uppercase with positive letter-spacing. Body content (names, values) is never uppercased.", "section": "typography" },
-      { "name": "The Flat-By-Default Rule", "body": "Nothing gets a drop shadow just for being a card. Shadow is a functional answer to \"this needs to read as above something else,\" never a default treatment for containers.", "section": "elevation" }
+      {
+        "name": "The Named-Color Rule",
+        "body": "Every color in this system either comes from Dota 2's own UI/lore vocabulary (Radiant, Dire, Aegis Gold, the four attribute colors) or is a deliberately restrained neutral. If a new color is ever needed, ask first whether Dota 2 already has a name for it before inventing one.",
+        "section": "colors"
+      },
+      {
+        "name": "The Uppercase-Label Rule",
+        "body": "Any text acting as a label rather than content (section titles, column headers, tab text, badges) is uppercase with positive letter-spacing. Body content (names, values) is never uppercased.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Nothing gets a drop shadow just for being a card. Shadow is a functional answer to \"this needs to read as above something else,\" never a default treatment for containers.",
+        "section": "elevation"
+      }
     ],
     "dos": [
       "Do name colors after Dota 2's own vocabulary first (Radiant, Dire, Aegis Gold, the attribute quartet) before inventing a new descriptive name.",

@@ -23,7 +23,10 @@ export type BracketParentLinks = Map<string, { a?: string; b?: string }>
 // leave a parent and child more than one column apart), which is why
 // `isAdjacentRound` exists as a rendering-side safety net independent of
 // which direction this is computed from.
-export function inferBracket(series: Series[]): { rounds: Series[][]; parentOf: BracketParentLinks } {
+export function inferBracket(series: Series[]): {
+  rounds: Series[][]
+  parentOf: BracketParentLinks
+} {
   const lastSeriesOf = new Map<number, string>()
   const parentOf: BracketParentLinks = new Map()
   const oldestFirst = [...series].sort((a, b) => a.lastStartTime - b.lastStartTime)
@@ -66,7 +69,10 @@ export function inferBracket(series: Series[]): { rounds: Series[][]; parentOf: 
 // approximation above, a team can carry over into the next inferred round
 // despite having lost. Callers coloring a connector line as a winner's path
 // must check this, not just whether the parent series had a decisive score.
-export function isWinningContinuation(continuingTeamId: number | null, parentSeries: Series | undefined): boolean {
+export function isWinningContinuation(
+  continuingTeamId: number | null,
+  parentSeries: Series | undefined,
+): boolean {
   if (continuingTeamId == null || parentSeries == null) return false
   if (parentSeries.teamA === continuingTeamId) return parentSeries.scoreA > parentSeries.scoreB
   if (parentSeries.teamB === continuingTeamId) return parentSeries.scoreB > parentSeries.scoreA
@@ -81,6 +87,9 @@ export function isWinningContinuation(continuingTeamId: number | null, parentSer
 // one. A connector line drawn straight from that parent to this child would
 // cut across the intervening round's cards, so callers should only draw a
 // connector when the parent is in the immediately preceding round.
-export function isAdjacentRound(parentRoundIndex: number | undefined, childRoundIndex: number): boolean {
+export function isAdjacentRound(
+  parentRoundIndex: number | undefined,
+  childRoundIndex: number,
+): boolean {
   return parentRoundIndex != null && childRoundIndex - parentRoundIndex === 1
 }

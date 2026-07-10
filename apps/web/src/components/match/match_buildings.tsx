@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { HeroStat, Match, MatchPlayer } from 'types'
-import { BUILDINGS, MAP_MAX, MAP_MIN, buildingDeathTimes } from '@/lib/buildings'
+import { BUILDINGS, buildingDeathTimes, MAP_MAX, MAP_MIN } from '@/lib/buildings'
 import { playerColor } from '@/lib/dotaconst'
 import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
 import { formatClock } from './match_time'
@@ -25,7 +25,12 @@ const C = {
 
 const pct = (v: number) => `${((v - MAP_MIN) / (MAP_MAX - MAP_MIN)) * 100}%`
 
-type Attacker = { player: MatchPlayer; hero: HeroStat | undefined; damage: number; lastHit: boolean }
+type Attacker = {
+  player: MatchPlayer
+  hero: HeroStat | undefined
+  damage: number
+  lastHit: boolean
+}
 type BuildingInfo = {
   attackers: Attacker[]
   creepDamage: number
@@ -111,7 +116,10 @@ function BuildingTooltip({
       }}
     >
       <div className="mb-1 flex items-center justify-between">
-        <span className={`text-[13px] font-bold uppercase ${team === 'radiant' ? 'text-radiant' : 'text-dire'}`} style={{ letterSpacing: '1px' }}>
+        <span
+          className={`text-[13px] font-bold uppercase ${team === 'radiant' ? 'text-radiant' : 'text-dire'}`}
+          style={{ letterSpacing: '1px' }}
+        >
           {label}
         </span>
         <span className="text-[12px] text-slate-muted">
@@ -120,20 +128,27 @@ function BuildingTooltip({
       </div>
 
       {info.attackers.length === 0 && info.creepDamage === 0 ? (
-        <div className="py-1 text-[12px] text-slate-muted">
-          Took no recorded damage.
-        </div>
+        <div className="py-1 text-[12px] text-slate-muted">Took no recorded damage.</div>
       ) : (
         <>
-          <div className="mb-1.5 flex h-[6px] w-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <div
+            className="mb-1.5 flex h-[6px] w-full overflow-hidden"
+            style={{ background: 'rgba(255,255,255,0.08)' }}
+          >
             {info.attackers.map((a) => (
               <div
                 key={a.player.player_slot}
-                style={{ width: `${(a.damage / total) * 100}%`, background: playerColor(a.player.player_slot) }}
+                style={{
+                  width: `${(a.damage / total) * 100}%`,
+                  background: playerColor(a.player.player_slot),
+                }}
               />
             ))}
             {info.creepDamage > 0 && (
-              <div className={team === 'radiant' ? 'bg-dire' : 'bg-radiant'} style={{ width: `${(info.creepDamage / total) * 100}%`, opacity: 0.5 }} />
+              <div
+                className={team === 'radiant' ? 'bg-dire' : 'bg-radiant'}
+                style={{ width: `${(info.creepDamage / total) * 100}%`, opacity: 0.5 }}
+              />
             )}
           </div>
           <div className="space-y-1">
@@ -153,19 +168,23 @@ function BuildingTooltip({
                     />
                   </a>
                 )}
-                <span className="tabular-nums text-white" style={{ minWidth: 38 }}>{a.damage.toLocaleString()}</span>
+                <span className="tabular-nums text-white" style={{ minWidth: 38 }}>
+                  {a.damage.toLocaleString()}
+                </span>
                 <span className="truncate" style={{ color: playerColor(a.player.player_slot) }}>
                   {a.player.personaname ?? 'Anonymous'}
                 </span>
-                {a.lastHit && (
-                  <span className="ml-auto shrink-0 text-gold">last hit</span>
-                )}
+                {a.lastHit && <span className="ml-auto shrink-0 text-gold">last hit</span>}
               </div>
             ))}
             {info.creepDamage > 0 && (
               <div className="flex items-center gap-1.5 text-[12px]">
-                <span className="text-slate-muted" style={{ width: 18, textAlign: 'center' }}>⚔</span>
-                <span className="tabular-nums text-white" style={{ minWidth: 38 }}>{info.creepDamage.toLocaleString()}</span>
+                <span className="text-slate-muted" style={{ width: 18, textAlign: 'center' }}>
+                  ⚔
+                </span>
+                <span className="tabular-nums text-white" style={{ minWidth: 38 }}>
+                  {info.creepDamage.toLocaleString()}
+                </span>
                 <span className="text-slate-muted">creeps</span>
                 {info.creepLastHit && <span className="ml-auto shrink-0 text-gold">last hit</span>}
               </div>
@@ -209,16 +228,26 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
   return (
     <div className="flex flex-wrap gap-4 font-dota">
       <div className="min-w-[420px] flex-1" style={{ background: C.panel }}>
-        <div className="px-4 py-3 text-[15px] uppercase text-white" style={{ letterSpacing: '2px', background: C.panelDark }}>
+        <div
+          className="px-4 py-3 text-[15px] uppercase text-white"
+          style={{ letterSpacing: '2px', background: C.panelDark }}
+        >
           Buildings Map
         </div>
         <div className="flex justify-center p-4">
-          <div className="relative w-full max-w-[560px] border border-solid border-slate-bg" style={{ aspectRatio: '1' }}>
+          <div
+            className="relative w-full max-w-[560px] border border-solid border-slate-bg"
+            style={{ aspectRatio: '1' }}
+          >
             <img src="/minimap.webp" alt="" className="absolute inset-0 h-full w-full" />
 
             {BUILDINGS.map((b, i) => {
               const dead = deaths[i] !== Number.POSITIVE_INFINITY
-              const bgClass = dead ? 'bg-slate-border' : b.team === 'radiant' ? 'bg-radiant' : 'bg-dire'
+              const bgClass = dead
+                ? 'bg-slate-border'
+                : b.team === 'radiant'
+                  ? 'bg-radiant'
+                  : 'bg-dire'
               const size = b.kind === 'fort' ? 16 : b.kind === 'tower' ? 11 : 8
               return (
                 <span
@@ -273,7 +302,11 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
                       />
                     )
                     return hero ? (
-                      <a key={p.player_slot} href={`/hero/${heroSlug(hero.localized_name)}`} className="block">
+                      <a
+                        key={p.player_slot}
+                        href={`/hero/${heroSlug(hero.localized_name)}`}
+                        className="block"
+                      >
                         {img}
                       </a>
                     ) : (
@@ -286,13 +319,17 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
           </div>
         </div>
         <p className="px-4 pb-4 text-center text-[13px] text-slate-muted">
-          Hover a building for its damage breakdown. Dimmed buildings were destroyed. Hero icons mark laning assignments.
+          Hover a building for its damage breakdown. Dimmed buildings were destroyed. Hero icons
+          mark laning assignments.
         </p>
       </div>
 
       {/* Destruction order */}
       <div className="w-[320px] shrink-0 self-start" style={{ background: C.panel }}>
-        <div className="px-4 py-3 text-[15px] uppercase text-white" style={{ letterSpacing: '2px', background: C.panelDark }}>
+        <div
+          className="px-4 py-3 text-[15px] uppercase text-white"
+          style={{ letterSpacing: '2px', background: C.panelDark }}
+        >
           Destruction Order
         </div>
         <div className="max-h-[560px] overflow-y-auto">
@@ -308,7 +345,10 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
                 <span className="w-11 shrink-0 text-right tabular-nums text-slate-muted">
                   {formatClock(at)}
                 </span>
-                <span className={b.team === 'radiant' ? 'bg-radiant' : 'bg-dire'} style={{ width: 3, height: 20 }} />
+                <span
+                  className={b.team === 'radiant' ? 'bg-radiant' : 'bg-dire'}
+                  style={{ width: 3, height: 20 }}
+                />
                 <span className="text-slate-foreground">
                   {b.team === 'radiant' ? 'Radiant' : 'Dire'} {b.label}
                 </span>
@@ -347,7 +387,14 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
             label={`${BUILDINGS[hover.idx].team === 'radiant' ? 'Radiant' : 'Dire'} ${BUILDINGS[hover.idx].label}`}
             team={BUILDINGS[hover.idx].team}
             maxHp={BUILDINGS[hover.idx].maxHp}
-            info={info.get(BUILDINGS[hover.idx].key) ?? { attackers: [], creepDamage: 0, creepLastHit: false, deadAt: null }}
+            info={
+              info.get(BUILDINGS[hover.idx].key) ?? {
+                attackers: [],
+                creepDamage: 0,
+                creepLastHit: false,
+                deadAt: null,
+              }
+            }
             x={hover.x}
             y={hover.y}
           />,

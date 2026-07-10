@@ -17,14 +17,29 @@ export function formatClock(seconds: number): string {
 // Whether the match has any per-time data worth scrubbing through.
 export function hasTimeline(match: Match): boolean {
   return match.players.some(
-    (p) => (p.gold_t?.length ?? 0) > 1 || (p.purchase_log?.length ?? 0) > 0 || (p.kills_log?.length ?? 0) > 0,
+    (p) =>
+      (p.gold_t?.length ?? 0) > 1 ||
+      (p.purchase_log?.length ?? 0) > 0 ||
+      (p.kills_log?.length ?? 0) > 0,
   )
 }
 
 const INVENTORY_CONSUMABLES = new Set([
-  'tpscroll', 'flask', 'clarity', 'faerie_fire', 'smoke_of_deceit', 'dust',
-  'ward_observer', 'ward_sentry', 'ward_dispenser', 'tango', 'tango_single',
-  'enchanted_mango', 'blood_grenade', 'tome_of_knowledge', 'cheese',
+  'tpscroll',
+  'flask',
+  'clarity',
+  'faerie_fire',
+  'smoke_of_deceit',
+  'dust',
+  'ward_observer',
+  'ward_sentry',
+  'ward_dispenser',
+  'tango',
+  'tango_single',
+  'enchanted_mango',
+  'blood_grenade',
+  'tome_of_knowledge',
+  'cheese',
 ])
 
 // Inventory at `timeSec`, simulated from the purchase log: each purchase
@@ -38,7 +53,14 @@ export function itemsAtTime(
   durationSec: number,
   itemConst: Record<string, ItemConst> = {},
 ): number[] {
-  const finalItems = [player.item_0, player.item_1, player.item_2, player.item_3, player.item_4, player.item_5]
+  const finalItems = [
+    player.item_0,
+    player.item_1,
+    player.item_2,
+    player.item_3,
+    player.item_4,
+    player.item_5,
+  ]
   const log = player.purchase_log ?? []
   if (timeSec >= durationSec || log.length === 0) return finalItems
 
@@ -92,7 +114,14 @@ function upgradeSource(
   itemName: string,
   summaryField: number | null | undefined,
 ): UpgradeSource {
-  const finalItems = [player.item_0, player.item_1, player.item_2, player.item_3, player.item_4, player.item_5]
+  const finalItems = [
+    player.item_0,
+    player.item_1,
+    player.item_2,
+    player.item_3,
+    player.item_4,
+    player.item_5,
+  ]
   if (finalItems.some((id) => idToName.get(id) === itemName)) return 'held'
   if ((player.purchase_log ?? []).some((e) => e.key === itemName)) return 'sold'
   if ((summaryField ?? 0) > 0) return 'blessing'
@@ -108,7 +137,9 @@ export function shardSource(player: MatchPlayer, idToName: Map<number, string>):
 }
 
 export function hasMoonshardBuff(player: MatchPlayer): boolean {
-  return (player.moonshard ?? 0) > 0 || (player.purchase_log ?? []).some((e) => e.key === 'moon_shard')
+  return (
+    (player.moonshard ?? 0) > 0 || (player.purchase_log ?? []).some((e) => e.key === 'moon_shard')
+  )
 }
 
 export type TimedStats = {
@@ -163,14 +194,15 @@ export function statsAtTime(
     atEnd || !hasEnemyKillLogs
       ? player.deaths
       : allPlayers.reduce(
-          (s, pl) => s + (pl.kills_log ?? []).filter((e) => e.key === heroName && e.time <= timeSec).length,
+          (s, pl) =>
+            s + (pl.kills_log ?? []).filter((e) => e.key === heroName && e.time <= timeSec).length,
           0,
         )
   // Assists have no per-time series in the OpenDota response. Every assist is
   // tied to a team kill, so scale the final count by the team's kill
   // progression at the scrub time — a close approximation when parsed.
   const isRadiant = player.player_slot < 128
-  const teammates = allPlayers.filter((pl) => (pl.player_slot < 128) === isRadiant)
+  const teammates = allPlayers.filter((pl) => pl.player_slot < 128 === isRadiant)
   const teamKillsTotal = teammates.reduce((s, pl) => s + (pl.kills_log?.length ?? 0), 0)
   const assists =
     atEnd || teamKillsTotal === 0
@@ -229,7 +261,7 @@ export function damageHealAtTime(
 export function teamScoreAtTime(match: Match, isRadiant: boolean, timeSec: number): number {
   const finalScore = isRadiant ? match.radiant_score : match.dire_score
   if (timeSec >= match.duration) return finalScore
-  const team = match.players.filter((p) => (p.player_slot < 128) === isRadiant)
+  const team = match.players.filter((p) => p.player_slot < 128 === isRadiant)
   if (!team.some((p) => (p.kills_log?.length ?? 0) > 0)) return finalScore
   return team.reduce((s, p) => s + (p.kills_log ?? []).filter((e) => e.time <= timeSec).length, 0)
 }
@@ -287,7 +319,10 @@ export function GameTimeSlider({
           className="absolute left-0 right-0 h-[12px]"
           style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.35)' }}
         />
-        <div className="absolute left-0 h-[12px]" style={{ width: `${pct * 100}%`, background: 'rgba(255,255,255,0.18)' }} />
+        <div
+          className="absolute left-0 h-[12px]"
+          style={{ width: `${pct * 100}%`, background: 'rgba(255,255,255,0.18)' }}
+        />
         {duration > 0 &&
           markers?.map((m, i) => (
             <div

@@ -1,6 +1,5 @@
-import type { Match } from 'types'
+import type { HeroStat, Match } from 'types'
 import { formatDuration, heroIconFromPath } from '@/lib/utils'
-import type { HeroStat } from 'types'
 
 type TimelineEvent = {
   time: number
@@ -91,16 +90,16 @@ export function Timeline({
 
   const windowStart = activeMinute * 60 - 30
   const windowEnd = activeMinute * 60 + 30
-  const nearbyEvents = allEvents.filter(
-    (e) => e.time >= windowStart && e.time <= windowEnd,
-  )
+  const nearbyEvents = allEvents.filter((e) => e.time >= windowStart && e.time <= windowEnd)
 
   const maxAdv = goldAdv ? Math.max(...goldAdv.map(Math.abs), 1) : 1
 
   return (
     <div className="space-y-3 px-4 pb-4">
       <div className="flex items-center gap-3">
-        <span className="w-14 font-mono text-sm text-accent">{formatDuration(activeMinute * 60)}</span>
+        <span className="w-14 font-mono text-sm text-accent">
+          {formatDuration(activeMinute * 60)}
+        </span>
         <input
           type="range"
           min={0}
@@ -166,7 +165,9 @@ export function Timeline({
       </div>
 
       <div>
-        <div className="mb-1.5 text-xs text-muted">Events near {formatDuration(activeMinute * 60)}</div>
+        <div className="mb-1.5 text-xs text-muted">
+          Events near {formatDuration(activeMinute * 60)}
+        </div>
         {nearbyEvents.length === 0 ? (
           <div className="text-xs text-muted italic">No events</div>
         ) : (

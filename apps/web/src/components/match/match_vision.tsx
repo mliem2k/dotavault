@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { HeroStat, MatchPlayer } from 'types'
 import { formatDuration, heroIconFromPath, heroIconUrl } from '@/lib/utils'
-import { GameTimeSlider } from './match_time'
 import { PlayerNameLink } from './match_roster'
+import { GameTimeSlider } from './match_time'
 
 const PLAYER_COLORS: Record<number, string> = {
-  0: '#3375FF', 1: '#66FFBF', 2: '#BF00BF', 3: '#F3F00B', 4: '#FF6600',
-  128: '#FE87C4', 129: '#A1B477', 130: '#65D9F7', 131: '#007A00', 132: '#A46900',
+  0: '#3375FF',
+  1: '#66FFBF',
+  2: '#BF00BF',
+  3: '#F3F00B',
+  4: '#FF6600',
+  128: '#FE87C4',
+  129: '#A1B477',
+  130: '#65D9F7',
+  131: '#007A00',
+  132: '#A46900',
 }
 
 const C = {
@@ -28,7 +36,14 @@ function toCanvas(val: number, size: number): number {
   return ((val - MAP_MIN) / (MAP_MAX - MAP_MIN)) * size
 }
 
-type LiveWard = { x: number; y: number; time: number; until: number | null; obs: boolean; slot: number }
+type LiveWard = {
+  x: number
+  y: number
+  time: number
+  until: number | null
+  obs: boolean
+  slot: number
+}
 
 /* Pair each placed ward with its removal entry (same map cell, first removal
    after placement) so scrubbing can show only wards alive at a given time. */
@@ -69,7 +84,17 @@ export function MatchVision({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const mapImgRef = useRef<HTMLImageElement | null>(null)
   // Hit-test registry, filled during draw() in canvas backing coordinates.
-  const markersRef = useRef<{ cx: number; cy: number; r: number; obs: boolean; slot: number; time: number; until: number | null }[]>([])
+  const markersRef = useRef<
+    {
+      cx: number
+      cy: number
+      r: number
+      obs: boolean
+      slot: number
+      time: number
+      until: number | null
+    }[]
+  >([])
   const [hover, setHover] = useState<{
     x: number
     y: number
@@ -98,10 +123,9 @@ export function MatchVision({
 
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
 
-  const hasData = players.some(
-    (p) => (p.obs_log?.length ?? 0) > 0 || (p.sen_log?.length ?? 0) > 0,
-  )
+  const hasData = players.some((p) => (p.obs_log?.length ?? 0) > 0 || (p.sen_log?.length ?? 0) > 0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally load the minimap image once on mount; draw is redefined every render, so listing it would reload the static image on every render instead of once
   useEffect(() => {
     const img = new Image()
     img.src = '/minimap.webp'
@@ -132,8 +156,7 @@ export function MatchVision({
     const sel = selectedRef.current
     const m = modeRef.current
     const teamOf = (slot: number) => (slot < 128 ? 'radiant' : 'dire')
-    const teamVisible = (slot: number) =>
-      m === 'all' || m === 'both' ? true : teamOf(slot) === m
+    const teamVisible = (slot: number) => (m === 'all' || m === 'both' ? true : teamOf(slot) === m)
     const isAlive = (w: (typeof wardsRef.current)[number]) =>
       w.time <= t && (w.until == null || w.until > t)
 
@@ -194,7 +217,15 @@ export function MatchVision({
       const cy = size - toCanvas(ward.y, size)
 
       if (ward.obs) {
-        markersRef.current.push({ cx, cy, r: 9 * k, obs: true, slot: ward.slot, time: ward.time, until: ward.until })
+        markersRef.current.push({
+          cx,
+          cy,
+          r: 9 * k,
+          obs: true,
+          slot: ward.slot,
+          time: ward.time,
+          until: ward.until,
+        })
         ctx.beginPath()
         ctx.arc(cx, cy, 9 * k, 0, Math.PI * 2)
         ctx.fillStyle = `${color}cc`
@@ -208,7 +239,15 @@ export function MatchVision({
         ctx.fillStyle = '#fff'
         ctx.fill()
       } else {
-        markersRef.current.push({ cx, cy, r: 10 * k, obs: false, slot: ward.slot, time: ward.time, until: ward.until })
+        markersRef.current.push({
+          cx,
+          cy,
+          r: 10 * k,
+          obs: false,
+          slot: ward.slot,
+          time: ward.time,
+          until: ward.until,
+        })
         // Sentry: diamond shape
         ctx.beginPath()
         ctx.moveTo(cx, cy - 10 * k)
@@ -304,7 +343,12 @@ export function MatchVision({
             ref={canvasRef}
             width={CANVAS_SIZE}
             height={CANVAS_SIZE}
-            style={{ width: DISPLAY_SIZE, height: DISPLAY_SIZE, display: 'block', cursor: hover ? 'pointer' : 'default' }}
+            style={{
+              width: DISPLAY_SIZE,
+              height: DISPLAY_SIZE,
+              display: 'block',
+              cursor: hover ? 'pointer' : 'default',
+            }}
             onMouseMove={(e) => {
               const canvas = canvasRef.current
               if (!canvas) return
@@ -323,62 +367,84 @@ export function MatchVision({
                   bestDist = d
                 }
               }
-              setHover(best ? { x: dx, y: dy, obs: best.obs, slot: best.slot, time: best.time, until: best.until } : null)
+              setHover(
+                best
+                  ? {
+                      x: dx,
+                      y: dy,
+                      obs: best.obs,
+                      slot: best.slot,
+                      time: best.time,
+                      until: best.until,
+                    }
+                  : null,
+              )
             }}
             onMouseLeave={() => setHover(null)}
           />
-          {hover && (() => {
-            const player = players.find((p) => p.player_slot === hover.slot)
-            const hero = player ? heroMap.get(player.hero_id) : undefined
-            const color = PLAYER_COLORS[hover.slot] ?? '#888'
-            const flipX = hover.x > DISPLAY_SIZE - 190
-            const flipY = hover.y > DISPLAY_SIZE - 90
-            return (
-              <div
-                className="absolute z-10 pointer-events-none border border-slate-border"
-                style={{
-                  left: flipX ? undefined : hover.x + 26,
-                  right: flipX ? DISPLAY_SIZE - hover.x + 10 : undefined,
-                  top: flipY ? undefined : hover.y + 24,
-                  bottom: flipY ? DISPLAY_SIZE - hover.y + 8 : undefined,
-                  background: 'rgba(10,13,15,0.96)',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.7)',
-                  padding: '8px 12px',
-                  minWidth: 170,
-                }}
-              >
-                <div className={`text-[13px] uppercase mb-1 ${hover.obs ? 'text-gold' : ''}`} style={{ color: hover.obs ? undefined : '#65a9d9', letterSpacing: '1px' }}>
-                  {hover.obs ? '● Observer Ward' : '◆ Sentry Ward'}
-                </div>
-                <div className="flex items-center gap-2">
-                  {hero && (
-                    <img
-                      src={heroIconUrl(hero.name)}
-                      alt=""
-                      style={{ width: 26, height: 26, borderLeft: `3px solid ${color}` }}
-                      onError={(e) => {
-                        const img = e.currentTarget
-                        img.onerror = null
-                        img.src = heroIconFromPath(hero.icon)
-                      }}
-                    />
-                  )}
-                  <div className="min-w-0">
-                    <div className="text-[14px] truncate text-white">{hero?.localized_name}</div>
-                    <div className="text-[11px] truncate text-slate-muted">{player?.personaname ?? 'Anonymous'}</div>
+          {hover &&
+            (() => {
+              const player = players.find((p) => p.player_slot === hover.slot)
+              const hero = player ? heroMap.get(player.hero_id) : undefined
+              const color = PLAYER_COLORS[hover.slot] ?? '#888'
+              const flipX = hover.x > DISPLAY_SIZE - 190
+              const flipY = hover.y > DISPLAY_SIZE - 90
+              return (
+                <div
+                  className="absolute z-10 pointer-events-none border border-slate-border"
+                  style={{
+                    left: flipX ? undefined : hover.x + 26,
+                    right: flipX ? DISPLAY_SIZE - hover.x + 10 : undefined,
+                    top: flipY ? undefined : hover.y + 24,
+                    bottom: flipY ? DISPLAY_SIZE - hover.y + 8 : undefined,
+                    background: 'rgba(10,13,15,0.96)',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.7)',
+                    padding: '8px 12px',
+                    minWidth: 170,
+                  }}
+                >
+                  <div
+                    className={`text-[13px] uppercase mb-1 ${hover.obs ? 'text-gold' : ''}`}
+                    style={{ color: hover.obs ? undefined : '#65a9d9', letterSpacing: '1px' }}
+                  >
+                    {hover.obs ? '● Observer Ward' : '◆ Sentry Ward'}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {hero && (
+                      <img
+                        src={heroIconUrl(hero.name)}
+                        alt=""
+                        style={{ width: 26, height: 26, borderLeft: `3px solid ${color}` }}
+                        onError={(e) => {
+                          const img = e.currentTarget
+                          img.onerror = null
+                          img.src = heroIconFromPath(hero.icon)
+                        }}
+                      />
+                    )}
+                    <div className="min-w-0">
+                      <div className="text-[14px] truncate text-white">{hero?.localized_name}</div>
+                      <div className="text-[11px] truncate text-slate-muted">
+                        {player?.personaname ?? 'Anonymous'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-1 text-[13px] tabular-nums text-slate-foreground">
+                    Placed at{' '}
+                    <span className="text-white">{formatDuration(Math.max(0, hover.time))}</span>
+                    {hover.until != null && (
+                      <>
+                        {' '}
+                        · until{' '}
+                        <span className="text-white">
+                          {formatDuration(Math.max(0, hover.until))}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
-                <div className="mt-1 text-[13px] tabular-nums text-slate-foreground">
-                  Placed at <span className="text-white">{formatDuration(Math.max(0, hover.time))}</span>
-                  {hover.until != null && (
-                    <>
-                      {' '}· until <span className="text-white">{formatDuration(Math.max(0, hover.until))}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            )
-          })()}
+              )
+            })()}
         </div>
         <div className="px-3 pb-3">
           <GameTimeSlider timeSec={timeSec} duration={duration} onChange={setTimeSec} />
@@ -394,12 +460,17 @@ export function MatchVision({
           Wards Placed
         </div>
         <div className="px-4 py-3">
-          <div className="flex gap-8 pb-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div
+            className="flex gap-8 pb-3"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          >
             <span className="text-[15px] text-slate-muted-light">
-              ● Observers <span className="ml-1 text-[17px] tabular-nums text-white">{obsTotal}</span>
+              ● Observers{' '}
+              <span className="ml-1 text-[17px] tabular-nums text-white">{obsTotal}</span>
             </span>
             <span className="text-[15px] text-slate-muted-light">
-              ◆ Sentries <span className="ml-1 text-[17px] tabular-nums text-white">{senTotal}</span>
+              ◆ Sentries{' '}
+              <span className="ml-1 text-[17px] tabular-nums text-white">{senTotal}</span>
             </span>
           </div>
           {warders.map((p) => {
@@ -436,7 +507,10 @@ export function MatchVision({
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="text-[15px] truncate text-white">{hero?.localized_name}</div>
-                  <PlayerNameLink player={p} className="block text-[12px] truncate text-slate-muted" />
+                  <PlayerNameLink
+                    player={p}
+                    className="block text-[12px] truncate text-slate-muted"
+                  />
                 </div>
                 <span className="text-[15px] tabular-nums shrink-0 text-slate-foreground">
                   ● {obs}

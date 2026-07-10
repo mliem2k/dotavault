@@ -49,7 +49,11 @@ function LeaguesPage() {
   const [search, setSearch] = useState(urlSearch.q ?? '')
   const [debouncedSearch, setDebouncedSearch] = useState(urlSearch.q ?? '')
   const [tier, setTier] = useState<string>(urlSearch.tier ?? 'all')
-  const { key: sortKey, dir: sortDir, onSort } = useSort<SortKey>(urlSearch.sort ?? 'tier', urlSearch.dir ?? 'asc')
+  const {
+    key: sortKey,
+    dir: sortDir,
+    onSort,
+  } = useSort<SortKey>(urlSearch.sort ?? 'tier', urlSearch.dir ?? 'asc')
 
   // Debounce so every keystroke doesn't re-filter/re-sort the full leagues
   // list (up to 300 rows deep); only the settled value feeds the memo below.
@@ -151,14 +155,31 @@ function LeaguesPage() {
         )}
       </div>
 
-      <div className="max-w-[720px] mx-auto border border-border" style={{ background: 'rgba(12,11,14,0.72)' }}>
+      <div
+        className="max-w-[720px] mx-auto border border-border"
+        style={{ background: 'rgba(12,11,14,0.72)' }}
+      >
         {leagues.data && rows.length > 0 && (
           <div
             className="flex items-center gap-3 px-4 py-2 text-[12px] uppercase text-muted font-dota border-b border-border"
             style={{ letterSpacing: '1px' }}
           >
-            <SortHeader label="Name" sortKey="name" active={sortKey === 'name'} dir={sortDir} onClick={onSort} className="flex-1" />
-            <SortHeader label="Tier" sortKey="tier" active={sortKey === 'tier'} dir={sortDir} onClick={onSort} className="shrink-0" />
+            <SortHeader
+              label="Name"
+              sortKey="name"
+              active={sortKey === 'name'}
+              dir={sortDir}
+              onClick={onSort}
+              className="flex-1"
+            />
+            <SortHeader
+              label="Tier"
+              sortKey="tier"
+              active={sortKey === 'tier'}
+              dir={sortDir}
+              onClick={onSort}
+              className="shrink-0"
+            />
           </div>
         )}
         {leagues.isPending && (

@@ -21,7 +21,8 @@ export function heroIconFromPath(iconPath: string): string {
   return `/heroes/${filename.replace('.png', '.webp')}`
 }
 
-export const ITEM_CDN_FALLBACK = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items'
+export const ITEM_CDN_FALLBACK =
+  'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items'
 
 export function itemIconUrl(name: string): string {
   return `/items/${name}.webp`
@@ -51,7 +52,9 @@ export const heroVertUrl = (name: string) => `/portraits/${short(name)}_vert.web
 export const heroVertCdn = (name: string) => `${IMG_CDN}/heroes/${short(name)}_vert.jpg`
 export const abilityIconUrl = (name: string) => `/abilities/${name}.webp`
 export const abilityIconCdn = (name: string, imgPath?: string) =>
-  imgPath ? `https://cdn.cloudflare.steamstatic.com${imgPath}` : `${IMG_CDN}/dota_react/abilities/${name}.png`
+  imgPath
+    ? `https://cdn.cloudflare.steamstatic.com${imgPath}`
+    : `${IMG_CDN}/dota_react/abilities/${name}.png`
 export const dotaIconUrl = (name: string) => `/dota_icons/${name}.webp`
 
 export const AGHS_SCEPTER_CDN = `${IMG_CDN2}/dota_react/heroes/stats/aghs_scepter.png`
@@ -78,7 +81,11 @@ export function formatTimeAgo(unixTimestamp: number): string {
 }
 
 export function formatDate(unixTimestamp: number): string {
-  return new Date(unixTimestamp * 1000).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })
+  return new Date(unixTimestamp * 1000).toLocaleDateString([], {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
 }
 
 export function winRate(wins: number, total: number): string {

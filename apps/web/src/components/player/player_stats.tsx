@@ -19,18 +19,38 @@ type Total = { field: string; n: number; sum: number }
 type Counts = Record<string, Record<string, { games: number; win: number }>>
 
 const GAME_MODES: Record<string, string> = {
-  '1': 'All Pick', '2': 'Captains Mode', '3': 'Random Draft', '4': 'Single Draft',
-  '5': 'All Random', '12': 'Least Played', '16': 'Captains Draft', '18': 'Ability Draft',
-  '19': 'Event', '20': 'ARDM', '22': 'Ranked All Pick', '23': 'Turbo',
+  '1': 'All Pick',
+  '2': 'Captains Mode',
+  '3': 'Random Draft',
+  '4': 'Single Draft',
+  '5': 'All Random',
+  '12': 'Least Played',
+  '16': 'Captains Draft',
+  '18': 'Ability Draft',
+  '19': 'Event',
+  '20': 'ARDM',
+  '22': 'Ranked All Pick',
+  '23': 'Turbo',
 }
 
 const LOBBY_TYPES: Record<string, string> = {
-  '0': 'Normal', '1': 'Practice', '2': 'Tournament', '4': 'Co-op Bots',
-  '5': 'Ranked Team', '6': 'Ranked Solo', '7': 'Ranked', '8': '1v1 Mid', '9': 'Battle Cup',
+  '0': 'Normal',
+  '1': 'Practice',
+  '2': 'Tournament',
+  '4': 'Co-op Bots',
+  '5': 'Ranked Team',
+  '6': 'Ranked Solo',
+  '7': 'Ranked',
+  '8': '1v1 Mid',
+  '9': 'Battle Cup',
 }
 
 const LANE_ROLES: Record<string, string> = {
-  '0': 'Unknown', '1': 'Safe Lane', '2': 'Mid Lane', '3': 'Off Lane', '4': 'Jungle',
+  '0': 'Unknown',
+  '1': 'Safe Lane',
+  '2': 'Mid Lane',
+  '3': 'Off Lane',
+  '4': 'Jungle',
 }
 
 function sum(totals: Total[], field: string): number {
@@ -40,10 +60,11 @@ function sum(totals: Total[], field: string): number {
 function StatTile({ value, label }: { value: string; label: string }) {
   return (
     <div className="px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
-      <div className="text-[22px] leading-tight tabular-nums text-gold font-dota">
-        {value}
-      </div>
-      <div className="text-[11px] uppercase mt-0.5 text-slate-muted-light font-dota" style={{ letterSpacing: '1px' }}>
+      <div className="text-[22px] leading-tight tabular-nums text-gold font-dota">{value}</div>
+      <div
+        className="text-[11px] uppercase mt-0.5 text-slate-muted-light font-dota"
+        style={{ letterSpacing: '1px' }}
+      >
         {label}
       </div>
     </div>
@@ -81,23 +102,52 @@ function WinRateTable({
         {title}
       </div>
       <div className="flex items-center gap-3 px-3 pt-2 text-[11px] uppercase text-slate-muted-light font-dota">
-        <SortHeader label="Label" sortKey="label" active={sortKey === 'label'} dir={sortDir} onClick={onSort} className="w-32 shrink-0" />
+        <SortHeader
+          label="Label"
+          sortKey="label"
+          active={sortKey === 'label'}
+          dir={sortDir}
+          onClick={onSort}
+          className="w-32 shrink-0"
+        />
         <span className="flex-1" />
-        <SortHeader label="Win Rate" sortKey="winrate" active={sortKey === 'winrate'} dir={sortDir} onClick={onSort} className="w-14 shrink-0 justify-end" />
-        <SortHeader label="Games" sortKey="games" active={sortKey === 'games'} dir={sortDir} onClick={onSort} className="w-20 shrink-0 justify-end" />
+        <SortHeader
+          label="Win Rate"
+          sortKey="winrate"
+          active={sortKey === 'winrate'}
+          dir={sortDir}
+          onClick={onSort}
+          className="w-14 shrink-0 justify-end"
+        />
+        <SortHeader
+          label="Games"
+          sortKey="games"
+          active={sortKey === 'games'}
+          dir={sortDir}
+          onClick={onSort}
+          className="w-20 shrink-0 justify-end"
+        />
       </div>
       <div className="px-3 py-2">
         {shown.map((r) => {
           const pct = (r.win / r.games) * 100
           return (
-            <div key={r.label} className="flex items-center gap-3 py-1.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <div
+              key={r.label}
+              className="flex items-center gap-3 py-1.5"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+            >
               <span className="w-32 shrink-0 text-[14px] truncate text-slate-foreground font-dota">
                 {r.label}
               </span>
               <div className="flex-1 h-[6px] bg-slate-card">
                 <div
                   className={pct < 50 ? 'bg-dire' : ''}
-                  style={{ width: `${pct}%`, height: '100%', background: pct >= 50 ? C.green : undefined }}
+                  style={{
+                    width: `${pct}%`,
+                    height: '100%',
+                    background: pct >= 50 ? C.green : undefined,
+                  }}
                 />
               </div>
               <span
@@ -106,7 +156,10 @@ function WinRateTable({
               >
                 {pct.toFixed(1)}%
               </span>
-              <span className="w-20 shrink-0 text-right text-[13px] tabular-nums font-dota" style={{ color: C.dim }}>
+              <span
+                className="w-20 shrink-0 text-right text-[13px] tabular-nums font-dota"
+                style={{ color: C.dim }}
+              >
                 {r.games.toLocaleString()}
               </span>
             </div>
@@ -140,7 +193,12 @@ export function PlayerStats({
     [sum(totals, 'hero_damage').toLocaleString(), 'Hero Damage'],
     [sum(totals, 'hero_healing').toLocaleString(), 'Healing'],
     [sum(totals, 'tower_damage').toLocaleString(), 'Tower Damage'],
-    [(sum(totals, 'purchase_ward_observer') + sum(totals, 'purchase_ward_sentry')).toLocaleString(), 'Wards Placed'],
+    [
+      (
+        sum(totals, 'purchase_ward_observer') + sum(totals, 'purchase_ward_sentry')
+      ).toLocaleString(),
+      'Wards Placed',
+    ],
     [`${Math.round(sum(totals, 'stuns')).toLocaleString()}s`, 'Stun Duration'],
   ]
 
@@ -169,7 +227,10 @@ export function PlayerStats({
         >
           Lifetime Totals
         </div>
-        <div className="grid gap-2 p-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))' }}>
+        <div
+          className="grid gap-2 p-3"
+          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))' }}
+        >
           {tiles.map(([v, l]) => (
             <StatTile key={l} value={v} label={l} />
           ))}

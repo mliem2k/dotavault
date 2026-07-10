@@ -18,9 +18,19 @@ const C = {
 }
 
 const CONSUMABLES = new Set([
-  'tpscroll', 'flask', 'clarity', 'faerie_fire', 'smoke_of_deceit',
-  'dust', 'ward_observer', 'ward_sentry', 'tome_of_knowledge', 'tango',
-  'tango_single', 'enchanted_mango', 'blood_grenade',
+  'tpscroll',
+  'flask',
+  'clarity',
+  'faerie_fire',
+  'smoke_of_deceit',
+  'dust',
+  'ward_observer',
+  'ward_sentry',
+  'tome_of_knowledge',
+  'tango',
+  'tango_single',
+  'enchanted_mango',
+  'blood_grenade',
 ])
 
 function PlayerColumn({
@@ -52,7 +62,11 @@ function PlayerColumn({
         )}
         <div className="min-w-0 font-dota">
           <div className="text-[15px] truncate text-white">{hero?.localized_name}</div>
-          <PlayerNameLink player={player} className="block text-[12px] truncate" style={{ color: C.dim }} />
+          <PlayerNameLink
+            player={player}
+            className="block text-[12px] truncate"
+            style={{ color: C.dim }}
+          />
         </div>
       </div>
       {/* purchase list */}
@@ -62,7 +76,10 @@ function PlayerColumn({
           return (
             // biome-ignore lint/suspicious/noArrayIndexKey: static purchase list
             <div key={i} className="flex items-center gap-2.5 py-[3px]">
-              <span className="w-12 text-right text-[13px] tabular-nums shrink-0 font-dota" style={{ color: C.dim }}>
+              <span
+                className="w-12 text-right text-[13px] tabular-nums shrink-0 font-dota"
+                style={{ color: C.dim }}
+              >
                 {formatDuration(Math.max(0, e.time))}
               </span>
               <ItemIcon name={e.key} meta={meta} width={34} height={25} />
@@ -73,7 +90,9 @@ function PlayerColumn({
           )
         })}
         {purchases.length === 0 && (
-          <div className="py-2 text-[13px] font-dota" style={{ color: C.dim }}>No purchases.</div>
+          <div className="py-2 text-[13px] font-dota" style={{ color: C.dim }}>
+            No purchases.
+          </div>
         )}
       </div>
     </div>
@@ -117,7 +136,12 @@ export function MatchPurchases({
       </div>
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
         {team.map((p) => (
-          <PlayerColumn key={p.player_slot} player={p} hero={heroMap.get(p.hero_id)} itemConst={itemConst} />
+          <PlayerColumn
+            key={p.player_slot}
+            player={p}
+            hero={heroMap.get(p.hero_id)}
+            itemConst={itemConst}
+          />
         ))}
       </div>
     </div>

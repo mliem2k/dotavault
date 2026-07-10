@@ -1,6 +1,7 @@
 import { Pause, Play, RefreshCw, SkipBack, SkipForward } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
+import { BUILDINGS, buildingDeathTimes, MAP_MAX, MAP_MIN } from '@/lib/buildings'
 import { opendota } from '@/lib/opendota'
 import {
   getReplayStatus,
@@ -10,11 +11,17 @@ import {
   type ReplayStatus,
   startReplayParse,
 } from '@/lib/replay_parser'
-import { BUILDINGS, MAP_MAX, MAP_MIN, buildingDeathTimes } from '@/lib/buildings'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
-import { type ObjectiveEvent, extractObjectiveEvents } from './match_objectives'
+import { extractObjectiveEvents, type ObjectiveEvent } from './match_objectives'
 import { PlayerNameLink } from './match_roster'
-import { formatClock, GameTimeSlider, itemsAtTime, statsAtTime, teamScoreAtTime, type TimelineMarker } from './match_time'
+import {
+  formatClock,
+  GameTimeSlider,
+  itemsAtTime,
+  statsAtTime,
+  type TimelineMarker,
+  teamScoreAtTime,
+} from './match_time'
 
 /* Replay / playback tab, laid out like Stratz's playback page: team panels
    flanking a live minimap (buildings, wards, heroes), a score+clock header,
@@ -102,7 +109,9 @@ function extractWardWaypoints(match: Match): Waypoint[][] {
 function buildWaypoints(match: Match): Waypoint[][] {
   const deaths = extractDeathWaypoints(match)
   const wards = extractWardWaypoints(match)
-  return match.players.map((_, idx) => [...(deaths[idx] ?? []), ...(wards[idx] ?? [])].sort((a, b) => a.time - b.time))
+  return match.players.map((_, idx) =>
+    [...(deaths[idx] ?? []), ...(wards[idx] ?? [])].sort((a, b) => a.time - b.time),
+  )
 }
 
 type Interpolated = { x: number; y: number; ghost: boolean }
@@ -120,7 +129,11 @@ function interpolate(points: Waypoint[], t: number): Interpolated | null {
   }
   if (before && after) {
     const f = (t - before.time) / Math.max(1, after.time - before.time)
-    return { x: before.x + (after.x - before.x) * f, y: before.y + (after.y - before.y) * f, ghost: false }
+    return {
+      x: before.x + (after.x - before.x) * f,
+      y: before.y + (after.y - before.y) * f,
+      ghost: false,
+    }
   }
   if (before) return { x: before.x, y: before.y, ghost: true }
   if (after) return { x: after.x, y: after.y, ghost: true }
@@ -195,7 +208,10 @@ function parsedKillEvents(
   itemConst: Record<string, ItemConst>,
 ): ObjectiveEvent[] {
   const teamByHeroId = new Map(
-    match.players.map((p) => [p.hero_id, p.player_slot < 128 ? ('radiant' as const) : ('dire' as const)]),
+    match.players.map((p) => [
+      p.hero_id,
+      p.player_slot < 128 ? ('radiant' as const) : ('dire' as const),
+    ]),
   )
   const humanize = (raw: string): string => {
     if (raw.startsWith('item_')) {
@@ -285,7 +301,9 @@ function ParseRequest({ matchId }: { matchId: number }) {
 const GoldIcon = ({ size = 10 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 10 10" fill="none" aria-hidden>
     <circle cx="5" cy="5" r="4.5" fill="#c8961e" />
-    <text x="5" y="7.5" textAnchor="middle" fontSize="6" fill="#fff" fontWeight="bold">$</text>
+    <text x="5" y="7.5" textAnchor="middle" fontSize="6" fill="#fff" fontWeight="bold">
+      $
+    </text>
   </svg>
 )
 
@@ -317,15 +335,15 @@ function PlayerRow({
   // still be dead" from OpenDota's own kill log, same data statsAtTime
   // already uses to count deaths, rather than guessing at a number.
   const heroName = hero?.name ?? ''
-  const lastDeathTime = !sample && heroName
-    ? match.players.reduce(
-        (max, pl) => {
-          const t = (pl.kills_log ?? []).filter((e) => e.key === heroName && e.time <= timeSec).map((e) => e.time)
+  const lastDeathTime =
+    !sample && heroName
+      ? match.players.reduce((max, pl) => {
+          const t = (pl.kills_log ?? [])
+            .filter((e) => e.key === heroName && e.time <= timeSec)
+            .map((e) => e.time)
           return t.length ? Math.max(max, ...t) : max
-        },
-        -1,
-      )
-    : -1
+        }, -1)
+      : -1
   const maybeDead = lastDeathTime >= 0 && timeSec - lastDeathTime <= 100
   const items = itemsAtTime(player, idToName, timeSec, match.duration, itemConst)
 
@@ -387,7 +405,10 @@ function PlayerRow({
   )
 
   return (
-    <div className="px-2 py-1.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', opacity: dead ? 0.55 : 1 }}>
+    <div
+      className="px-2 py-1.5"
+      style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', opacity: dead ? 0.55 : 1 }}
+    >
       <div className="flex items-center gap-1.5">
         {player.account_id ? (
           <a href={`/player/${player.account_id}`} className="shrink-0 hover:brightness-125">
@@ -427,7 +448,10 @@ function PlayerRow({
           <div className="h-[3px] w-full" style={{ background: 'rgba(0,0,0,0.6)' }}>
             <div
               className="h-full"
-              style={{ width: `${sample.mmp > 0 ? (sample.mp / sample.mmp) * 100 : 0}%`, background: '#4f8fc2' }}
+              style={{
+                width: `${sample.mmp > 0 ? (sample.mp / sample.mmp) * 100 : 0}%`,
+                background: '#4f8fc2',
+              }}
             />
           </div>
         </div>
@@ -542,7 +566,9 @@ export function ReplayViewer({
   const [time, setTime] = useState(() => initialTime ?? 0)
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
-  const [fullPlaybackState, setFullPlaybackState] = useState<'idle' | 'working' | 'unavailable' | 'error' | 'done'>('idle')
+  const [fullPlaybackState, setFullPlaybackState] = useState<
+    'idle' | 'working' | 'unavailable' | 'error' | 'done'
+  >('idle')
   const [workPhase, setWorkPhase] = useState<ReplayJobPhase | null>(null)
   const [denseBySlot, setDenseBySlot] = useState<Map<number, PositionPoint[]> | null>(null)
   const [parsedKills, setParsedKills] = useState<ParsedKill[] | null>(null)
@@ -567,7 +593,10 @@ export function ReplayViewer({
   const buildingDeaths = useMemo(() => buildingDeathTimes(match), [match])
   const wardLives = useMemo(() => extractWardLives(match), [match])
 
-  function adoptResult(result: { positions: Record<string, PositionPoint[]>; kills?: ParsedKill[] }) {
+  function adoptResult(result: {
+    positions: Record<string, PositionPoint[]>
+    kills?: ParsedKill[]
+  }) {
     const map = new Map<number, PositionPoint[]>()
     for (const [slot, pts] of Object.entries(result.positions)) map.set(Number(slot), pts)
     setDenseBySlot(map)
@@ -952,9 +981,14 @@ export function ReplayViewer({
 
       {/* Map + controls */}
       <div className="min-w-[420px] flex-1 space-y-3" style={{ background: C.panel }}>
-        <div className="flex items-center justify-between px-4 py-2" style={{ background: C.panelDark }}>
+        <div
+          className="flex items-center justify-between px-4 py-2"
+          style={{ background: C.panelDark }}
+        >
           <div className="flex items-center gap-3">
-            <span className="text-[26px] leading-none tabular-nums text-radiant">{scoreRadiant}</span>
+            <span className="text-[26px] leading-none tabular-nums text-radiant">
+              {scoreRadiant}
+            </span>
             <span
               className="px-2 py-0.5 text-[16px] tabular-nums text-white border border-slate-card"
               style={{ background: 'rgba(0,0,0,0.5)' }}
@@ -979,7 +1013,9 @@ export function ReplayViewer({
                 style={{ background: '#1d2a12', border: '1px solid #3d5a24', letterSpacing: '1px' }}
                 title="Parses the raw replay ourselves for true continuous hero movement plus live HP/mana/levels. If OpenDota hasn't parsed the match yet, the server requests that first and continues automatically; only works while Valve still serves the replay file"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${fullPlaybackState === 'working' ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`h-3.5 w-3.5 ${fullPlaybackState === 'working' ? 'animate-spin' : ''}`}
+                />
                 {fullPlaybackState === 'working'
                   ? workPhase === 'requesting_parse'
                     ? 'Requesting OpenDota Parse…'
@@ -1068,8 +1104,16 @@ export function ReplayViewer({
               </button>
             ))}
           </div>
-          <div className="flex items-center shrink-0 border border-slate-card" title="Fog of war: show only what this team can see">
-            <span className="px-2 text-[11px] uppercase text-slate-muted" style={{ letterSpacing: '1px' }}>Fog</span>
+          <div
+            className="flex items-center shrink-0 border border-slate-card"
+            title="Fog of war: show only what this team can see"
+          >
+            <span
+              className="px-2 text-[11px] uppercase text-slate-muted"
+              style={{ letterSpacing: '1px' }}
+            >
+              Fog
+            </span>
             {(['off', 'radiant', 'dire'] as const).map((f) => (
               <button
                 key={f}
@@ -1084,14 +1128,18 @@ export function ReplayViewer({
           <GameTimeSlider
             timeSec={time}
             duration={duration}
-            onChange={(t) => { setPlaying(false); setTime(t) }}
+            onChange={(t) => {
+              setPlaying(false)
+              setTime(t)
+            }}
             markers={timelineMarkers}
             fullWidth
           />
         </div>
         {activeTeamfight && (
           <p className="text-center text-[13px] pb-3 text-gold">
-            ⚔ Teamfight {formatClock(activeTeamfight.start)}–{formatClock(activeTeamfight.end)} · {activeTeamfight.deaths} deaths
+            ⚔ Teamfight {formatClock(activeTeamfight.start)}–{formatClock(activeTeamfight.end)} ·{' '}
+            {activeTeamfight.deaths} deaths
           </p>
         )}
       </div>
@@ -1124,7 +1172,10 @@ export function ReplayViewer({
               <button
                 key={i}
                 type="button"
-                onClick={() => { setPlaying(false); setTime(Math.max(0, e.time)) }}
+                onClick={() => {
+                  setPlaying(false)
+                  setTime(Math.max(0, e.time))
+                }}
                 className="flex w-full items-center gap-2.5 px-3 py-2 text-left cursor-pointer hover:bg-white/[0.05]"
                 style={{
                   borderBottom: '1px solid rgba(255,255,255,0.04)',
@@ -1135,7 +1186,16 @@ export function ReplayViewer({
                 <span className="w-11 text-right text-[13px] tabular-nums shrink-0 text-slate-muted">
                   {formatClock(Math.max(0, e.time))}
                 </span>
-                <span className={e.team === 'radiant' ? 'bg-radiant' : e.team === 'dire' ? 'bg-dire' : 'bg-slate-border'} style={{ width: 3, height: 20 }} />
+                <span
+                  className={
+                    e.team === 'radiant'
+                      ? 'bg-radiant'
+                      : e.team === 'dire'
+                        ? 'bg-dire'
+                        : 'bg-slate-border'
+                  }
+                  style={{ width: 3, height: 20 }}
+                />
                 <span className="text-[15px] w-6 text-center shrink-0">{e.icon}</span>
                 {hero && (
                   <img

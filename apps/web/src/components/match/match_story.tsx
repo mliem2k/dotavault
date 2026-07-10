@@ -62,8 +62,12 @@ function buildStory(match: Match, heroStats: HeroStat[]): Paragraph[] {
   // Lane phase summary from NW+XP at 10
   const at10 = (p: MatchPlayer) => (p.gold_t?.[10] ?? 0) + (p.xp_t?.[10] ?? 0)
   if (match.players.some((p) => (p.gold_t?.length ?? 0) > 10)) {
-    const radLane = match.players.filter((p) => p.player_slot < 128).reduce((s, p) => s + at10(p), 0)
-    const direLane = match.players.filter((p) => p.player_slot >= 128).reduce((s, p) => s + at10(p), 0)
+    const radLane = match.players
+      .filter((p) => p.player_slot < 128)
+      .reduce((s, p) => s + at10(p), 0)
+    const direLane = match.players
+      .filter((p) => p.player_slot >= 128)
+      .reduce((s, p) => s + at10(p), 0)
     const ratio = direLane > 0 ? radLane / direLane : 1
     paras.push({
       time: 600,
@@ -99,8 +103,14 @@ function buildStory(match: Match, heroStats: HeroStat[]): Paragraph[] {
   }
 
   // Top performer on the winning side
-  const winners = match.players.filter((p) => (p.player_slot < 128) === match.radiant_win)
-  const mvp = [...winners].sort((a, b) => b.kills + b.assists * 0.5 + b.net_worth / 3000 - (a.kills + a.assists * 0.5 + a.net_worth / 3000))[0]
+  const winners = match.players.filter((p) => p.player_slot < 128 === match.radiant_win)
+  const mvp = [...winners].sort(
+    (a, b) =>
+      b.kills +
+      b.assists * 0.5 +
+      b.net_worth / 3000 -
+      (a.kills + a.assists * 0.5 + a.net_worth / 3000),
+  )[0]
   if (mvp) {
     paras.push({
       time: null,
@@ -140,7 +150,10 @@ export function MatchStory({ match, heroStats }: { match: Match; heroStats: Hero
 
   return (
     <div className="mx-auto max-w-[760px] font-dota" style={{ background: C.panel }}>
-      <div className="px-5 py-3 text-[15px] uppercase text-white" style={{ letterSpacing: '2px', background: C.panelDark }}>
+      <div
+        className="px-5 py-3 text-[15px] uppercase text-white"
+        style={{ letterSpacing: '2px', background: C.panelDark }}
+      >
         Match Story
       </div>
       <div className="space-y-4 px-6 py-5">
@@ -153,7 +166,10 @@ export function MatchStory({ match, heroStats }: { match: Match; heroStats: Hero
                 {p.time != null ? formatClock(Math.max(0, p.time)) : ''}
               </span>
               {hero ? (
-                <a href={`/hero/${heroSlug(hero.localized_name)}`} className="mt-0.5 shrink-0 block">
+                <a
+                  href={`/hero/${heroSlug(hero.localized_name)}`}
+                  className="mt-0.5 shrink-0 block"
+                >
                   <img
                     src={heroIconUrl(hero.name)}
                     alt=""
@@ -168,9 +184,7 @@ export function MatchStory({ match, heroStats }: { match: Match; heroStats: Hero
               ) : (
                 <span style={{ width: 24 }} className="shrink-0" />
               )}
-              <p className="text-[15px] leading-relaxed text-slate-foreground">
-                {p.text}
-              </p>
+              <p className="text-[15px] leading-relaxed text-slate-foreground">{p.text}</p>
             </div>
           )
         })}

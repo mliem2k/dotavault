@@ -34,7 +34,9 @@ function fmtDate(unix: number): string {
 // win-rate color splits into a token className (loss) plus a raw inline
 // style (win).
 function wrStyle(pct: number): { className: string; color?: string } {
-  return pct >= 50 ? { className: '', color: C.green } : { className: 'text-dire', color: undefined }
+  return pct >= 50
+    ? { className: '', color: C.green }
+    : { className: 'text-dire', color: undefined }
 }
 
 export function Teammates({ peers }: { peers: Peer[] }) {
@@ -51,7 +53,7 @@ export function Teammates({ peers }: { peers: Peer[] }) {
       case 'wins':
         return a.with_win - b.with_win
       case 'winrate':
-        return (a.with_win / Math.max(1, a.with_games)) - (b.with_win / Math.max(1, b.with_games))
+        return a.with_win / Math.max(1, a.with_games) - b.with_win / Math.max(1, b.with_games)
       case 'last':
         return a.last_played - b.last_played
       default:
@@ -76,16 +78,51 @@ export function Teammates({ peers }: { peers: Peer[] }) {
         className="flex items-center px-3 py-2.5 text-[12px] uppercase text-slate-muted-light"
         style={{ letterSpacing: '1px', background: C.panelDark }}
       >
-        <SortHeader label="Player" sortKey="player" active={sortKey === 'player'} dir={sortDir} onClick={onSort} className="flex-1 min-w-0" />
+        <SortHeader
+          label="Player"
+          sortKey="player"
+          active={sortKey === 'player'}
+          dir={sortDir}
+          onClick={onSort}
+          className="flex-1 min-w-0"
+        />
         <div className="hidden sm:flex w-[110px] shrink-0 justify-center">
-          <SortHeader label="Games" sortKey="games" active={sortKey === 'games'} dir={sortDir} onClick={onSort} className="justify-center" />
+          <SortHeader
+            label="Games"
+            sortKey="games"
+            active={sortKey === 'games'}
+            dir={sortDir}
+            onClick={onSort}
+            className="justify-center"
+          />
         </div>
         <div className="hidden md:flex w-[110px] shrink-0 justify-center">
-          <SortHeader label="Wins" sortKey="wins" active={sortKey === 'wins'} dir={sortDir} onClick={onSort} className="justify-center" />
+          <SortHeader
+            label="Wins"
+            sortKey="wins"
+            active={sortKey === 'wins'}
+            dir={sortDir}
+            onClick={onSort}
+            className="justify-center"
+          />
         </div>
-        <SortHeader label="Win Rate" sortKey="winrate" active={sortKey === 'winrate'} dir={sortDir} onClick={onSort} className="w-[80px] sm:w-[110px] shrink-0 justify-center" />
+        <SortHeader
+          label="Win Rate"
+          sortKey="winrate"
+          active={sortKey === 'winrate'}
+          dir={sortDir}
+          onClick={onSort}
+          className="w-[80px] sm:w-[110px] shrink-0 justify-center"
+        />
         <div className="hidden md:flex w-[130px] shrink-0 justify-end pr-2">
-          <SortHeader label="Last Played" sortKey="last" active={sortKey === 'last'} dir={sortDir} onClick={onSort} className="justify-end" />
+          <SortHeader
+            label="Last Played"
+            sortKey="last"
+            active={sortKey === 'last'}
+            dir={sortDir}
+            onClick={onSort}
+            className="justify-end"
+          />
         </div>
       </div>
 
@@ -134,7 +171,10 @@ export function Teammates({ peers }: { peers: Peer[] }) {
             >
               {pct.toFixed(1)}%
             </span>
-            <span className="hidden md:block w-[130px] shrink-0 text-right pr-2 text-[13px] tabular-nums" style={{ color: C.dim }}>
+            <span
+              className="hidden md:block w-[130px] shrink-0 text-right pr-2 text-[13px] tabular-nums"
+              style={{ color: C.dim }}
+            >
               {fmtDate(peer.last_played)}
             </span>
           </a>

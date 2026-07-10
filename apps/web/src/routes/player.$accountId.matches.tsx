@@ -12,7 +12,9 @@ function MatchesTabPage() {
   return (
     <div className="mt-3">
       {heroStats.isPending ? (
-        <div className="flex justify-center py-10"><Spinner /></div>
+        <div className="flex justify-center py-10">
+          <Spinner />
+        </div>
       ) : heroStats.data ? (
         <AllMatches accountId={accountId} heroStats={heroStats.data} />
       ) : null}

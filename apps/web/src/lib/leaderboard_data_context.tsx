@@ -1,7 +1,12 @@
 import { createContext, useContext } from 'react'
 import type { LeaderboardEntry } from '@/lib/leaderboard'
 
-export type ProRef = { name: string; personaname: string | null; account_id: number; team_id: number | null }
+export type ProRef = {
+  name: string
+  personaname: string | null
+  account_id: number
+  team_id: number | null
+}
 
 export type LeaderboardData = {
   search: string

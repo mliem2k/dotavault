@@ -156,7 +156,10 @@ export function RecentGames({
 
             <div className="flex-1 min-w-0 flex items-center gap-2.5">
               {hero && (
-                <a href={`/hero/${heroSlug(hero.localized_name)}`} className="relative z-10 shrink-0 block">
+                <a
+                  href={`/hero/${heroSlug(hero.localized_name)}`}
+                  className="relative z-10 shrink-0 block"
+                >
                   <img
                     src={heroLandscapeUrl(hero.name)}
                     alt=""

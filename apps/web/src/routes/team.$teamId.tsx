@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { usePageTitle } from '@/lib/title'
 import { createFileRoute } from '@tanstack/react-router'
 import { Badge } from '@/components/ui/badge'
 import { SortHeader } from '@/components/ui/sort_header'
 import { Spinner } from '@/components/ui/spinner'
-import { applySort, useSort } from '@/lib/sortable'
 import { opendota } from '@/lib/opendota'
+import { applySort, useSort } from '@/lib/sortable'
 import { tiChampionships } from '@/lib/ti_champions'
+import { usePageTitle } from '@/lib/title'
 import { formatTimeAgo, winRate } from '@/lib/utils'
 
 type SortKey = 'player' | 'role' | 'games' | 'winrate'
@@ -85,7 +85,9 @@ function TeamPage() {
     staleTime: 5 * 60 * 1000,
   })
 
-  const currentAccountIds = (players.data ?? []).filter((p) => p.is_current_team_member).map((p) => p.account_id)
+  const currentAccountIds = (players.data ?? [])
+    .filter((p) => p.is_current_team_member)
+    .map((p) => p.account_id)
   const roleSignal = useQuery({
     queryKey: ['team_role_signal', teamId, currentAccountIds],
     queryFn: () => opendota.teamRoleSignal(currentAccountIds),
@@ -109,12 +111,7 @@ function TeamPage() {
     )
   }
 
-  if (!team.data)
-    return (
-      <div className="text-sm text-muted">
-        Team not found.
-      </div>
-    )
+  if (!team.data) return <div className="text-sm text-muted">Team not found.</div>
 
   const t = team.data
   const totalGames = t.wins + t.losses
@@ -138,7 +135,10 @@ function TeamPage() {
   // showing them as equal, undifferentiated "Carry"s.
   const maxGamesByRole = new Map<number, number>()
   for (const p of roster) {
-    maxGamesByRole.set(p.fantasy_role, Math.max(maxGamesByRole.get(p.fantasy_role) ?? 0, p.games_played))
+    maxGamesByRole.set(
+      p.fantasy_role,
+      Math.max(maxGamesByRole.get(p.fantasy_role) ?? 0, p.games_played),
+    )
   }
   const isStandIn = (p: (typeof roster)[number]) => {
     const max = maxGamesByRole.get(p.fantasy_role) ?? 0
@@ -162,11 +162,17 @@ function TeamPage() {
     laneByAccount.get(l.account_id)?.push(l)
   }
   const supportAccounts = roster.filter((p) => p.fantasy_role === 2).map((p) => p.account_id)
-  const hardSupportAccount = supportAccounts.length >= 2
-    ? supportAccounts.reduce((lowest, id) =>
-        (gpmByAccount.get(id) ?? Number.POSITIVE_INFINITY) < (gpmByAccount.get(lowest) ?? Number.POSITIVE_INFINITY) ? id : lowest,
-      supportAccounts[0])
-    : null
+  const hardSupportAccount =
+    supportAccounts.length >= 2
+      ? supportAccounts.reduce(
+          (lowest, id) =>
+            (gpmByAccount.get(id) ?? Number.POSITIVE_INFINITY) <
+            (gpmByAccount.get(lowest) ?? Number.POSITIVE_INFINITY)
+              ? id
+              : lowest,
+          supportAccounts[0],
+        )
+      : null
 
   const roleLabelFor = (p: (typeof roster)[number]): string => {
     if (p.fantasy_role === 2 && supportAccounts.length >= 2) {
@@ -183,7 +189,9 @@ function TeamPage() {
   const sortedRoster = applySort(roster, sortDir, (a, b) => {
     switch (sortKey) {
       case 'player':
-        return (a.name ?? `Player ${a.account_id}`).localeCompare(b.name ?? `Player ${b.account_id}`)
+        return (a.name ?? `Player ${a.account_id}`).localeCompare(
+          b.name ?? `Player ${b.account_id}`,
+        )
       case 'role':
         return (ROLE_SORT[a.fantasy_role] ?? 9) - (ROLE_SORT[b.fantasy_role] ?? 9)
       case 'winrate':
@@ -228,12 +236,19 @@ function TeamPage() {
               {tiChampionships(t.team_id).length > 0 && (
                 <span
                   className="shrink-0 px-2 py-0.5 text-[13px] font-bold uppercase text-gold"
-                  style={{ background: 'transparent', border: '1px solid rgba(242,201,76,0.5)', letterSpacing: '1px' }}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid rgba(242,201,76,0.5)',
+                    letterSpacing: '1px',
+                  }}
                   title={`The International Champion: ${tiChampionships(t.team_id)
                     .map((c) => (c.wonAs ? `TI${c.year} as ${c.wonAs}` : `TI${c.year}`))
                     .join(', ')}`}
                 >
-                  TI Champion {tiChampionships(t.team_id).map((c) => c.year).join('/')}
+                  TI Champion{' '}
+                  {tiChampionships(t.team_id)
+                    .map((c) => c.year)
+                    .join('/')}
                 </span>
               )}
             </div>
@@ -259,7 +274,11 @@ function TeamPage() {
                   label: 'Win Rate',
                   color: t.wins / (totalGames || 1) >= 0.5 ? 'text-radiant' : 'text-dire',
                 },
-                { value: Math.round(t.rating).toLocaleString(), label: 'Rating', color: 'text-foreground' },
+                {
+                  value: Math.round(t.rating).toLocaleString(),
+                  label: 'Rating',
+                  color: 'text-foreground',
+                },
               ] as { value: string; label: string; color: string }[]
             ).map((stat) => (
               <div key={stat.label}>
@@ -343,10 +362,7 @@ function TeamPage() {
                   const pwr =
                     p.games_played > 0 ? ((p.wins / p.games_played) * 100).toFixed(1) : null
                   return (
-                    <tr
-                      key={p.account_id}
-                      className={i === 0 ? '' : 'border-t border-border'}
-                    >
+                    <tr key={p.account_id} className={i === 0 ? '' : 'border-t border-border'}>
                       <td className="py-1.5 pr-4">
                         <a
                           href={`/player/${p.account_id}`}
@@ -355,9 +371,7 @@ function TeamPage() {
                           {p.name ?? `Player ${p.account_id}`}
                         </a>
                       </td>
-                      <td
-                        className="py-1.5 text-[12px] text-muted font-dota"
-                      >
+                      <td className="py-1.5 text-[12px] text-muted font-dota">
                         {roleLabelFor(p)}
                         {isStandIn(p) && (
                           <Badge
@@ -369,14 +383,16 @@ function TeamPage() {
                           </Badge>
                         )}
                       </td>
-                      <td
-                        className="py-1.5 text-right text-[13px] tabular-nums text-muted font-dota"
-                      >
+                      <td className="py-1.5 text-right text-[13px] tabular-nums text-muted font-dota">
                         {p.games_played}
                       </td>
                       <td
                         className={`py-1.5 text-right text-[13px] font-semibold tabular-nums font-dota ${
-                          pwr == null ? 'text-muted' : Number(pwr) >= 50 ? 'text-radiant' : 'text-dire'
+                          pwr == null
+                            ? 'text-muted'
+                            : Number(pwr) >= 50
+                              ? 'text-radiant'
+                              : 'text-dire'
                         }`}
                       >
                         {pwr != null ? `${pwr}%` : 'n/a'}
@@ -410,15 +426,11 @@ function TeamPage() {
                       >
                         {won ? 'W' : 'L'}
                       </span>
-                      <span
-                        className="text-[14px] truncate text-foreground font-dota"
-                      >
+                      <span className="text-[14px] truncate text-foreground font-dota">
                         vs {m.opposing_team_name ?? 'Unknown'}
                       </span>
                     </div>
-                    <span
-                      className="text-[12px] tabular-nums shrink-0 text-muted font-dota"
-                    >
+                    <span className="text-[12px] tabular-nums shrink-0 text-muted font-dota">
                       {formatTimeAgo(m.start_time)}
                     </span>
                   </a>

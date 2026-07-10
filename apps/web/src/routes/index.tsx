@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
-import { usePageTitle } from '@/lib/title'
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { useMemo } from 'react'
 import { SearchBar } from '@/components/search/search_bar'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
+import { usePageTitle } from '@/lib/title'
 import { formatTimeAgo, heroBracketTotal, heroIconFromPath, heroSlug, winRate } from '@/lib/utils'
 
 export const Route = createFileRoute('/')({
@@ -91,14 +91,10 @@ function HomePage() {
                   params={{ matchId: String(m.match_id) }}
                   className={`flex items-center justify-between py-2.5 hover:bg-white/[0.03] ${i === 0 ? '' : 'border-t border-border'}`}
                 >
-                  <span
-                    className="text-[17px] text-foreground font-dota"
-                  >
+                  <span className="text-[17px] text-foreground font-dota">
                     {m.radiant_name ?? 'Radiant'} vs {m.dire_name ?? 'Dire'}
                   </span>
-                  <span
-                    className="text-[14px] tabular-nums text-muted font-dota"
-                  >
+                  <span className="text-[14px] tabular-nums text-muted font-dota">
                     {formatTimeAgo(m.start_time)}
                   </span>
                 </Link>
@@ -129,9 +125,7 @@ function HomePage() {
                         loading="lazy"
                         className="h-7 w-7 rounded"
                       />
-                      <span
-                        className="text-[17px] text-foreground font-dota"
-                      >
+                      <span className="text-[17px] text-foreground font-dota">
                         {h.localized_name}
                       </span>
                     </div>

@@ -8,7 +8,11 @@ export type TeamInfo = { name: string | null; tag: string | null; logo_url: stri
 // page, say) is exactly the kind of burst that trips OpenDota's rate
 // limiter; a handful come back 429 even with the retry in opendota.ts's
 // get(). Cap how many are in flight at once instead of one big Promise.all.
-async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
   const results: R[] = new Array(items.length)
   let next = 0
   async function worker() {
@@ -35,7 +39,10 @@ export function useTeamMap(relevantTeamIds: (number | null | undefined)[]): Map<
     queryFn: () => opendota.teamsList(),
     staleTime: 30 * 60 * 1000,
   })
-  const baseMap = useMemo(() => new Map<number, TeamInfo>((teams.data ?? []).map((t) => [t.team_id, t])), [teams.data])
+  const baseMap = useMemo(
+    () => new Map<number, TeamInfo>((teams.data ?? []).map((t) => [t.team_id, t])),
+    [teams.data],
+  )
 
   const missingIds = useMemo(() => {
     const ids = new Set<number>()

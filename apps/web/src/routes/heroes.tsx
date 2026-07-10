@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { useEffect, useRef, useState } from 'react'
 import type { HeroListItem } from 'types'
 import { Spinner } from '@/components/ui/spinner'
 import { datafeed } from '@/lib/datafeed'
@@ -15,10 +15,26 @@ const ICON_CDN = 'https://cdn.steamstatic.com/apps/dota2/images/dota_react/icons
 
 // Order matches Valve's primary_attr enum: 0 str, 1 agi, 2 int, 3 universal.
 const ATTRS = [
-  { label: 'Strength', filterIcon: '/filter-str-active.png', symbol: `${ICON_CDN}/hero_strength.png` },
-  { label: 'Agility', filterIcon: '/filter-agi-active.png', symbol: `${ICON_CDN}/hero_agility.png` },
-  { label: 'Intelligence', filterIcon: '/filter-int-active.png', symbol: `${ICON_CDN}/hero_intelligence.png` },
-  { label: 'Universal', filterIcon: '/filter-uni-active.png', symbol: `${ICON_CDN}/hero_universal.png` },
+  {
+    label: 'Strength',
+    filterIcon: '/filter-str-active.png',
+    symbol: `${ICON_CDN}/hero_strength.png`,
+  },
+  {
+    label: 'Agility',
+    filterIcon: '/filter-agi-active.png',
+    symbol: `${ICON_CDN}/hero_agility.png`,
+  },
+  {
+    label: 'Intelligence',
+    filterIcon: '/filter-int-active.png',
+    symbol: `${ICON_CDN}/hero_intelligence.png`,
+  },
+  {
+    label: 'Universal',
+    filterIcon: '/filter-uni-active.png',
+    symbol: `${ICON_CDN}/hero_universal.png`,
+  },
 ]
 
 /* dota2.com grid metrics at its fixed 1200px column: 225x127 cards, 15px
@@ -96,7 +112,9 @@ function HeroCard({
       />
       <div
         className="absolute inset-0 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100"
-        style={{ backgroundImage: 'linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.73) 75%, #000 100%)' }}
+        style={{
+          backgroundImage: 'linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.73) 75%, #000 100%)',
+        }}
       />
       {/* Name bar: always visible on touch devices so heroes stay identifiable
           without a hover; on mouse/trackpad (pointer: fine) devices it slides
@@ -170,9 +188,13 @@ function HeroesPage() {
         </h1>
         {/* #ddd is not in the Token Mapping Reference (close to but distinct from
             #dcd6c8 text-foreground) — left as-is per task instructions. */}
-        <p className="mx-auto max-w-[1000px] text-[26px] leading-[1.4] text-[#ddd]" style={{ marginBottom: 30 }}>
-          From magical tacticians to fierce brutes and cunning rogues, Dota 2's hero pool is massive and
-          limitlessly diverse. Unleash incredible abilities and devastating ultimates on your way to victory.
+        <p
+          className="mx-auto max-w-[1000px] text-[26px] leading-[1.4] text-[#ddd]"
+          style={{ marginBottom: 30 }}
+        >
+          From magical tacticians to fierce brutes and cunning rogues, Dota 2's hero pool is massive
+          and limitlessly diverse. Unleash incredible abilities and devastating ultimates on your
+          way to victory.
         </p>
       </div>
 
@@ -181,7 +203,9 @@ function HeroesPage() {
         className="mt-5 flex flex-wrap items-center gap-y-3 justify-between p-[10px]"
         style={{ backgroundImage: 'linear-gradient(to right, rgba(0,0,0,0.5), rgba(0,0,0,0.3))' }}
       >
-        <div className="mx-[10px] text-[18px] tracking-[2px] text-white uppercase">Filter Heroes</div>
+        <div className="mx-[10px] text-[18px] tracking-[2px] text-white uppercase">
+          Filter Heroes
+        </div>
 
         <div className="ml-5 flex items-center flex-wrap gap-y-2">
           {/* #808fa6 is not in the Token Mapping Reference — left as-is per task instructions. */}
@@ -213,7 +237,10 @@ function HeroesPage() {
 
         {/* #25282a is not in the Token Mapping Reference (close to but distinct from
             #24222a border-border) — left as-is per task instructions. */}
-        <div className="flex h-[50px] w-full sm:w-[250px] items-center" style={{ background: '#25282a' }}>
+        <div
+          className="flex h-[50px] w-full sm:w-[250px] items-center"
+          style={{ background: '#25282a' }}
+        >
           <img src="/search_icon.svg" alt="" className="mx-[10px] h-[26px] w-[26px] shrink-0" />
           <input
             type="text"
@@ -234,7 +261,11 @@ function HeroesPage() {
 
       {/* Hero grid: absolutely positioned cards so filtering animates them
           to their new slots, exactly like dota2.com */}
-      <div ref={gridRef} className="relative mt-[15px] transition-[height] duration-300 ease-out" style={{ height: gridH }}>
+      <div
+        ref={gridRef}
+        className="relative mt-[15px] transition-[height] duration-300 ease-out"
+        style={{ height: gridH }}
+      >
         {cards.map(({ hero, pos }) => (
           <HeroCard key={hero.id} hero={hero} pos={pos} size={size} />
         ))}

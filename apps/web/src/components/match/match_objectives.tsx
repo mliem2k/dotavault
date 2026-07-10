@@ -22,13 +22,22 @@ function fmtClock(sec: number): string {
 }
 
 const TOWER_NAMES: Record<string, string> = {
-  tower1_top: 'Top T1', tower2_top: 'Top T2', tower3_top: 'Top T3',
-  tower1_mid: 'Mid T1', tower2_mid: 'Mid T2', tower3_mid: 'Mid T3',
-  tower1_bot: 'Bot T1', tower2_bot: 'Bot T2', tower3_bot: 'Bot T3',
+  tower1_top: 'Top T1',
+  tower2_top: 'Top T2',
+  tower3_top: 'Top T3',
+  tower1_mid: 'Mid T1',
+  tower2_mid: 'Mid T2',
+  tower3_mid: 'Mid T3',
+  tower1_bot: 'Bot T1',
+  tower2_bot: 'Bot T2',
+  tower3_bot: 'Bot T3',
   tower4: 'T4',
-  melee_rax_top: 'Top Melee Rax', range_rax_top: 'Top Ranged Rax',
-  melee_rax_mid: 'Mid Melee Rax', range_rax_mid: 'Mid Ranged Rax',
-  melee_rax_bot: 'Bot Melee Rax', range_rax_bot: 'Bot Ranged Rax',
+  melee_rax_top: 'Top Melee Rax',
+  range_rax_top: 'Top Ranged Rax',
+  melee_rax_mid: 'Mid Melee Rax',
+  range_rax_mid: 'Mid Ranged Rax',
+  melee_rax_bot: 'Bot Melee Rax',
+  range_rax_bot: 'Bot Ranged Rax',
   fort: 'Ancient',
 }
 
@@ -40,7 +49,13 @@ function buildingLabel(key: string): { team: 'radiant' | 'dire'; label: string }
   return { team: owner, label }
 }
 
-export type ObjectiveEvent = { time: number; icon: string; text: string; team: 'radiant' | 'dire' | null; heroId?: number }
+export type ObjectiveEvent = {
+  time: number
+  icon: string
+  text: string
+  team: 'radiant' | 'dire' | null
+  heroId?: number
+}
 
 // Shared by the Objectives tab and the replay viewer's event feed.
 export function extractObjectiveEvents(match: Match, heroStats: HeroStat[]): ObjectiveEvent[] {
@@ -115,13 +130,7 @@ export function extractObjectiveEvents(match: Match, heroStats: HeroStat[]): Obj
   return events
 }
 
-export function MatchObjectives({
-  match,
-  heroStats,
-}: {
-  match: Match
-  heroStats: HeroStat[]
-}) {
+export function MatchObjectives({ match, heroStats }: { match: Match; heroStats: HeroStat[] }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const events = extractObjectiveEvents(match, heroStats)
 
@@ -148,11 +157,24 @@ export function MatchObjectives({
           const hero = e.heroId != null ? heroMap.get(e.heroId) : undefined
           return (
             // biome-ignore lint/suspicious/noArrayIndexKey: static event list
-            <div key={i} className="flex items-center gap-3.5 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <div
+              key={i}
+              className="flex items-center gap-3.5 py-2"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+            >
               <span className="w-14 text-right text-[15px] tabular-nums shrink-0 text-slate-muted font-dota">
                 {fmtClock(e.time)}
               </span>
-              <span className={e.team === 'radiant' ? 'bg-radiant' : e.team === 'dire' ? 'bg-dire' : 'bg-slate-border'} style={{ width: 3, height: 26 }} />
+              <span
+                className={
+                  e.team === 'radiant'
+                    ? 'bg-radiant'
+                    : e.team === 'dire'
+                      ? 'bg-dire'
+                      : 'bg-slate-border'
+                }
+                style={{ width: 3, height: 26 }}
+              />
               <span className="text-[19px] w-7 text-center">{e.icon}</span>
               {hero && (
                 <img

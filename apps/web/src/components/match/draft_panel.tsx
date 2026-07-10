@@ -17,7 +17,11 @@ const C = {
 function PickCard({ hero, order }: { hero: HeroStat | undefined; order: number }) {
   if (!hero) return <div className="bg-slate-bg" style={{ width: 138, height: 78 }} />
   return (
-    <a href={`/hero/${heroSlug(hero.localized_name)}`} className="block hover:brightness-125" style={{ width: 138 }}>
+    <a
+      href={`/hero/${heroSlug(hero.localized_name)}`}
+      className="block hover:brightness-125"
+      style={{ width: 138 }}
+    >
       <div className="relative">
         <img
           src={heroLandscapeUrl(hero.name)}
@@ -54,13 +58,21 @@ function BanThumb({ hero, order }: { hero: HeroStat | undefined; order: number }
       <img
         src={heroLandscapeUrl(hero.name)}
         alt={hero.localized_name}
-        style={{ width: 92, height: 52, objectFit: 'cover', filter: 'grayscale(1) brightness(0.55)' }}
+        style={{
+          width: 92,
+          height: 52,
+          objectFit: 'cover',
+          filter: 'grayscale(1) brightness(0.55)',
+        }}
         onError={cdnFallback(heroLandscapeCdn(hero.name))}
       />
       {/* diagonal strike */}
       <div
         className="absolute inset-0"
-        style={{ background: 'linear-gradient(to top right, transparent 47%, rgba(201,74,56,0.9) 48%, rgba(201,74,56,0.9) 52%, transparent 53%)' }}
+        style={{
+          background:
+            'linear-gradient(to top right, transparent 47%, rgba(201,74,56,0.9) 48%, rgba(201,74,56,0.9) 52%, transparent 53%)',
+        }}
       />
       <span
         className="absolute top-0 left-0 px-1 text-[11px] tabular-nums text-slate-muted font-dota"
@@ -82,9 +94,7 @@ export function DraftPanel({
   if (!picksBans || picksBans.length === 0) {
     return (
       <div className="flex items-center justify-center py-16">
-        <span className="text-sm text-slate-muted font-dota">
-          Draft data unavailable.
-        </span>
+        <span className="text-sm text-slate-muted font-dota">Draft data unavailable.</span>
       </div>
     )
   }
@@ -109,7 +119,10 @@ export function DraftPanel({
         </div>
         <div className="p-4 space-y-4">
           <div>
-            <div className="mb-2 text-[13px] uppercase text-slate-muted-light font-dota" style={{ letterSpacing: '2px' }}>
+            <div
+              className="mb-2 text-[13px] uppercase text-slate-muted-light font-dota"
+              style={{ letterSpacing: '2px' }}
+            >
               Picks
             </div>
             <div className="flex gap-2.5 flex-wrap">
@@ -120,7 +133,10 @@ export function DraftPanel({
           </div>
           {bans.length > 0 && (
             <div>
-              <div className="mb-2 text-[13px] uppercase text-slate-muted-light font-dota" style={{ letterSpacing: '2px' }}>
+              <div
+                className="mb-2 text-[13px] uppercase text-slate-muted-light font-dota"
+                style={{ letterSpacing: '2px' }}
+              >
                 Bans
               </div>
               <div className="flex gap-2 flex-wrap">

@@ -7,19 +7,30 @@ import { AbilityIcon } from './ability_icon'
 import { ItemIcon } from './item_icon'
 import { MatchRosterSidebar, orderedTeams, useRosterMetrics } from './match_roster'
 import {
-  GameTimeSlider,
   damageHealAtTime,
+  GameTimeSlider,
   hasMoonshardBuff,
   hasTimeline,
   itemsAtTime,
   scepterSource,
   shardSource,
   statsAtTime,
-  teamScoreAtTime,
   type TimedStats,
+  teamScoreAtTime,
 } from './match_time'
 
-type SortKey = 'kills' | 'deaths' | 'assists' | 'networth' | 'lh' | 'gpm' | 'xpm' | 'dmg' | 'heal' | 'bld' | 'wards'
+type SortKey =
+  | 'kills'
+  | 'deaths'
+  | 'assists'
+  | 'networth'
+  | 'lh'
+  | 'gpm'
+  | 'xpm'
+  | 'dmg'
+  | 'heal'
+  | 'bld'
+  | 'wards'
 
 function wardsAtTime(p: MatchPlayer, timeSec: number): number {
   const obs = p.obs_log ? p.obs_log.filter((w) => w.time <= timeSec).length : (p.obs_placed ?? 0)
@@ -68,7 +79,9 @@ const MOBILE_QUERY = '(max-width: 640px)'
    own horizontal scroll, so on narrow viewports it must shrink instead of
    permanently eating most of the screen. */
 function useSidebarWidth(): number {
-  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches)
+  const [narrow, setNarrow] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches,
+  )
   useEffect(() => {
     const mq = window.matchMedia(MOBILE_QUERY)
     const update = () => setNarrow(mq.matches)
@@ -84,15 +97,37 @@ type AbilityIds = Record<string, string>
 
 // Items counted in the "Support Items" column (wards, consumables, utility).
 const SUPPORT_ITEMS = new Set([
-  'ward_observer', 'ward_sentry', 'ward_dispenser', 'dust', 'smoke_of_deceit', 'tpscroll',
-  'flask', 'clarity', 'tango', 'tango_single', 'enchanted_mango', 'faerie_fire', 'gem',
-  'infused_raindrop', 'bottle', 'blood_grenade', 'cheese',
+  'ward_observer',
+  'ward_sentry',
+  'ward_dispenser',
+  'dust',
+  'smoke_of_deceit',
+  'tpscroll',
+  'flask',
+  'clarity',
+  'tango',
+  'tango_single',
+  'enchanted_mango',
+  'faerie_fire',
+  'gem',
+  'infused_raindrop',
+  'bottle',
+  'blood_grenade',
+  'cheese',
 ])
 
 const GoldPip = ({ size = 12 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 10 10" fill="none" className="inline-block shrink-0 -mt-0.5">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 10 10"
+    fill="none"
+    className="inline-block shrink-0 -mt-0.5"
+  >
     <circle cx="5" cy="5" r="4.5" fill="#e5b12c" />
-    <text x="5" y="7.5" textAnchor="middle" fontSize="6" fill="#5a4106" fontWeight="bold">$</text>
+    <text x="5" y="7.5" textAnchor="middle" fontSize="6" fill="#5a4106" fontWeight="bold">
+      $
+    </text>
   </svg>
 )
 
@@ -101,9 +136,16 @@ function fmtK(v: number | null | undefined): string {
   return n.toLocaleString()
 }
 
-const num = (colorClass: string, size = 16, weight = 400) => (v: number | string) => (
-  <span className={`tabular-nums font-dota ${colorClass}`} style={{ fontSize: size, fontWeight: weight }}>{v}</span>
-)
+const num =
+  (colorClass: string, size = 16, weight = 400) =>
+  (v: number | string) => (
+    <span
+      className={`tabular-nums font-dota ${colorClass}`}
+      style={{ fontSize: size, fontWeight: weight }}
+    >
+      {v}
+    </span>
+  )
 
 /* Support items purchased + total gold spent on them. */
 // Distinct support-item icons that fit the fixed icons zone (see
@@ -126,7 +168,8 @@ function SupportItemsGroup({
   const atEnd = timeSec >= duration
   const counts = new Map<string, number>()
   for (const e of player.purchase_log ?? []) {
-    if (SUPPORT_ITEMS.has(e.key) && (atEnd || e.time <= timeSec)) counts.set(e.key, (counts.get(e.key) ?? 0) + 1)
+    if (SUPPORT_ITEMS.has(e.key) && (atEnd || e.time <= timeSec))
+      counts.set(e.key, (counts.get(e.key) ?? 0) + 1)
   }
   const entries = [...counts.entries()]
   const gold = entries.reduce((s, [name, n]) => s + n * (itemConst[name]?.cost ?? 0), 0)
@@ -141,7 +184,10 @@ function SupportItemsGroup({
     // which shifts the gold total (and every column after it) out of
     // alignment row to row.
     <div className="flex items-center gap-1.5 px-2 shrink-0" style={{ width: 266 }}>
-      <div className="flex items-center gap-1.5 shrink-0 overflow-hidden" style={{ width: SUPPORT_ITEMS_ICONS_W }}>
+      <div
+        className="flex items-center gap-1.5 shrink-0 overflow-hidden"
+        style={{ width: SUPPORT_ITEMS_ICONS_W }}
+      >
         {visible.map(([name, n]) => (
           <div key={name} className="relative shrink-0">
             <ItemIcon name={name} meta={itemConst[name]} width={32} height={24} />
@@ -192,7 +238,13 @@ function AghsBuffIcon({
     <Tooltip>
       <TooltipTrigger asChild>
         <div>
-          <ItemIcon name={itemName} meta={itemConst[itemName]} width={32} height={24} style={{ border: BUFF_BORDER }} />
+          <ItemIcon
+            name={itemName}
+            meta={itemConst[itemName]}
+            width={32}
+            height={24}
+            style={{ border: BUFF_BORDER }}
+          />
         </div>
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
@@ -236,7 +288,11 @@ function BuffsGroup({
         />
       )}
       {scepter === 'blessing' && (
-        <AghsBuffIcon itemName="ultimate_scepter" itemConst={itemConst} label="Aghanim's Blessing (Scepter effect)" />
+        <AghsBuffIcon
+          itemName="ultimate_scepter"
+          itemConst={itemConst}
+          label="Aghanim's Blessing (Scepter effect)"
+        />
       )}
       {shard === 'sold' && (
         <AghsBuffIcon
@@ -246,9 +302,15 @@ function BuffsGroup({
         />
       )}
       {shard === 'blessing' && (
-        <AghsBuffIcon itemName="aghanims_shard" itemConst={itemConst} label="Aghanim's Blessing (Shard effect)" />
+        <AghsBuffIcon
+          itemName="aghanims_shard"
+          itemConst={itemConst}
+          label="Aghanim's Blessing (Shard effect)"
+        />
       )}
-      {moonshard && <ItemIcon name="moon_shard" meta={itemConst.moon_shard} width={32} height={24} />}
+      {moonshard && (
+        <ItemIcon name="moon_shard" meta={itemConst.moon_shard} width={32} height={24} />
+      )}
     </div>
   )
 }
@@ -274,7 +336,13 @@ function AbilityBuildGroup({
         const name = abilityIds[String(id)] ?? ''
         const isTalent = name.startsWith('special_bonus')
         return (
-          <AbilityIcon key={i} name={name} meta={abilities[name]} isTalent={isTalent} level={i + 1} />
+          <AbilityIcon
+            key={i}
+            name={name}
+            meta={abilities[name]}
+            isTalent={isTalent}
+            level={i + 1}
+          />
         )
       })}
     </div>
@@ -308,7 +376,13 @@ function ItemsCell({
       {items.map((id, i) => {
         const name = id ? (idToName.get(id) ?? null) : null
         return (
-          <ItemIcon key={i} name={name} meta={name ? itemConst[name] : undefined} width={36} height={27} />
+          <ItemIcon
+            key={i}
+            name={name}
+            meta={name ? itemConst[name] : undefined}
+            width={36}
+            height={27}
+          />
         )
       })}
     </div>
@@ -355,7 +429,13 @@ const PlayerRow = memo(function PlayerRow({
   abilityIds: AbilityIds
   rowH: number
 }) {
-  const timed = statsAtTime(player, allPlayers, heroMap.get(player.hero_id)?.name ?? '', timeSec, duration)
+  const timed = statsAtTime(
+    player,
+    allPlayers,
+    heroMap.get(player.hero_id)?.name ?? '',
+    timeSec,
+    duration,
+  )
 
   const toggle = () => onSelect(player.player_slot)
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -373,7 +453,11 @@ const PlayerRow = memo(function PlayerRow({
       onClick={toggle}
       onKeyDown={onKeyDown}
       className="flex items-stretch w-full text-left cursor-pointer hover:bg-white/[0.04]"
-      style={{ height: rowH, background: active ? 'rgba(255,255,255,0.13)' : undefined, borderBottom: '1px solid rgba(255,255,255,0.03)' }}
+      style={{
+        height: rowH,
+        background: active ? 'rgba(255,255,255,0.13)' : undefined,
+        borderBottom: '1px solid rgba(255,255,255,0.03)',
+      }}
     >
       {cols.map((c, i) => (
         <div
@@ -387,7 +471,12 @@ const PlayerRow = memo(function PlayerRow({
       ))}
       {hasPurchases && (
         <div role="cell" className="flex items-center shrink-0">
-          <SupportItemsGroup player={player} itemConst={itemConst} timeSec={timeSec} duration={duration} />
+          <SupportItemsGroup
+            player={player}
+            itemConst={itemConst}
+            timeSec={timeSec}
+            duration={duration}
+          />
         </div>
       )}
       {hasBuffs && (
@@ -397,7 +486,12 @@ const PlayerRow = memo(function PlayerRow({
       )}
       {maxAbilities > 0 && (
         <div role="cell" className="flex items-center shrink-0">
-          <AbilityBuildGroup player={player} abilities={abilities} abilityIds={abilityIds} maxLevel={timed.level} />
+          <AbilityBuildGroup
+            player={player}
+            abilities={abilities}
+            abilityIds={abilityIds}
+            maxLevel={timed.level}
+          />
         </div>
       )}
     </div>
@@ -429,15 +523,30 @@ export function MatchScoreboard({
   // Sorted independently per team, side never mixes: clicking a header
   // re-orders each team's own 5 rows, it doesn't merge into one 10-row list.
   const timedFor = useCallback(
-    (p: MatchPlayer) => statsAtTime(p, match.players, heroMap.get(p.hero_id)?.name ?? '', timeSec, match.duration),
+    (p: MatchPlayer) =>
+      statsAtTime(p, match.players, heroMap.get(p.hero_id)?.name ?? '', timeSec, match.duration),
     [match, heroMap, timeSec],
   )
   const sortedRadiant = useMemo(
-    () => applySort(radiant, sortDir, (a, b) => sortValue(a, sortKey, timedFor(a), match, timeSec) - sortValue(b, sortKey, timedFor(b), match, timeSec)),
+    () =>
+      applySort(
+        radiant,
+        sortDir,
+        (a, b) =>
+          sortValue(a, sortKey, timedFor(a), match, timeSec) -
+          sortValue(b, sortKey, timedFor(b), match, timeSec),
+      ),
     [radiant, sortKey, sortDir, timedFor, match, timeSec],
   )
   const sortedDire = useMemo(
-    () => applySort(dire, sortDir, (a, b) => sortValue(a, sortKey, timedFor(a), match, timeSec) - sortValue(b, sortKey, timedFor(b), match, timeSec)),
+    () =>
+      applySort(
+        dire,
+        sortDir,
+        (a, b) =>
+          sortValue(a, sortKey, timedFor(a), match, timeSec) -
+          sortValue(b, sortKey, timedFor(b), match, timeSec),
+      ),
     [dire, sortKey, sortDir, timedFor, match, timeSec],
   )
   const scrubbable = hasTimeline(match)
@@ -450,9 +559,24 @@ export function MatchScoreboard({
 
   const cols: Col[] = useMemo(
     () => [
-      { label: 'K', width: 44, sortKey: 'kills', render: (_p, t) => num('text-white', 18, 700)(t.kills) },
-      { label: 'D', width: 44, sortKey: 'deaths', render: (_p, t) => num('text-slate-foreground')(t.deaths) },
-      { label: 'A', width: 44, sortKey: 'assists', render: (_p, t) => num('text-slate-foreground')(t.assists) },
+      {
+        label: 'K',
+        width: 44,
+        sortKey: 'kills',
+        render: (_p, t) => num('text-white', 18, 700)(t.kills),
+      },
+      {
+        label: 'D',
+        width: 44,
+        sortKey: 'deaths',
+        render: (_p, t) => num('text-slate-foreground')(t.deaths),
+      },
+      {
+        label: 'A',
+        width: 44,
+        sortKey: 'assists',
+        render: (_p, t) => num('text-slate-foreground')(t.assists),
+      },
       {
         label: 'NET',
         width: 84,
@@ -462,7 +586,15 @@ export function MatchScoreboard({
       {
         label: 'Items',
         width: 6 * 36 + 5 * 3,
-        render: (p) => <ItemsCell player={p} idToName={idToName} itemConst={itemConst} timeSec={timeSec} duration={match.duration} />,
+        render: (p) => (
+          <ItemsCell
+            player={p}
+            idToName={idToName}
+            itemConst={itemConst}
+            timeSec={timeSec}
+            duration={match.duration}
+          />
+        ),
       },
       {
         label: 'LH / DN',
@@ -470,25 +602,36 @@ export function MatchScoreboard({
         sortKey: 'lh',
         render: (_p, t) => (
           <span className="text-[15px] tabular-nums text-slate-foreground-light font-dota">
-            {t.lastHits}<span className="text-slate-muted"> / </span>{t.denies}
+            {t.lastHits}
+            <span className="text-slate-muted"> / </span>
+            {t.denies}
           </span>
         ),
       },
       { label: 'GPM', width: 58, sortKey: 'gpm', render: (_p, t) => num('text-gold')(t.gpm) },
-      { label: 'XPM', width: 58, sortKey: 'xpm', render: (_p, t) => num('text-slate-foreground-light')(t.xpm) },
+      {
+        label: 'XPM',
+        width: 58,
+        sortKey: 'xpm',
+        render: (_p, t) => num('text-slate-foreground-light')(t.xpm),
+      },
       {
         label: 'DMG',
         width: 72,
         sortKey: 'dmg',
         render: (p) =>
-          num('text-slate-foreground-light')(p.hero_damage != null ? fmtK(damageHealAtTime(match, p, timeSec).damage) : '—'),
+          num('text-slate-foreground-light')(
+            p.hero_damage != null ? fmtK(damageHealAtTime(match, p, timeSec).damage) : '—',
+          ),
       },
       {
         label: 'HEAL',
         width: 62,
         sortKey: 'heal',
         render: (p) =>
-          num('text-slate-foreground-light')(p.hero_healing != null ? fmtK(damageHealAtTime(match, p, timeSec).healing) : '—'),
+          num('text-slate-foreground-light')(
+            p.hero_healing != null ? fmtK(damageHealAtTime(match, p, timeSec).healing) : '—',
+          ),
       },
       {
         label: 'BLD',
@@ -515,7 +658,8 @@ export function MatchScoreboard({
   const levelBySlot = new Map(
     match.players.map((p) => [
       p.player_slot,
-      statsAtTime(p, match.players, heroMap.get(p.hero_id)?.name ?? '', timeSec, match.duration).level,
+      statsAtTime(p, match.players, heroMap.get(p.hero_id)?.name ?? '', timeSec, match.duration)
+        .level,
     ]),
   )
   const radScore = teamScoreAtTime(match, true, timeSec)
@@ -525,7 +669,13 @@ export function MatchScoreboard({
   const hasBuffs = match.players.some((p) => {
     const scepter = scepterSource(p, idToName)
     const shard = shardSource(p, idToName)
-    return scepter === 'sold' || scepter === 'blessing' || shard === 'sold' || shard === 'blessing' || hasMoonshardBuff(p)
+    return (
+      scepter === 'sold' ||
+      scepter === 'blessing' ||
+      shard === 'sold' ||
+      shard === 'blessing' ||
+      hasMoonshardBuff(p)
+    )
   })
   const maxAbilities = Math.max(0, ...match.players.map((p) => p.ability_upgrades_arr?.length ?? 0))
 
@@ -568,8 +718,15 @@ export function MatchScoreboard({
           ),
         )}
         {hasPurchases && (
-          <div role="columnheader" className="flex items-center shrink-0 pl-2" style={{ width: 266 }}>
-            <span className="text-[13px] uppercase flex-1 text-slate-muted-light font-dota" style={{ letterSpacing: '1px' }}>
+          <div
+            role="columnheader"
+            className="flex items-center shrink-0 pl-2"
+            style={{ width: 266 }}
+          >
+            <span
+              className="text-[13px] uppercase flex-1 text-slate-muted-light font-dota"
+              style={{ letterSpacing: '1px' }}
+            >
               Support Items
             </span>
             <GoldPip size={13} />
@@ -577,8 +734,15 @@ export function MatchScoreboard({
           </div>
         )}
         {hasBuffs && (
-          <div role="columnheader" className="flex items-center shrink-0 pl-2" style={{ width: 140 }}>
-            <span className="text-[13px] uppercase text-slate-muted-light font-dota" style={{ letterSpacing: '1px' }}>
+          <div
+            role="columnheader"
+            className="flex items-center shrink-0 pl-2"
+            style={{ width: 140 }}
+          >
+            <span
+              className="text-[13px] uppercase text-slate-muted-light font-dota"
+              style={{ letterSpacing: '1px' }}
+            >
               Buffs
             </span>
           </div>

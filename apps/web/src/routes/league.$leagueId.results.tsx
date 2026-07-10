@@ -1,4 +1,4 @@
-import { Link, Outlet, createFileRoute, useLocation } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet, useLocation } from '@tanstack/react-router'
 import { LeagueTabBar } from '@/components/league/league_tab_bar'
 import { Panel } from '@/components/league/panel'
 

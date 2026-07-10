@@ -97,7 +97,7 @@ function fmtGold(v: number) {
 }
 
 function fmtStat(stat: MatchupStat) {
-  return (v: number) => stat === 'nw' || stat === 'gpm' ? fmtGold(v) : String(v)
+  return (v: number) => (stat === 'nw' || stat === 'gpm' ? fmtGold(v) : String(v))
 }
 
 export function AdvantageGraph({
@@ -137,9 +137,15 @@ export function AdvantageGraph({
     { key: 'matchup', label: 'Matchup' },
   ]
 
-  const refLine = activeMinute !== undefined ? (
-    <ReferenceLine x={activeMinute * 60} stroke="#0070f3" strokeWidth={1.5} strokeDasharray="4 2" />
-  ) : null
+  const refLine =
+    activeMinute !== undefined ? (
+      <ReferenceLine
+        x={activeMinute * 60}
+        stroke="#0070f3"
+        strokeWidth={1.5}
+        strokeDasharray="4 2"
+      />
+    ) : null
 
   const commonXAxis = (
     <XAxis dataKey="time" tickFormatter={formatDuration} tick={{ fill: '#888', fontSize: 10 }} />
@@ -153,7 +159,11 @@ export function AdvantageGraph({
 
     const content = (() => {
       if (!series?.length) {
-        return <div className="flex h-[180px] items-center justify-center text-xs text-muted">Data unavailable</div>
+        return (
+          <div className="flex h-[180px] items-center justify-center text-xs text-muted">
+            Data unavailable
+          </div>
+        )
       }
       const data = series.map((value, i) => ({ time: i * 60, value }))
       const max = Math.max(...series, 0)
@@ -211,7 +221,9 @@ export function AdvantageGraph({
       <div className="space-y-2">
         <TabBar tabs={TABS} active={tab} onChange={setTab} />
         {!data ? (
-          <div className="flex h-[180px] items-center justify-center text-xs text-muted">No net worth data</div>
+          <div className="flex h-[180px] items-center justify-center text-xs text-muted">
+            No net worth data
+          </div>
         ) : (
           <>
             <ResponsiveContainer width="100%" height={180}>
@@ -249,8 +261,15 @@ export function AdvantageGraph({
                 const hero = heroMap.get(p.hero_id)
                 const color = PLAYER_COLORS[p.player_slot] ?? '#888'
                 return (
-                  <span key={p.player_slot} className="flex items-center gap-1 text-[10px]" style={{ color }}>
-                    <span className="inline-block h-2 w-3 rounded-sm" style={{ background: color }} />
+                  <span
+                    key={p.player_slot}
+                    className="flex items-center gap-1 text-[10px]"
+                    style={{ color }}
+                  >
+                    <span
+                      className="inline-block h-2 w-3 rounded-sm"
+                      style={{ background: color }}
+                    />
                     {hero?.localized_name ?? `Slot ${p.player_slot}`}
                   </span>
                 )
@@ -270,7 +289,7 @@ export function AdvantageGraph({
 
   function toggleSlot(slot: number) {
     setSelectedSlots((prev) =>
-      prev.includes(slot) ? prev.filter((s) => s !== slot) : [...prev, slot]
+      prev.includes(slot) ? prev.filter((s) => s !== slot) : [...prev, slot],
     )
   }
 
@@ -285,9 +304,7 @@ export function AdvantageGraph({
             key={s}
             onClick={() => setMatchupStat(s)}
             className={`rounded px-2 py-0.5 text-[10px] transition-colors ${
-              matchupStat === s
-                ? 'bg-white/10 text-foreground'
-                : 'text-muted hover:text-foreground'
+              matchupStat === s ? 'bg-white/10 text-foreground' : 'text-muted hover:text-foreground'
             }`}
           >
             {MATCHUP_STAT_LABELS[s]}

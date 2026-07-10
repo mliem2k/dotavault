@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { Spinner } from '@/components/ui/spinner'
-import { countryFlagUrl, DIVISIONS, fetchLeaderboard, type Division } from '@/lib/leaderboard'
+import { countryFlagUrl, DIVISIONS, type Division, fetchLeaderboard } from '@/lib/leaderboard'
 import { useLeaderboardData } from '@/lib/leaderboard_data_context'
 
 export const Route = createFileRoute('/leaderboards/$region')({
@@ -53,7 +53,10 @@ function RegionPage() {
   const shown = filtered.slice(clampedPage * PAGE_SIZE, clampedPage * PAGE_SIZE + PAGE_SIZE)
 
   return (
-    <div className="max-w-[860px] mx-auto border border-border" style={{ background: 'rgba(12,11,14,0.72)' }}>
+    <div
+      className="max-w-[860px] mx-auto border border-border"
+      style={{ background: 'rgba(12,11,14,0.72)' }}
+    >
       {/* Toolbar */}
       <div className="flex items-center gap-3 px-4 py-3 flex-wrap border-b border-border">
         <input
@@ -84,99 +87,100 @@ function RegionPage() {
           This leaderboard is currently unavailable.
         </div>
       ) : shown.length === 0 ? (
-        <div className="py-16 text-center text-[14px] text-muted">
-          No players match "{search}".
-        </div>
+        <div className="py-16 text-center text-[14px] text-muted">No players match "{search}".</div>
       ) : (
         <div>
           {shown.map((r, i) => {
             const pro = proFor(r)
             const clickable = pro != null
             return (
-            <div
-              key={r.rank}
-              className={`relative flex w-full items-center gap-4 px-4 py-2.5 text-left ${i === 0 ? '' : 'border-t border-border'}`}
-            >
-              {/* Stretched link (only when a pro profile was actually matched): the
+              <div
+                key={r.rank}
+                className={`relative flex w-full items-center gap-4 px-4 py-2.5 text-left ${i === 0 ? '' : 'border-t border-border'}`}
+              >
+                {/* Stretched link (only when a pro profile was actually matched): the
                   whole row becomes a real, ctrl+click/middle-click openable link,
                   without nesting an <a> inside another interactive element around
                   the team-tag link below (invalid HTML). z-0 vs the team link's
                   z-10 keeps that independently clickable on top of it. */}
-              {clickable && (
-                <Link
-                  to="/player/$accountId"
-                  params={{ accountId: String(pro.account_id) }}
-                  className="absolute inset-0 z-0 hover:bg-white/[0.04]"
-                  title="Open pro profile"
-                  aria-label={`Open pro profile for ${r.name}`}
-                />
-              )}
-              <span
-                className="w-10 shrink-0 text-right text-[16px] tabular-nums pointer-events-none font-display"
-                style={{ color: RANK_COLORS[r.rank] ?? 'var(--color-muted)', fontWeight: 600 }}
-              >
-                {r.rank}
-              </span>
-              <div className="flex-1 min-w-0 flex items-center gap-2">
-                {r.team_tag ? (
-                  r.team_id ? (
-                    <a
-                      href={`/team/${r.team_id}`}
-                      className="relative z-10 shrink-0 text-[13px] px-1.5 py-0.5 hover:brightness-125 bg-border text-gold font-dota"
-                    >
-                      {r.team_tag}
-                    </a>
-                  ) : (
-                    <span className="shrink-0 text-[13px] px-1.5 py-0.5 bg-border text-gold font-dota">
-                      {r.team_tag}
-                    </span>
-                  )
-                ) : null}
-                <span className="text-[14px] truncate text-foreground font-dota">
-                  {r.name}
-                </span>
-                {pro && (
-                  <>
-                    <span
-                      className="shrink-0 px-1 text-[10px] uppercase text-gold font-dota"
-                      style={{ border: '1px solid rgba(201,169,74,0.5)', letterSpacing: '1px' }}
-                    >
-                      Pro
-                    </span>
-                    {pro.name !== r.name && (
-                      <span className="hidden sm:inline-block truncate max-w-[140px] text-[13px] text-gold font-dota">
-                        [{pro.name}]
-                      </span>
-                    )}
-                    {pro.personaname && pro.personaname !== r.name && pro.personaname !== pro.name && (
-                      <span className="hidden md:inline-block truncate max-w-[120px] text-[13px] text-muted font-dota">
-                        {pro.personaname}
-                      </span>
-                    )}
-                  </>
+                {clickable && (
+                  <Link
+                    to="/player/$accountId"
+                    params={{ accountId: String(pro.account_id) }}
+                    className="absolute inset-0 z-0 hover:bg-white/[0.04]"
+                    title="Open pro profile"
+                    aria-label={`Open pro profile for ${r.name}`}
+                  />
                 )}
-                {r.sponsor && (
-                  // #77715f is not in the Token Mapping Reference (close to but distinct
-                  // from #8a8474/#5a5648 text-muted) — left as-is per task instructions.
-                  <span className="hidden md:inline-block truncate max-w-[100px] text-[13px] font-dota" style={{ color: '#77715f' }}>
-                    .{r.sponsor}
-                  </span>
+                <span
+                  className="w-10 shrink-0 text-right text-[16px] tabular-nums pointer-events-none font-display"
+                  style={{ color: RANK_COLORS[r.rank] ?? 'var(--color-muted)', fontWeight: 600 }}
+                >
+                  {r.rank}
+                </span>
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                  {r.team_tag ? (
+                    r.team_id ? (
+                      <a
+                        href={`/team/${r.team_id}`}
+                        className="relative z-10 shrink-0 text-[13px] px-1.5 py-0.5 hover:brightness-125 bg-border text-gold font-dota"
+                      >
+                        {r.team_tag}
+                      </a>
+                    ) : (
+                      <span className="shrink-0 text-[13px] px-1.5 py-0.5 bg-border text-gold font-dota">
+                        {r.team_tag}
+                      </span>
+                    )
+                  ) : null}
+                  <span className="text-[14px] truncate text-foreground font-dota">{r.name}</span>
+                  {pro && (
+                    <>
+                      <span
+                        className="shrink-0 px-1 text-[10px] uppercase text-gold font-dota"
+                        style={{ border: '1px solid rgba(201,169,74,0.5)', letterSpacing: '1px' }}
+                      >
+                        Pro
+                      </span>
+                      {pro.name !== r.name && (
+                        <span className="hidden sm:inline-block truncate max-w-[140px] text-[13px] text-gold font-dota">
+                          [{pro.name}]
+                        </span>
+                      )}
+                      {pro.personaname &&
+                        pro.personaname !== r.name &&
+                        pro.personaname !== pro.name && (
+                          <span className="hidden md:inline-block truncate max-w-[120px] text-[13px] text-muted font-dota">
+                            {pro.personaname}
+                          </span>
+                        )}
+                    </>
+                  )}
+                  {r.sponsor && (
+                    // #77715f is not in the Token Mapping Reference (close to but distinct
+                    // from #8a8474/#5a5648 text-muted) — left as-is per task instructions.
+                    <span
+                      className="hidden md:inline-block truncate max-w-[100px] text-[13px] font-dota"
+                      style={{ color: '#77715f' }}
+                    >
+                      .{r.sponsor}
+                    </span>
+                  )}
+                </div>
+                {r.country && (
+                  <img
+                    src={countryFlagUrl(r.country)}
+                    alt={r.country}
+                    width={16}
+                    height={11}
+                    loading="lazy"
+                    className="shrink-0 pointer-events-none"
+                    onError={(e) => {
+                      e.currentTarget.style.visibility = 'hidden'
+                    }}
+                  />
                 )}
               </div>
-              {r.country && (
-                <img
-                  src={countryFlagUrl(r.country)}
-                  alt={r.country}
-                  width={16}
-                  height={11}
-                  loading="lazy"
-                  className="shrink-0 pointer-events-none"
-                  onError={(e) => {
-                    e.currentTarget.style.visibility = 'hidden'
-                  }}
-                />
-              )}
-            </div>
             )
           })}
         </div>
