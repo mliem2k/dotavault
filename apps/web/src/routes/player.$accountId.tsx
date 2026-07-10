@@ -7,6 +7,7 @@ import { opendota } from '@/lib/opendota'
 import { PlayerDataContext } from '@/lib/player_data_context'
 import { rankBadge, rankName } from '@/lib/rank'
 import { fetchSteamProfile, resolveVanitySteamId } from '@/lib/steam'
+import { tiChampionYears } from '@/lib/ti_champion_players'
 import { usePageTitle } from '@/lib/title'
 import { winRate } from '@/lib/utils'
 
@@ -325,6 +326,21 @@ function PlayerPage() {
               <h1 className="text-[28px] leading-tight truncate" style={{ color: C.white }}>
                 {resolvedProfile.personaname}
               </h1>
+              {tiChampionYears(Number(accountId)).length > 0 && (
+                <span
+                  className="shrink-0 px-2 py-0.5 text-[13px] font-bold uppercase text-gold"
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid rgba(242,201,76,0.5)',
+                    letterSpacing: '1px',
+                  }}
+                  title={`The International Champion: ${tiChampionYears(Number(accountId))
+                    .map((y) => `TI${y}`)
+                    .join(', ')}`}
+                >
+                  TI Champion {tiChampionYears(Number(accountId)).join('/')}
+                </span>
+              )}
               {resolvedProfile.isPrivate && (
                 <span
                   className="shrink-0 px-1.5 py-0.5 text-[12px] uppercase"
