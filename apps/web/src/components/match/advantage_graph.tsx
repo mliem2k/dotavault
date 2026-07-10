@@ -302,6 +302,7 @@ export function AdvantageGraph({
         {(Object.keys(MATCHUP_STAT_LABELS) as MatchupStat[]).map((s) => (
           <button
             key={s}
+            type="button"
             onClick={() => setMatchupStat(s)}
             className={`rounded px-2 py-0.5 text-[10px] transition-colors ${
               matchupStat === s ? 'bg-white/10 text-foreground' : 'text-muted hover:text-foreground'
@@ -315,6 +316,7 @@ export function AdvantageGraph({
       {/* Player picker: two rows, Radiant then Dire */}
       <div className="space-y-1 px-1">
         {[radiantByPos, direByPos].map((team, ti) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: fixed static [radiant, dire] pair, order never changes
           <div key={ti} className="flex gap-1 flex-wrap">
             {team.map((p) => {
               const hero = heroMap.get(p.hero_id)
@@ -323,6 +325,7 @@ export function AdvantageGraph({
               return (
                 <button
                   key={p.player_slot}
+                  type="button"
                   onClick={() => toggleSlot(p.player_slot)}
                   className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] transition-all"
                   style={{
@@ -402,6 +405,7 @@ function TabBar({
       {tabs.map((t) => (
         <button
           key={t.key}
+          type="button"
           onClick={() => onChange(t.key)}
           className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
             active === t.key ? 'bg-accent text-white' : 'text-muted hover:text-foreground'

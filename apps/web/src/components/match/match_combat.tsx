@@ -191,7 +191,7 @@ function Teamfights({ match, heroMap }: { match: Match; heroMap: Map<number, Her
     <div style={{ background: C.panel }}>
       <SectionTitle>Teamfights</SectionTitle>
       <div className="p-4 space-y-2.5">
-        {fights.map((f, i) => {
+        {fights.map((f) => {
           const radGold = f.players.reduce(
             (s, tp, idx) => s + ((match.players[idx]?.player_slot ?? 0) < 128 ? tp.gold_delta : 0),
             0,
@@ -202,9 +202,8 @@ function Teamfights({ match, heroMap }: { match: Match; heroMap: Map<number, Her
           )
           const winner = radGold >= direGold ? 'radiant' : 'dire'
           return (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static fight list
             <Link
-              key={i}
+              key={f.start}
               to="/match/$matchId/$tab"
               params={{ matchId: String(match.match_id), tab: 'replay' }}
               search={{ t: f.start }}
@@ -236,9 +235,8 @@ function Teamfights({ match, heroMap }: { match: Match; heroMap: Map<number, Her
                     return null
                   const hero = heroMap.get(mp.hero_id)
                   return (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: aligned to players order
                     <div
-                      key={idx}
+                      key={mp.player_slot}
                       className="relative"
                       title={`${hero?.localized_name}: ${tp.damage.toLocaleString()} dmg, ${kills} kills${tp.deaths ? ', died' : ''}`}
                     >

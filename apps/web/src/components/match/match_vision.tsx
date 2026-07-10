@@ -481,9 +481,18 @@ export function MatchVision({
             const active = selectedSlot === p.player_slot
             const dimmed = selectedSlot != null && !active
             return (
+              // biome-ignore lint/a11y/useSemanticElements: contains a nested <a> (PlayerNameLink), invalid inside a real <button>
               <div
                 key={p.player_slot}
+                role="button"
+                tabIndex={0}
                 onClick={() => setSelectedSlot(active ? null : p.player_slot)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setSelectedSlot(active ? null : p.player_slot)
+                  }
+                }}
                 className="flex items-center gap-3 py-2.5 w-full text-left cursor-pointer hover:bg-white/[0.05]"
                 style={{
                   borderBottom: '1px solid rgba(255,255,255,0.04)',

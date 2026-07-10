@@ -38,6 +38,7 @@ function ItemTooltip({ meta, x, y }: { meta: ItemConst; x: number; y: number }) 
             style={{ color: '#d8bf6a' }}
           >
             <svg width="11" height="11" viewBox="0 0 10 10" fill="none">
+              <title>Gold cost</title>
               <circle cx="5" cy="5" r="4.5" fill="#c8961e" />
               <text x="5" y="7.5" textAnchor="middle" fontSize="6" fill="#fff" fontWeight="bold">
                 $
@@ -61,8 +62,8 @@ function ItemTooltip({ meta, x, y }: { meta: ItemConst; x: number; y: number }) 
 
       {attribs.length > 0 && (
         <div className="space-y-0.5 mb-1.5">
-          {attribs.map((a, i) => (
-            <div key={i} className="text-[11px] leading-tight text-radiant">
+          {attribs.map((a) => (
+            <div key={a.key} className="text-[11px] leading-tight text-radiant">
               {(a.display ?? '').replace(/\{value\}/g, String(a.value)).trim()}
             </div>
           ))}
@@ -110,44 +111,44 @@ export function ItemIcon({
 }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
 
-  const box = (
-    <div
-      className={`rounded-sm overflow-hidden shrink-0 ${className}`}
-      style={{ width, height, background: '#12100c', border: '1px solid #241f16', ...style }}
-      tabIndex={name ? 0 : undefined}
-      onMouseEnter={name ? (e) => setPos({ x: e.clientX, y: e.clientY }) : undefined}
-      onMouseMove={name ? (e) => setPos({ x: e.clientX, y: e.clientY }) : undefined}
+  const boxClassName = `rounded-sm overflow-hidden shrink-0 ${className}`
+  const boxStyle = { width, height, background: '#12100c', border: '1px solid #241f16', ...style }
+
+  const box = name ? (
+    <button
+      type="button"
+      className={boxClassName}
+      style={boxStyle}
+      onMouseEnter={(e) => setPos({ x: e.clientX, y: e.clientY })}
+      onMouseMove={(e) => setPos({ x: e.clientX, y: e.clientY })}
       onMouseLeave={() => setPos(null)}
-      onFocus={
-        name
-          ? (e) =>
-              setPos({
-                x: e.currentTarget.getBoundingClientRect().left,
-                y: e.currentTarget.getBoundingClientRect().bottom,
-              })
-          : undefined
+      onFocus={(e) =>
+        setPos({
+          x: e.currentTarget.getBoundingClientRect().left,
+          y: e.currentTarget.getBoundingClientRect().bottom,
+        })
       }
       onBlur={() => setPos(null)}
     >
-      {name ? (
-        <img
-          src={itemIconUrl(name)}
-          alt={meta?.dname ?? name}
-          className="w-full h-full object-cover"
-          loading="lazy"
-          onError={(e) => {
-            // Local asset first, Steam CDN if it 404s, dim if both fail.
-            const img = e.currentTarget
-            if (!img.src.includes('cdn.cloudflare')) {
-              img.src = `${ITEM_CDN_FALLBACK}/${name}.png`
-            } else {
-              img.onerror = null
-              img.style.opacity = '0.12'
-            }
-          }}
-        />
-      ) : null}
-    </div>
+      <img
+        src={itemIconUrl(name)}
+        alt={meta?.dname ?? name}
+        className="w-full h-full object-cover"
+        loading="lazy"
+        onError={(e) => {
+          // Local asset first, Steam CDN if it 404s, dim if both fail.
+          const img = e.currentTarget
+          if (!img.src.includes('cdn.cloudflare')) {
+            img.src = `${ITEM_CDN_FALLBACK}/${name}.png`
+          } else {
+            img.onerror = null
+            img.style.opacity = '0.12'
+          }
+        }}
+      />
+    </button>
+  ) : (
+    <div className={boxClassName} style={boxStyle} />
   )
 
   if (!name) return box

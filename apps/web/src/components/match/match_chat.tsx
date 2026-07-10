@@ -100,8 +100,8 @@ export function MatchChat({
           const text = wheelText ?? CHATWHEEL_LABELS[msg.key] ?? msg.key
 
           return (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static message list
             <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: static message list
               key={i}
               className="flex items-center gap-3 py-2"
               style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}

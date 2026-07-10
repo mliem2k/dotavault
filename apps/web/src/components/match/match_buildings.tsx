@@ -250,8 +250,9 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
                   : 'bg-dire'
               const size = b.kind === 'fort' ? 16 : b.kind === 'tower' ? 11 : 8
               return (
-                <span
-                  key={`${b.key}-${i}`}
+                <button
+                  type="button"
+                  key={b.key}
                   className="absolute -translate-x-1/2 translate-y-1/2 cursor-pointer"
                   style={{ left: pct(b.x), bottom: pct(b.y), width: size, height: size, zIndex: 2 }}
                   onMouseEnter={(e) => setHover({ idx: i, x: e.clientX, y: e.clientY })}
@@ -267,7 +268,7 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
                       opacity: dead ? 0.55 : 1,
                     }}
                   />
-                </span>
+                </button>
               )
             })}
 
@@ -284,6 +285,7 @@ export function MatchBuildings({ match, heroStats }: { match: Match; heroStats: 
                     const hero = heroMap.get(p.hero_id)
                     const img = (
                       <img
+                        key={p.player_slot}
                         src={hero ? heroIconUrl(hero.name) : ''}
                         alt=""
                         title={`${hero?.localized_name ?? 'Unknown'} · ${anchor.label}`}

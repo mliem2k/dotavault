@@ -35,6 +35,7 @@ export function SortHeader<K extends string>({
     >
       <span>{label}</span>
       <span
+        role="img"
         aria-label={active ? (dir === 'asc' ? 'sorted ascending' : 'sorted descending') : undefined}
         style={{ opacity: active ? 1 : 0.3, fontSize: 9, lineHeight: 1 }}
       >

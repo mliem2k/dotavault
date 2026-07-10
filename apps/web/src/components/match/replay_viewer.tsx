@@ -300,6 +300,7 @@ function ParseRequest({ matchId }: { matchId: number }) {
 
 const GoldIcon = ({ size = 10 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 10 10" fill="none" aria-hidden>
+    <title>Gold</title>
     <circle cx="5" cy="5" r="4.5" fill="#c8961e" />
     <text x="5" y="7.5" textAnchor="middle" fontSize="6" fill="#fff" fontWeight="bold">
       $
@@ -638,6 +639,7 @@ export function ReplayViewer({
   // Opening the tab checks for a result or job already in progress (e.g. a
   // previous parse, or one started from another tab) and adopts/resumes it
   // without waiting for a "Full Playback" click.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only check; applyStatus/startPolling are redefined every render and must not retrigger this effect
   useEffect(() => {
     let cancelled = false
     getReplayStatus(match.match_id).then((status) => {
@@ -1164,13 +1166,12 @@ export function ReplayViewer({
           Match Events
         </div>
         <div ref={eventsRef} className="max-h-[600px] overflow-y-auto">
-          {events.map((e, i) => {
+          {events.map((e) => {
             const hero = e.heroId != null ? heroMap.get(e.heroId) : undefined
             const passed = e.time <= time
             return (
-              // biome-ignore lint/suspicious/noArrayIndexKey: static event list
               <button
-                key={i}
+                key={`${e.time}-${e.text}`}
                 type="button"
                 onClick={() => {
                   setPlaying(false)

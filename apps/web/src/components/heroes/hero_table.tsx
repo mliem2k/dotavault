@@ -72,6 +72,7 @@ export function HeroTable({ heroes }: { heroes: HeroStat[] }) {
         {ROLES.map((r) => (
           <button
             key={r}
+            type="button"
             onClick={() => setRole(r)}
             className={`rounded border px-2 py-0.5 text-xs ${
               role === r

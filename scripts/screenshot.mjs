@@ -28,10 +28,18 @@ async function shot(name, url) {
   await page.setViewportSize({ width: 1400, height: 900 })
   console.log(`Loading ${url}...`)
   await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 })
-  await page.evaluate(() => document.querySelectorAll('video').forEach((v) => v.pause()))
+  await page.evaluate(() =>
+    document.querySelectorAll('video').forEach((v) => {
+      v.pause()
+    }),
+  )
   await page.evaluate((y) => window.scrollTo(0, y), scrollY)
   await page.waitForTimeout(600)
-  await page.evaluate(() => document.querySelectorAll('video').forEach((v) => v.pause()))
+  await page.evaluate(() =>
+    document.querySelectorAll('video').forEach((v) => {
+      v.pause()
+    }),
+  )
   const path = `${REFS}/${name}_axe_abilities.png`
   await page.screenshot({ path })
   console.log(`Saved: ${path}`)

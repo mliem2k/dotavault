@@ -54,7 +54,7 @@ function ProfileLayout() {
             })}
           </div>
           {badge && (
-            <div className="relative group shrink-0" tabIndex={0}>
+            <div className="relative group shrink-0">
               <div
                 className="relative flex items-center justify-center rounded-full cursor-default"
                 style={{

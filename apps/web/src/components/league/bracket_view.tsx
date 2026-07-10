@@ -63,19 +63,12 @@ const BracketCard = memo(function BracketCard({
   )
 
   return (
-    <div
-      ref={cardRef}
+    <button
+      type="button"
+      ref={(el: HTMLButtonElement | null) => cardRef(el as unknown as HTMLDivElement | null)}
       onClick={() => setExpanded((v) => !v)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          setExpanded((v) => !v)
-        }
-      }}
-      role="button"
-      tabIndex={0}
       aria-expanded={expanded}
-      className="w-[160px] cursor-pointer border border-border sm:w-[220px]"
+      className="block w-[160px] cursor-pointer border border-border text-left sm:w-[220px]"
       style={{ background: 'rgba(255,255,255,0.03)' }}
     >
       {row(s.teamA, teamA?.name ?? (s.teamA ? `Team ${s.teamA}` : 'TBD'), s.scoreA, aWon)}
@@ -111,7 +104,7 @@ const BracketCard = memo(function BracketCard({
           })}
         </div>
       )}
-    </div>
+    </button>
   )
 })
 
@@ -209,6 +202,7 @@ export function BracketView({
             height={contentSize.height}
           />
           {rounds.map((round, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: rounds are always rendered in fixed tournament order
             <div key={i} className="flex shrink-0 flex-col gap-3 sm:gap-4">
               <div className="text-[12px] font-bold uppercase tracking-widest text-muted">
                 Round {i + 1}

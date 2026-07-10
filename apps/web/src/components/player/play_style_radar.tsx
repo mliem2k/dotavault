@@ -76,7 +76,7 @@ export function PlayStyleRadar({
         const [x, y] = pointAt(i, R)
         return (
           <line
-            key={i}
+            key={AXES[i]}
             x1={cx}
             y1={cy}
             x2={x}
@@ -90,7 +90,7 @@ export function PlayStyleRadar({
       <path d={dataPath} fill="rgba(201,169,74,0.3)" className="stroke-gold" strokeWidth={2} />
       {values.map((v, i) => {
         const [x, y] = pointAt(i, R * Math.max(0.04, v))
-        return <circle key={i} cx={x} cy={y} r={2.5} className="fill-gold" />
+        return <circle key={AXES[i]} cx={x} cy={y} r={2.5} className="fill-gold" />
       })}
       {/* labels */}
       {AXES.map((label, i) => {

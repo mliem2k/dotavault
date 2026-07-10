@@ -97,8 +97,8 @@ function AbilityTooltip({
 
       {attribs.length > 0 && (
         <div className="space-y-0.5">
-          {attribs.map((a, i) => (
-            <div key={i} className="flex justify-between gap-3 text-[10px] leading-tight">
+          {attribs.map((a) => (
+            <div key={a.key} className="flex justify-between gap-3 text-[10px] leading-tight">
               <span className="uppercase" style={{ color: '#77715f' }}>
                 {(a.header ?? a.key).replace(/:$/, '')}
               </span>
@@ -131,7 +131,8 @@ export function AbilityIcon({
 
   return (
     <>
-      <div
+      <button
+        type="button"
         className="shrink-0 rounded-sm overflow-hidden flex items-center justify-center"
         style={{
           width: size,
@@ -139,7 +140,6 @@ export function AbilityIcon({
           background: isTalent ? '#1a2810' : '#12100c',
           border: `1px solid ${isTalent ? '#3a5a1a' : '#241f16'}`,
         }}
-        tabIndex={0}
         onMouseEnter={(e) => setPos({ x: e.clientX, y: e.clientY })}
         onMouseMove={(e) => setPos({ x: e.clientX, y: e.clientY })}
         onMouseLeave={() => setPos(null)}
@@ -183,7 +183,7 @@ export function AbilityIcon({
             style={{ width: '78%', height: '78%', objectFit: 'contain' }}
           />
         )}
-      </div>
+      </button>
       {pos &&
         meta &&
         createPortal(

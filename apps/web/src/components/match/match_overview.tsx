@@ -200,6 +200,7 @@ function HeroRender({
 
 const GoldIcon = ({ size = 12 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 10 10" fill="none" className="inline-block shrink-0">
+    <title>Gold</title>
     <circle cx="5" cy="5" r="4.5" fill="#e5b12c" />
     <text x="5" y="7.5" textAnchor="middle" fontSize="6" fill="#5a4106" fontWeight="bold">
       $
@@ -530,6 +531,7 @@ function HeroIconRow({
         const hero = heroMap.get(p.hero_id)
         const img = (
           <img
+            key={p.player_slot}
             src={hero ? heroIconUrl(hero.name) : ''}
             alt=""
             title={hero?.localized_name}
@@ -950,6 +952,7 @@ function DetailPanel({
             const name = id ? (idToName.get(id) ?? null) : null
             return (
               <div
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed 6 inventory slot positions, never reorder
                 key={i}
                 className="border border-slate-bg"
                 style={{ background: 'rgba(10,13,15,0.9)' }}

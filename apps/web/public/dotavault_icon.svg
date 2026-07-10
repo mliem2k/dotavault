@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>Dotavault logo</title>
   <!-- Outer shield shape -->
   <path d="M32 4L8 14V34C8 47 18 56 32 60C46 56 56 47 56 34V14L32 4Z" fill="#111111" stroke="#333333" stroke-width="1.5"/>
   <!-- Inner shield highlight -->

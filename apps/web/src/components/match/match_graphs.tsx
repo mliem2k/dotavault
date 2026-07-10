@@ -85,6 +85,7 @@ function GridAndAxis({
       {lines}
       {yTicks?.map((t, i) => (
         <line
+          // biome-ignore lint/suspicious/noArrayIndexKey: static axis tick decoration
           key={`y${i}`}
           x1={0}
           y1={t.y}
@@ -151,6 +152,8 @@ function WinProbChart({ match, vbH }: { match: Match; vbH: number }) {
     <div className="flex-1 min-w-0">
       <div
         ref={wrapRef}
+        role="img"
+        aria-label="Estimated win probability over time"
         className="relative"
         style={{ height: vbH }}
         onMouseMove={onMove}
@@ -162,6 +165,7 @@ function WinProbChart({ match, vbH }: { match: Match; vbH: number }) {
           className="w-full"
           style={{ height: vbH }}
         >
+          <title>Estimated win probability over time</title>
           <defs>
             <linearGradient id="wpFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#9fbf3f" stopOpacity="0.4" />
@@ -259,6 +263,8 @@ function TeamAdvantageChart({ match, vbH }: { match: Match; vbH: number }) {
     <div className="flex-1 min-w-0">
       <div
         ref={wrapRef}
+        role="img"
+        aria-label="Team net worth and XP advantage over time"
         className="relative"
         style={{ height: vbH }}
         onMouseMove={onMove}
@@ -270,6 +276,7 @@ function TeamAdvantageChart({ match, vbH }: { match: Match; vbH: number }) {
           className="w-full"
           style={{ height: vbH }}
         >
+          <title>Team net worth and XP advantage over time</title>
           <defs>
             <linearGradient id="advGreen" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#9fbf3f" stopOpacity="0.35" />
@@ -459,10 +466,15 @@ function PlayerLinesChart({
           .sort((a, b) => b.v - a.v)
       : []
 
+  const metricLabel =
+    metric === 'networth' ? 'net worth' : metric === 'level' ? 'level' : 'last hits'
+
   return (
     <div className="flex-1 min-w-0">
       <div
         ref={wrapRef}
+        role="img"
+        aria-label={`Player ${metricLabel} over time`}
         className="relative"
         style={{ height: vbH }}
         onMouseMove={onMove}
@@ -474,6 +486,7 @@ function PlayerLinesChart({
           className="w-full"
           style={{ height: vbH }}
         >
+          <title>Player {metricLabel} over time</title>
           <GridAndAxis minutes={n} vbH={vbH} yTicks={yTicks} />
           {shown.map((s) => {
             const color = PLAYER_COLORS[s.player.player_slot] ?? '#888'
@@ -546,7 +559,7 @@ function PlayerLinesChart({
                       onError={(e) => {
                         const img = e.currentTarget
                         img.onerror = null
-                        img.src = heroIconFromPath(r.hero!.icon)
+                        img.src = heroIconFromPath(r.hero?.icon ?? '')
                       }}
                     />
                   )}
@@ -607,11 +620,11 @@ function PlayerItemsTimeline({
             transform: 'translateY(-50%)',
           }}
         />
-        {purchases.map((e, i) => {
+        {purchases.map((e) => {
           const leftPct = Math.max(0, Math.min(100, (e.time / durationSec) * 100))
           return (
             <div
-              key={i}
+              key={`${e.key}-${e.time}`}
               className="absolute"
               style={{ top: y, left: `${leftPct}%`, transform: 'translate(-50%, -50%)' }}
             >
@@ -741,8 +754,10 @@ export function MatchGraphs({
   const POSITIONS = ['Safelane', 'Midlane', 'Offlane', 'Soft Support', 'Hard Support']
   const positionSlots = (i: number) => {
     const slots = new Set<number>()
-    if (radPos[i]) slots.add(radPos[i]!.player_slot)
-    if (direPos[i]) slots.add(direPos[i]!.player_slot)
+    const rp = radPos[i]
+    const dp = direPos[i]
+    if (rp) slots.add(rp.player_slot)
+    if (dp) slots.add(dp.player_slot)
     return slots
   }
   const selectPosition = (i: number) => {

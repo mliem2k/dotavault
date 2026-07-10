@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { type LeagueTab, LeagueTabBar } from '@/components/league/league_tab_bar'
 import { Panel } from '@/components/league/panel'
@@ -194,7 +194,6 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
     queryFn: () => opendota.leagueTeamStandings(leagueId),
     staleTime: 10 * 60 * 1000,
   })
-  const navigate = useNavigate()
   const relevantTeamIds = useMemo(
     () => (standings.data ?? []).map((s) => s.team_id),
     [standings.data],
@@ -286,28 +285,19 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
               const games = s.wins + s.losses
               const wr = games > 0 ? (s.wins / games) * 100 : 0
               return (
-                <tr
+                <Link
                   key={s.team_id}
-                  onClick={() =>
-                    navigate({ to: '/team/$teamId', params: { teamId: String(s.team_id) } })
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      navigate({ to: '/team/$teamId', params: { teamId: String(s.team_id) } })
-                    }
-                  }}
-                  role="link"
-                  tabIndex={0}
-                  className="cursor-pointer hover:bg-white/[0.03] border-t border-border"
+                  to="/team/$teamId"
+                  params={{ teamId: String(s.team_id) }}
+                  className="table-row cursor-pointer hover:bg-white/[0.03] border-t border-border"
                 >
                   <td className="py-2 pr-2 text-right text-[13px] tabular-nums text-muted">
                     {i + 1}
                   </td>
                   <td className="py-2">
-                    {/* Real link so this cell (unlike the rest of the row, which
-                        only navigates via the row's own click/keydown handlers)
-                        supports ctrl+click/middle-click to open in a new tab. */}
+                    {/* Separate anchor (with stopPropagation) so this cell's link target
+                        (the team) can differ in principle from the row's own link target,
+                        and so ctrl+click/middle-click on it doesn't also trigger the row link. */}
                     <a
                       href={`/team/${s.team_id}`}
                       className="flex items-center gap-2.5"
@@ -347,7 +337,7 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
                   >
                     {wr.toFixed(0)}%
                   </td>
-                </tr>
+                </Link>
               )
             })}
           </tbody>

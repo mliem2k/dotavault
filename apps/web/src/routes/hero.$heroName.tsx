@@ -82,9 +82,9 @@ function HistoryText({ text }: { text: string }) {
         }
         if (!p) return null
         return bold ? (
-          // biome-ignore lint/suspicious/noArrayIndexKey: static split of a fixed string
           // #e8e2d4 is not in the Token Mapping Reference (close to but distinct from
           // #dcd6c8/#c8c2b4 text-foreground) — left as-is per task instructions.
+          // biome-ignore lint/suspicious/noArrayIndexKey: static split of a fixed string
           <strong key={i} style={{ fontWeight: 700, color: '#e8e2d4' }}>
             {p}
           </strong>
@@ -798,8 +798,8 @@ function HeroDetailPage() {
             }}
           >
             {[...Array(6)].map((_, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: static decoration
               <span
+                // biome-ignore lint/suspicious/noArrayIndexKey: static decoration
                 key={i}
                 className="bg-white"
                 style={{ width: 9, height: 9, display: 'block' }}
@@ -922,11 +922,7 @@ function HeroDetailPage() {
               >
                 Complexity
               </div>
-              <div
-                className="flex"
-                style={{ gap: 12, marginTop: 8, marginLeft: 4 }}
-                aria-label={`Complexity ${meta.complexity} of 3`}
-              >
+              <div className="flex" style={{ gap: 12, marginTop: 8, marginLeft: 4 }}>
                 {[1, 2, 3].map((n) => (
                   <span
                     key={n}
@@ -958,11 +954,7 @@ function HeroDetailPage() {
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               {talents.length > 0 && abilities.data && (
-                <div
-                  className="relative group shrink-0"
-                  style={{ width: 72, height: 72 }}
-                  tabIndex={0}
-                >
+                <div className="relative group shrink-0" style={{ width: 72, height: 72 }}>
                   <img
                     src={TALENTS_ICON_CDN}
                     alt="Talents"
@@ -1061,7 +1053,7 @@ function HeroDetailPage() {
                   (x) => x.header && x.value != null && x.value !== '' && !x.generated,
                 )
                 return (
-                  <div key={name} className="relative group shrink-0" tabIndex={0}>
+                  <div key={name} className="relative group shrink-0">
                     <img
                       src={INNATE_ICON_CDN}
                       alt={ab?.dname ?? name}
@@ -1150,9 +1142,9 @@ function HeroDetailPage() {
                       )}
                       {/* #1e1a12 is not in the Token Mapping Reference (close to but distinct
                           from #1c1810 border-border) — left as-is per task instructions. */}
-                      {attribs.map((x, i) => (
+                      {attribs.map((x) => (
                         <div
-                          key={i}
+                          key={x.header}
                           className="flex justify-between"
                           style={{
                             borderTop: '1px solid #1e1a12',
@@ -1555,8 +1547,8 @@ function HeroDetailPage() {
             >
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 14px)', gap: 5 }}>
                 {[...Array(6)].map((_, i) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: static decoration
                   <div
+                    // biome-ignore lint/suspicious/noArrayIndexKey: static decoration
                     key={i}
                     style={{ width: 14, height: 14, background: 'rgba(255,255,255,0.85)' }}
                   />

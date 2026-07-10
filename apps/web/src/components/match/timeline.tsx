@@ -172,8 +172,11 @@ export function Timeline({
           <div className="text-xs text-muted italic">No events</div>
         ) : (
           <div className="max-h-36 space-y-0.5 overflow-y-auto">
-            {nearbyEvents.map((ev, i) => (
-              <div key={i} className="flex items-center gap-2 rounded px-1 py-0.5">
+            {nearbyEvents.map((ev) => (
+              <div
+                key={`${ev.time}-${ev.kind}-${ev.label}`}
+                className="flex items-center gap-2 rounded px-1 py-0.5"
+              >
                 <span className="w-12 font-mono text-xs text-muted flex-shrink-0">
                   {formatDuration(ev.time)}
                 </span>

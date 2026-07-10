@@ -156,8 +156,8 @@ export function MatchObjectives({ match, heroStats }: { match: Match; heroStats:
         {events.map((e, i) => {
           const hero = e.heroId != null ? heroMap.get(e.heroId) : undefined
           return (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static event list
             <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: static event list
               key={i}
               className="flex items-center gap-3.5 py-2"
               style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}

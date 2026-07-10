@@ -358,7 +358,7 @@ export function MatchDamage({
               ) : (
                 <>
                   {cells.map((v, i) => (
-                    <MatrixCell key={i} value={v} max={matrixMax} />
+                    <MatrixCell key={enemies[i].id} value={v} max={matrixMax} />
                   ))}
                   <div
                     className="shrink-0 flex items-center justify-center"

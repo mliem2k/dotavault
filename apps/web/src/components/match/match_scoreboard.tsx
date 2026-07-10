@@ -124,6 +124,7 @@ const GoldPip = ({ size = 12 }: { size?: number }) => (
     fill="none"
     className="inline-block shrink-0 -mt-0.5"
   >
+    <title>Gold</title>
     <circle cx="5" cy="5" r="4.5" fill="#e5b12c" />
     <text x="5" y="7.5" textAnchor="middle" fontSize="6" fill="#5a4106" fontWeight="bold">
       $
@@ -337,6 +338,7 @@ function AbilityBuildGroup({
         const isTalent = name.startsWith('special_bonus')
         return (
           <AbilityIcon
+            // biome-ignore lint/suspicious/noArrayIndexKey: fixed level-order sequence, positions never reorder
             key={i}
             name={name}
             meta={abilities[name]}
@@ -377,6 +379,7 @@ function ItemsCell({
         const name = id ? (idToName.get(id) ?? null) : null
         return (
           <ItemIcon
+            // biome-ignore lint/suspicious/noArrayIndexKey: fixed inventory-slot position, not reorderable
             key={i}
             name={name}
             meta={name ? itemConst[name] : undefined}
@@ -446,10 +449,9 @@ const PlayerRow = memo(function PlayerRow({
   }
 
   return (
-    <div
-      role="row"
+    <tr
       tabIndex={0}
-      aria-pressed={active}
+      aria-selected={active}
       onClick={toggle}
       onKeyDown={onKeyDown}
       className="flex items-stretch w-full text-left cursor-pointer hover:bg-white/[0.04]"
@@ -460,41 +462,41 @@ const PlayerRow = memo(function PlayerRow({
       }}
     >
       {cols.map((c, i) => (
-        <div
+        <td
+          // biome-ignore lint/suspicious/noArrayIndexKey: fixed column position, not reorderable
           key={i}
-          role="cell"
           className={`shrink-0 flex items-center ${i === 4 ? 'justify-start pl-1' : 'justify-center'}`}
           style={{ width: c.width }}
         >
           {c.render(player, timed)}
-        </div>
+        </td>
       ))}
       {hasPurchases && (
-        <div role="cell" className="flex items-center shrink-0">
+        <td className="flex items-center shrink-0">
           <SupportItemsGroup
             player={player}
             itemConst={itemConst}
             timeSec={timeSec}
             duration={duration}
           />
-        </div>
+        </td>
       )}
       {hasBuffs && (
-        <div role="cell" className="flex items-center shrink-0">
+        <td className="flex items-center shrink-0">
           <BuffsGroup player={player} idToName={idToName} itemConst={itemConst} />
-        </div>
+        </td>
       )}
       {maxAbilities > 0 && (
-        <div role="cell" className="flex items-center shrink-0">
+        <td className="flex items-center shrink-0">
           <AbilityBuildGroup
             player={player}
             abilities={abilities}
             abilityIds={abilityIds}
             maxLevel={timed.level}
           />
-        </div>
+        </td>
       )}
-    </div>
+    </tr>
   )
 })
 
@@ -679,19 +681,21 @@ export function MatchScoreboard({
   })
   const maxAbilities = Math.max(0, ...match.players.map((p) => p.ability_upgrades_arr?.length ?? 0))
 
-  const label = (content: string | JSX.Element, width?: number, extraClass = '') => (
-    <div
-      role="columnheader"
+  const label = (key: number, content: string | JSX.Element, width?: number, extraClass = '') => (
+    <th
+      key={key}
+      scope="col"
       className={`shrink-0 flex items-center justify-center text-[13px] uppercase text-slate-muted-light font-dota ${extraClass}`}
       style={{ width, height: headerH, letterSpacing: '1px' }}
     >
       {content}
-    </div>
+    </th>
   )
 
-  const sortableLabel = (c: Col, extraClass = '') => (
-    <div
-      role="columnheader"
+  const sortableLabel = (key: number, c: Col, extraClass = '') => (
+    <th
+      key={key}
+      scope="col"
       className="shrink-0 flex items-center justify-center"
       style={{ width: c.width, height: headerH }}
     >
@@ -704,25 +708,19 @@ export function MatchScoreboard({
         className={`text-[13px] font-dota ${sortKey === c.sortKey ? '' : 'text-slate-muted-light'} ${extraClass}`}
         style={{ letterSpacing: '1px', minHeight: 'unset' }}
       />
-    </div>
+    </th>
   )
 
   const headerRow = () => {
     return (
-      <div role="row" className="flex items-stretch" style={{ height: headerH }}>
+      <tr className="flex items-stretch" style={{ height: headerH }}>
         {cols.map((c, i) =>
-          c.sortKey ? (
-            <div key={i}>{sortableLabel(c, i === 4 ? 'justify-start pl-1' : '')}</div>
-          ) : (
-            <div key={i}>{label(c.label, c.width, i === 4 ? 'justify-start pl-1' : '')}</div>
-          ),
+          c.sortKey
+            ? sortableLabel(i, c, i === 4 ? 'justify-start pl-1' : '')
+            : label(i, c.label, c.width, i === 4 ? 'justify-start pl-1' : ''),
         )}
         {hasPurchases && (
-          <div
-            role="columnheader"
-            className="flex items-center shrink-0 pl-2"
-            style={{ width: 266 }}
-          >
+          <th scope="col" className="flex items-center shrink-0 pl-2" style={{ width: 266 }}>
             <span
               className="text-[13px] uppercase flex-1 text-slate-muted-light font-dota"
               style={{ letterSpacing: '1px' }}
@@ -731,30 +729,27 @@ export function MatchScoreboard({
             </span>
             <GoldPip size={13} />
             <span className="w-4" />
-          </div>
+          </th>
         )}
         {hasBuffs && (
-          <div
-            role="columnheader"
-            className="flex items-center shrink-0 pl-2"
-            style={{ width: 140 }}
-          >
+          <th scope="col" className="flex items-center shrink-0 pl-2" style={{ width: 140 }}>
             <span
               className="text-[13px] uppercase text-slate-muted-light font-dota"
               style={{ letterSpacing: '1px' }}
             >
               Buffs
             </span>
-          </div>
+          </th>
         )}
         {maxAbilities > 0 && (
-          <div role="columnheader" className="flex items-center gap-[3px] px-2 shrink-0">
+          <th scope="col" className="flex items-center gap-[3px] px-2 shrink-0">
             {/* width matches AbilityIcon's default 26px size exactly (not a
                 round number like 29) so each header number stays lined up
                 with its own ability icon below instead of drifting right
                 by 3px per slot as the sequence gets longer. */}
             {Array.from({ length: maxAbilities }, (_, i) => (
               <span
+                // biome-ignore lint/suspicious/noArrayIndexKey: fixed level-order sequence, positions never reorder
                 key={i}
                 className="inline-block text-center tabular-nums text-[13px] text-slate-muted-light font-dota"
                 style={{ width: 26 }}
@@ -762,9 +757,9 @@ export function MatchScoreboard({
                 {i + 1}
               </span>
             ))}
-          </div>
+          </th>
         )}
-      </div>
+      </tr>
     )
   }
 
@@ -786,7 +781,7 @@ export function MatchScoreboard({
         />
         {/* Stats pane — scrolls horizontally, rows aligned with the sidebar */}
         <div className="flex-1 min-w-0 overflow-x-auto">
-          <div className="inline-block min-w-full" role="table">
+          <table className="inline-block min-w-full">
             {headerRow()}
             {sortedRadiant.map((p) => (
               <PlayerRow
@@ -831,7 +826,7 @@ export function MatchScoreboard({
                 rowH={rowH}
               />
             ))}
-          </div>
+          </table>
         </div>
       </div>
       {scrubbable && (
