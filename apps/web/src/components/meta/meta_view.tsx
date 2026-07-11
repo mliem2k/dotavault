@@ -1,6 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ReferenceLine,
+  ResponsiveContainer,
+  Scatter,
+  ScatterChart,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import type { HeroStat } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
 import { Spinner } from '@/components/ui/spinner'
@@ -203,6 +215,212 @@ function LaneCard({
   )
 }
 
+/* Page-wide role filter (applies to Top Heroes, Chart, Plots, and the
+   table below - lane cards already show all 5 positions side by side). */
+const ROLE_OPTIONS: { key: 'all' | (typeof LANES)[number]['pos']; label: string }[] = [
+  { key: 'all', label: 'All Roles' },
+  ...LANES.map((l) => ({ key: l.pos, label: l.label })),
+]
+
+function TopHeroesStrip({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }) {
+  const top = useMemo(
+    () =>
+      [...heroes]
+        .filter((h) => picksOf(h, bracket) >= minPicks(bracket))
+        .sort((a, b) => winPct(b, bracket) - winPct(a, bracket))
+        .slice(0, 8),
+    [heroes, bracket],
+  )
+
+  if (top.length === 0) return null
+
+  return (
+    <Panel title="Top Heroes">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
+        {top.map((h, i) => {
+          const wr = winPct(h, bracket)
+          return (
+            <a
+              key={h.id}
+              href={`/hero/${heroSlug(h.localized_name)}`}
+              className="flex flex-col items-center gap-1.5 border border-border px-2 py-3 hover:bg-white/[0.03]"
+            >
+              <span className="text-[11px] text-muted font-dota">#{i + 1}</span>
+              <img
+                src={heroIconUrl(h.name)}
+                alt=""
+                loading="lazy"
+                className="h-10 w-10 rounded-sm"
+              />
+              <span className="max-w-full truncate text-[13px] text-foreground font-dota">
+                {h.localized_name}
+              </span>
+              <span
+                className={`text-[15px] font-bold tabular-nums font-dota ${
+                  wr >= 52 ? 'text-radiant' : wr < 48 ? 'text-dire' : 'text-foreground'
+                }`}
+              >
+                {wr.toFixed(1)}%
+              </span>
+              <span className="text-[11px] tabular-nums text-muted font-dota">
+                {picksOf(h, bracket).toLocaleString()} games
+              </span>
+            </a>
+          )
+        })}
+      </div>
+    </Panel>
+  )
+}
+
+type ChartMetric = 'winrate' | 'picks'
+
+function MetaBarChart({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }) {
+  const [metric, setMetric] = useState<ChartMetric>('winrate')
+
+  const rows = useMemo(() => {
+    const filtered = heroes.filter((h) => picksOf(h, bracket) >= minPicks(bracket))
+    const sorted =
+      metric === 'winrate'
+        ? [...filtered].sort((a, b) => winPct(b, bracket) - winPct(a, bracket))
+        : [...filtered].sort((a, b) => picksOf(b, bracket) - picksOf(a, bracket))
+    return sorted.slice(0, 20).map((h) => ({
+      name: h.localized_name,
+      value: metric === 'winrate' ? winPct(h, bracket) : picksOf(h, bracket),
+      picks: picksOf(h, bracket),
+      wr: winPct(h, bracket),
+    }))
+  }, [heroes, bracket, metric])
+
+  if (rows.length === 0) return null
+
+  return (
+    <Panel title="Chart">
+      <div className="mb-3 flex gap-2">
+        {(['winrate', 'picks'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMetric(m)}
+            className={`min-h-11 cursor-pointer border px-3 py-1.5 text-[12px] uppercase tracking-[1px] font-dota ${
+              metric === m ? 'bg-border border-gold text-foreground' : 'border-border text-muted'
+            }`}
+          >
+            {m === 'winrate' ? 'Win Rate' : 'Matches'}
+          </button>
+        ))}
+      </div>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 48 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+          <XAxis
+            dataKey="name"
+            tick={{ fill: '#888', fontSize: 10 }}
+            angle={-45}
+            textAnchor="end"
+            interval={0}
+            height={70}
+          />
+          <YAxis
+            tick={{ fill: '#888', fontSize: 10 }}
+            width={metric === 'winrate' ? 36 : 48}
+            tickFormatter={(v: number) => (metric === 'winrate' ? `${v}%` : v.toLocaleString())}
+          />
+          <Tooltip
+            contentStyle={{ background: '#111', border: '1px solid #333', fontSize: 11 }}
+            labelStyle={{ color: '#e8e2d4' }}
+            formatter={(_v, _n, item) => [
+              `${item.payload.wr.toFixed(1)}% win rate, ${item.payload.picks.toLocaleString()} games`,
+              '',
+            ]}
+          />
+          <Bar dataKey="value" fill="var(--color-gold)" radius={[2, 2, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </Panel>
+  )
+}
+
+function MetaScatterPlot({
+  heroes,
+  bracket,
+  totalMatches,
+}: {
+  heroes: HeroStat[]
+  bracket: Bracket
+  totalMatches: number
+}) {
+  const rows = useMemo(
+    () =>
+      heroes
+        .filter((h) => picksOf(h, bracket) >= minPicks(bracket))
+        .map((h) => ({
+          name: h.localized_name,
+          pickRate: totalMatches > 0 ? (picksOf(h, bracket) / totalMatches) * 100 : 0,
+          winRate: winPct(h, bracket),
+        })),
+    [heroes, bracket, totalMatches],
+  )
+
+  if (rows.length === 0) return null
+
+  const avgWinRate = rows.reduce((s, r) => s + r.winRate, 0) / rows.length
+  const avgPickRate = rows.reduce((s, r) => s + r.pickRate, 0) / rows.length
+
+  return (
+    <Panel title="Plots">
+      <div className="mb-2 text-[12px] text-muted font-dota">Pick rate vs. win rate</div>
+      <ResponsiveContainer width="100%" height={340}>
+        <ScatterChart margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+          <XAxis
+            type="number"
+            dataKey="pickRate"
+            name="Pick Rate"
+            unit="%"
+            tick={{ fill: '#888', fontSize: 10 }}
+          />
+          <YAxis
+            type="number"
+            dataKey="winRate"
+            name="Win Rate"
+            unit="%"
+            tick={{ fill: '#888', fontSize: 10 }}
+            domain={['auto', 'auto']}
+          />
+          <ReferenceLine x={avgPickRate} stroke="#555" strokeDasharray="3 3" />
+          <ReferenceLine y={avgWinRate} stroke="#555" strokeDasharray="3 3" />
+          <Tooltip
+            cursor={{ strokeDasharray: '3 3' }}
+            content={({ active, payload }) => {
+              if (!active || !payload?.length) return null
+              const p = payload[0]?.payload as
+                | { name: string; pickRate: number; winRate: number }
+                | undefined
+              if (!p) return null
+              return (
+                <div
+                  className="font-dota"
+                  style={{ background: '#111', border: '1px solid #333', fontSize: 11, padding: 8 }}
+                >
+                  <div className="text-foreground">{p.name}</div>
+                  <div className="text-muted">
+                    {p.pickRate.toFixed(1)}% pick rate, {p.winRate.toFixed(1)}% win rate
+                  </div>
+                </div>
+              )
+            }}
+          />
+          <Scatter data={rows} fill="var(--color-gold)" />
+        </ScatterChart>
+      </ResponsiveContainer>
+      <div className="mt-2 text-[12px] text-muted font-dota">
+        Dashed lines mark the average pick rate and win rate among heroes shown.
+      </div>
+    </Panel>
+  )
+}
+
 const ATTRS = [
   { key: 'all', label: 'Any Attribute' },
   { key: 'str', label: 'Strength' },
@@ -213,13 +431,19 @@ const ATTRS = [
 
 type SortKey = 'name' | 'picks' | 'pickrate' | 'winrate' | 'banrate'
 
-function HeroTable({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }) {
+function HeroTable({
+  heroes,
+  bracket,
+  totalMatches,
+}: {
+  heroes: HeroStat[]
+  bracket: Bracket
+  totalMatches: number
+}) {
   const [search, setSearch] = useState('')
   const [attr, setAttr] = useState<(typeof ATTRS)[number]['key']>('all')
   const { key, dir, onSort } = useSort<SortKey>('winrate')
 
-  // A hero appears once per match, a match has 10 picks.
-  const totalMatches = heroes.reduce((s, h) => s + picksOf(h, bracket), 0) / 10
   const totalProMatchesForBans = bracket === 'pro' ? Math.max(1, totalMatches) : 1
 
   const rows = useMemo(() => {
@@ -409,6 +633,7 @@ export function MetaView({ bracket }: { bracket: Bracket }) {
     queryFn: () => opendota.heroStats(),
     staleTime: 5 * 60 * 1000,
   })
+  const [role, setRole] = useState<(typeof ROLE_OPTIONS)[number]['key']>('all')
 
   if (heroes.isPending) {
     return (
@@ -419,6 +644,12 @@ export function MetaView({ bracket }: { bracket: Bracket }) {
   }
 
   const data = heroes.data ?? []
+  const roleFiltered =
+    role === 'all' ? data : data.filter((LANES.find((l) => l.pos === role) ?? LANES[0]).filter)
+  // A hero appears once per match, a match has 10 picks - always computed
+  // from the full (unfiltered) hero pool, since a role filter only narrows
+  // which heroes are *shown*, not how many real matches happened.
+  const totalMatches = data.reduce((s, h) => s + picksOf(h, bracket), 0) / 10
 
   return (
     <div className="space-y-6 py-4">
@@ -457,14 +688,44 @@ export function MetaView({ bracket }: { bracket: Bracket }) {
         })}
       </div>
 
+      {/* Role filter: applies to Top Heroes, Chart, Plots, and the table
+          below. Lane cards already show all 5 positions side by side. */}
+      <div className="flex flex-wrap items-center gap-1 font-dota" role="tablist">
+        {ROLE_OPTIONS.map((r) => {
+          const active = role === r.key
+          return (
+            <button
+              key={r.key}
+              type="button"
+              role="tab"
+              aria-current={active ? 'page' : undefined}
+              onClick={() => setRole(r.key)}
+              className={`min-h-11 flex cursor-pointer items-center px-3 py-1.5 text-[12px] uppercase tracking-[1px] border ${
+                active ? 'bg-border border-gold text-foreground' : 'border-border text-muted'
+              }`}
+              style={{ background: active ? undefined : 'rgba(12,11,14,0.72)' }}
+            >
+              {r.label}
+            </button>
+          )
+        })}
+      </div>
+
+      <TopHeroesStrip heroes={roleFiltered} bracket={bracket} />
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
         {LANES.map((lane) => (
           <LaneCard key={lane.pos} lane={lane} heroes={data} bracket={bracket} />
         ))}
       </div>
 
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <MetaBarChart heroes={roleFiltered} bracket={bracket} />
+        <MetaScatterPlot heroes={roleFiltered} bracket={bracket} totalMatches={totalMatches} />
+      </div>
+
       <div className="max-w-[1100px]">
-        <HeroTable heroes={data} bracket={bracket} />
+        <HeroTable heroes={roleFiltered} bracket={bracket} totalMatches={totalMatches} />
       </div>
     </div>
   )
