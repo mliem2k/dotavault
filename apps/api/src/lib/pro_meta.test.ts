@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
-import type { Match, PickBan } from 'types'
-import { aggregateProMeta, firstPickTeam } from './pro_meta'
+import type { Match, PickBan, ProMatch, ProMetaPatch } from 'types'
+import { aggregateProMeta, computeProMeta, firstPickTeam } from './pro_meta'
 
 function makeMatch(overrides: Partial<Match> = {}): Match {
   return {
@@ -158,5 +158,74 @@ describe('aggregateProMeta', () => {
       secondPick: { winrate: 0, sample: 1 },
     })
     expect(hero9).toMatchObject({ picks: 0, bans: 1, winrate: 0 })
+  })
+})
+
+function proMatch(overrides: Partial<ProMatch>): ProMatch {
+  return {
+    match_id: 1,
+    duration: 1800,
+    start_time: 0,
+    radiant_team_id: null,
+    radiant_name: null,
+    dire_team_id: null,
+    dire_name: null,
+    leagueid: 0,
+    league_name: null,
+    series_id: 0,
+    series_type: 0,
+    radiant_score: null,
+    dire_score: null,
+    radiant_win: true,
+    ...overrides,
+  }
+}
+
+const PATCH: ProMetaPatch = { id: 5, name: '7.40', releasedAt: '2026-01-01 00:00:00' }
+const RELEASED_MS = new Date(PATCH.releasedAt).getTime()
+
+function fakeFetch(pages: Record<string, unknown>) {
+  return async (path: string) => {
+    if (!(path in pages)) throw new Error(`unexpected fetch: ${path}`)
+    return pages[path]
+  }
+}
+
+describe('computeProMeta', () => {
+  it('collects only matches at or after the patch release, tagged with the current patch id', async () => {
+    const inPatch = proMatch({ match_id: 100, start_time: RELEASED_MS / 1000 + 1000 })
+    const beforePatch = proMatch({ match_id: 99, start_time: RELEASED_MS / 1000 - 1000 })
+    const fetchFn = fakeFetch({
+      '/proMatches': [inPatch, beforePatch],
+      '/matches/100': makeMatch({ match_id: 100, patch: PATCH.id, picks_bans: null }),
+    })
+    const result = await computeProMeta(PATCH, fetchFn)
+    expect(result.totalMatches).toBe(1)
+    expect(result.truncated).toBe(false)
+    expect(result.patch).toEqual(PATCH)
+  })
+
+  it('excludes a match whose own patch field does not match, even if start_time looked in range', async () => {
+    const m = proMatch({ match_id: 100, start_time: RELEASED_MS / 1000 + 1000 })
+    const fetchFn = fakeFetch({
+      '/proMatches': [m],
+      '/proMatches?less_than_match_id=100': [],
+      '/matches/100': makeMatch({ match_id: 100, patch: PATCH.id - 1, picks_bans: null }),
+    })
+    const result = await computeProMeta(PATCH, fetchFn)
+    expect(result.totalMatches).toBe(0)
+  })
+
+  it('paginates via less_than_match_id until it crosses the patch release cutoff', async () => {
+    const page1 = [proMatch({ match_id: 200, start_time: RELEASED_MS / 1000 + 2000 })]
+    const page2 = [proMatch({ match_id: 199, start_time: RELEASED_MS / 1000 - 1 })] // before cutoff
+    const fetchFn = fakeFetch({
+      '/proMatches': page1,
+      '/proMatches?less_than_match_id=200': page2,
+      '/matches/200': makeMatch({ match_id: 200, patch: PATCH.id, picks_bans: null }),
+    })
+    const result = await computeProMeta(PATCH, fetchFn)
+    expect(result.totalMatches).toBe(1)
+    expect(result.truncated).toBe(false)
   })
 })

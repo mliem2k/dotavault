@@ -1,4 +1,13 @@
-import type { Match, PickBan, ProMetaHeroRow, ProMetaResponse, ProMetaWinrateCell } from 'types'
+import type {
+  Match,
+  PickBan,
+  ProMatch,
+  ProMetaHeroRow,
+  ProMetaPatch,
+  ProMetaResponse,
+  ProMetaWinrateCell,
+} from 'types'
+import { fetchCached } from './opendota'
 
 // The team of the lowest-order pick entry. Unambiguous under Captains
 // Mode's strictly sequential draft order. Returns null for non-CM matches
@@ -126,4 +135,47 @@ export function aggregateProMeta(matches: Match[]): ProMetaCore {
     },
     heroes,
   }
+}
+
+const MAX_PAGES = 20
+
+type FetchFn = (path: string, ttlSeconds: number) => Promise<unknown>
+
+export async function computeProMeta(
+  patch: ProMetaPatch,
+  fetchFn: FetchFn = fetchCached,
+): Promise<ProMetaResponse> {
+  const releasedAtMs = new Date(patch.releasedAt).getTime()
+
+  const candidateIds: number[] = []
+  let cursor: number | undefined
+  let truncated = false
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const path = cursor ? `/proMatches?less_than_match_id=${cursor}` : '/proMatches'
+    const batch = (await fetchFn(path, 60 * 30)) as ProMatch[]
+    if (batch.length === 0) break
+
+    let hitCutoff = false
+    for (const m of batch) {
+      if (m.start_time * 1000 < releasedAtMs) {
+        hitCutoff = true
+        break
+      }
+      candidateIds.push(m.match_id)
+    }
+    if (hitCutoff) break
+
+    cursor = batch[batch.length - 1].match_id
+    if (page === MAX_PAGES - 1) truncated = true
+  }
+
+  const matches: Match[] = []
+  for (const id of candidateIds) {
+    const detail = (await fetchFn(`/matches/${id}`, 60 * 60 * 24 * 7)) as Match
+    if (detail.patch === patch.id) matches.push(detail)
+  }
+
+  const core = aggregateProMeta(matches)
+  return { patch, totalMatches: matches.length, truncated, ...core }
 }
