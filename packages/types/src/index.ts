@@ -1,5 +1,4 @@
 export type { HeroListItem, HeroMeta, HeroStat } from './hero'
-export type { PatchConstant } from './patch'
 export type {
   AbilityAttrib,
   AbilityConst,
@@ -19,12 +18,7 @@ export type {
   TeamfightPlayer,
   WardLog,
 } from './match'
-export type {
-  ProMetaHeroRow,
-  ProMetaPatch,
-  ProMetaResponse,
-  ProMetaWinrateCell,
-} from './pro_meta'
+export type { PatchConstant } from './patch'
 export type {
   Player,
   PlayerHero,
@@ -34,3 +28,9 @@ export type {
   SearchResult,
 } from './player'
 export type { ProMatch, ProPlayer } from './pro'
+export type {
+  ProMetaHeroRow,
+  ProMetaPatch,
+  ProMetaResponse,
+  ProMetaWinrateCell,
+} from './pro_meta'
