@@ -2,6 +2,7 @@ import { type JSX, memo, useCallback, useEffect, useMemo, useState } from 'react
 import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { rankBadge, rankName } from '@/lib/rank'
 import { applySort, useSort } from '@/lib/sortable'
 import { AbilityIcon } from './ability_icon'
 import { ItemIcon } from './item_icon'
@@ -31,6 +32,7 @@ type SortKey =
   | 'heal'
   | 'bld'
   | 'wards'
+  | 'rank'
 
 function wardsAtTime(p: MatchPlayer, timeSec: number): number {
   const obs = p.obs_log ? p.obs_log.filter((w) => w.time <= timeSec).length : (p.obs_placed ?? 0)
@@ -68,6 +70,8 @@ function sortValue(
       return p.tower_damage ?? -1
     case 'wards':
       return wardsAtTime(p, timeSec)
+    case 'rank':
+      return p.rank_tier ?? -1
   }
 }
 
@@ -650,6 +654,28 @@ export function MatchScoreboard({
           const obs = p.obs_log ? p.obs_log.filter((w) => w.time <= timeSec).length : p.obs_placed
           const sen = p.sen_log ? p.sen_log.filter((w) => w.time <= timeSec).length : p.sen_placed
           return num('text-slate-foreground-light')(obs || sen ? `${obs ?? 0}/${sen ?? 0}` : '-')
+        },
+      },
+      {
+        label: 'RANK',
+        width: 56,
+        sortKey: 'rank',
+        render: (p) => {
+          const badge = rankBadge(p.rank_tier)
+          return (
+            <span title={rankName(p.rank_tier)}>
+              {badge ? (
+                <img
+                  src={badge.medal}
+                  alt=""
+                  style={{ width: 24, height: 24 }}
+                  className="object-contain"
+                />
+              ) : (
+                <span style={{ color: '#4d565c' }}>-</span>
+              )}
+            </span>
+          )
         },
       },
     ],

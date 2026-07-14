@@ -327,6 +327,7 @@ function HeroPortraitCard({
   const proName = usePlayerProName(player, playerName)
   const scepter = scepterSource(player, idToName)
   const shard = shardSource(player, idToName)
+  const badge = rankBadge(player.rank_tier)
 
   return (
     <div className="flex flex-col items-center shrink-0" style={{ width: 118 }}>
@@ -395,6 +396,27 @@ function HeroPortraitCard({
             <span className="text-slate-muted"> / </span>
             <span className="text-slate-foreground">{player.assists}</span>
           </div>
+          {/* rank_tier is null for hidden/anonymous profiles - omit the row
+              entirely rather than showing a noisy "Unranked" placeholder */}
+          {player.rank_tier != null && (
+            <div className="flex items-center justify-center gap-1 mt-1">
+              {badge && (
+                <span
+                  className="relative inline-block shrink-0"
+                  style={{ width: 16, height: 16 }}
+                  title={rankName(player.rank_tier)}
+                >
+                  <img src={badge.medal} alt="" className="h-full w-full" />
+                  {badge.stars && (
+                    <img src={badge.stars} alt="" className="absolute inset-0 h-full w-full" />
+                  )}
+                </span>
+              )}
+              <span className="text-[11px] text-slate-foreground-light font-dota">
+                {rankName(player.rank_tier)}
+              </span>
+            </div>
+          )}
         </div>
       </button>
 
