@@ -18,6 +18,7 @@ export type {
   TeamfightPlayer,
   WardLog,
 } from './match'
+export type { PatchConstant } from './patch'
 export type {
   Player,
   PlayerHero,
@@ -27,3 +28,9 @@ export type {
   SearchResult,
 } from './player'
 export type { ProMatch, ProPlayer } from './pro'
+export type {
+  ProMetaHeroRow,
+  ProMetaPatch,
+  ProMetaResponse,
+  ProMetaWinrateCell,
+} from './pro_meta'

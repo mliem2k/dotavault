@@ -4,6 +4,7 @@ import { useState } from 'react'
 const NAV_LINKS = [
   { to: '/heroes', label: 'Heroes' },
   { to: '/meta', label: 'Meta' },
+  { to: '/pro-meta', label: 'Pro Meta' },
   { to: '/pro', label: 'Pro' },
   { to: '/leagues', label: 'Leagues' },
   { to: '/leaderboards', label: 'Leaderboards' },
