@@ -311,7 +311,7 @@ describe('getProMeta', () => {
     expect(await getProMeta()).toEqual(blob)
   })
 
-  it('falls back to a stale cached blob when computation fails', async () => {
+  it('serves a technically-expired blob rather than nothing (getProMeta has no compute path of its own)', async () => {
     await cacheSet(
       'opendota:/constants/patch',
       [{ name: '7.39', date: '2020-01-01 00:00:00' }],
@@ -337,21 +337,15 @@ describe('getProMeta', () => {
       heroes: [],
     }
     await cacheSet('pro-meta:0', stale, -1) // already expired -> only reachable via cacheGetStale
-    const failingCompute = async (): Promise<ProMetaResponse> => {
-      throw new Error('opendota unreachable')
-    }
-    expect(await getProMeta(failingCompute)).toEqual(stale)
+    expect(await getProMeta()).toEqual(stale)
   })
 
-  it('returns null when computation fails and nothing is cached at all', async () => {
+  it('returns null when nothing is cached at all', async () => {
     await cacheSet(
       'opendota:/constants/patch',
       [{ name: '7.39', date: '2020-01-01 00:00:00' }],
       3600,
     )
-    const failingCompute = async (): Promise<ProMetaResponse> => {
-      throw new Error('opendota unreachable')
-    }
-    expect(await getProMeta(failingCompute)).toBeNull()
+    expect(await getProMeta()).toBeNull()
   })
 })

@@ -7,7 +7,7 @@ import type {
   ProMetaResponse,
   ProMetaWinrateCell,
 } from 'types'
-import { cacheGetStale, cacheSet } from './cache'
+import { cacheGetStale } from './cache'
 import { fetchCached } from './opendota'
 import { resolveCurrentPatch } from './patch'
 
@@ -40,7 +40,9 @@ function cell(wins: number, sample: number): ProMetaWinrateCell {
 
 export type ProMetaCore = Pick<ProMetaResponse, 'aggregate' | 'combination' | 'heroes'>
 
-export function aggregateProMeta(matches: Match[]): ProMetaCore {
+export function aggregateProMeta(
+  matches: Pick<Match, 'radiant_win' | 'picks_bans'>[],
+): ProMetaCore {
   let radiantWins = 0
   let direWins = 0
   let firstPickWins = 0
@@ -171,14 +173,18 @@ async function fetchMatchDetail(
   }
 }
 
-export async function computeProMeta(
-  patch: ProMetaPatch,
-  fetchFn: FetchFn = fetchCached,
-  retryDelaysMs: number[] = MATCH_DETAIL_RETRY_DELAYS_MS,
-): Promise<ProMetaResponse> {
-  const releasedAtMs = new Date(patch.releasedAt).getTime()
-
-  const candidateIds: number[] = []
+// Collects pro match ids at or after a patch's release, paginating
+// backward from the most recent match. Stops at the release cutoff, at
+// stopAtMatchId (if given — lets a resumed pass skip ids already seen
+// rather than re-walking the whole patch history), or after MAX_PAGES.
+// Shared by computeProMeta's one-shot pass and the incremental tick's
+// initial-pass and new-match-check steps.
+export async function collectCandidateMatchIds(
+  releasedAtMs: number,
+  fetchFn: FetchFn,
+  stopAtMatchId: number | null = null,
+): Promise<{ ids: number[]; truncated: boolean }> {
+  const ids: number[] = []
   let cursor: number | undefined
   let truncated = false
 
@@ -187,19 +193,35 @@ export async function computeProMeta(
     const batch = (await fetchFn(path, 60 * 30)) as ProMatch[]
     if (batch.length === 0) break
 
-    let hitCutoff = false
+    let stop = false
     for (const m of batch) {
-      if (m.start_time * 1000 < releasedAtMs) {
-        hitCutoff = true
+      if (
+        m.start_time * 1000 < releasedAtMs ||
+        (stopAtMatchId !== null && m.match_id <= stopAtMatchId)
+      ) {
+        stop = true
         break
       }
-      candidateIds.push(m.match_id)
+      ids.push(m.match_id)
     }
-    if (hitCutoff) break
+    if (stop) break
 
     cursor = batch[batch.length - 1].match_id
     if (page === MAX_PAGES - 1) truncated = true
   }
+
+  return { ids, truncated }
+}
+
+export async function computeProMeta(
+  patch: ProMetaPatch,
+  fetchFn: FetchFn = fetchCached,
+  retryDelaysMs: number[] = MATCH_DETAIL_RETRY_DELAYS_MS,
+): Promise<ProMetaResponse> {
+  const { ids: candidateIds, truncated } = await collectCandidateMatchIds(
+    new Date(patch.releasedAt).getTime(),
+    fetchFn,
+  )
 
   const matches: Match[] = []
   for (let i = 0; i < candidateIds.length; i += MATCH_DETAIL_CONCURRENCY) {
@@ -216,37 +238,23 @@ export async function computeProMeta(
   return { patch, totalMatches: matches.length, truncated, ...core }
 }
 
-// compute is injectable so tests can force the failure branch deterministically,
-// without depending on network access — mirrors computeProMeta's fetchFn param.
-//
-// Uses cacheGetStale (not cacheGet) for the initial read too: cacheGet
-// deletes an expired row as a side effect of reading it, which would erase
-// the fallback data before the catch block below ever got a chance to use
-// it. cacheGetStale never deletes, so this one read covers both the
-// freshness check and the failure-path fallback.
-export async function getProMeta(
-  compute: (patch: ProMetaPatch) => Promise<ProMetaResponse> = computeProMeta,
-): Promise<ProMetaResponse | null> {
-  // resolveCurrentPatch is inside the try too: if it throws (e.g. OpenDota
-  // fully unreachable and /constants/patch isn't cached), there's no patch
-  // id to build a cache key from anyway, so there's no stale blob to fall
-  // back to. The route should still see this as "not available" (503), not
-  // an unhandled rejection turning into a 500.
+export function proMetaResultKey(patchId: number): string {
+  return `pro-meta:${patchId}`
+}
+
+// A pure cache read. Computation no longer happens on the request path at
+// all (see pro_meta_tick.ts) - doing hundreds of match-detail fetches
+// synchronously within one HTTP request routinely exceeded both OpenDota's
+// rate budget and Fly's gateway timeout in production. The tick mechanism
+// populates proMetaResultKey(patch.id) incrementally in the background;
+// this function just reads whatever's there. cacheGetStale (not cacheGet)
+// so a technically-past-TTL blob is still served rather than discarded -
+// something is better than a hard 503 while the next tick catches up.
+export async function getProMeta(): Promise<ProMetaResponse | null> {
   try {
     const patch = await resolveCurrentPatch()
-    const key = `pro-meta:${patch.id}`
-
-    const cached = await cacheGetStale(key)
-    if (cached && !cached.stale) return cached.data as ProMetaResponse
-
-    try {
-      const result = await compute(patch)
-      await cacheSet(key, result, 60 * 60 * 4)
-      return result
-    } catch (err) {
-      console.error('pro meta computation failed', err)
-      return cached ? (cached.data as ProMetaResponse) : null
-    }
+    const cached = await cacheGetStale(proMetaResultKey(patch.id))
+    return cached ? (cached.data as ProMetaResponse) : null
   } catch (err) {
     console.error('pro meta patch resolution failed', err)
     return null

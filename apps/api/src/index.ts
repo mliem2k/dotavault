@@ -4,6 +4,7 @@ import { openapi } from '@elysiajs/openapi'
 import { Elysia } from 'elysia'
 import { deleteExpired } from './lib/cache'
 import { env } from './lib/env'
+import { maybeRunProMetaTick } from './lib/pro_meta_tick'
 import { checkRateLimit, clientIp } from './lib/rate-limit'
 import { heroesPlugin } from './routes/heroes'
 import { matchesPlugin } from './routes/matches'
@@ -44,6 +45,13 @@ const app = new Elysia()
     set.headers['X-Frame-Options'] = 'DENY'
     set.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     set.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+  })
+  .onRequest(({ request }) => {
+    // Excludes /health: Fly pings it every 30s regardless of real usage,
+    // which would otherwise act as a fake cron and defeat scale-to-zero.
+    const { pathname } = new URL(request.url)
+    if (pathname === '/health') return
+    maybeRunProMetaTick()
   })
   .onBeforeHandle(({ set, request }) => {
     const { pathname } = new URL(request.url)
