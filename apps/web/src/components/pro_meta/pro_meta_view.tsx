@@ -5,7 +5,14 @@ import type { ProMetaHeroRow, ProMetaWinrateCell } from 'types'
 import { Badge } from '@/components/ui/badge'
 import { SortHeader } from '@/components/ui/sort_header'
 import { Spinner } from '@/components/ui/spinner'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { opendota } from '@/lib/opendota'
 import { fetchProMeta } from '@/lib/pro_meta'
 import { applySort, useSort } from '@/lib/sortable'
@@ -17,7 +24,15 @@ import { heroIconUrl, heroSlug } from '@/lib/utils'
 // while still surfacing heroes early in a fresh patch.
 const MIN_SAMPLE = 10
 
-type HeroSortKey = 'picks' | 'bans' | 'pickBanRate' | 'winrate' | 'radiant' | 'dire' | 'firstPick' | 'secondPick'
+type HeroSortKey =
+  | 'picks'
+  | 'bans'
+  | 'pickBanRate'
+  | 'winrate'
+  | 'radiant'
+  | 'dire'
+  | 'firstPick'
+  | 'secondPick'
 
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`
 
@@ -117,14 +132,78 @@ function HeroTable({ heroes }: { heroes: ProMetaHeroRow[] }) {
       <TableHeader>
         <TableRow>
           <TableHead>Hero</TableHead>
-          <TableHead><SortHeader label="Picks" sortKey="picks" active={key === 'picks'} dir={dir} onClick={onSort} /></TableHead>
-          <TableHead><SortHeader label="Bans" sortKey="bans" active={key === 'bans'} dir={dir} onClick={onSort} /></TableHead>
-          <TableHead><SortHeader label="Pick+Ban%" sortKey="pickBanRate" active={key === 'pickBanRate'} dir={dir} onClick={onSort} /></TableHead>
-          <TableHead><SortHeader label="Winrate" sortKey="winrate" active={key === 'winrate'} dir={dir} onClick={onSort} /></TableHead>
-          <TableHead><SortHeader label="Radiant WR" sortKey="radiant" active={key === 'radiant'} dir={dir} onClick={onSort} /></TableHead>
-          <TableHead><SortHeader label="Dire WR" sortKey="dire" active={key === 'dire'} dir={dir} onClick={onSort} /></TableHead>
-          <TableHead><SortHeader label="1st Pick WR" sortKey="firstPick" active={key === 'firstPick'} dir={dir} onClick={onSort} /></TableHead>
-          <TableHead><SortHeader label="2nd Pick WR" sortKey="secondPick" active={key === 'secondPick'} dir={dir} onClick={onSort} /></TableHead>
+          <TableHead>
+            <SortHeader
+              label="Picks"
+              sortKey="picks"
+              active={key === 'picks'}
+              dir={dir}
+              onClick={onSort}
+            />
+          </TableHead>
+          <TableHead>
+            <SortHeader
+              label="Bans"
+              sortKey="bans"
+              active={key === 'bans'}
+              dir={dir}
+              onClick={onSort}
+            />
+          </TableHead>
+          <TableHead>
+            <SortHeader
+              label="Pick+Ban%"
+              sortKey="pickBanRate"
+              active={key === 'pickBanRate'}
+              dir={dir}
+              onClick={onSort}
+            />
+          </TableHead>
+          <TableHead>
+            <SortHeader
+              label="Winrate"
+              sortKey="winrate"
+              active={key === 'winrate'}
+              dir={dir}
+              onClick={onSort}
+            />
+          </TableHead>
+          <TableHead>
+            <SortHeader
+              label="Radiant WR"
+              sortKey="radiant"
+              active={key === 'radiant'}
+              dir={dir}
+              onClick={onSort}
+            />
+          </TableHead>
+          <TableHead>
+            <SortHeader
+              label="Dire WR"
+              sortKey="dire"
+              active={key === 'dire'}
+              dir={dir}
+              onClick={onSort}
+            />
+          </TableHead>
+          <TableHead>
+            <SortHeader
+              label="1st Pick WR"
+              sortKey="firstPick"
+              active={key === 'firstPick'}
+              dir={dir}
+              onClick={onSort}
+            />
+          </TableHead>
+          <TableHead>
+            <SortHeader
+              label="2nd Pick WR"
+              sortKey="secondPick"
+              active={key === 'secondPick'}
+              dir={dir}
+              onClick={onSort}
+            />
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
