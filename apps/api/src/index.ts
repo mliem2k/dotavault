@@ -9,6 +9,7 @@ import { heroesPlugin } from './routes/heroes'
 import { matchesPlugin } from './routes/matches'
 import { playersPlugin } from './routes/players'
 import { proPlugin } from './routes/pro'
+import { proMetaPlugin } from './routes/pro_meta'
 import { replayPlugin } from './routes/replay'
 import { searchPlugin } from './routes/search'
 
@@ -63,6 +64,7 @@ const app = new Elysia()
   .use(matchesPlugin)
   .use(heroesPlugin)
   .use(proPlugin)
+  .use(proMetaPlugin)
   .use(searchPlugin)
   .use(replayPlugin)
   .listen(env.PORT)

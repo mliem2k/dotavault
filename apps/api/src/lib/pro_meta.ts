@@ -7,7 +7,9 @@ import type {
   ProMetaResponse,
   ProMetaWinrateCell,
 } from 'types'
+import { cacheGetStale, cacheSet } from './cache'
 import { fetchCached } from './opendota'
+import { resolveCurrentPatch } from './patch'
 
 // The team of the lowest-order pick entry. Unambiguous under Captains
 // Mode's strictly sequential draft order. Returns null for non-CM matches
@@ -178,4 +180,31 @@ export async function computeProMeta(
 
   const core = aggregateProMeta(matches)
   return { patch, totalMatches: matches.length, truncated, ...core }
+}
+
+// compute is injectable so tests can force the failure branch deterministically,
+// without depending on network access — mirrors computeProMeta's fetchFn param.
+//
+// Uses cacheGetStale (not cacheGet) for the initial read too: cacheGet
+// deletes an expired row as a side effect of reading it, which would erase
+// the fallback data before the catch block below ever got a chance to use
+// it. cacheGetStale never deletes, so this one read covers both the
+// freshness check and the failure-path fallback.
+export async function getProMeta(
+  compute: (patch: ProMetaPatch) => Promise<ProMetaResponse> = computeProMeta,
+): Promise<ProMetaResponse | null> {
+  const patch = await resolveCurrentPatch()
+  const key = `pro-meta:${patch.id}`
+
+  const cached = await cacheGetStale(key)
+  if (cached && !cached.stale) return cached.data as ProMetaResponse
+
+  try {
+    const result = await compute(patch)
+    await cacheSet(key, result, 60 * 60 * 4)
+    return result
+  } catch (err) {
+    console.error('pro meta computation failed', err)
+    return cached ? (cached.data as ProMetaResponse) : null
+  }
 }

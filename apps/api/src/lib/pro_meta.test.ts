@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'bun:test'
-import type { Match, PickBan, ProMatch, ProMetaPatch } from 'types'
-import { aggregateProMeta, computeProMeta, firstPickTeam } from './pro_meta'
+import { beforeEach, describe, expect, it } from 'bun:test'
+import type { Match, PickBan, ProMatch, ProMetaPatch, ProMetaResponse } from 'types'
+import { db } from '../db'
+import { apiCache } from '../db/schema'
+import { cacheSet } from './cache'
+import { aggregateProMeta, computeProMeta, firstPickTeam, getProMeta } from './pro_meta'
 
 function makeMatch(overrides: Partial<Match> = {}): Match {
   return {
@@ -227,5 +230,90 @@ describe('computeProMeta', () => {
     const result = await computeProMeta(PATCH, fetchFn)
     expect(result.totalMatches).toBe(1)
     expect(result.truncated).toBe(false)
+  })
+})
+
+describe('getProMeta', () => {
+  beforeEach(async () => {
+    await db.delete(apiCache)
+  })
+
+  it('returns the cached blob without recomputing when both patch and result are cached', async () => {
+    // Fixed past dates so "current patch" resolution is deterministic
+    // regardless of when this test runs.
+    await cacheSet(
+      'opendota:/constants/patch',
+      [
+        { name: '7.38', date: '2020-01-01 00:00:00' },
+        { name: '7.39', date: '2021-01-01 00:00:00' },
+      ],
+      3600,
+    )
+    const blob: ProMetaResponse = {
+      patch: { id: 1, name: '7.39', releasedAt: '2021-01-01 00:00:00' },
+      totalMatches: 5,
+      truncated: false,
+      aggregate: {
+        radiantWinrate: 0.5,
+        direWinrate: 0.5,
+        draftedMatches: 4,
+        firstPickWinrate: 0.5,
+        secondPickWinrate: 0.5,
+      },
+      combination: {
+        radiantFirst: { winrate: 0.5, sample: 2 },
+        radiantSecond: { winrate: 0.5, sample: 2 },
+        direFirst: { winrate: 0.5, sample: 2 },
+        direSecond: { winrate: 0.5, sample: 2 },
+      },
+      heroes: [],
+    }
+    await cacheSet('pro-meta:1', blob, 3600)
+
+    expect(await getProMeta()).toEqual(blob)
+  })
+
+  it('falls back to a stale cached blob when computation fails', async () => {
+    await cacheSet(
+      'opendota:/constants/patch',
+      [{ name: '7.39', date: '2020-01-01 00:00:00' }],
+      3600,
+    )
+    const stale: ProMetaResponse = {
+      patch: { id: 0, name: '7.39', releasedAt: '2020-01-01 00:00:00' },
+      totalMatches: 3,
+      truncated: false,
+      aggregate: {
+        radiantWinrate: 0.4,
+        direWinrate: 0.6,
+        draftedMatches: 2,
+        firstPickWinrate: 0.4,
+        secondPickWinrate: 0.6,
+      },
+      combination: {
+        radiantFirst: { winrate: 0.4, sample: 1 },
+        radiantSecond: { winrate: 0.4, sample: 1 },
+        direFirst: { winrate: 0.6, sample: 1 },
+        direSecond: { winrate: 0.6, sample: 1 },
+      },
+      heroes: [],
+    }
+    await cacheSet('pro-meta:0', stale, -1) // already expired -> only reachable via cacheGetStale
+    const failingCompute = async (): Promise<ProMetaResponse> => {
+      throw new Error('opendota unreachable')
+    }
+    expect(await getProMeta(failingCompute)).toEqual(stale)
+  })
+
+  it('returns null when computation fails and nothing is cached at all', async () => {
+    await cacheSet(
+      'opendota:/constants/patch',
+      [{ name: '7.39', date: '2020-01-01 00:00:00' }],
+      3600,
+    )
+    const failingCompute = async (): Promise<ProMetaResponse> => {
+      throw new Error('opendota unreachable')
+    }
+    expect(await getProMeta(failingCompute)).toBeNull()
   })
 })
