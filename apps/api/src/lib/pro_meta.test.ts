@@ -231,6 +231,44 @@ describe('computeProMeta', () => {
     expect(result.totalMatches).toBe(1)
     expect(result.truncated).toBe(false)
   })
+
+  it('retries a match detail fetch that fails transiently and still includes it in the result', async () => {
+    let attempts = 0
+    const fetchFn = async (path: string) => {
+      if (path === '/proMatches') {
+        return [proMatch({ match_id: 300, start_time: RELEASED_MS / 1000 + 1000 })]
+      }
+      if (path === '/proMatches?less_than_match_id=300') return []
+      if (path === '/matches/300') {
+        attempts += 1
+        if (attempts < 3) throw new Error('429 rate limited')
+        return makeMatch({ match_id: 300, patch: PATCH.id, picks_bans: null })
+      }
+      throw new Error(`unexpected fetch: ${path}`)
+    }
+    const result = await computeProMeta(PATCH, fetchFn, [0, 0, 0])
+    expect(result.totalMatches).toBe(1)
+    expect(attempts).toBe(3)
+  })
+
+  it('skips a match whose detail fetch keeps failing, without discarding other matches', async () => {
+    const fetchFn = async (path: string) => {
+      if (path === '/proMatches') {
+        return [
+          proMatch({ match_id: 301, start_time: RELEASED_MS / 1000 + 1000 }),
+          proMatch({ match_id: 302, start_time: RELEASED_MS / 1000 + 1000 }),
+        ]
+      }
+      if (path === '/proMatches?less_than_match_id=302') return []
+      if (path === '/matches/301') throw new Error('429 rate limited')
+      if (path === '/matches/302') {
+        return makeMatch({ match_id: 302, patch: PATCH.id, picks_bans: null })
+      }
+      throw new Error(`unexpected fetch: ${path}`)
+    }
+    const result = await computeProMeta(PATCH, fetchFn, [0, 0])
+    expect(result.totalMatches).toBe(1)
+  })
 })
 
 describe('getProMeta', () => {

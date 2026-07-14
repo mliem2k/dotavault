@@ -141,11 +141,40 @@ export function aggregateProMeta(matches: Match[]): ProMetaCore {
 
 const MAX_PAGES = 20
 
+// OpenDota's free tier caps at ~60 requests/min. Fetching match details one
+// at a time with no backoff meant a single 429 partway through aborted the
+// entire computation (nothing cached yet -> hard 503), observed in
+// production on the very first cold computation for a patch. Bounded
+// concurrency plus per-match retry-then-skip keeps one flaky/rate-limited
+// match from taking down the whole batch, and finishes faster than a fully
+// sequential loop.
+const MATCH_DETAIL_CONCURRENCY = 5
+const MATCH_DETAIL_RETRY_DELAYS_MS = [1000, 3000, 8000]
+
 type FetchFn = (path: string, ttlSeconds: number) => Promise<unknown>
+
+async function fetchMatchDetail(
+  id: number,
+  fetchFn: FetchFn,
+  retryDelaysMs: number[],
+): Promise<Match | null> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return (await fetchFn(`/matches/${id}`, 60 * 60 * 24 * 7)) as Match
+    } catch (err) {
+      if (attempt >= retryDelaysMs.length) {
+        console.error(`pro meta: giving up on match ${id} after ${attempt + 1} attempts`, err)
+        return null
+      }
+      await new Promise((resolve) => setTimeout(resolve, retryDelaysMs[attempt]))
+    }
+  }
+}
 
 export async function computeProMeta(
   patch: ProMetaPatch,
   fetchFn: FetchFn = fetchCached,
+  retryDelaysMs: number[] = MATCH_DETAIL_RETRY_DELAYS_MS,
 ): Promise<ProMetaResponse> {
   const releasedAtMs = new Date(patch.releasedAt).getTime()
 
@@ -173,9 +202,14 @@ export async function computeProMeta(
   }
 
   const matches: Match[] = []
-  for (const id of candidateIds) {
-    const detail = (await fetchFn(`/matches/${id}`, 60 * 60 * 24 * 7)) as Match
-    if (detail.patch === patch.id) matches.push(detail)
+  for (let i = 0; i < candidateIds.length; i += MATCH_DETAIL_CONCURRENCY) {
+    const batchIds = candidateIds.slice(i, i + MATCH_DETAIL_CONCURRENCY)
+    const details = await Promise.all(
+      batchIds.map((id) => fetchMatchDetail(id, fetchFn, retryDelaysMs)),
+    )
+    for (const detail of details) {
+      if (detail && detail.patch === patch.id) matches.push(detail)
+    }
   }
 
   const core = aggregateProMeta(matches)
@@ -193,18 +227,28 @@ export async function computeProMeta(
 export async function getProMeta(
   compute: (patch: ProMetaPatch) => Promise<ProMetaResponse> = computeProMeta,
 ): Promise<ProMetaResponse | null> {
-  const patch = await resolveCurrentPatch()
-  const key = `pro-meta:${patch.id}`
-
-  const cached = await cacheGetStale(key)
-  if (cached && !cached.stale) return cached.data as ProMetaResponse
-
+  // resolveCurrentPatch is inside the try too: if it throws (e.g. OpenDota
+  // fully unreachable and /constants/patch isn't cached), there's no patch
+  // id to build a cache key from anyway, so there's no stale blob to fall
+  // back to. The route should still see this as "not available" (503), not
+  // an unhandled rejection turning into a 500.
   try {
-    const result = await compute(patch)
-    await cacheSet(key, result, 60 * 60 * 4)
-    return result
+    const patch = await resolveCurrentPatch()
+    const key = `pro-meta:${patch.id}`
+
+    const cached = await cacheGetStale(key)
+    if (cached && !cached.stale) return cached.data as ProMetaResponse
+
+    try {
+      const result = await compute(patch)
+      await cacheSet(key, result, 60 * 60 * 4)
+      return result
+    } catch (err) {
+      console.error('pro meta computation failed', err)
+      return cached ? (cached.data as ProMetaResponse) : null
+    }
   } catch (err) {
-    console.error('pro meta computation failed', err)
-    return cached ? (cached.data as ProMetaResponse) : null
+    console.error('pro meta patch resolution failed', err)
+    return null
   }
 }
