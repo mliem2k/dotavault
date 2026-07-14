@@ -12,6 +12,14 @@ export async function cacheGet(key: string): Promise<unknown | null> {
   return row.data
 }
 
+export async function cacheGetStale(
+  key: string,
+): Promise<{ data: unknown; stale: boolean } | null> {
+  const [row] = await db.select().from(apiCache).where(eq(apiCache.key, key))
+  if (!row) return null
+  return { data: row.data, stale: row.expiresAt < new Date() }
+}
+
 export async function cacheSet(key: string, data: unknown, ttlSeconds: number): Promise<void> {
   const expiresAt = new Date(Date.now() + ttlSeconds * 1000)
   await db

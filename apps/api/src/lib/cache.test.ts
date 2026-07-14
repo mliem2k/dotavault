@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { db } from '../db'
 import { apiCache } from '../db/schema'
-import { cacheGet, cacheSet, deleteExpired } from './cache'
+import { cacheGet, cacheGetStale, cacheSet, deleteExpired } from './cache'
 
 beforeEach(async () => {
   await db.delete(apiCache)
@@ -21,6 +21,24 @@ describe('cacheGet', () => {
     await cacheSet('exp', { old: true }, -1)
     expect(await cacheGet('exp')).toBeNull()
     expect(await cacheGet('exp')).toBeNull() // second call also null (already deleted)
+  })
+})
+
+describe('cacheGetStale', () => {
+  it('returns null when key does not exist', async () => {
+    expect(await cacheGetStale('missing')).toBeNull()
+  })
+
+  it('returns fresh data with stale: false for a live entry', async () => {
+    await cacheSet('k', { hello: 'world' }, 3600)
+    expect(await cacheGetStale('k')).toEqual({ data: { hello: 'world' }, stale: false })
+  })
+
+  it('returns expired data with stale: true instead of deleting it', async () => {
+    await cacheSet('exp', { old: true }, -1)
+    expect(await cacheGetStale('exp')).toEqual({ data: { old: true }, stale: true })
+    // unlike cacheGet, the row is still there on a second read
+    expect(await cacheGetStale('exp')).toEqual({ data: { old: true }, stale: true })
   })
 })
 
