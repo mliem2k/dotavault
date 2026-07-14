@@ -254,6 +254,7 @@ export type Match = {
   tower_status_dire: number
   tower_status_radiant: number
   version: number | null
+  patch: number | null
   replay_url?: string | null
   replay_salt?: number | null
   series_id: number | null
