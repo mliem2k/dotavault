@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { to: '/pro-meta', label: 'Pro Meta' },
   { to: '/pro', label: 'Pro' },
   { to: '/leagues', label: 'Leagues' },
+  { to: '/explore', label: 'Explore' },
   { to: '/leaderboards', label: 'Leaderboards' },
 ] as const
 
