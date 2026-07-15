@@ -277,7 +277,7 @@ export function ProMetaView() {
   }
 
   return (
-    <div className="space-y-6 py-4">
+    <div className="space-y-6 py-4" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
       <div className="flex flex-wrap items-center gap-3 font-dota">
         <Badge variant="pro">Patch {data.patch.name}</Badge>
         <span className="text-[13px] text-muted">
