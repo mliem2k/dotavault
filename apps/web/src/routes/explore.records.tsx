@@ -89,7 +89,9 @@ function RecordsPage() {
                     <th className="pb-2 pr-2 text-right" style={{ width: 30 }}>
                       #
                     </th>
-                    <th className="pb-2 px-2 text-left">Hero</th>
+                    <th className="pb-2 px-2 text-left">
+                      {field === 'duration' ? 'Match' : 'Hero'}
+                    </th>
                     <th className="pb-2 px-2 text-right">Value</th>
                     <th className="pb-2 px-2 text-right">Date</th>
                   </tr>
