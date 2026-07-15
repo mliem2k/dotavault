@@ -17,6 +17,7 @@ import type { HeroStat } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
 import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { LANES, ROLE_OPTIONS } from '@/lib/lane_roles'
 import { opendota } from '@/lib/opendota'
 import { RANK_NAMES } from '@/lib/rank'
 import { applySort, useSort } from '@/lib/sortable'
@@ -106,45 +107,6 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
   )
 }
 
-const LANES = [
-  {
-    pos: 1,
-    label: 'Safe Lane',
-    colorClass: 'text-radiant',
-    filter: (h: HeroStat) => h.roles.includes('Carry'),
-  },
-  {
-    pos: 2,
-    label: 'Mid Lane',
-    colorClass: 'text-int',
-    filter: (h: HeroStat) =>
-      !h.roles.includes('Carry') &&
-      !h.roles.includes('Support') &&
-      (h.roles.includes('Nuker') || h.primary_attr === 'int'),
-  },
-  {
-    pos: 3,
-    label: 'Off Lane',
-    color: '#c97a3a',
-    filter: (h: HeroStat) =>
-      !h.roles.includes('Carry') &&
-      !h.roles.includes('Support') &&
-      (h.roles.includes('Initiator') || h.roles.includes('Durable')),
-  },
-  {
-    pos: 4,
-    label: 'Soft Support',
-    colorClass: 'text-uni',
-    filter: (h: HeroStat) => h.roles.includes('Support') && !h.roles.includes('Disabler'),
-  },
-  {
-    pos: 5,
-    label: 'Hard Support',
-    color: '#d94a8a',
-    filter: (h: HeroStat) => h.roles.includes('Support') && h.roles.includes('Disabler'),
-  },
-]
-
 // Rankings need a sample floor or 1-pick 100% heroes dominate every list.
 const minPicks = (b: Bracket): number => (b === 'pro' ? 10 : 100)
 
@@ -214,13 +176,6 @@ function LaneCard({
     </Panel>
   )
 }
-
-/* Page-wide role filter (applies to Top Heroes, Chart, Plots, and the
-   table below - lane cards already show all 5 positions side by side). */
-const ROLE_OPTIONS: { key: 'all' | (typeof LANES)[number]['pos']; label: string }[] = [
-  { key: 'all', label: 'All Roles' },
-  ...LANES.map((l) => ({ key: l.pos, label: l.label })),
-]
 
 function TopHeroesStrip({ heroes, bracket }: { heroes: HeroStat[]; bracket: Bracket }) {
   const top = useMemo(

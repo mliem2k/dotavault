@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { ProMetaHeroRow, ProMetaWinrateCell } from 'types'
 import { Badge } from '@/components/ui/badge'
 import { SortHeader } from '@/components/ui/sort_header'
@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { LANES, ROLE_OPTIONS } from '@/lib/lane_roles'
 import { opendota } from '@/lib/opendota'
 import { fetchProMeta } from '@/lib/pro_meta'
 import { applySort, useSort } from '@/lib/sortable'
@@ -110,6 +111,16 @@ function HeroTable({ heroes }: { heroes: ProMetaHeroRow[] }) {
     [heroStats.data],
   )
 
+  const [role, setRole] = useState<(typeof ROLE_OPTIONS)[number]['key']>('all')
+  const lane = role === 'all' ? null : (LANES.find((l) => l.pos === role) ?? null)
+  const roleFiltered = useMemo(() => {
+    if (!lane) return heroes
+    return heroes.filter((h) => {
+      const hero = heroById.get(h.heroId)
+      return hero ? lane.filter(hero) : false
+    })
+  }, [heroes, lane, heroById])
+
   const { key, dir, onSort } = useSort<HeroSortKey>('picks')
   const cmp: Record<HeroSortKey, (a: ProMetaHeroRow, b: ProMetaHeroRow) => number> = {
     picks: (a, b) => a.picks - b.picks,
@@ -121,7 +132,7 @@ function HeroTable({ heroes }: { heroes: ProMetaHeroRow[] }) {
     firstPick: (a, b) => a.firstPick.winrate - b.firstPick.winrate,
     secondPick: (a, b) => a.secondPick.winrate - b.secondPick.winrate,
   }
-  const sorted = applySort(heroes, dir, cmp[key])
+  const sorted = applySort(roleFiltered, dir, cmp[key])
 
   if (heroStats.isPending) {
     return (
@@ -132,116 +143,138 @@ function HeroTable({ heroes }: { heroes: ProMetaHeroRow[] }) {
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Hero</TableHead>
-          <TableHead>
-            <SortHeader
-              label="Picks"
-              sortKey="picks"
-              active={key === 'picks'}
-              dir={dir}
-              onClick={onSort}
-            />
-          </TableHead>
-          <TableHead>
-            <SortHeader
-              label="Bans"
-              sortKey="bans"
-              active={key === 'bans'}
-              dir={dir}
-              onClick={onSort}
-            />
-          </TableHead>
-          <TableHead>
-            <SortHeader
-              label="Pick+Ban%"
-              sortKey="pickBanRate"
-              active={key === 'pickBanRate'}
-              dir={dir}
-              onClick={onSort}
-            />
-          </TableHead>
-          <TableHead>
-            <SortHeader
-              label="Winrate"
-              sortKey="winrate"
-              active={key === 'winrate'}
-              dir={dir}
-              onClick={onSort}
-            />
-          </TableHead>
-          <TableHead>
-            <SortHeader
-              label="Radiant WR"
-              sortKey="radiant"
-              active={key === 'radiant'}
-              dir={dir}
-              onClick={onSort}
-            />
-          </TableHead>
-          <TableHead>
-            <SortHeader
-              label="Dire WR"
-              sortKey="dire"
-              active={key === 'dire'}
-              dir={dir}
-              onClick={onSort}
-            />
-          </TableHead>
-          <TableHead>
-            <SortHeader
-              label="1st Pick WR"
-              sortKey="firstPick"
-              active={key === 'firstPick'}
-              dir={dir}
-              onClick={onSort}
-            />
-          </TableHead>
-          <TableHead>
-            <SortHeader
-              label="2nd Pick WR"
-              sortKey="secondPick"
-              active={key === 'secondPick'}
-              dir={dir}
-              onClick={onSort}
-            />
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {sorted.map((h) => {
-          const hero = heroById.get(h.heroId)
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-1 font-dota" role="tablist">
+        {ROLE_OPTIONS.map((r) => {
+          const active = role === r.key
           return (
-            <TableRow key={h.heroId}>
-              <TableCell>
-                {hero ? (
-                  <Link
-                    to="/hero/$heroName"
-                    params={{ heroName: heroSlug(hero.localized_name) }}
-                    className="flex items-center gap-2 hover:text-gold"
-                  >
-                    <img src={heroIconUrl(hero.name)} alt="" className="h-6 w-10 object-cover" />
-                    {hero.localized_name}
-                  </Link>
-                ) : (
-                  `Hero #${h.heroId}`
-                )}
-              </TableCell>
-              <TableCell>{h.picks}</TableCell>
-              <TableCell>{h.bans}</TableCell>
-              <TableCell>{pct(h.pickBanRate)}</TableCell>
-              <TableCell>{winCellText({ winrate: h.winrate, sample: h.picks })}</TableCell>
-              <TableCell>{winCellText(h.radiant)}</TableCell>
-              <TableCell>{winCellText(h.dire)}</TableCell>
-              <TableCell>{winCellText(h.firstPick)}</TableCell>
-              <TableCell>{winCellText(h.secondPick)}</TableCell>
-            </TableRow>
+            <button
+              key={r.key}
+              type="button"
+              role="tab"
+              aria-current={active ? 'page' : undefined}
+              onClick={() => setRole(r.key)}
+              className={`min-h-11 flex cursor-pointer items-center px-3 py-1.5 text-[12px] uppercase tracking-[1px] border ${
+                active ? 'bg-border border-gold text-foreground' : 'border-border text-muted'
+              }`}
+              style={{ background: active ? undefined : 'rgba(12,11,14,0.72)' }}
+            >
+              {r.label}
+            </button>
           )
         })}
-      </TableBody>
-    </Table>
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Hero</TableHead>
+            <TableHead>
+              <SortHeader
+                label="Picks"
+                sortKey="picks"
+                active={key === 'picks'}
+                dir={dir}
+                onClick={onSort}
+              />
+            </TableHead>
+            <TableHead>
+              <SortHeader
+                label="Bans"
+                sortKey="bans"
+                active={key === 'bans'}
+                dir={dir}
+                onClick={onSort}
+              />
+            </TableHead>
+            <TableHead>
+              <SortHeader
+                label="Pick+Ban%"
+                sortKey="pickBanRate"
+                active={key === 'pickBanRate'}
+                dir={dir}
+                onClick={onSort}
+              />
+            </TableHead>
+            <TableHead>
+              <SortHeader
+                label="Winrate"
+                sortKey="winrate"
+                active={key === 'winrate'}
+                dir={dir}
+                onClick={onSort}
+              />
+            </TableHead>
+            <TableHead>
+              <SortHeader
+                label="Radiant WR"
+                sortKey="radiant"
+                active={key === 'radiant'}
+                dir={dir}
+                onClick={onSort}
+              />
+            </TableHead>
+            <TableHead>
+              <SortHeader
+                label="Dire WR"
+                sortKey="dire"
+                active={key === 'dire'}
+                dir={dir}
+                onClick={onSort}
+              />
+            </TableHead>
+            <TableHead>
+              <SortHeader
+                label="1st Pick WR"
+                sortKey="firstPick"
+                active={key === 'firstPick'}
+                dir={dir}
+                onClick={onSort}
+              />
+            </TableHead>
+            <TableHead>
+              <SortHeader
+                label="2nd Pick WR"
+                sortKey="secondPick"
+                active={key === 'secondPick'}
+                dir={dir}
+                onClick={onSort}
+              />
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sorted.map((h) => {
+            const hero = heroById.get(h.heroId)
+            return (
+              <TableRow key={h.heroId}>
+                <TableCell>
+                  {hero ? (
+                    <Link
+                      to="/hero/$heroName"
+                      params={{ heroName: heroSlug(hero.localized_name) }}
+                      className="flex items-center gap-2 hover:text-gold"
+                    >
+                      <img src={heroIconUrl(hero.name)} alt="" className="h-6 w-10 object-cover" />
+                      {hero.localized_name}
+                    </Link>
+                  ) : (
+                    `Hero #${h.heroId}`
+                  )}
+                </TableCell>
+                <TableCell>{h.picks}</TableCell>
+                <TableCell>{h.bans}</TableCell>
+                <TableCell>{pct(h.pickBanRate)}</TableCell>
+                <TableCell>{winCellText({ winrate: h.winrate, sample: h.picks })}</TableCell>
+                <TableCell>{winCellText(h.radiant)}</TableCell>
+                <TableCell>{winCellText(h.dire)}</TableCell>
+                <TableCell>{winCellText(h.firstPick)}</TableCell>
+                <TableCell>{winCellText(h.secondPick)}</TableCell>
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </div>
   )
 }
 
