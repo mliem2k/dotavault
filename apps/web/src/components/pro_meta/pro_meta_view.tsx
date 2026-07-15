@@ -77,7 +77,11 @@ function ComboGrid({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {cells.map((c) => (
-        <div key={c.label} className="border border-border p-3">
+        <div
+          key={c.label}
+          className="border border-border p-3"
+          style={{ background: 'rgba(12,11,14,0.72)' }}
+        >
           <div className="text-[12px] uppercase text-muted mb-1">{c.label}</div>
           <div
             className={`font-dota text-[20px] ${c.variant === 'radiant' ? 'text-radiant' : 'text-dire'}`}
@@ -286,7 +290,10 @@ export function ProMetaView() {
         </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 border border-border p-4">
+      <div
+        className="grid grid-cols-1 sm:grid-cols-2 gap-6 border border-border p-4"
+        style={{ background: 'rgba(12,11,14,0.72)' }}
+      >
         <div>
           <StatBar
             label="Radiant Winrate"
