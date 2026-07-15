@@ -100,6 +100,21 @@ function winCellText(cell: ProMetaWinrateCell): string {
   return cell.sample >= MIN_SAMPLE ? pct(cell.winrate) : '—'
 }
 
+// OpenDota lane_role: 1 safe, 2 mid, 3 off. Whether a hero counts as
+// "played" in one of these 3 real lanes, from actual per-match data (not
+// a kit-based guess) - a hero needs enough total tracked lane games to
+// trust the split at all, and this lane needs to be a real, non-trivial
+// share of them, so a hero that got mid'd once in a stomp doesn't count
+// as a mid hero.
+const LANE_ROLE_MIN_SHARE = 0.15
+
+function playsRealLane(hero: ProMetaHeroRow, laneRole: number): boolean {
+  const total = hero.laneRoles.reduce((sum, l) => sum + l.picks, 0)
+  if (total < MIN_SAMPLE) return false
+  const entry = hero.laneRoles.find((l) => l.laneRole === laneRole)
+  return entry != null && entry.picks / total >= LANE_ROLE_MIN_SHARE
+}
+
 function HeroTable({ heroes }: { heroes: ProMetaHeroRow[] }) {
   const heroStats = useQuery({
     queryKey: ['heroes'],
@@ -115,6 +130,13 @@ function HeroTable({ heroes }: { heroes: ProMetaHeroRow[] }) {
   const lane = role === 'all' ? null : (LANES.find((l) => l.pos === role) ?? null)
   const roleFiltered = useMemo(() => {
     if (!lane) return heroes
+    // Safe/Mid/Off Lane (pos 1-3) have real per-match lane_role data from
+    // the pro matches this page already ingests - use that instead of the
+    // kit-based guess, so a hero only shows up where it's actually played.
+    // Soft/Hard Support (pos 4-5) have no equivalent real signal (OpenDota's
+    // lane_role doesn't distinguish support roles within a lane), so those
+    // stay on the same kit heuristic the public Meta page uses.
+    if (lane.pos <= 3) return heroes.filter((h) => playsRealLane(h, lane.pos))
     return heroes.filter((h) => {
       const hero = heroById.get(h.heroId)
       return hero ? lane.filter(hero) : false

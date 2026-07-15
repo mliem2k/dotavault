@@ -52,7 +52,7 @@ describe('runProMetaTick', () => {
         proMatch({ match_id: 100, start_time: RELEASED_MS / 1000 + 1000, radiant_win: true }),
       ],
       '/proMatches?less_than_match_id=100': [],
-      '/matches/100': { patch: 0, radiant_win: true, picks_bans: null },
+      '/matches/100': { patch: 0, radiant_win: true, picks_bans: null, players: [] },
     })
 
     await runProMetaTick(fetchFn)
@@ -80,7 +80,7 @@ describe('runProMetaTick', () => {
         '/proMatches?less_than_match_id=206': [],
       }
       for (const id of matchIds) {
-        pages[`/matches/${id}`] = { patch: 0, radiant_win: true, picks_bans: null }
+        pages[`/matches/${id}`] = { patch: 0, radiant_win: true, picks_bans: null, players: [] }
       }
       const fetchFn = fakeFetch(pages)
 
@@ -105,7 +105,7 @@ describe('runProMetaTick', () => {
     const fetchFn = fakeFetch({
       '/proMatches': [proMatch({ match_id: 300, start_time: RELEASED_MS / 1000 + 1000 })],
       '/proMatches?less_than_match_id=300': [],
-      '/matches/300': { patch: 99, radiant_win: true, picks_bans: null },
+      '/matches/300': { patch: 99, radiant_win: true, picks_bans: null, players: [] },
     })
 
     await runProMetaTick(fetchFn)
@@ -120,7 +120,7 @@ describe('runProMetaTick', () => {
       const firstPassFetch = fakeFetch({
         '/proMatches': [proMatch({ match_id: 400, start_time: RELEASED_MS / 1000 + 1000 })],
         '/proMatches?less_than_match_id=400': [],
-        '/matches/400': { patch: 0, radiant_win: true, picks_bans: null },
+        '/matches/400': { patch: 0, radiant_win: true, picks_bans: null, players: [] },
       })
       await runProMetaTick(firstPassFetch)
       let result = (await cacheGet('pro-meta:0')) as ProMetaResponse
@@ -133,7 +133,7 @@ describe('runProMetaTick', () => {
           proMatch({ match_id: 401, start_time: RELEASED_MS / 1000 + 2000 }),
           proMatch({ match_id: 400, start_time: RELEASED_MS / 1000 + 1000 }),
         ],
-        '/matches/401': { patch: 0, radiant_win: false, picks_bans: null },
+        '/matches/401': { patch: 0, radiant_win: false, picks_bans: null, players: [] },
       })
       await runProMetaTick(refreshFetch)
 
@@ -149,7 +149,7 @@ describe('runProMetaTick', () => {
       const firstPassFetch = fakeFetch({
         '/proMatches': [proMatch({ match_id: 500, start_time: RELEASED_MS / 1000 + 1000 })],
         '/proMatches?less_than_match_id=500': [],
-        '/matches/500': { patch: 0, radiant_win: true, picks_bans: null },
+        '/matches/500': { patch: 0, radiant_win: true, picks_bans: null, players: [] },
       })
       await runProMetaTick(firstPassFetch)
 

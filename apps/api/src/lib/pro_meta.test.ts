@@ -162,6 +162,44 @@ describe('aggregateProMeta', () => {
     })
     expect(hero9).toMatchObject({ picks: 0, bans: 1, winrate: 0 })
   })
+
+  it('tallies real per-hero lane_role picks and wins from match players, not a kit guess', () => {
+    // aggregateProMeta's actual parameter type only needs radiant_win,
+    // picks_bans, and a minimal players shape (hero_id/lane_role/
+    // player_slot) - built directly against that instead of through
+    // makeMatch, which returns a full Match with a much heavier
+    // MatchPlayer[] players type this test doesn't need.
+    const matches = [
+      {
+        // hero 1 on radiant (slot 0), radiant wins -> hero 1 wins this game.
+        radiant_win: true,
+        picks_bans: null,
+        players: [{ hero_id: 1, lane_role: 2, player_slot: 0 }],
+      },
+      {
+        // hero 1 on dire (slot 128) this time, radiant wins -> dire (hero 1)
+        // loses. Same hero, a different lane_role - a genuinely multi-role
+        // hero, which is exactly what real per-match data should capture.
+        radiant_win: true,
+        picks_bans: null,
+        players: [
+          { hero_id: 1, lane_role: 3, player_slot: 128 },
+          // hero_id 0 is not a real hero and must be skipped, not tallied.
+          { hero_id: 0, lane_role: 1, player_slot: 1 },
+        ],
+      },
+    ]
+    const { heroes } = aggregateProMeta(matches)
+    const hero1 = heroes.find((h) => h.heroId === 1)
+    expect(hero1?.laneRoles).toEqual(
+      expect.arrayContaining([
+        { laneRole: 2, picks: 1, wins: 1 },
+        { laneRole: 3, picks: 1, wins: 0 },
+      ]),
+    )
+    expect(hero1?.laneRoles.length).toBe(2)
+    expect(heroes.find((h) => h.heroId === 0)).toBeUndefined()
+  })
 })
 
 function proMatch(overrides: Partial<ProMatch>): ProMatch {

@@ -40,8 +40,14 @@ function cell(wins: number, sample: number): ProMetaWinrateCell {
 
 export type ProMetaCore = Pick<ProMetaResponse, 'aggregate' | 'combination' | 'heroes'>
 
+// Deliberately narrower than MatchPlayer: only the 3 fields lane-role
+// aggregation actually needs, so callers (in particular the tick's
+// persisted ingest state) don't have to carry a full MatchPlayer per
+// player per match.
+export type MatchPlayerForLane = { hero_id: number; lane_role: number | null; player_slot: number }
+
 export function aggregateProMeta(
-  matches: Pick<Match, 'radiant_win' | 'picks_bans'>[],
+  matches: (Pick<Match, 'radiant_win' | 'picks_bans'> & { players: MatchPlayerForLane[] })[],
 ): ProMetaCore {
   let radiantWins = 0
   let direWins = 0
@@ -63,6 +69,10 @@ export function aggregateProMeta(
   const heroDire = new Map<number, HeroTally>()
   const heroFirstPick = new Map<number, HeroTally>()
   const heroSecondPick = new Map<number, HeroTally>()
+  // heroId -> laneRole (OpenDota: 1 safe, 2 mid, 3 off, 4 jungle) -> tally.
+  // Real per-match data, not a kit-based guess - a hero only counts as
+  // "played mid" here if it was actually recorded with lane_role 2.
+  const heroLaneRoles = new Map<number, Map<number, HeroTally>>()
 
   for (const match of matches) {
     if (match.radiant_win) radiantWins += 1
@@ -97,10 +107,21 @@ export function aggregateProMeta(
       if (fp !== null)
         bumpTally(pb.team === fp ? heroFirstPick : heroSecondPick, pb.hero_id, heroWon)
     }
+
+    for (const p of match.players) {
+      if (p.hero_id <= 0 || p.lane_role == null) continue
+      const heroWon = p.player_slot < 128 ? match.radiant_win : !match.radiant_win
+      const laneTally = heroLaneRoles.get(p.hero_id) ?? new Map<number, HeroTally>()
+      bumpTally(laneTally, p.lane_role, heroWon)
+      heroLaneRoles.set(p.hero_id, laneTally)
+    }
   }
 
   const totalMatches = matches.length
-  const heroIds = new Set([...heroPicks.keys(), ...heroBans.keys()])
+  // Includes heroLaneRoles' keys too: a match's players[] can carry lane
+  // data even when picks_bans is missing/null for that match, and a hero
+  // shouldn't lose its lane-role row just because that happened.
+  const heroIds = new Set([...heroPicks.keys(), ...heroBans.keys(), ...heroLaneRoles.keys()])
   const empty: HeroTally = { picks: 0, wins: 0 }
   const heroes: ProMetaHeroRow[] = [...heroIds].map((heroId) => {
     const picks = heroPicks.get(heroId) ?? 0
@@ -110,6 +131,11 @@ export function aggregateProMeta(
     const dire = heroDire.get(heroId) ?? empty
     const first = heroFirstPick.get(heroId) ?? empty
     const second = heroSecondPick.get(heroId) ?? empty
+    const laneRoles = [...(heroLaneRoles.get(heroId)?.entries() ?? [])].map(([laneRole, t]) => ({
+      laneRole,
+      picks: t.picks,
+      wins: t.wins,
+    }))
     return {
       heroId,
       picks,
@@ -120,6 +146,7 @@ export function aggregateProMeta(
       dire: cell(dire.wins, dire.picks),
       firstPick: cell(first.wins, first.picks),
       secondPick: cell(second.wins, second.picks),
+      laneRoles,
     }
   })
 

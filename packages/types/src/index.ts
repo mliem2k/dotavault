@@ -30,6 +30,7 @@ export type {
 export type { ProMatch, ProPlayer } from './pro'
 export type {
   ProMetaHeroRow,
+  ProMetaLaneRole,
   ProMetaPatch,
   ProMetaResponse,
   ProMetaWinrateCell,

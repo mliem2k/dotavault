@@ -2,12 +2,21 @@ import type { PickBan, ProMetaResponse } from 'types'
 import { cacheGet, cacheSet } from './cache'
 import { fetchCached } from './opendota'
 import { resolveCurrentPatch } from './patch'
-import { aggregateProMeta, collectCandidateMatchIds, proMetaResultKey } from './pro_meta'
+import {
+  aggregateProMeta,
+  collectCandidateMatchIds,
+  type MatchPlayerForLane,
+  proMetaResultKey,
+} from './pro_meta'
 
 // Minimal per-match fields aggregateProMeta actually needs. Keeps the
 // persisted ingest state small instead of storing full Match payloads
 // (objectives, teamfights, per-player stats, ...) this feature never reads.
-type CollectedMatch = { radiant_win: boolean; picks_bans: PickBan[] | null }
+type CollectedMatch = {
+  radiant_win: boolean
+  picks_bans: PickBan[] | null
+  players: MatchPlayerForLane[]
+}
 
 type IngestState = {
   highWaterMatchId: number | null
@@ -39,9 +48,14 @@ async function fetchMatchDetailForIngest(
         patch: number | null
         radiant_win: boolean
         picks_bans: PickBan[] | null
+        players: MatchPlayerForLane[]
       }
       if (detail.patch !== patchId) return null
-      return { radiant_win: detail.radiant_win, picks_bans: detail.picks_bans }
+      return {
+        radiant_win: detail.radiant_win,
+        picks_bans: detail.picks_bans,
+        players: detail.players,
+      }
     } catch (err) {
       if (attempt >= retryDelaysMs.length) {
         console.error(`pro meta tick: giving up on match ${id} after ${attempt + 1} attempts`, err)

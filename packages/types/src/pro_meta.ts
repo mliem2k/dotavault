@@ -9,6 +9,15 @@ export type ProMetaWinrateCell = {
   sample: number
 }
 
+// OpenDota's lane_role on a match player: 1 safe, 2 mid, 3 off, 4 jungle.
+// picks/wins here are this hero's real pick count and win count when
+// played in that lane, across the sampled pro matches - not a heuristic.
+export type ProMetaLaneRole = {
+  laneRole: number
+  picks: number
+  wins: number
+}
+
 export type ProMetaHeroRow = {
   heroId: number
   picks: number
@@ -19,6 +28,7 @@ export type ProMetaHeroRow = {
   dire: ProMetaWinrateCell
   firstPick: ProMetaWinrateCell
   secondPick: ProMetaWinrateCell
+  laneRoles: ProMetaLaneRole[]
 }
 
 export type ProMetaResponse = {
