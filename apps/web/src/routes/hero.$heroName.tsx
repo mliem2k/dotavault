@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import type { HeroStat, ItemConst } from 'types'
+import type { HeroBenchmarks, HeroStat, ItemConst } from 'types'
 import { AbilityDetails } from '@/components/heroes/ability_details'
 import { Spinner } from '@/components/ui/spinner'
 import { datafeed } from '@/lib/datafeed'
@@ -782,6 +782,57 @@ function PlayerRankingsSection({
   )
 }
 
+const BENCHMARK_STATS = [
+  { key: 'gold_per_min', label: 'GPM' },
+  { key: 'xp_per_min', label: 'XPM' },
+  { key: 'kills_per_min', label: 'Kills/min' },
+  { key: 'last_hits_per_min', label: 'Last Hits/min' },
+  { key: 'hero_damage_per_min', label: 'Hero Damage/min' },
+  { key: 'hero_healing_per_min', label: 'Hero Healing/min' },
+  { key: 'tower_damage', label: 'Tower Damage' },
+] as const
+
+function BenchmarksSection({ benchmarks }: { benchmarks: HeroBenchmarks }) {
+  const [stat, setStat] = useState<(typeof BENCHMARK_STATS)[number]['key']>('gold_per_min')
+  const rows = benchmarks.result[stat] ?? []
+  if (rows.length === 0) return null
+
+  const data = [...rows]
+    .sort((a, b) => a.percentile - b.percentile)
+    .map((r) => ({ percentile: `${Math.round(r.percentile * 100)}th`, value: r.value }))
+
+  return (
+    <StatPanel title="Benchmarks">
+      <div className="mb-3 flex flex-wrap gap-1">
+        {BENCHMARK_STATS.map((s) => (
+          <button
+            key={s.key}
+            type="button"
+            onClick={() => setStat(s.key)}
+            className={`min-h-11 cursor-pointer border px-3 py-1.5 text-[12px] uppercase tracking-[1px] font-dota ${
+              stat === s.key ? 'bg-border border-gold text-foreground' : 'border-border text-muted'
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <ResponsiveContainer width="100%" height={220}>
+        <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+          <XAxis dataKey="percentile" tick={{ fill: '#888', fontSize: 11 }} />
+          <YAxis tick={{ fill: '#888', fontSize: 10 }} width={48} />
+          <Tooltip
+            contentStyle={{ background: '#111', border: '1px solid #333', fontSize: 11 }}
+            formatter={(v) => [(v as number).toLocaleString(), 'Value']}
+          />
+          <Bar dataKey="value" fill="var(--color-gold)" radius={[2, 2, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </StatPanel>
+  )
+}
+
 function NotableMatchesSection({
   matches,
 }: {
@@ -931,6 +982,12 @@ function HeroDetailPage() {
   const topPlayers = useQuery({
     queryKey: ['hero_top_players', hero?.id],
     queryFn: () => opendota.heroTopPlayers(hero!.id),
+    enabled: !!hero?.id,
+    staleTime: 60 * 60 * 1000,
+  })
+  const benchmarks = useQuery({
+    queryKey: ['hero_benchmarks', hero?.id],
+    queryFn: () => opendota.heroBenchmarks(hero!.id),
     enabled: !!hero?.id,
     staleTime: 60 * 60 * 1000,
   })
@@ -1789,6 +1846,7 @@ function HeroDetailPage() {
             <ItemTimingSection timings={itemTimings.data} items={items.data ?? {}} />
           )}
           {topPlayers.data && <PlayerRankingsSection players={topPlayers.data} />}
+          {benchmarks.data && <BenchmarksSection benchmarks={benchmarks.data} />}
           {recentMatches.data && <NotableMatchesSection matches={recentMatches.data} />}
         </div>
       )}
