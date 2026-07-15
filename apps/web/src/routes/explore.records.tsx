@@ -96,7 +96,7 @@ function RecordsPage() {
                 </thead>
                 <tbody>
                   {(records.data ?? []).map((r, i) => {
-                    const hero = heroMap.get(r.hero_id)
+                    const hero = r.hero_id != null ? heroMap.get(r.hero_id) : undefined
                     return (
                       <tr key={r.match_id} className="hover:bg-white/[0.03] border-t border-border">
                         <td className="py-1.5 pr-2 text-right text-[12px] tabular-nums text-muted">
@@ -116,7 +116,9 @@ function RecordsPage() {
                               />
                             )}
                             <span className="text-[14px] text-foreground">
-                              {hero?.localized_name ?? `Hero ${r.hero_id}`}
+                              {r.hero_id == null
+                                ? 'Full Match'
+                                : (hero?.localized_name ?? `Hero ${r.hero_id}`)}
                             </span>
                           </a>
                         </td>

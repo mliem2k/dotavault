@@ -11,6 +11,47 @@ export const Route = createFileRoute('/explore/distributions')({
   component: DistributionsPage,
 })
 
+// Herald..Divine each span 5 star bins (tier*10+1..tier*10+5); Immortal has
+// no stars, a single bin (80). Labeling all 36 bins at -45deg was crowded
+// and unreadable, so the axis shows one horizontal label per tier (centered
+// under that tier's middle star), the full "Herald 3"-style name stays in
+// the tooltip on hover.
+const TIER_NAMES = [
+  '',
+  'Herald',
+  'Guardian',
+  'Crusader',
+  'Archon',
+  'Legend',
+  'Ancient',
+  'Divine',
+  'Immortal',
+]
+
+function TierAxisTick({
+  x,
+  y,
+  index,
+  rows,
+}: {
+  x?: string | number
+  y?: string | number
+  index?: number
+  rows: { bin: number }[]
+}) {
+  if (x == null || y == null || index == null) return null
+  const bin = rows[index]?.bin
+  if (bin == null) return null
+  const tier = Math.floor(bin / 10)
+  const star = bin % 10
+  if (tier !== 8 && star !== 3) return null
+  return (
+    <text x={x} y={Number(y) + 14} textAnchor="middle" fill="#888" fontSize={11}>
+      {TIER_NAMES[tier] ?? ''}
+    </text>
+  )
+}
+
 function DistributionsPage() {
   usePageTitle('Explore · Distributions')
   const query = useQuery({
@@ -26,6 +67,7 @@ function DistributionsPage() {
     return [...ranks.rows]
       .sort((a, b) => a.bin - b.bin)
       .map((r) => ({
+        bin: r.bin,
         name: rankName(r.bin),
         count: r.count,
         percentileBelow: total > 0 ? (r.cumulative_sum / total) * 100 : 0,
@@ -52,15 +94,15 @@ function DistributionsPage() {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={340}>
-              <BarChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 48 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+              <BarChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
                 <XAxis
                   dataKey="name"
-                  tick={{ fill: '#888', fontSize: 10 }}
-                  angle={-45}
-                  textAnchor="end"
+                  tick={(props) => <TierAxisTick {...props} rows={rows} />}
                   interval={0}
-                  height={70}
+                  height={28}
+                  axisLine={{ stroke: '#333' }}
+                  tickLine={{ stroke: '#333' }}
                 />
                 <YAxis
                   tick={{ fill: '#888', fontSize: 10 }}

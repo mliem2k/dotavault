@@ -143,8 +143,11 @@ export const opendota = {
   // Top-100 leaderboard for a single stat field, e.g. "duration", "kills".
   // No account_id/player name in the payload, matches OpenDota's own
   // Records page, which also shows no player name.
+  // hero_id is null for match-level records (e.g. "duration" — the longest
+  // game isn't attributed to any one hero), confirmed live: /records/duration
+  // returns hero_id: null for every row, while /records/kills etc. don't.
   records: (field: string) =>
-    get<{ match_id: number; start_time: number; hero_id: number; score: number }[]>(
+    get<{ match_id: number; start_time: number; hero_id: number | null; score: number }[]>(
       `/records/${field}`,
     ),
   // Global rank_tier histogram (medal*10+stars bins), same encoding
