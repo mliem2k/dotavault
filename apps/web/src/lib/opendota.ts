@@ -3,6 +3,7 @@ import type {
   HeroBenchmarks,
   HeroStat,
   ItemConst,
+  LiveMatch,
   Match,
   Player,
   PlayerHero,
@@ -139,6 +140,36 @@ export const opendota = {
   match: (id: string) => get<Match>(`/matches/${id}`),
   heroStats: () => get<HeroStat[]>('/heroStats'),
   heroBenchmarks: (heroId: number) => get<HeroBenchmarks>(`/benchmarks?hero_id=${heroId}`),
+  // Top-100 leaderboard for a single stat field, e.g. "duration", "kills".
+  // No account_id/player name in the payload, matches OpenDota's own
+  // Records page, which also shows no player name.
+  records: (field: string) =>
+    get<{ match_id: number; start_time: number; hero_id: number; score: number }[]>(
+      `/records/${field}`,
+    ),
+  // Global rank_tier histogram (medal*10+stars bins), same encoding
+  // rankName()/rankBadge() already use elsewhere in this codebase.
+  distributions: () =>
+    get<{
+      ranks: {
+        rows: { bin: number; bin_name: number; count: number; cumulative_sum: number }[]
+        sum: { count: number }
+      }
+    }>('/distributions'),
+  // In-progress high-MMR matches. match_id arrives as a string on this
+  // endpoint (unlike every other OpenDota endpoint, where it's numeric).
+  liveGames: () => get<LiveMatch[]>('/live'),
+  // Global (not per-hero) scenario win rates: courier_kill, first_blood,
+  // pos_chat_1min, neg_chat_1min, each split by region and side.
+  scenariosMisc: () =>
+    get<{ scenario: string; is_radiant: boolean; region: number; games: string; wins: string }[]>(
+      '/scenarios/misc',
+    ),
+  // Per-hero score/percentile for one player, across every hero they have
+  // meaningful data for. Real accounts can return [] (no error), a normal
+  // response for lower-activity players.
+  playerHeroRankings: (id: string) =>
+    get<{ hero_id: number; score: number; percent_rank: number }[]>(`/players/${id}/rankings`),
   // Win rate by game-length bucket (duration_bin is in seconds).
   heroDurations: (id: string) =>
     get<{ duration_bin: number; games_played: number; wins: number }[]>(`/heroes/${id}/durations`),

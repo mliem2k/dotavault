@@ -36,3 +36,16 @@ export type ProPlayer = {
   is_pro: boolean
   locked_until: number | null
 }
+
+export type LiveMatch = {
+  match_id: string
+  average_mmr: number
+  game_time: number
+  delay: number
+  spectators: number
+  radiant_score: number
+  dire_score: number
+  team_name_radiant: string
+  team_name_dire: string
+  league_id: number
+}

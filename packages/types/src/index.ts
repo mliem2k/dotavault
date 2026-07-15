@@ -27,7 +27,7 @@ export type {
   PlayerWL,
   SearchResult,
 } from './player'
-export type { ProMatch, ProPlayer } from './pro'
+export type { LiveMatch, ProMatch, ProPlayer } from './pro'
 export type {
   ProMetaHeroRow,
   ProMetaLaneRole,
