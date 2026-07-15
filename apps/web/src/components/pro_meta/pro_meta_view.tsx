@@ -189,7 +189,7 @@ function HeroTable({ heroes }: { heroes: ProMetaHeroRow[] }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Hero</TableHead>
+            <TableHead className="min-w-[170px]">Hero</TableHead>
             <TableHead>
               <SortHeader
                 label="Picks"
