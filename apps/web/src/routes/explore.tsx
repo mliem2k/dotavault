@@ -33,6 +33,13 @@ function ExploreLayout() {
         >
           Records
         </Link>
+        <Link
+          to="/explore/distributions"
+          className={tabLinkClass(pathname.startsWith('/explore/distributions'))}
+          style={tabLinkStyle(pathname.startsWith('/explore/distributions'))}
+        >
+          Distributions
+        </Link>
       </div>
       <Outlet />
     </div>
