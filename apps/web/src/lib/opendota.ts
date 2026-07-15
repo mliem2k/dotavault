@@ -189,6 +189,16 @@ export const opendota = {
       mid_game_items: Record<string, number>
       late_game_items: Record<string, number>
     }>(`/heroes/${id}/itemPopularity`),
+  // Win rate by item-purchase timing. Real endpoint is /scenarios/itemTimings
+  // (a global scenario endpoint filterable by hero_id), not
+  // /heroes/:id/itemTimings - that path 404s on OpenDota's live API today.
+  // time is always one of 7 fixed buckets in seconds: 450/600/720/900/
+  // 1200/1500/1800 = 7.5/10/12/15/20/25/30 minutes. games/wins arrive as
+  // numeric strings, same as /scenarios/laneRoles below.
+  heroItemTimings: (heroId: number) =>
+    get<{ hero_id: number; item: string; time: number; games: string; wins: string }[]>(
+      `/scenarios/itemTimings?hero_id=${heroId}`,
+    ),
   // Win rate by lane role (1 safe, 2 mid, 3 off, 4 jungle). Was previously a
   // SQL Explorer query joining player_matches to matches by hero_id — that
   // times out server-side every time (confirmed empirically: player_matches

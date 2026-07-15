@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import type { HeroStat } from 'types'
+import type { HeroStat, ItemConst } from 'types'
 import { AbilityDetails } from '@/components/heroes/ability_details'
 import { Spinner } from '@/components/ui/spinner'
 import { datafeed } from '@/lib/datafeed'
@@ -506,6 +506,92 @@ function ItemPopularitySection({
   )
 }
 
+type ItemTimingRow = { hero_id: number; item: string; time: number; games: string; wins: string }
+type BestItemTiming = { item: string; time: number; games: number; wr: number }
+
+// Best/worst item-purchase timing (min-games filtered, same idea as
+// MATCHUP_MIN_GAMES above - a hero with only a handful of games at a given
+// item+timing shouldn't outrank one with hundreds just from sample noise).
+// Sampled live across 5 heroes of varying pick rate: 20 games yields 8-26
+// qualifying items per hero, a sensible spread for a top-10 list; 50 games
+// narrows too far for low-pick-rate heroes.
+const ITEM_TIMING_MIN_GAMES = 20
+
+// For each item, keep only its highest-sample time bucket (the most
+// statistically reliable reading for that item), then filter to items
+// with enough games at that bucket.
+function bestTimingPerItem(rows: ItemTimingRow[]): BestItemTiming[] {
+  const byItem = new Map<string, { time: number; games: number; wins: number }>()
+  for (const r of rows) {
+    const games = Number(r.games)
+    const cur = byItem.get(r.item)
+    if (!cur || games > cur.games) {
+      byItem.set(r.item, { time: r.time, games, wins: Number(r.wins) })
+    }
+  }
+  return [...byItem.entries()]
+    .map(([item, v]) => ({ item, time: v.time, games: v.games, wr: (v.wins / v.games) * 100 }))
+    .filter((v) => v.games >= ITEM_TIMING_MIN_GAMES)
+}
+
+// time is always a whole number of seconds that's an exact multiple of 30
+// (450/600/720/900/1200/1500/1800), so /60 always lands on a clean value
+// (7.5, 10, 12, 15, 20, 25, 30) - no rounding needed.
+function formatTiming(seconds: number): string {
+  return `@${seconds / 60}m`
+}
+
+function ItemTimingSection({
+  timings,
+  items,
+}: {
+  timings: ItemTimingRow[]
+  items: Record<string, ItemConst>
+}) {
+  const rated = useMemo(() => bestTimingPerItem(timings), [timings])
+  const best = useMemo(() => [...rated].sort((a, b) => b.wr - a.wr).slice(0, 10), [rated])
+  const worst = useMemo(() => [...rated].sort((a, b) => a.wr - b.wr).slice(0, 10), [rated])
+
+  const row = (t: BestItemTiming, good: boolean) => (
+    <div key={t.item} className="flex items-center gap-2.5 py-1.5 border-t border-border">
+      <img src={itemIconUrl(t.item)} alt="" className="h-7 w-11 shrink-0 rounded-sm object-cover" />
+      <span className="min-w-0 flex-1 truncate text-[16px] text-foreground font-dota">
+        {items[t.item]?.dname ?? t.item}
+      </span>
+      <span className="shrink-0 text-[13px] text-muted font-dota">{formatTiming(t.time)}</span>
+      <span
+        className={`shrink-0 text-[16px] font-bold tabular-nums font-dota ${good ? 'text-radiant' : 'text-dire'}`}
+      >
+        {t.wr.toFixed(1)}%
+      </span>
+    </div>
+  )
+
+  if (rated.length === 0) return null
+
+  return (
+    <StatPanel title="Item Timings">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div>
+          <div className="text-[13px] font-bold uppercase tracking-widest mb-1 text-radiant">
+            Best Timing
+          </div>
+          {best.map((t) => row(t, true))}
+        </div>
+        <div>
+          <div className="text-[13px] font-bold uppercase tracking-widest mb-1 text-dire">
+            Worst Timing
+          </div>
+          {worst.map((t) => row(t, false))}
+        </div>
+      </div>
+      <div className="mt-3 text-[13px] text-muted">
+        Minimum {ITEM_TIMING_MIN_GAMES.toLocaleString()} games at that item's most-played timing.
+      </div>
+    </StatPanel>
+  )
+}
+
 // Win rate by skill bracket (Herald through Immortal), from heroStats'
 // 1_pick/1_win..8_pick/8_win fields — data the page already fetches for
 // every hero via heroStats(), just not used for this purpose yet.
@@ -827,6 +913,12 @@ function HeroDetailPage() {
   const itemPopularity = useQuery({
     queryKey: ['hero_item_popularity', hero?.id],
     queryFn: () => opendota.heroItemPopularity(String(hero!.id)),
+    enabled: !!hero?.id,
+    staleTime: 60 * 60 * 1000,
+  })
+  const itemTimings = useQuery({
+    queryKey: ['hero_item_timings', hero?.id],
+    queryFn: () => opendota.heroItemTimings(hero!.id),
     enabled: !!hero?.id,
     staleTime: 60 * 60 * 1000,
   })
@@ -1692,6 +1784,9 @@ function HeroDetailPage() {
           {durations.data && <DurationSection durations={durations.data} />}
           {itemPopularity.data && (
             <ItemPopularitySection popularity={itemPopularity.data} idToName={itemIdToName} />
+          )}
+          {itemTimings.data && (
+            <ItemTimingSection timings={itemTimings.data} items={items.data ?? {}} />
           )}
           {topPlayers.data && <PlayerRankingsSection players={topPlayers.data} />}
           {recentMatches.data && <NotableMatchesSection matches={recentMatches.data} />}
