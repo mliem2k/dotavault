@@ -47,6 +47,13 @@ function ExploreLayout() {
         >
           Live
         </Link>
+        <Link
+          to="/explore/scenarios"
+          className={tabLinkClass(pathname.startsWith('/explore/scenarios'))}
+          style={tabLinkStyle(pathname.startsWith('/explore/scenarios'))}
+        >
+          Scenario Win Rates
+        </Link>
       </div>
       <Outlet />
     </div>

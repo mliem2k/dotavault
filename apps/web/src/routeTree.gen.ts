@@ -27,6 +27,7 @@ import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
 import { Route as LeagueLeagueIdRouteImport } from './routes/league.$leagueId'
 import { Route as LeaderboardsRegionRouteImport } from './routes/leaderboards.$region'
 import { Route as HeroHeroNameRouteImport } from './routes/hero.$heroName'
+import { Route as ExploreScenariosRouteImport } from './routes/explore.scenarios'
 import { Route as ExploreRecordsRouteImport } from './routes/explore.records'
 import { Route as ExploreLiveRouteImport } from './routes/explore.live'
 import { Route as ExploreDistributionsRouteImport } from './routes/explore.distributions'
@@ -134,6 +135,11 @@ const HeroHeroNameRoute = HeroHeroNameRouteImport.update({
   path: '/hero/$heroName',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExploreScenariosRoute = ExploreScenariosRouteImport.update({
+  id: '/scenarios',
+  path: '/scenarios',
+  getParentRoute: () => ExploreRoute,
+} as any)
 const ExploreRecordsRoute = ExploreRecordsRouteImport.update({
   id: '/records',
   path: '/records',
@@ -231,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/explore/distributions': typeof ExploreDistributionsRoute
   '/explore/live': typeof ExploreLiveRoute
   '/explore/records': typeof ExploreRecordsRoute
+  '/explore/scenarios': typeof ExploreScenariosRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
   '/leaderboards/$region': typeof LeaderboardsRegionRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
@@ -264,6 +271,7 @@ export interface FileRoutesByTo {
   '/explore/distributions': typeof ExploreDistributionsRoute
   '/explore/live': typeof ExploreLiveRoute
   '/explore/records': typeof ExploreRecordsRoute
+  '/explore/scenarios': typeof ExploreScenariosRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
   '/leaderboards/$region': typeof LeaderboardsRegionRoute
   '/meta/$bracket': typeof MetaBracketRoute
@@ -296,6 +304,7 @@ export interface FileRoutesById {
   '/explore/distributions': typeof ExploreDistributionsRoute
   '/explore/live': typeof ExploreLiveRoute
   '/explore/records': typeof ExploreRecordsRoute
+  '/explore/scenarios': typeof ExploreScenariosRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
   '/leaderboards/$region': typeof LeaderboardsRegionRoute
   '/league/$leagueId': typeof LeagueLeagueIdRouteWithChildren
@@ -334,6 +343,7 @@ export interface FileRouteTypes {
     | '/explore/distributions'
     | '/explore/live'
     | '/explore/records'
+    | '/explore/scenarios'
     | '/hero/$heroName'
     | '/leaderboards/$region'
     | '/league/$leagueId'
@@ -367,6 +377,7 @@ export interface FileRouteTypes {
     | '/explore/distributions'
     | '/explore/live'
     | '/explore/records'
+    | '/explore/scenarios'
     | '/hero/$heroName'
     | '/leaderboards/$region'
     | '/meta/$bracket'
@@ -398,6 +409,7 @@ export interface FileRouteTypes {
     | '/explore/distributions'
     | '/explore/live'
     | '/explore/records'
+    | '/explore/scenarios'
     | '/hero/$heroName'
     | '/leaderboards/$region'
     | '/league/$leagueId'
@@ -567,6 +579,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HeroHeroNameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/explore/scenarios': {
+      id: '/explore/scenarios'
+      path: '/scenarios'
+      fullPath: '/explore/scenarios'
+      preLoaderRoute: typeof ExploreScenariosRouteImport
+      parentRoute: typeof ExploreRoute
+    }
     '/explore/records': {
       id: '/explore/records'
       path: '/records'
@@ -686,6 +705,7 @@ interface ExploreRouteChildren {
   ExploreDistributionsRoute: typeof ExploreDistributionsRoute
   ExploreLiveRoute: typeof ExploreLiveRoute
   ExploreRecordsRoute: typeof ExploreRecordsRoute
+  ExploreScenariosRoute: typeof ExploreScenariosRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
 }
 
@@ -693,6 +713,7 @@ const ExploreRouteChildren: ExploreRouteChildren = {
   ExploreDistributionsRoute: ExploreDistributionsRoute,
   ExploreLiveRoute: ExploreLiveRoute,
   ExploreRecordsRoute: ExploreRecordsRoute,
+  ExploreScenariosRoute: ExploreScenariosRoute,
   ExploreIndexRoute: ExploreIndexRoute,
 }
 
