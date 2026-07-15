@@ -1,4 +1,4 @@
-import type { PlayerWL } from 'types'
+import type { PlayerMatch, PlayerWL } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
 import { applySort, useSort } from '@/lib/sortable'
 
@@ -170,14 +170,77 @@ function WinRateTable({
   )
 }
 
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+// Day-of-week breakdown of the player's most recently fetched matches (not
+// full history - see the "Last N matches" caption this renders). Bar width
+// is normalized to the busiest day's count, same normalization
+// ItemPopularitySection already uses on the hero page, so even a skewed
+// week produces a readable chart instead of every bar being unreadably
+// short from normalizing to the 7-way total.
+function ActivityByDaySection({ matches }: { matches: PlayerMatch[] }) {
+  if (matches.length === 0) return null
+
+  const counts = new Array(7).fill(0) as number[]
+  for (const m of matches) {
+    const dayIndex = (new Date(m.start_time * 1000).getDay() + 6) % 7
+    counts[dayIndex] += 1
+  }
+  const maxCount = Math.max(1, ...counts)
+
+  return (
+    <div style={{ background: C.panel }}>
+      <div
+        className="text-[13px] uppercase px-3 py-2.5 text-white font-dota"
+        style={{ letterSpacing: '2px', background: C.panelDark }}
+      >
+        Activity by Day
+      </div>
+      <div className="px-3 py-2">
+        {DAY_LABELS.map((label, i) => (
+          <div
+            key={label}
+            className="flex items-center gap-3 py-1.5"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+          >
+            <span className="w-32 shrink-0 text-[14px] truncate text-slate-foreground font-dota">
+              {label}
+            </span>
+            <div className="flex-1 h-[6px] bg-slate-card">
+              <div
+                style={{
+                  width: `${(counts[i] / maxCount) * 100}%`,
+                  height: '100%',
+                  background: C.green,
+                }}
+              />
+            </div>
+            <span
+              className="w-20 shrink-0 text-right text-[13px] tabular-nums font-dota"
+              style={{ color: C.dim }}
+            >
+              {counts[i]}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="px-3 pb-3 text-[12px] font-dota" style={{ color: C.dim }}>
+        Last {matches.length.toLocaleString()} matches.
+      </div>
+    </div>
+  )
+}
+
 export function PlayerStats({
   totals,
   counts,
   wl,
+  matches,
 }: {
   totals: Total[]
   counts: Counts | undefined
   wl: PlayerWL
+  matches: PlayerMatch[] | undefined
 }) {
   const games = wl.win + wl.lose
   const hours = Math.round(sum(totals, 'duration') / 3600)
@@ -244,6 +307,8 @@ export function PlayerStats({
         {table('game_mode', 'Win Rate by Game Mode', GAME_MODES)}
         {table('lobby_type', 'Win Rate by Lobby', LOBBY_TYPES)}
       </div>
+
+      {matches && <ActivityByDaySection matches={matches} />}
     </div>
   )
 }

@@ -11,7 +11,7 @@ export const Route = createFileRoute('/player/$accountId/stats')({
 })
 
 function StatsTabPage() {
-  const { totals, countsQ, wl, playerHeroes, heroStats } = usePlayerData()
+  const { totals, countsQ, wl, playerHeroes, heroStats, matches } = usePlayerData()
   return (
     <div className="mt-3 space-y-4">
       {totals.isPending || countsQ.isPending ? (
@@ -19,7 +19,7 @@ function StatsTabPage() {
           <Spinner />
         </div>
       ) : totals.data ? (
-        <PlayerStats totals={totals.data} counts={countsQ.data} wl={wl} />
+        <PlayerStats totals={totals.data} counts={countsQ.data} wl={wl} matches={matches.data} />
       ) : null}
       <div className="max-w-[720px] mx-auto" style={{ background: C.panel }}>
         <div
