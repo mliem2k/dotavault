@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import type { HeroStat, Match, MatchPlayer } from 'types'
 import { opendota } from '@/lib/opendota'
+import { rankBadge, rankName } from '@/lib/rank'
 import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl, heroSlug } from '@/lib/utils'
 
 export const PLAYER_COLORS: Record<number, string> = {
@@ -231,6 +232,7 @@ export function PlayerIdentityCell({
   const accountId = player.account_id
   const playerName = usePlayerName(player)
   const proName = usePlayerProName(player, playerName)
+  const badge = rankBadge(player.rank_tier)
   const heroShort = hero ? heroSlug(hero.localized_name) : ''
   const small = rowH < 54
   const avatarSize = Math.min(44, rowH - 14)
@@ -282,23 +284,36 @@ export function PlayerIdentityCell({
       )}
 
       <div className="min-w-0 flex-1 text-left font-dota">
-        {accountId && !linkless ? (
-          <a
-            href={`/player/${accountId}`}
-            className={`block ${small ? 'text-[13px]' : 'text-[15px]'} truncate hover:underline leading-tight ${active ? 'text-slate-bg' : 'text-white'}`}
-          >
-            {playerName}
-            {proName && <span className="opacity-70"> [{proName}]</span>}
-          </a>
-        ) : (
-          <span
-            className={`block ${small ? 'text-[13px]' : 'text-[15px]'} truncate leading-tight ${active ? 'text-slate-bg' : accountId ? 'text-white' : ''}`}
-            style={active || accountId ? undefined : { color: '#c3cbd1' }}
-          >
-            {playerName}
-            {proName && <span className="opacity-70"> [{proName}]</span>}
-          </span>
-        )}
+        <div className="flex items-center gap-1">
+          {accountId && !linkless ? (
+            <a
+              href={`/player/${accountId}`}
+              className={`min-w-0 flex-1 ${small ? 'text-[13px]' : 'text-[15px]'} truncate hover:underline leading-tight ${active ? 'text-slate-bg' : 'text-white'}`}
+            >
+              {playerName}
+              {proName && <span className="opacity-70"> [{proName}]</span>}
+            </a>
+          ) : (
+            <span
+              className={`min-w-0 flex-1 ${small ? 'text-[13px]' : 'text-[15px]'} truncate leading-tight ${active ? 'text-slate-bg' : accountId ? 'text-white' : ''}`}
+              style={active || accountId ? undefined : { color: '#c3cbd1' }}
+            >
+              {playerName}
+              {proName && <span className="opacity-70"> [{proName}]</span>}
+            </span>
+          )}
+          {/* rank_tier is null for hidden/anonymous profiles - omit rather
+              than showing a noisy "Unranked" placeholder */}
+          {badge && (
+            <span
+              className="relative inline-block shrink-0"
+              style={{ width: small ? 14 : 16, height: small ? 14 : 16 }}
+              title={rankName(player.rank_tier)}
+            >
+              <img src={badge.medal} alt="" className="h-full w-full" />
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-1.5 mt-0.5">
           <span
             className={`inline-flex items-center justify-center rounded-full shrink-0 tabular-nums ${active ? '' : 'text-slate-muted-light'}`}
