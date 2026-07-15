@@ -1,6 +1,13 @@
 import { Link } from '@tanstack/react-router'
 import type { HeroStat } from 'types'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { heroIconFromPath } from '@/lib/utils'
 
 export function HeroRankingsSection({
