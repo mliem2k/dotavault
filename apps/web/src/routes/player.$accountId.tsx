@@ -116,6 +116,12 @@ function PlayerPage() {
     staleTime: 10 * 60 * 1000,
     enabled: isNumeric && activeTab === 'stats',
   })
+  const heroRankings = useQuery({
+    queryKey: ['player_hero_rankings', accountId],
+    queryFn: () => opendota.playerHeroRankings(accountId),
+    staleTime: 60 * 60 * 1000,
+    enabled: isNumeric && activeTab === 'stats',
+  })
   // Small, slow-changing roster — shared cache with the Pro page if visited.
   const proPlayers = useQuery({
     queryKey: ['pro_players'],
@@ -277,6 +283,7 @@ function PlayerPage() {
         totals,
         peers,
         countsQ,
+        heroRankings,
       }}
     >
       <div className="flex flex-col gap-0 font-dota">

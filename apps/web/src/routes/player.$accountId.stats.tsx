@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { HeroRankingsSection } from '@/components/player/hero_rankings_section'
 import { HeroStatsTable } from '@/components/player/hero_stats_table'
 import { PlayerStats } from '@/components/player/player_stats'
 import { Spinner } from '@/components/ui/spinner'
@@ -11,7 +12,7 @@ export const Route = createFileRoute('/player/$accountId/stats')({
 })
 
 function StatsTabPage() {
-  const { totals, countsQ, wl, playerHeroes, heroStats, matches } = usePlayerData()
+  const { totals, countsQ, wl, playerHeroes, heroStats, matches, heroRankings } = usePlayerData()
   return (
     <div className="mt-3 space-y-4">
       {totals.isPending || countsQ.isPending ? (
@@ -35,6 +36,23 @@ function StatsTabPage() {
             </div>
           ) : playerHeroes.data && heroStats.data ? (
             <HeroStatsTable playerHeroes={playerHeroes.data} heroStats={heroStats.data} />
+          ) : null}
+        </div>
+      </div>
+      <div className="max-w-[720px] mx-auto" style={{ background: C.panel }}>
+        <div
+          className="text-[15px] uppercase px-4 py-3"
+          style={{ color: C.white, letterSpacing: '2px', background: 'rgba(8,10,12,0.7)' }}
+        >
+          Hero Rankings
+        </div>
+        <div className="p-4">
+          {heroRankings.isPending || heroStats.isPending ? (
+            <div className="flex justify-center py-8">
+              <Spinner />
+            </div>
+          ) : heroRankings.data && heroStats.data ? (
+            <HeroRankingsSection rankings={heroRankings.data} heroStats={heroStats.data} />
           ) : null}
         </div>
       </div>

@@ -25,6 +25,7 @@ export type PlayerData = {
   totals: UseQueryResult<Awaited<ReturnType<typeof opendota.playerTotals>>>
   peers: UseQueryResult<Awaited<ReturnType<typeof opendota.playerPeers>>>
   countsQ: UseQueryResult<Awaited<ReturnType<typeof opendota.playerCounts>>>
+  heroRankings: UseQueryResult<Awaited<ReturnType<typeof opendota.playerHeroRankings>>>
 }
 
 export const PlayerDataContext = createContext<PlayerData | null>(null)
