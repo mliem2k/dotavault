@@ -75,7 +75,7 @@ function DistributionsPage() {
   }, [query.data])
 
   return (
-    <div className="max-w-[1040px] mx-auto">
+    <div className="w-full max-w-[1040px] mx-auto">
       <div className="border border-border" style={{ background: 'rgba(12,11,14,0.72)' }}>
         <div
           className="px-4 py-3 uppercase text-foreground font-display border-b border-border"
@@ -117,7 +117,12 @@ function DistributionsPage() {
                     '',
                   ]}
                 />
-                <Bar dataKey="count" fill="var(--color-gold)" radius={[2, 2, 0, 0]} />
+                <Bar
+                  dataKey="count"
+                  fill="var(--color-gold)"
+                  radius={[2, 2, 0, 0]}
+                  isAnimationActive={false}
+                />
               </BarChart>
             </ResponsiveContainer>
           )}
