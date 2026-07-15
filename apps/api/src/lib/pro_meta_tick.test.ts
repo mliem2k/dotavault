@@ -59,10 +59,10 @@ describe('runProMetaTick', () => {
 
     const state = (await cacheGet('pro-meta-ingest:0')) as {
       remainingIds: number[]
-      collected: unknown[]
+      tally: { totalMatches: number }
     }
     expect(state.remainingIds).toEqual([])
-    expect(state.collected.length).toBe(1)
+    expect(state.tally.totalMatches).toBe(1)
 
     const result = (await cacheGet('pro-meta:0')) as ProMetaResponse
     expect(result.totalMatches).toBe(1)
@@ -160,6 +160,51 @@ describe('runProMetaTick', () => {
 
       const result = (await cacheGet('pro-meta:0')) as ProMetaResponse
       expect(result.totalMatches).toBe(1)
+    },
+    MULTI_TICK_TIMEOUT_MS,
+  )
+
+  it(
+    'keeps persisted ingest state size bounded as more matches are processed, not growing per match',
+    async () => {
+      // Regression test for the production incident: the ingest state used
+      // to store every match's raw picks_bans/players forever, so its
+      // serialized size grew linearly with match count (reached 40+MB in
+      // production and OOM-killed the API). It should now be a running
+      // tally keyed by hero id, bounded regardless of match count.
+      const matchIds = Array.from({ length: 20 }, (_, i) => 900 + i)
+      const pages: Record<string, unknown> = {
+        '/proMatches': matchIds.map((id) =>
+          proMatch({ match_id: id, start_time: RELEASED_MS / 1000 + 1000 }),
+        ),
+        [`/proMatches?less_than_match_id=${matchIds[matchIds.length - 1]}`]: [],
+      }
+      for (const id of matchIds) {
+        pages[`/matches/${id}`] = {
+          patch: 0,
+          radiant_win: true,
+          picks_bans: [
+            { is_pick: true, order: 0, team: 0, hero_id: 1 },
+            { is_pick: true, order: 1, team: 1, hero_id: 2 },
+          ],
+          players: [],
+        }
+      }
+      const fetchFn = fakeFetch(pages)
+
+      let sizeAfterFirstBatch: number | null = null
+      for (let i = 0; i < Math.ceil(matchIds.length / 5); i++) {
+        await runProMetaTick(fetchFn)
+        const state = await cacheGet('pro-meta-ingest:0')
+        const size = JSON.stringify(state).length
+        if (sizeAfterFirstBatch === null) sizeAfterFirstBatch = size
+        // Same 2 heroes across every match: state should stay roughly flat,
+        // not multiply with each additional batch of matches folded in.
+        else expect(size).toBeLessThan(sizeAfterFirstBatch * 1.5)
+      }
+
+      const result = (await cacheGet('pro-meta:0')) as ProMetaResponse
+      expect(result.totalMatches).toBe(20)
     },
     MULTI_TICK_TIMEOUT_MS,
   )

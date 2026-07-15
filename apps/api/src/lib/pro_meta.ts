@@ -23,13 +23,6 @@ export function firstPickTeam(picksBans: PickBan[]): 0 | 1 | null {
 
 type HeroTally = { picks: number; wins: number }
 
-function bumpTally(map: Map<number, HeroTally>, heroId: number, won: boolean): void {
-  const cur = map.get(heroId) ?? { picks: 0, wins: 0 }
-  cur.picks += 1
-  if (won) cur.wins += 1
-  map.set(heroId, cur)
-}
-
 function winrate(wins: number, total: number): number {
   return total > 0 ? wins / total : 0
 }
@@ -46,93 +39,159 @@ export type ProMetaCore = Pick<ProMetaResponse, 'aggregate' | 'combination' | 'h
 // player per match.
 export type MatchPlayerForLane = { hero_id: number; lane_role: number | null; player_slot: number }
 
-export function aggregateProMeta(
-  matches: (Pick<Match, 'radiant_win' | 'picks_bans'> & { players: MatchPlayerForLane[] })[],
-): ProMetaCore {
-  let radiantWins = 0
-  let direWins = 0
-  let firstPickWins = 0
-  let secondPickWins = 0
-  let draftedMatches = 0
+type ComboCell = { wins: number; sample: number }
 
-  const combo = {
-    radiantFirst: { wins: 0, sample: 0 },
-    radiantSecond: { wins: 0, sample: 0 },
-    direFirst: { wins: 0, sample: 0 },
-    direSecond: { wins: 0, sample: 0 },
+// Running totals a match can be folded into one at a time. Keyed by hero
+// id (bounded to ~130 real heroes) rather than by match, so this stays a
+// small, constant-size object no matter how many matches have been
+// processed - unlike keeping every match's raw picks_bans/players around,
+// which grew to 40+MB in production and OOM-killed the API (see
+// pro_meta_tick.ts).
+export type ProMetaTally = {
+  totalMatches: number
+  radiantWins: number
+  direWins: number
+  firstPickWins: number
+  secondPickWins: number
+  draftedMatches: number
+  combo: {
+    radiantFirst: ComboCell
+    radiantSecond: ComboCell
+    direFirst: ComboCell
+    direSecond: ComboCell
   }
-
-  const heroPicks = new Map<number, number>()
-  const heroBans = new Map<number, number>()
-  const heroWins = new Map<number, number>()
-  const heroRadiant = new Map<number, HeroTally>()
-  const heroDire = new Map<number, HeroTally>()
-  const heroFirstPick = new Map<number, HeroTally>()
-  const heroSecondPick = new Map<number, HeroTally>()
+  heroPicks: Record<number, number>
+  heroBans: Record<number, number>
+  heroWins: Record<number, number>
+  heroRadiant: Record<number, HeroTally>
+  heroDire: Record<number, HeroTally>
+  heroFirstPick: Record<number, HeroTally>
+  heroSecondPick: Record<number, HeroTally>
   // heroId -> laneRole (OpenDota: 1 safe, 2 mid, 3 off, 4 jungle) -> tally.
   // Real per-match data, not a kit-based guess - a hero only counts as
   // "played mid" here if it was actually recorded with lane_role 2.
-  const heroLaneRoles = new Map<number, Map<number, HeroTally>>()
+  heroLaneRoles: Record<number, Record<number, HeroTally>>
+}
 
-  for (const match of matches) {
-    if (match.radiant_win) radiantWins += 1
-    else direWins += 1
+export function emptyProMetaTally(): ProMetaTally {
+  return {
+    totalMatches: 0,
+    radiantWins: 0,
+    direWins: 0,
+    firstPickWins: 0,
+    secondPickWins: 0,
+    draftedMatches: 0,
+    combo: {
+      radiantFirst: { wins: 0, sample: 0 },
+      radiantSecond: { wins: 0, sample: 0 },
+      direFirst: { wins: 0, sample: 0 },
+      direSecond: { wins: 0, sample: 0 },
+    },
+    heroPicks: {},
+    heroBans: {},
+    heroWins: {},
+    heroRadiant: {},
+    heroDire: {},
+    heroFirstPick: {},
+    heroSecondPick: {},
+    heroLaneRoles: {},
+  }
+}
 
-    const fp = match.picks_bans ? firstPickTeam(match.picks_bans) : null
-    if (fp !== null) {
-      draftedMatches += 1
-      const firstPickWon = fp === 0 ? match.radiant_win : !match.radiant_win
-      if (firstPickWon) firstPickWins += 1
-      else secondPickWins += 1
+function bumpCount(record: Record<number, number>, key: number): void {
+  record[key] = (record[key] ?? 0) + 1
+}
 
-      const radiantFirst = fp === 0
-      const radiantCell = radiantFirst ? combo.radiantFirst : combo.radiantSecond
-      const direCell = radiantFirst ? combo.direSecond : combo.direFirst
-      radiantCell.sample += 1
-      if (match.radiant_win) radiantCell.wins += 1
-      direCell.sample += 1
-      if (!match.radiant_win) direCell.wins += 1
-    }
+function bumpRecordTally(record: Record<number, HeroTally>, key: number, won: boolean): void {
+  const cur = record[key] ?? { picks: 0, wins: 0 }
+  cur.picks += 1
+  if (won) cur.wins += 1
+  record[key] = cur
+}
 
-    for (const pb of match.picks_bans ?? []) {
-      if (pb.hero_id <= 0) continue
-      if (!pb.is_pick) {
-        heroBans.set(pb.hero_id, (heroBans.get(pb.hero_id) ?? 0) + 1)
-        continue
-      }
-      const heroWon = pb.team === 0 ? match.radiant_win : !match.radiant_win
-      heroPicks.set(pb.hero_id, (heroPicks.get(pb.hero_id) ?? 0) + 1)
-      if (heroWon) heroWins.set(pb.hero_id, (heroWins.get(pb.hero_id) ?? 0) + 1)
-      bumpTally(pb.team === 0 ? heroRadiant : heroDire, pb.hero_id, heroWon)
-      if (fp !== null)
-        bumpTally(pb.team === fp ? heroFirstPick : heroSecondPick, pb.hero_id, heroWon)
-    }
+function bumpLaneRole(
+  record: Record<number, Record<number, HeroTally>>,
+  heroId: number,
+  laneRole: number,
+  won: boolean,
+): void {
+  const heroLanes = record[heroId] ?? {}
+  bumpRecordTally(heroLanes, laneRole, won)
+  record[heroId] = heroLanes
+}
 
-    for (const p of match.players) {
-      if (p.hero_id <= 0 || p.lane_role == null) continue
-      const heroWon = p.player_slot < 128 ? match.radiant_win : !match.radiant_win
-      const laneTally = heroLaneRoles.get(p.hero_id) ?? new Map<number, HeroTally>()
-      bumpTally(laneTally, p.lane_role, heroWon)
-      heroLaneRoles.set(p.hero_id, laneTally)
-    }
+// Mutates tally in place with one match's contribution. The unit both
+// aggregateProMeta (below) and the tick's incremental ingest build on.
+export function foldMatchIntoTally(
+  tally: ProMetaTally,
+  match: Pick<Match, 'radiant_win' | 'picks_bans'> & { players: MatchPlayerForLane[] },
+): void {
+  tally.totalMatches += 1
+  if (match.radiant_win) tally.radiantWins += 1
+  else tally.direWins += 1
+
+  const fp = match.picks_bans ? firstPickTeam(match.picks_bans) : null
+  if (fp !== null) {
+    tally.draftedMatches += 1
+    const firstPickWon = fp === 0 ? match.radiant_win : !match.radiant_win
+    if (firstPickWon) tally.firstPickWins += 1
+    else tally.secondPickWins += 1
+
+    const radiantFirst = fp === 0
+    const radiantCell = radiantFirst ? tally.combo.radiantFirst : tally.combo.radiantSecond
+    const direCell = radiantFirst ? tally.combo.direSecond : tally.combo.direFirst
+    radiantCell.sample += 1
+    if (match.radiant_win) radiantCell.wins += 1
+    direCell.sample += 1
+    if (!match.radiant_win) direCell.wins += 1
   }
 
-  const totalMatches = matches.length
+  for (const pb of match.picks_bans ?? []) {
+    if (pb.hero_id <= 0) continue
+    if (!pb.is_pick) {
+      bumpCount(tally.heroBans, pb.hero_id)
+      continue
+    }
+    const heroWon = pb.team === 0 ? match.radiant_win : !match.radiant_win
+    bumpCount(tally.heroPicks, pb.hero_id)
+    if (heroWon) bumpCount(tally.heroWins, pb.hero_id)
+    bumpRecordTally(pb.team === 0 ? tally.heroRadiant : tally.heroDire, pb.hero_id, heroWon)
+    if (fp !== null)
+      bumpRecordTally(
+        pb.team === fp ? tally.heroFirstPick : tally.heroSecondPick,
+        pb.hero_id,
+        heroWon,
+      )
+  }
+
+  for (const p of match.players) {
+    if (p.hero_id <= 0 || p.lane_role == null) continue
+    const heroWon = p.player_slot < 128 ? match.radiant_win : !match.radiant_win
+    bumpLaneRole(tally.heroLaneRoles, p.hero_id, p.lane_role, heroWon)
+  }
+}
+
+// Converts a running tally into the shape the API/frontend consume.
+export function finalizeProMetaTally(tally: ProMetaTally): ProMetaCore {
   // Includes heroLaneRoles' keys too: a match's players[] can carry lane
   // data even when picks_bans is missing/null for that match, and a hero
   // shouldn't lose its lane-role row just because that happened.
-  const heroIds = new Set([...heroPicks.keys(), ...heroBans.keys(), ...heroLaneRoles.keys()])
+  const heroIds = new Set([
+    ...Object.keys(tally.heroPicks).map(Number),
+    ...Object.keys(tally.heroBans).map(Number),
+    ...Object.keys(tally.heroLaneRoles).map(Number),
+  ])
   const empty: HeroTally = { picks: 0, wins: 0 }
   const heroes: ProMetaHeroRow[] = [...heroIds].map((heroId) => {
-    const picks = heroPicks.get(heroId) ?? 0
-    const bans = heroBans.get(heroId) ?? 0
-    const wins = heroWins.get(heroId) ?? 0
-    const radiant = heroRadiant.get(heroId) ?? empty
-    const dire = heroDire.get(heroId) ?? empty
-    const first = heroFirstPick.get(heroId) ?? empty
-    const second = heroSecondPick.get(heroId) ?? empty
-    const laneRoles = [...(heroLaneRoles.get(heroId)?.entries() ?? [])].map(([laneRole, t]) => ({
-      laneRole,
+    const picks = tally.heroPicks[heroId] ?? 0
+    const bans = tally.heroBans[heroId] ?? 0
+    const wins = tally.heroWins[heroId] ?? 0
+    const radiant = tally.heroRadiant[heroId] ?? empty
+    const dire = tally.heroDire[heroId] ?? empty
+    const first = tally.heroFirstPick[heroId] ?? empty
+    const second = tally.heroSecondPick[heroId] ?? empty
+    const laneRoles = Object.entries(tally.heroLaneRoles[heroId] ?? {}).map(([laneRole, t]) => ({
+      laneRole: Number(laneRole),
       picks: t.picks,
       wins: t.wins,
     }))
@@ -140,7 +199,7 @@ export function aggregateProMeta(
       heroId,
       picks,
       bans,
-      pickBanRate: totalMatches > 0 ? (picks + bans) / totalMatches : 0,
+      pickBanRate: tally.totalMatches > 0 ? (picks + bans) / tally.totalMatches : 0,
       winrate: winrate(wins, picks),
       radiant: cell(radiant.wins, radiant.picks),
       dire: cell(dire.wins, dire.picks),
@@ -152,20 +211,28 @@ export function aggregateProMeta(
 
   return {
     aggregate: {
-      radiantWinrate: winrate(radiantWins, totalMatches),
-      direWinrate: winrate(direWins, totalMatches),
-      draftedMatches,
-      firstPickWinrate: winrate(firstPickWins, draftedMatches),
-      secondPickWinrate: winrate(secondPickWins, draftedMatches),
+      radiantWinrate: winrate(tally.radiantWins, tally.totalMatches),
+      direWinrate: winrate(tally.direWins, tally.totalMatches),
+      draftedMatches: tally.draftedMatches,
+      firstPickWinrate: winrate(tally.firstPickWins, tally.draftedMatches),
+      secondPickWinrate: winrate(tally.secondPickWins, tally.draftedMatches),
     },
     combination: {
-      radiantFirst: cell(combo.radiantFirst.wins, combo.radiantFirst.sample),
-      radiantSecond: cell(combo.radiantSecond.wins, combo.radiantSecond.sample),
-      direFirst: cell(combo.direFirst.wins, combo.direFirst.sample),
-      direSecond: cell(combo.direSecond.wins, combo.direSecond.sample),
+      radiantFirst: cell(tally.combo.radiantFirst.wins, tally.combo.radiantFirst.sample),
+      radiantSecond: cell(tally.combo.radiantSecond.wins, tally.combo.radiantSecond.sample),
+      direFirst: cell(tally.combo.direFirst.wins, tally.combo.direFirst.sample),
+      direSecond: cell(tally.combo.direSecond.wins, tally.combo.direSecond.sample),
     },
     heroes,
   }
+}
+
+export function aggregateProMeta(
+  matches: (Pick<Match, 'radiant_win' | 'picks_bans'> & { players: MatchPlayerForLane[] })[],
+): ProMetaCore {
+  const tally = emptyProMetaTally()
+  for (const match of matches) foldMatchIntoTally(tally, match)
+  return finalizeProMetaTally(tally)
 }
 
 const MAX_PAGES = 20

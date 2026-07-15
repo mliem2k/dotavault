@@ -3,15 +3,20 @@ import { cacheGet, cacheSet } from './cache'
 import { fetchCached } from './opendota'
 import { resolveCurrentPatch } from './patch'
 import {
-  aggregateProMeta,
   collectCandidateMatchIds,
+  emptyProMetaTally,
+  finalizeProMetaTally,
+  foldMatchIntoTally,
   type MatchPlayerForLane,
+  type ProMetaTally,
   proMetaResultKey,
 } from './pro_meta'
 
-// Minimal per-match fields aggregateProMeta actually needs. Keeps the
-// persisted ingest state small instead of storing full Match payloads
-// (objectives, teamfights, per-player stats, ...) this feature never reads.
+// Minimal per-match fields foldMatchIntoTally actually needs. Fetched
+// per-match, folded into the running tally, then discarded - never
+// persisted raw (see ProMetaTally's doc comment for why: a prior version
+// kept every match's raw data around and grew to 40+MB, OOM-killing the
+// API).
 type CollectedMatch = {
   radiant_win: boolean
   picks_bans: PickBan[] | null
@@ -21,7 +26,7 @@ type CollectedMatch = {
 type IngestState = {
   highWaterMatchId: number | null
   remainingIds: number[]
-  collected: CollectedMatch[]
+  tally: ProMetaTally
   truncated: boolean
 }
 
@@ -82,7 +87,12 @@ export async function runProMetaTick(fetchFn: FetchFn = fetchCached): Promise<vo
   let state = (await cacheGet(sKey)) as IngestState | null
   if (!state) {
     const { ids, truncated } = await collectCandidateMatchIds(releasedAtMs, fetchFn)
-    state = { highWaterMatchId: ids[0] ?? null, remainingIds: ids, collected: [], truncated }
+    state = {
+      highWaterMatchId: ids[0] ?? null,
+      remainingIds: ids,
+      tally: emptyProMetaTally(),
+      truncated,
+    }
     await cacheSet(sKey, state, STATE_TTL_SECONDS)
   }
 
@@ -100,7 +110,7 @@ export async function runProMetaTick(fetchFn: FetchFn = fetchCached): Promise<vo
     state = {
       highWaterMatchId: newIds[0],
       remainingIds: newIds,
-      collected: state.collected,
+      tally: state.tally,
       truncated: state.truncated || truncated,
     }
     await cacheSet(sKey, state, STATE_TTL_SECONDS)
@@ -109,20 +119,18 @@ export async function runProMetaTick(fetchFn: FetchFn = fetchCached): Promise<vo
   const batchIds = state.remainingIds.slice(0, TICK_BATCH_SIZE)
   const rest = state.remainingIds.slice(TICK_BATCH_SIZE)
 
-  const fetched: CollectedMatch[] = []
   for (const id of batchIds) {
     const detail = await fetchMatchDetailForIngest(id, patch.id, fetchFn, RETRY_DELAYS_MS)
-    if (detail) fetched.push(detail)
+    if (detail) foldMatchIntoTally(state.tally, detail)
   }
 
-  const collected = [...state.collected, ...fetched]
-  state = { ...state, remainingIds: rest, collected }
+  state = { ...state, remainingIds: rest }
   await cacheSet(sKey, state, STATE_TTL_SECONDS)
 
-  const core = aggregateProMeta(collected)
+  const core = finalizeProMetaTally(state.tally)
   const response: ProMetaResponse = {
     patch,
-    totalMatches: collected.length,
+    totalMatches: state.tally.totalMatches,
     truncated: state.truncated,
     ...core,
   }
@@ -133,20 +141,10 @@ const TICK_DEBOUNCE_MS = 15_000
 let lastTickAttemptMs = 0
 let tickInProgress = false
 
-// TEMPORARILY DISABLED 2026-07-15: the persisted ingest state
-// (pro-meta-ingest:<patchId>) stores every collected match's raw
-// picks_bans + players forever and is fully JSON-parsed/re-stringified on
-// every tick. That blob reached 40+MB in production, and the synchronous
-// parse/aggregate work blocked the event loop and OOM-killed the 1024mb
-// Fly machine in a crash loop. Re-enable once runProMetaTick persists
-// incremental running tallies instead of the full raw per-match list.
-const TICK_DISABLED = true
-
 // Fire-and-forget: kicks off (at most one at a time, at most once per
 // TICK_DEBOUNCE_MS) a tick without awaiting it in the request path. Meant
 // to be called from an onRequest hook on real API traffic.
 export function maybeRunProMetaTick(): void {
-  if (TICK_DISABLED) return
   const now = Date.now()
   if (tickInProgress || now - lastTickAttemptMs < TICK_DEBOUNCE_MS) return
   lastTickAttemptMs = now
