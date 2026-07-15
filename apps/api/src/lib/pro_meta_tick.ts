@@ -133,10 +133,20 @@ const TICK_DEBOUNCE_MS = 15_000
 let lastTickAttemptMs = 0
 let tickInProgress = false
 
+// TEMPORARILY DISABLED 2026-07-15: the persisted ingest state
+// (pro-meta-ingest:<patchId>) stores every collected match's raw
+// picks_bans + players forever and is fully JSON-parsed/re-stringified on
+// every tick. That blob reached 40+MB in production, and the synchronous
+// parse/aggregate work blocked the event loop and OOM-killed the 1024mb
+// Fly machine in a crash loop. Re-enable once runProMetaTick persists
+// incremental running tallies instead of the full raw per-match list.
+const TICK_DISABLED = true
+
 // Fire-and-forget: kicks off (at most one at a time, at most once per
 // TICK_DEBOUNCE_MS) a tick without awaiting it in the request path. Meant
 // to be called from an onRequest hook on real API traffic.
 export function maybeRunProMetaTick(): void {
+  if (TICK_DISABLED) return
   const now = Date.now()
   if (tickInProgress || now - lastTickAttemptMs < TICK_DEBOUNCE_MS) return
   lastTickAttemptMs = now
