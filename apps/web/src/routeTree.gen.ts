@@ -28,6 +28,7 @@ import { Route as LeagueLeagueIdRouteImport } from './routes/league.$leagueId'
 import { Route as LeaderboardsRegionRouteImport } from './routes/leaderboards.$region'
 import { Route as HeroHeroNameRouteImport } from './routes/hero.$heroName'
 import { Route as ExploreRecordsRouteImport } from './routes/explore.records'
+import { Route as ExploreLiveRouteImport } from './routes/explore.live'
 import { Route as ExploreDistributionsRouteImport } from './routes/explore.distributions'
 import { Route as PlayerAccountIdIndexRouteImport } from './routes/player.$accountId.index'
 import { Route as MatchMatchIdIndexRouteImport } from './routes/match.$matchId.index'
@@ -138,6 +139,11 @@ const ExploreRecordsRoute = ExploreRecordsRouteImport.update({
   path: '/records',
   getParentRoute: () => ExploreRoute,
 } as any)
+const ExploreLiveRoute = ExploreLiveRouteImport.update({
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => ExploreRoute,
+} as any)
 const ExploreDistributionsRoute = ExploreDistributionsRouteImport.update({
   id: '/distributions',
   path: '/distributions',
@@ -223,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/pro': typeof ProRoute
   '/pro-meta': typeof ProMetaRoute
   '/explore/distributions': typeof ExploreDistributionsRoute
+  '/explore/live': typeof ExploreLiveRoute
   '/explore/records': typeof ExploreRecordsRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
   '/leaderboards/$region': typeof LeaderboardsRegionRoute
@@ -255,6 +262,7 @@ export interface FileRoutesByTo {
   '/pro': typeof ProRoute
   '/pro-meta': typeof ProMetaRoute
   '/explore/distributions': typeof ExploreDistributionsRoute
+  '/explore/live': typeof ExploreLiveRoute
   '/explore/records': typeof ExploreRecordsRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
   '/leaderboards/$region': typeof LeaderboardsRegionRoute
@@ -286,6 +294,7 @@ export interface FileRoutesById {
   '/pro': typeof ProRoute
   '/pro-meta': typeof ProMetaRoute
   '/explore/distributions': typeof ExploreDistributionsRoute
+  '/explore/live': typeof ExploreLiveRoute
   '/explore/records': typeof ExploreRecordsRoute
   '/hero/$heroName': typeof HeroHeroNameRoute
   '/leaderboards/$region': typeof LeaderboardsRegionRoute
@@ -323,6 +332,7 @@ export interface FileRouteTypes {
     | '/pro'
     | '/pro-meta'
     | '/explore/distributions'
+    | '/explore/live'
     | '/explore/records'
     | '/hero/$heroName'
     | '/leaderboards/$region'
@@ -355,6 +365,7 @@ export interface FileRouteTypes {
     | '/pro'
     | '/pro-meta'
     | '/explore/distributions'
+    | '/explore/live'
     | '/explore/records'
     | '/hero/$heroName'
     | '/leaderboards/$region'
@@ -385,6 +396,7 @@ export interface FileRouteTypes {
     | '/pro'
     | '/pro-meta'
     | '/explore/distributions'
+    | '/explore/live'
     | '/explore/records'
     | '/hero/$heroName'
     | '/leaderboards/$region'
@@ -562,6 +574,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreRecordsRouteImport
       parentRoute: typeof ExploreRoute
     }
+    '/explore/live': {
+      id: '/explore/live'
+      path: '/live'
+      fullPath: '/explore/live'
+      preLoaderRoute: typeof ExploreLiveRouteImport
+      parentRoute: typeof ExploreRoute
+    }
     '/explore/distributions': {
       id: '/explore/distributions'
       path: '/distributions'
@@ -665,12 +684,14 @@ declare module '@tanstack/react-router' {
 
 interface ExploreRouteChildren {
   ExploreDistributionsRoute: typeof ExploreDistributionsRoute
+  ExploreLiveRoute: typeof ExploreLiveRoute
   ExploreRecordsRoute: typeof ExploreRecordsRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
 }
 
 const ExploreRouteChildren: ExploreRouteChildren = {
   ExploreDistributionsRoute: ExploreDistributionsRoute,
+  ExploreLiveRoute: ExploreLiveRoute,
   ExploreRecordsRoute: ExploreRecordsRoute,
   ExploreIndexRoute: ExploreIndexRoute,
 }

@@ -40,6 +40,13 @@ function ExploreLayout() {
         >
           Distributions
         </Link>
+        <Link
+          to="/explore/live"
+          className={tabLinkClass(pathname.startsWith('/explore/live'))}
+          style={tabLinkStyle(pathname.startsWith('/explore/live'))}
+        >
+          Live
+        </Link>
       </div>
       <Outlet />
     </div>
