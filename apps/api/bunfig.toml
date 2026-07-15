@@ -1,0 +1,7 @@
+[test]
+# bun:test's 5000ms default has been intermittently too tight against CI's
+# ephemeral per-run Neon branch, whose latency varies more than a local or
+# persistent connection (observed timing out on ordinary cacheGet/cacheSet
+# round-trips, not slow logic). Raised globally instead of special-casing
+# individual tests one at a time as they happen to get hit.
+timeout = 15000
