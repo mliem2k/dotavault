@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
 const envSchema = z.object({
-  DATABASE_URL: z.string().min(1),
+  TURSO_DATABASE_URL: z.string().min(1),
+  TURSO_AUTH_TOKEN: z.string().min(1),
   PORT: z.string().optional().default('3000').transform(Number),
   OPENDOTA_API_KEY: z.string().optional(),
   // Path to the Go replay-parser binary (apps/replay-parser), baked into the
