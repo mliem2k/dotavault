@@ -126,7 +126,7 @@ function RunesSummary({ match, heroMap }: { match: Match; heroMap: Map<number, H
   }
   if (runeIds.size === 0) return null
   const cols = [...runeIds].sort((a, b) => Number(a) - Number(b))
-  const players = match.players.filter((p) => (counts.get(p.player_slot) ? true : false))
+  const players = match.players.filter((p) => Boolean(counts.get(p.player_slot)))
 
   return (
     <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
