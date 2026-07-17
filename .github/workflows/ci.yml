@@ -48,25 +48,39 @@ jobs:
       - name: Build replay-parser (Go)
         run: cd apps/replay-parser && go build ./...
 
-      - name: Create Neon branch
-        id: create-branch
-        uses: neondatabase/create-branch-action@v6
-        with:
-          project_id: icy-grass-85986797
-          parent_branch: production
-          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}
-          database: dotavault
-          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Install Turso CLI
+        run: |
+          curl -sSfL https://get.tur.so/install.sh | bash
+          echo "$HOME/.turso" >> "$GITHUB_PATH"
 
-      - name: Push schema to Neon branch
+      - name: Create Turso CI database
+        id: create-db
         env:
-          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+        # Named ci-<run_id>-<attempt>, matching test-safety.ts's disposable-db
+        # allowlist (^libsql://ci-) so the app's own safety guard permits it.
+        run: |
+          set -euo pipefail
+          db_name="ci-${{ github.run_id }}-${{ github.run_attempt }}"
+          turso db create "$db_name" --wait
+          db_url=$(turso db show "$db_name" | awk '/^URL:/ { print $2 }')
+          db_token=$(turso db tokens create "$db_name")
+          echo "db_name=$db_name" >> "$GITHUB_OUTPUT"
+          echo "db_url=$db_url" >> "$GITHUB_OUTPUT"
+          echo "::add-mask::$db_token"
+          echo "db_token=$db_token" >> "$GITHUB_OUTPUT"
+
+      - name: Push schema to Turso CI database
+        env:
+          TURSO_DATABASE_URL: ${{ steps.create-db.outputs.db_url }}
+          TURSO_AUTH_TOKEN: ${{ steps.create-db.outputs.db_token }}
         run: cd apps/api && bunx drizzle-kit push --force
 
       - name: Run API tests
         env:
-          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
-        # --timeout: CI's per-run ephemeral Neon branch has shown enough
+          TURSO_DATABASE_URL: ${{ steps.create-db.outputs.db_url }}
+          TURSO_AUTH_TOKEN: ${{ steps.create-db.outputs.db_token }}
+        # --timeout: CI's per-run ephemeral Turso database has shown enough
         # latency variance to trip bun:test's 5000ms default on ordinary
         # cacheGet/cacheSet round-trips, not just slow logic.
         run: cd apps/api && bun test --timeout=15000
@@ -76,19 +90,18 @@ jobs:
 
       - name: Build API
         env:
-          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
+          TURSO_DATABASE_URL: ${{ steps.create-db.outputs.db_url }}
+          TURSO_AUTH_TOKEN: ${{ steps.create-db.outputs.db_token }}
         run: cd apps/api && bun run build
 
       - name: Build web
         run: cd apps/web && bun run build
 
-      - name: Delete Neon branch
-        if: always() && steps.create-branch.outputs.branch_id != ''
-        uses: neondatabase/delete-branch-action@v3
-        with:
-          project_id: icy-grass-85986797
-          branch: ${{ steps.create-branch.outputs.branch_id }}
-          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Delete Turso CI database
+        if: always() && steps.create-db.outputs.db_name != ''
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+        run: turso db destroy "${{ steps.create-db.outputs.db_name }}" --yes
 
   deploy:
     needs: check
