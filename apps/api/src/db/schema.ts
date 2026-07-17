@@ -5,9 +5,7 @@ export const apiCache = sqliteTable('api_cache', {
   key: text('key').primaryKey(),
   data: text('data', { mode: 'json' }).notNull(),
   expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`(unixepoch())`),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 })
 
 // Self-parsed replay position data (from apps/replay-parser). A replay file
@@ -16,7 +14,5 @@ export const apiCache = sqliteTable('api_cache', {
 export const replayPositions = sqliteTable('replay_positions', {
   matchId: integer('match_id', { mode: 'number' }).primaryKey(),
   data: text('data', { mode: 'json' }).notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`(unixepoch())`),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 })
