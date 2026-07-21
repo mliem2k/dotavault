@@ -44,6 +44,8 @@ func main() {
 	switch {
 	case len(os.Args) == 5 && os.Args[1] == "-remote":
 		runRemote(os.Args[2], os.Args[3], os.Args[4])
+	case len(os.Args) == 2 && os.Args[1] == "-inspect":
+		runInspect(os.Getenv("INSPECT_FILE"))
 	case len(os.Args) == 2:
 		// `replay-parser somefile.dem` parses a local file and prints a
 		// summary (no network fetch), for testing against a replay on disk.
@@ -51,7 +53,7 @@ func main() {
 	case len(os.Args) == 1:
 		runServer()
 	default:
-		fmt.Fprintln(os.Stderr, "usage: replay-parser [-remote <match_id> <cluster> <salt>] [file.dem]")
+		fmt.Fprintln(os.Stderr, "usage: replay-parser [-remote <match_id> <cluster> <salt>] [-inspect] [file.dem]")
 		os.Exit(2)
 	}
 }
