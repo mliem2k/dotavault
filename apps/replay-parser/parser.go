@@ -85,6 +85,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 	}
 	var rawKills []rawKill
 	goldLost := map[string]int32{} // "ts|victim" -> death gold loss
+	var objectives []ObjectiveEvent
 
 	clName := func(idx uint32) string {
 		s, _ := p.LookupStringByIndex("CombatLogNames", int32(idx))
@@ -94,6 +95,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		switch m.GetType() {
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DEATH:
 			if !m.GetIsTargetHero() || m.GetIsTargetIllusion() {
+				handleNonHeroDeath(players, heroNameToSlot, clName(m.GetAttackerName()), clName(m.GetTargetName()), m.GetIsTargetBuilding())
 				return nil
 			}
 			rawKills = append(rawKills, rawKill{
@@ -122,6 +124,24 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			handlePurchase(players, heroNameToSlot, clName(m.GetTargetName()), clName(m.GetValue()), matchTimeOf(m, gameStartTime))
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_PICKUP_RUNE:
 			handleRunePickup(players, heroNameToSlot, clName(m.GetAttackerName()), m.GetRuneType(), matchTimeOf(m, gameStartTime))
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_ABILITY:
+			tallyAbilityOrItemUse(players, heroNameToSlot, clName(m.GetAttackerName()), clName(m.GetInflictorName()), false)
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_ITEM:
+			tallyAbilityOrItemUse(players, heroNameToSlot, clName(m.GetAttackerName()), clName(m.GetInflictorName()), true)
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_MULTIKILL:
+			tallyMultiKill(players, heroNameToSlot, clName(m.GetAttackerName()), m.GetValue())
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_KILLSTREAK:
+			tallyKillStreak(players, heroNameToSlot, clName(m.GetAttackerName()), m.GetValue())
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_NEUTRAL_CAMP_STACK:
+			tallyCampStack(players, heroNameToSlot, clName(m.GetAttackerName()))
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_FIRST_BLOOD:
+			// No attacker/target identity on this entry (see firstBloodSlot's
+			// comment) — record only what's real: time and team, no fabricated Key.
+			objectives = append(objectives, ObjectiveEvent{T: matchTimeOf(m, gameStartTime), Type: "CHAT_MESSAGE_FIRSTBLOOD", Team: int32Ptr(int32(m.GetAttackerTeam()))})
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_TEAM_BUILDING_KILL:
+			objectives = append(objectives, ObjectiveEvent{T: matchTimeOf(m, gameStartTime), Type: "building_kill", Key: strPtr(clName(m.GetTargetName())), Team: int32Ptr(int32(m.GetTargetTeam()))})
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_AEGIS_TAKEN:
+			objectives = append(objectives, ObjectiveEvent{T: matchTimeOf(m, gameStartTime), Type: "CHAT_MESSAGE_AEGIS", Key: strPtr(clName(m.GetAttackerName()))})
 		}
 		return nil
 	})
@@ -255,10 +275,14 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 	}
 
 	pm := &ParsedMatch{
-		MatchID:  matchID,
-		Duration: duration,
-		Players:  players,
-		Kills:    kills,
+		MatchID:    matchID,
+		Duration:   duration,
+		Players:    players,
+		Kills:      kills,
+		Objectives: objectives,
+	}
+	if slot, ok := firstBloodSlot(pm.Kills, heroNameToSlot); ok {
+		pm.Players[fmtSlot(slot)].FirstbloodClaimed = 1
 	}
 	return pm, nil
 }
