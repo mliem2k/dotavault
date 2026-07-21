@@ -1,0 +1,133 @@
+package main
+
+// PlayerParsed holds every currently-"parsed-only" MatchPlayer field this
+// parser can produce for one player_slot. Field names match
+// packages/types/src/match.ts's MatchPlayer exactly; this is the JSON
+// contract apps/api merges into the full Match object (see Plan 2).
+type PlayerParsed struct {
+	Positions         []PositionPoint             `json:"positions"`
+	KillsLog          []KillLogEntry              `json:"kills_log"`
+	Purchase          map[string]int32            `json:"purchase"`
+	PurchaseLog       []PurchaseEvent             `json:"purchase_log"`
+	GoldT             []int32                     `json:"gold_t"`
+	LhT               []int32                     `json:"lh_t"`
+	DnT               []int32                     `json:"dn_t"`
+	XpT               []int32                     `json:"xp_t"`
+	ObsLog            []WardEvent                 `json:"obs_log"`
+	SenLog            []WardEvent                 `json:"sen_log"`
+	ObsLeftLog        []WardEvent                 `json:"obs_left_log"`
+	SenLeftLog        []WardEvent                 `json:"sen_left_log"`
+	Damage            map[string]int32            `json:"damage"`
+	DamageTaken       map[string]int32            `json:"damage_taken"`
+	DamageInflictor   map[string]int32            `json:"damage_inflictor"`
+	DamageTargets     map[string]map[string]int32 `json:"damage_targets"`
+	Killed            map[string]int32            `json:"killed"`
+	GoldReasons       map[string]int32            `json:"gold_reasons"`
+	XpReasons         map[string]int32            `json:"xp_reasons"`
+	LaneEfficiencyPct *float64                    `json:"lane_efficiency_pct,omitempty"`
+	CampsStacked      int32                       `json:"camps_stacked"`
+	RunePickups       int32                       `json:"rune_pickups"`
+	BuybackCount      int32                       `json:"buyback_count"`
+	TotalGold         int32                       `json:"total_gold"`
+	RunesLog          []RuneEvent                 `json:"runes_log"`
+	BuybackLog        []BuybackEvent              `json:"buyback_log"`
+	LanePos           map[string]map[string]int32 `json:"lane_pos"`
+	AbilityUses       map[string]int32            `json:"ability_uses"`
+	ItemUses          map[string]int32            `json:"item_uses"`
+	HeroHits          map[string]int32            `json:"hero_hits"`
+	MultiKills        map[string]int32            `json:"multi_kills"`
+	KillStreaks       map[string]int32            `json:"kill_streaks"`
+	TowersKilled      int32                       `json:"towers_killed"`
+	RoshansKilled     int32                       `json:"roshans_killed"`
+	FirstbloodClaimed int32                       `json:"firstblood_claimed"`
+	Pings             *int32                      `json:"pings,omitempty"`
+	Actions           map[string]int32            `json:"actions,omitempty"`
+	ActionsPerMin     *float64                    `json:"actions_per_min,omitempty"`
+}
+
+type WardEvent struct {
+	T          float64 `json:"time"`
+	X          float64 `json:"x"`
+	Y          float64 `json:"y"`
+	EntityLeft bool    `json:"entityleft,omitempty"`
+}
+
+type PurchaseEvent struct {
+	Key string  `json:"key"`
+	T   float64 `json:"time"`
+}
+
+type RuneEvent struct {
+	T   float64 `json:"time"`
+	Key string  `json:"key"`
+}
+
+type BuybackEvent struct {
+	T          float64 `json:"time"`
+	Slot       int32   `json:"slot"`
+	PlayerSlot int32   `json:"player_slot"`
+}
+
+type KillLogEntry struct {
+	T   float64 `json:"time"`
+	Key string  `json:"key"`
+}
+
+type ObjectiveEvent struct {
+	T          float64 `json:"time"`
+	Type       string  `json:"type"`
+	Slot       *int32  `json:"slot"`
+	Key        *string `json:"key"`
+	PlayerSlot *int32  `json:"player_slot"`
+	Unit       *string `json:"unit"`
+	Team       *int32  `json:"team"`
+	Value      *int32  `json:"value"`
+}
+
+type TeamfightPlayerStats struct {
+	DeathsPos   map[string]map[string]int32 `json:"deaths_pos"`
+	AbilityUses map[string]int32            `json:"ability_uses"`
+	ItemUses    map[string]int32            `json:"item_uses"`
+	Killed      map[string]int32            `json:"killed"`
+	Buybacks    int32                       `json:"buybacks"`
+	Damage      int32                       `json:"damage"`
+	Deaths      int32                       `json:"deaths"`
+	GoldDelta   int32                       `json:"gold_delta"`
+	Healing     int32                       `json:"healing"`
+	XpDelta     int32                       `json:"xp_delta"`
+}
+
+// Teamfight.Players is ordered by player_slot (Radiant 0-4, then Dire
+// 128-132), 10 entries always, matching packages/types/src/match.ts's
+// `players: TeamfightPlayer[]` array shape (not a map — order is the key).
+type Teamfight struct {
+	Start     float64                `json:"start"`
+	End       float64                `json:"end"`
+	LastDeath float64                `json:"last_death"`
+	Deaths    int32                  `json:"deaths"`
+	Players   []TeamfightPlayerStats `json:"players"`
+}
+
+// ParsedMatch is the full output of one replay parse: everything
+// packages/types/src/match.ts marks parsed-only, keyed by player_slot
+// (as a string, e.g. "0".."4", "128".."132") for per-player fields.
+type ParsedMatch struct {
+	MatchID        int64                    `json:"match_id"`
+	Duration       float64                  `json:"duration"`
+	Players        map[string]*PlayerParsed `json:"players"`
+	Kills          []KillEvent              `json:"kills"`
+	Teamfights     []Teamfight              `json:"teamfights"`
+	Objectives     []ObjectiveEvent         `json:"objectives"`
+	Chat           []ChatMessage            `json:"chat,omitempty"`
+	RadiantGoldAdv []int32                  `json:"radiant_gold_adv"`
+	RadiantXpAdv   []int32                  `json:"radiant_xp_adv"`
+}
+
+type ChatMessage struct {
+	T          float64 `json:"time"`
+	Type       string  `json:"type"`
+	Key        string  `json:"key"`
+	Slot       int32   `json:"slot"`
+	PlayerSlot int32   `json:"player_slot"`
+	Unit       string  `json:"unit,omitempty"`
+}

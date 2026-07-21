@@ -42,15 +42,22 @@ type KillEvent struct {
 // not something the demo header exposes directly.
 const tickRate = 30.0
 
-// ExtractPositions parses a decompressed .dem stream and returns one
-// position series per player_slot (0-4 Radiant, 128-132 Dire) sampled at
+// ExtractMatch parses a decompressed .dem stream and returns a ParsedMatch:
+// one position series per player_slot (0-4 Radiant, 128-132 Dire) sampled at
 // roughly 1Hz, kill events with combat-log detail, and the match duration
 // in seconds.
-func ExtractPositions(dem io.Reader) (map[int][]PositionPoint, []KillEvent, float64, error) {
+func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 	p, err := manta.NewStreamParser(dem)
 	if err != nil {
-		return nil, nil, 0, fmt.Errorf("create parser: %w", err)
+		return nil, fmt.Errorf("create parser: %w", err)
 	}
+
+	players := map[string]*PlayerParsed{}
+	for _, slot := range []int{0, 1, 2, 3, 4, 128, 129, 130, 131, 132} {
+		players[fmtSlot(slot)] = &PlayerParsed{}
+	}
+	heroNameToSlot := map[string]int{}
+	_ = heroNameToSlot // populated/consumed by later tasks in this plan
 
 	// DOTA_GAMERULES_STATE_GAME_IN_PROGRESS / _POST_GAME. Position samples
 	// only make sense strictly between these two: before 5 the match clock
@@ -181,6 +188,7 @@ func ExtractPositions(dem io.Reader) (map[int][]PositionPoint, []KillEvent, floa
 			pt.MaxMP = int32(v)
 		}
 		positions[slot] = append(positions[slot], pt)
+		players[fmtSlot(slot)].Positions = append(players[fmtSlot(slot)].Positions, pt)
 		return nil
 	})
 
@@ -188,7 +196,7 @@ func ExtractPositions(dem io.Reader) (map[int][]PositionPoint, []KillEvent, floa
 		// manta returns an error at end-of-stream for most replays; only
 		// treat it as fatal if we extracted nothing at all.
 		if len(positions) == 0 {
-			return nil, nil, 0, fmt.Errorf("parse: %w", err)
+			return nil, fmt.Errorf("parse: %w", err)
 		}
 	}
 
@@ -217,8 +225,19 @@ func ExtractPositions(dem io.Reader) (map[int][]PositionPoint, []KillEvent, floa
 		kills = append(kills, ev)
 	}
 
-	return positions, kills, duration, nil
+	pm := &ParsedMatch{
+		MatchID:  matchID,
+		Duration: duration,
+		Players:  players,
+		Kills:    kills,
+	}
+	return pm, nil
 }
+
+// fmtSlot renders a player_slot (0-4 Radiant, 128-132 Dire) as the string
+// key used by ParsedMatch.Players and every other per-player map in this
+// package.
+func fmtSlot(slot int) string { return fmt.Sprintf("%d", slot) }
 
 // playerSlot maps manta's raw m_iPlayerID/m_iTeamNum pair to Dota's familiar
 // player_slot convention (0-4 Radiant, 128-132 Dire). Empirically confirmed

@@ -77,16 +77,16 @@ func fetchAndParse(matchID, cluster, salt int64) (*parseResponse, error) {
 		return nil, fmt.Errorf("replay CDN returned %d", resp.StatusCode)
 	}
 
-	positions, kills, duration, err := ExtractPositions(bzip2.NewReader(resp.Body))
+	pm, err := ExtractMatch(matchID, bzip2.NewReader(resp.Body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse replay: %w", err)
 	}
 
-	out := make(map[string][]PositionPoint, len(positions))
-	for slot, pts := range positions {
-		out[fmt.Sprintf("%d", slot)] = pts
+	out := make(map[string][]PositionPoint, len(pm.Players))
+	for slot, p := range pm.Players {
+		out[slot] = p.Positions
 	}
-	return &parseResponse{MatchID: matchID, Duration: duration, Positions: out, Kills: kills}, nil
+	return &parseResponse{MatchID: matchID, Duration: pm.Duration, Positions: out, Kills: pm.Kills}, nil
 }
 
 /* ---------------- subprocess (CLI) mode ---------------- */
@@ -208,20 +208,21 @@ func runLocalFile(path string) {
 	}
 	defer f.Close()
 
-	positions, kills, duration, err := ExtractPositions(f)
+	pm, err := ExtractMatch(0, f)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("duration=%.2fs slots=%d kills=%d\n", duration, len(positions), len(kills))
-	for _, k := range kills[:min(3, len(kills))] {
+	fmt.Printf("duration=%.2fs slots=%d kills=%d\n", pm.Duration, len(pm.Players), len(pm.Kills))
+	for _, k := range pm.Kills[:min(3, len(pm.Kills))] {
 		fmt.Printf("  kill t=%.1f %s -> %s inflictor=%q gold=%d\n", k.T, k.Attacker, k.Victim, k.Inflictor, k.GoldLost)
 	}
-	for slot, pts := range positions {
+	for slot, p := range pm.Players {
+		pts := p.Positions
 		if len(pts) == 0 {
 			continue
 		}
 		mid := pts[len(pts)/2]
-		fmt.Printf("  slot=%-3d samples=%-5d first_t=%.2f last_t=%.2f mid={t=%.0f lvl=%d hp=%d/%d mp=%d/%d}\n",
+		fmt.Printf("  slot=%-3s samples=%-5d first_t=%.2f last_t=%.2f mid={t=%.0f lvl=%d hp=%d/%d mp=%d/%d}\n",
 			slot, len(pts), pts[0].T, pts[len(pts)-1].T, mid.T, mid.Level, mid.HP, mid.MaxHP, mid.MP, mid.MaxMP)
 	}
 }
