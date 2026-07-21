@@ -6,7 +6,7 @@ few one-off probe programs written against the same fixture and the vendored
 first pass left open (see inline notes below — those probes were not
 committed, only their real output was transcribed here).
 
-Fixture: match 8907618799, an 11.6-minute (694s) Ranked/Normal Turbo-mode
+Fixture: match 8907618799, an 11.6-minute (694s) Normal-lobby Turbo-mode
 match, radiant heroes Enchantress/Monkey King/Lone Druid/Arc Warden/Pudge,
 dire heroes Slark/Viper/Nevermore/Tidehunter/Sniper. Chosen because it was
 short (small fixture) and still live on Valve's CDN when fetched.
