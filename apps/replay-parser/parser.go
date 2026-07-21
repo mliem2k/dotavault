@@ -57,7 +57,6 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		players[fmtSlot(slot)] = &PlayerParsed{}
 	}
 	heroNameToSlot := map[string]int{}
-	_ = heroNameToSlot // populated/consumed by later tasks in this plan
 
 	// DOTA_GAMERULES_STATE_GAME_IN_PROGRESS / _POST_GAME. Position samples
 	// only make sense strictly between these two: before 5 the match clock
@@ -112,6 +111,10 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			if v := int32(m.GetValue()); v < 0 {
 				goldLost[key] = -v
 			}
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_PURCHASE:
+			handlePurchase(players, heroNameToSlot, clName(m.GetTargetName()), clName(m.GetValue()), matchTimeOf(m, gameStartTime))
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_PICKUP_RUNE:
+			handleRunePickup(players, heroNameToSlot, clName(m.GetAttackerName()), m.GetRuneType(), matchTimeOf(m, gameStartTime))
 		}
 		return nil
 	})
@@ -152,6 +155,24 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		slot, ok := playerSlot(playerID, teamNum)
 		if !ok {
 			return nil
+		}
+		// The naive "strip CDOTA_Unit_Hero_ prefix + lowercase" transform
+		// (e.g. CDOTA_Unit_Hero_Axe -> npc_dota_hero_axe) breaks for
+		// multi-word hero names, and Dota's internal names are
+		// inconsistently underscored (verified in this fixture:
+		// CDOTA_Unit_Hero_ArcWarden's real combat-log name is
+		// npc_dota_hero_arc_warden, CDOTA_Unit_Hero_MonkeyKing's is
+		// npc_dota_hero_monkey_king, CDOTA_Unit_Hero_LoneDruid's is
+		// npc_dota_hero_lone_druid — no simple string transform derives
+		// these correctly from the class name alone). The entity's
+		// m_pEntity.m_nameStringTableIndex, resolved through the
+		// "EntityNames" string table, is the same ground-truth internal
+		// name manta already resolves combat log attacker/target names
+		// against, so use that directly instead of reconstructing it.
+		if idx, ok := e.Get("m_pEntity.m_nameStringTableIndex").(int32); ok {
+			if realName, ok := p.LookupStringByIndex("EntityNames", idx); ok {
+				heroNameToSlot[realName] = slot
+			}
 		}
 
 		matchTime := float64(p.NetTick)/tickRate - gameStartTime
@@ -238,6 +259,13 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 // key used by ParsedMatch.Players and every other per-player map in this
 // package.
 func fmtSlot(slot int) string { return fmt.Sprintf("%d", slot) }
+
+// matchTimeOf converts a combat log entry's raw timestamp (same clock as
+// m_flGameStartTime) into match clock seconds, exactly like the existing
+// kill-timestamp handling (rk.ts - gameStartTime).
+func matchTimeOf(m *dota.CMsgDOTACombatLogEntry, gameStartTime float64) float64 {
+	return float64(m.GetTimestamp()) - gameStartTime
+}
 
 // playerSlot maps manta's raw m_iPlayerID/m_iTeamNum pair to Dota's familiar
 // player_slot convention (0-4 Radiant, 128-132 Dire). Empirically confirmed

@@ -136,6 +136,54 @@ the match:
   a `DEATH` entry at the same timestamp. AEGIS_TAKEN: **not observed** — 0
   occurrences (no Roshan kill in this ~11.6-minute match).
 
+## Hero identity resolution (heroNameToSlot, added Task 3)
+Combat log attacker/target names (via `CombatLogNames`) are real internal
+unit names like `npc_dota_hero_arc_warden`. To attribute a combat log entry
+to a player_slot, the hero `OnEntity` callback needs to build the same
+string from the hero entity's class name (`CDOTA_Unit_Hero_ArcWarden`) —
+but naively stripping the `CDOTA_Unit_Hero_` prefix and lowercasing does
+**not** work for multi-word hero names, because Dota's internal npc names
+are inconsistently underscored relative to the class name's PascalCase
+suffix. Confirmed directly in this fixture: `CDOTA_Unit_Hero_ArcWarden` →
+combat log name `npc_dota_hero_arc_warden` (underscore added),
+`CDOTA_Unit_Hero_MonkeyKing` → `npc_dota_hero_monkey_king`,
+`CDOTA_Unit_Hero_LoneDruid` → `npc_dota_hero_lone_druid` — while
+`CDOTA_Unit_Hero_Enchantress`/`Pudge`/`Slark`/`Nevermore`/`Viper`/
+`Tidehunter`/`Sniper` all lowercase straight across with no underscore
+inserted. (Publicly documented Dota internal hero names outside this
+fixture make clear a blind "insert underscore before every capital"
+heuristic would also be wrong the other direction — e.g. `AntiMage` →
+`npc_dota_hero_antimage`, `VengefulSpirit` → `npc_dota_hero_vengefulspirit`,
+`QueenOfPain` → `npc_dota_hero_queenofpain` are all *not* underscored
+despite being multi-word class names — so no string transform on the class
+name name is reliable in general.)
+
+**Real fix, no heuristic needed:** every entity (not just heroes) carries
+`m_pEntity.m_nameStringTableIndex` (an `int32`), which indexes into the
+`EntityNames` string table (534 entries in this fixture) to give the exact
+same ground-truth internal name (e.g. index 525 → `npc_dota_hero_arc_warden`)
+that `CombatLogNames` resolves attacker/target names to — same mechanism as
+the existing `clName` helper, different table name. Verified against all 10
+heroes in this fixture: every resolved name matched its combat log
+counterpart exactly. Use
+`p.LookupStringByIndex("EntityNames", int32(e.Get("m_pEntity.m_nameStringTableIndex").(int32)))`
+instead of any class-name string transform whenever a later task needs to
+resolve an entity's real internal name (this will matter again for
+`ability_uses`/`item_uses`/`hero_hits`/`multi_kills`/`kill_streaks`, which
+also need combat-log-name-to-slot attribution).
+
+Caveat: `heroNameToSlot` only gets populated once `ExtractMatch`'s existing
+`gameStartSet` gate opens (the hero `OnEntity` callback returns early before
+computing `slot` while `!gameStartSet`), so combat log entries that fire
+before that point (e.g. genuinely pre-horn purchases during strategy time)
+can be silently dropped rather than misattributed — confirmed empirically:
+162 of 165 fixture PURCHASE entries were attributed once this fix was in
+place (all 10 players got a nonempty `PurchaseLog`), the remaining 3 most
+plausibly pre-horn buys that preceded the first post-gate hero entity
+update. Failure mode is a silent, graceful miss (a lookup on an
+unpopulated/wrong key just returns `ok=false`), never misattribution to the
+wrong player.
+
 ## User-command messages (Tier 3)
 - location_ping count (real minimap pings — this is what `pings` should be built from): 6
 - net_ping count (irrelevant — network-latency diagnostic, not gameplay): 0
