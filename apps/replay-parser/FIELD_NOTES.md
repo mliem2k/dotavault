@@ -184,6 +184,50 @@ update. Failure mode is a silent, graceful miss (a lookup on an
 unpopulated/wrong key just returns `ok=false`), never misattribution to the
 wrong player.
 
+## DAMAGE/GOLD/XP value semantics (added Task 4)
+Task 1 did not specifically re-verify these three combat log types (no
+dedicated section above), and several *other* field assumptions in this plan
+turned out wrong when actually checked (PURCHASE's cost, TEAM_BUILDING_KILL's
+building fields) — so this was spot-checked before writing extraction code
+that depends on it, via a one-off probe (same technique as `-inspect`, not
+committed) that scanned every DAMAGE/GOLD/XP entry in this fixture, not just
+`-inspect`'s 5-sample-per-type preview.
+
+**Confirmed: `value` is the plausible per-event amount, as the plan
+assumed** — not a running total, not some unrelated field:
+- **DAMAGE:** 4810 entries, all positive, range 1-501 (plausible per-hit/
+  per-nuke damage; e.g. `arc_warden_spark_wraith` hits were consistently 73,
+  `tidehunter_anchor_smash` cleave hits ranged up to a few hundred).
+- **GOLD:** 720 entries, all positive, range 6-2428, plus a distinct one-time
+  `value=600` grant to every hero at match start with `gold_reason=0`
+  (matches the confirmed real starting gold of 600 from the
+  `CDOTA_DataRadiant`/`CDOTA_DataDire` section above — cross-checks).
+  Observed `gold_reason` values in this fixture: `0, 5, 6, 11, 12, 13, 14, 17`
+  — **`gold_reason=1` (the value the existing pre-Task-4 death-gold-loss code
+  keys off) never occurs once in this fixture's 720 GOLD entries.** That
+  existing `goldLost`/`KillEvent.GoldLost` logic (from an earlier task) is
+  therefore never exercised by this fixture — it stays correct code, just
+  untested-with-real-nonzero-data here; a future fixture with a different
+  game version/build might be needed to confirm reason 1 still means "death
+  loss" and still carries a negative wrapped value. No other reason value's
+  name mapping was determined (kept as raw integer keys, same convention as
+  `handleRunePickup`'s `rune_type`).
+- **XP:** 669 entries, range 0-6352 (33 legitimate zero-value entries —
+  e.g. an ally too far away to get an xp share — and a handful of large
+  lump values up to 6352/5556 at `xp_reason=1`, consistent with Dota's
+  shared/bounty XP-on-kill mechanic handing one large chunk to nearby
+  heroes rather than a small per-tick trickle). Observed `xp_reason` values:
+  `0, 1, 2, 7, 8`; no name mapping determined, kept as raw integer keys.
+
+Also cross-checked the resulting per-player output for internal plausibility
+(not just "nonzero"): every player's `damage_inflictor`/`hero_hits` keys are
+real ability/item internal names matching that specific player's own hero kit
+(e.g. slot 3's damage came out under `arc_warden_flux`/`arc_warden_spark_
+wraith`/`arc_warden_tempest_double`, slot 131 under `tidehunter_anchor_smash`/
+`tidehunter_gush`/`tidehunter_ravage`, etc. — matching this fixture's known
+roster from the top of this file), and every player's `kills_log` length
+equals the sum of their `killed` map's values.
+
 ## User-command messages (Tier 3)
 - location_ping count (real minimap pings — this is what `pings` should be built from): 6
 - net_ping count (irrelevant — network-latency diagnostic, not gameplay): 0

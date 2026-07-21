@@ -102,8 +102,13 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 				victim:    clName(m.GetTargetName()),
 				inflictor: clName(m.GetInflictorName()),
 			})
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DAMAGE:
+			handleDamage(players, heroNameToSlot, clName(m.GetAttackerName()), clName(m.GetTargetName()), clName(m.GetInflictorName()), int32(m.GetValue()))
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_GOLD:
-			// Reason 1 = death loss; the value is a wrapped negative.
+			handleGoldReason(players, heroNameToSlot, clName(m.GetTargetName()), m.GetGoldReason(), int32(m.GetValue()))
+			// Reason 1 = death loss; the value is a wrapped negative. This
+			// existing death-gold-loss handling stays as-is; the call above
+			// generalizes gold_reasons tracking to every reason, not just 1.
 			if m.GetGoldReason() != 1 {
 				return nil
 			}
@@ -111,6 +116,8 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			if v := int32(m.GetValue()); v < 0 {
 				goldLost[key] = -v
 			}
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_XP:
+			handleXpReason(players, heroNameToSlot, clName(m.GetTargetName()), m.GetXpReason(), int32(m.GetValue()))
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_PURCHASE:
 			handlePurchase(players, heroNameToSlot, clName(m.GetTargetName()), clName(m.GetValue()), matchTimeOf(m, gameStartTime))
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_PICKUP_RUNE:
@@ -244,6 +251,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			ev.Inflictor = rk.inflictor
 		}
 		kills = append(kills, ev)
+		handleKillAttribution(players, heroNameToSlot, rk.attacker, rk.victim, ev.T)
 	}
 
 	pm := &ParsedMatch{
