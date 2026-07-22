@@ -292,6 +292,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		}
 		positions[slot] = append(positions[slot], pt)
 		players[fmtSlot(slot)].Positions = append(players[fmtSlot(slot)].Positions, pt)
+		recordLanePosSample(players[fmtSlot(slot)], x, y, matchTime)
 		return nil
 	})
 
@@ -423,6 +424,15 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 	if slot, ok := firstBloodSlot(pm.Kills, heroNameToSlot); ok {
 		pm.Players[fmtSlot(slot)].FirstbloodClaimed = 1
 	}
+
+	for _, pl := range pm.Players {
+		laningEndMinute := laningPhaseEndSeconds / 60
+		if len(pl.LhT) > laningEndMinute {
+			pct := laneEfficiencyPct(pl.LhT[laningEndMinute], laningEndMinute)
+			pl.LaneEfficiencyPct = &pct
+		}
+	}
+
 	return pm, nil
 }
 
