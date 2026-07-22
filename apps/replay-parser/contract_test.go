@@ -18,7 +18,7 @@ func TestParsedMatch_JSONContract(t *testing.T) {
 	if err := json.Unmarshal(raw, &generic); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	wantTopLevel := []string{"match_id", "duration", "players", "kills", "teamfights", "objectives", "radiant_gold_adv", "radiant_xp_adv"}
+	wantTopLevel := []string{"match_id", "duration", "players", "kills", "teamfights", "objectives", "chat", "radiant_gold_adv", "radiant_xp_adv"}
 	for _, key := range wantTopLevel {
 		if _, ok := generic[key]; !ok {
 			t.Errorf("ParsedMatch JSON missing top-level key %q", key)
