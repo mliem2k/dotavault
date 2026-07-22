@@ -131,6 +131,30 @@ export type AghsDesc = {
   shard_new_skill: boolean
 }
 
+// One sampled hero snapshot from apps/replay-parser (PositionPoint in
+// apps/replay-parser/parser.go). X/Y share OpenDota's obs_log/deaths_pos
+// ~64-192 world-grid scale.
+export type PositionPoint = {
+  t: number
+  x: number
+  y: number
+  lvl: number
+  hp: number
+  mhp: number
+  mp: number
+  mmp: number
+}
+
+// One hero death from apps/replay-parser's combat log (KillEvent in
+// apps/replay-parser/parser.go).
+export type ParsedKillEvent = {
+  t: number
+  attacker: string
+  victim: string
+  inflictor?: string
+  gold?: number
+}
+
 export type MatchPlayer = {
   match_id: number
   player_slot: number
@@ -191,6 +215,7 @@ export type MatchPlayer = {
   damage_taken: Record<string, number> | null
   damage_inflictor: Record<string, number> | null
   // Parsed-only extras used by the combat / performance / farm tabs.
+  positions?: PositionPoint[] | null
   killed?: Record<string, number> | null
   gold_reasons?: Record<string, number> | null
   xp_reasons?: Record<string, number> | null
@@ -236,6 +261,7 @@ export type Match = {
   first_blood_time: number
   game_mode: number
   human_players: number
+  kills?: ParsedKillEvent[] | null
   leagueid: number
   lobby_type: number
   match_seq_num: number
