@@ -317,11 +317,20 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 	// below; recordWardPlaced/recordWardRemoved keep the parameter so
 	// wiring in a confirmed sentry class later is a one-line addition to
 	// this switch, not a rewrite.
+	// wardOwnerByIndex records each ward entity's owner slot once, at
+	// creation, keyed by the entity's own stable index (e.GetIndex()) so
+	// EntityOpDeleted can look the same owner back up rather than
+	// re-resolving it by spatial proximity. Re-resolving at deletion is
+	// wrong: the nearest hero when a ward is destroyed is usually whoever is
+	// dewarding it (an enemy), or on natural expiry just whoever happens to
+	// be nearby — not the original placer.
+	wardOwnerByIndex := map[int32]int{}
+
 	p.OnEntity(func(e *manta.Entity, op manta.EntityOp) error {
 		if e.GetClassName() != "CDOTA_NPC_Observer_Ward" {
 			return nil
 		}
-		if !gameStartSet {
+		if !gameStartSet || gameEndSet {
 			return nil
 		}
 		x, xok := cellPosition(e, "CBodyComponent.m_cellX", "CBodyComponent.m_vecX")
@@ -330,14 +339,22 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			return nil
 		}
 		matchTime := float64(p.NetTick)/tickRate - gameStartTime
-		ownerSlot, ok := wardOwnerSlot(x, y, heroPositions)
-		if !ok {
-			return nil
-		}
+		idx := e.GetIndex()
+
 		if op.Flag(manta.EntityOpCreated) {
+			ownerSlot, ok := wardOwnerSlot(x, y, heroPositions)
+			if !ok {
+				return nil
+			}
+			wardOwnerByIndex[idx] = ownerSlot
 			recordWardPlaced(players, ownerSlot, false, x, y, matchTime)
 		}
 		if op.Flag(manta.EntityOpDeleted) {
+			ownerSlot, ok := wardOwnerByIndex[idx]
+			if !ok {
+				return nil
+			}
+			delete(wardOwnerByIndex, idx)
 			recordWardRemoved(players, ownerSlot, false, x, y, matchTime)
 		}
 		return nil
@@ -432,7 +449,8 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			unreliable, ok2 := e.GetInt32(fmt.Sprintf("m_vecDataTeam.%04d.m_iUnreliableGold", slot))
 			lh, ok3 := e.GetInt32(fmt.Sprintf("m_vecDataTeam.%04d.m_iLastHitCount", slot))
 			dn, ok4 := e.GetInt32(fmt.Sprintf("m_vecDataTeam.%04d.m_iDenyCount", slot))
-			if !ok1 || !ok2 || !ok3 || !ok4 {
+			totalEarnedGold, ok5 := e.GetInt32(fmt.Sprintf("m_vecDataTeam.%04d.m_iTotalEarnedGold", slot))
+			if !ok1 || !ok2 || !ok3 || !ok4 || !ok5 {
 				continue
 			}
 			key := fmtSlot(slotOffset + slot)
@@ -442,7 +460,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			}
 			last := lastSampledMinute[key]
 			// xp filled in separately by the hero callback above, via xpBySlot
-			sampleMinute(pl, minute, reliable+unreliable, lh, dn, xpBySlot[key], &last)
+			sampleMinute(pl, minute, reliable+unreliable, lh, dn, xpBySlot[key], totalEarnedGold, &last)
 			lastSampledMinute[key] = last
 		}
 	}

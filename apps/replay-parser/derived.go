@@ -4,8 +4,13 @@ func teamAdvantage(players map[string]*PlayerParsed, extract func(*PlayerParsed)
 	radiantSlots := []string{"0", "1", "2", "3", "4"}
 	direSlots := []string{"128", "129", "130", "131", "132"}
 
+	// maxLen must reflect BOTH teams' longest series before either team's
+	// totals array is allocated — otherwise a team whose own longest series
+	// is shorter than the other team's gets a totals array sized too small,
+	// and the final adv loop (which always indexes up to the final maxLen)
+	// panics with index-out-of-range on whichever team was collected first.
 	maxLen := 0
-	sum := func(slots []string) []int32 {
+	collect := func(slots []string) [][]int32 {
 		var series [][]int32
 		for _, s := range slots {
 			if p, ok := players[s]; ok {
@@ -16,6 +21,13 @@ func teamAdvantage(players map[string]*PlayerParsed, extract func(*PlayerParsed)
 				}
 			}
 		}
+		return series
+	}
+
+	radiantSeries := collect(radiantSlots)
+	direSeries := collect(direSlots)
+
+	sum := func(series [][]int32) []int32 {
 		totals := make([]int32, maxLen)
 		for _, v := range series {
 			for i := 0; i < maxLen; i++ {
@@ -29,8 +41,8 @@ func teamAdvantage(players map[string]*PlayerParsed, extract func(*PlayerParsed)
 		return totals
 	}
 
-	radiant := sum(radiantSlots)
-	dire := sum(direSlots)
+	radiant := sum(radiantSeries)
+	dire := sum(direSeries)
 	adv := make([]int32, maxLen)
 	for i := 0; i < maxLen; i++ {
 		adv[i] = radiant[i] - dire[i]

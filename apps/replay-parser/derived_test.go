@@ -33,6 +33,23 @@ func TestRadiantAdvantage_UnequalLength(t *testing.T) {
 	}
 }
 
+func TestRadiantAdvantage_DireLonger(t *testing.T) {
+	// Dire's own longest series is longer than Radiant's own longest series.
+	// This used to panic: maxLen was a shared closure variable mutated by
+	// both sum() calls, so the Radiant totals array got sized to the
+	// pre-Dire-call maxLen (2) while the final adv loop indexed up to the
+	// post-both-calls maxLen (3), reading past the end of the Radiant array.
+	players := map[string]*PlayerParsed{
+		"0":   {GoldT: []int32{100, 200}},
+		"128": {GoldT: []int32{50, 100, 150}},
+	}
+	got := radiantGoldAdvantage(players)
+	want := []int32{50, 100, 50} // minute 2 carries Radiant's last known 200 forward: 200-150=50
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("radiantGoldAdvantage() = %v, want %v", got, want)
+	}
+}
+
 func TestClusterTeamfights(t *testing.T) {
 	// A single isolated kill (t=600) is deliberately NOT a "teamfight" —
 	// clusterTeamfights filters to 2+ deaths (see its doc comment, matching

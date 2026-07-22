@@ -31,10 +31,24 @@ func handleDamage(players map[string]*PlayerParsed, heroNameToSlot map[string]in
 			p.DamageTargets[inflictor] = map[string]int32{}
 		}
 		p.DamageTargets[inflictor][targetHero] += amount
-		if p.HeroHits == nil {
-			p.HeroHits = map[string]int32{}
+		// hero_hits only counts hits landing on an actual hero (not creeps,
+		// towers, wards, etc.) — heroNameToSlot resolving targetHero is the
+		// same "is this a hero" check used everywhere else in this file. The
+		// key is normalized to the literal string "null" for a plain attack
+		// (inflictor arrives as "dota_unknown", from clName resolving
+		// string-table index 0, or empty) to match what the frontend
+		// (apps/web/src/components/match/match_casts.tsx) reads via
+		// player.hero_hits?.null.
+		if _, targetIsHero := heroNameToSlot[targetHero]; targetIsHero {
+			if p.HeroHits == nil {
+				p.HeroHits = map[string]int32{}
+			}
+			key := inflictor
+			if key == "" || key == "dota_unknown" {
+				key = "null"
+			}
+			p.HeroHits[key]++
 		}
-		p.HeroHits[inflictor]++
 	}
 	if tSlot, ok := heroNameToSlot[targetHero]; ok {
 		p := players[fmtSlot(tSlot)]

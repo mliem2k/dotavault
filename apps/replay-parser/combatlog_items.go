@@ -15,6 +15,15 @@ func handlePurchase(players map[string]*PlayerParsed, heroNameToSlot map[string]
 	}
 	p := players[fmtSlot(slot)]
 	p.PurchaseLog = append(p.PurchaseLog, PurchaseEvent{Key: itemKey, T: t})
+	// OpenDota's real `purchase` field is a per-item count (e.g.
+	// {"tango": 1, "ward_observer": 3}), trivially derivable from the same
+	// PURCHASE combat log entries feeding PurchaseLog above — unlike
+	// OpenDota's cost-summed semantics for other fields, this one needs no
+	// cost data (which combat log PURCHASE entries don't carry anyway).
+	if p.Purchase == nil {
+		p.Purchase = map[string]int32{}
+	}
+	p.Purchase[itemKey]++
 }
 
 func handleRunePickup(players map[string]*PlayerParsed, heroNameToSlot map[string]int, attackerHero string, runeType uint32, t float64) {
