@@ -1,16 +1,15 @@
-import { Pause, Play, RefreshCw, SkipBack, SkipForward } from 'lucide-react'
+import { Pause, Play, SkipBack, SkipForward } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
+import type {
+  AbilityConst,
+  HeroStat,
+  ItemConst,
+  Match,
+  MatchPlayer,
+  ParsedKillEvent,
+  PositionPoint,
+} from 'types'
 import { BUILDINGS, buildingDeathTimes, MAP_MAX, MAP_MIN } from '@/lib/buildings'
-import { opendota } from '@/lib/opendota'
-import {
-  getReplayStatus,
-  type ParsedKill,
-  type PositionPoint,
-  type ReplayJobPhase,
-  type ReplayStatus,
-  startReplayParse,
-} from '@/lib/replay_parser'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { extractObjectiveEvents, type ObjectiveEvent } from './match_objectives'
 import { PlayerNameLink } from './match_roster'
@@ -33,10 +32,13 @@ import {
    (NOT 0-127). By default heroes interpolate between those anchors, dimmed
    ("ghost") outside their known range.
 
-   "Parse Details" upgrades to true per-second movement plus live HP/mana/
-   level: previously parsed matches load instantly from our own DB cache on
-   mount (no click needed); otherwise our Go service parses Valve's raw
-   replay on demand, which only works while Valve still serves the file. */
+   Once our own Go parser (apps/replay-parser) has finished — orchestrated
+   and polled automatically by the match page's query, see
+   match.$matchId.$tab.tsx — match.players[i].positions carries true
+   per-second movement plus live HP/mana/level, and match.kills carries the
+   exact kill feed, both merged straight into the match this component
+   already receives. No action is required here: dense mode simply takes
+   over from sparse/ghost mode the next time this data arrives. */
 
 // Canvas 2D draw calls need real color strings (not classNames), so these two
 // stay as raw hex for ctx.fillStyle/strokeStyle call sites specifically.
@@ -202,7 +204,7 @@ function extractKillEvents(
    feed but with the killing blow and the victim's death gold loss. */
 function parsedKillEvents(
   match: Match,
-  kills: ParsedKill[],
+  kills: ParsedKillEvent[],
   heroByName: Map<string, HeroStat>,
   abilityConst: Record<string, AbilityConst>,
   itemConst: Record<string, ItemConst>,
@@ -246,52 +248,6 @@ function parsedKillEvents(
 
 function toCanvas(val: number, size: number): number {
   return ((val - MAP_MIN) / (MAP_MAX - MAP_MIN)) * size
-}
-
-/* ------------------------------------------------------------------ */
-/* Parse request (unparsed matches)                                    */
-/* ------------------------------------------------------------------ */
-
-type ParseState = 'idle' | 'requesting' | 'submitted' | 'error'
-
-function ParseRequest({ matchId }: { matchId: number }) {
-  const [state, setState] = useState<ParseState>('idle')
-
-  async function request() {
-    setState('requesting')
-    try {
-      await opendota.requestParse(String(matchId))
-      setState('submitted')
-    } catch {
-      setState('error')
-    }
-  }
-
-  return (
-    <div className="p-8 text-center space-y-3 font-dota" style={{ background: C.panel }}>
-      <p className="text-[14px] text-slate-muted">
-        This match has not been parsed yet. Request a parse to enable the replay viewer.
-      </p>
-      {state === 'submitted' ? (
-        <p className="text-[14px] text-radiant">
-          Parse requested, reload in a few minutes to check if data is available.
-        </p>
-      ) : state === 'error' ? (
-        <p className="text-[14px] text-dire">Failed to request parse. Try again later.</p>
-      ) : (
-        <button
-          type="button"
-          onClick={request}
-          disabled={state === 'requesting'}
-          className="inline-flex items-center gap-2 px-4 py-2 text-[13px] uppercase cursor-pointer hover:brightness-125 disabled:opacity-50 text-radiant"
-          style={{ background: '#1d2a12', border: '1px solid #3d5a24', letterSpacing: '1px' }}
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${state === 'requesting' ? 'animate-spin' : ''}`} />
-          {state === 'requesting' ? 'Requesting…' : 'Request Parse'}
-        </button>
-      )}
-    </div>
-  )
 }
 
 /* ------------------------------------------------------------------ */
@@ -397,7 +353,7 @@ function PlayerRow({
             border: '1px solid #6b2622',
             color: '#ff8f7a',
           }}
-          title="Killed recently, may still be dead. Use Parse Details for the exact live respawn timer."
+          title="Killed recently, may still be dead. Exact respawn timer available once parsing finishes."
         >
           ?
         </span>
@@ -567,18 +523,21 @@ export function ReplayViewer({
   const [time, setTime] = useState(() => initialTime ?? 0)
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
-  const [fullPlaybackState, setFullPlaybackState] = useState<
-    'idle' | 'working' | 'unavailable' | 'error' | 'done'
-  >('idle')
-  const [workPhase, setWorkPhase] = useState<ReplayJobPhase | null>(null)
-  const [denseBySlot, setDenseBySlot] = useState<Map<number, PositionPoint[]> | null>(null)
-  const [parsedKills, setParsedKills] = useState<ParsedKill[] | null>(null)
   const [fogTeam, setFogTeam] = useState<'off' | 'radiant' | 'dire'>('off')
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const heroMap = useMemo(() => new Map(heroStats.map((h) => [h.id, h])), [heroStats])
   const heroByName = useMemo(() => new Map(heroStats.map((h) => [h.name, h])), [heroStats])
   const sparseWaypoints = useMemo(() => buildWaypoints(match), [match])
+  // Once our own Go parser has landed, every player carries a `positions`
+  // array (see the file-level comment above); until then this stays null
+  // and the sparse/ghost fallback below is used instead.
+  const denseBySlot = useMemo(() => {
+    if (!match.players.some((p) => p.positions != null)) return null
+    const map = new Map<number, PositionPoint[]>()
+    for (const p of match.players) map.set(p.player_slot, p.positions ?? [])
+    return map
+  }, [match.players])
+  const parsedKills = match.kills ?? null
   const waypointsBySlot = useMemo(() => {
     if (!denseBySlot) return sparseWaypoints
     return match.players.map((p) => {
@@ -587,85 +546,9 @@ export function ReplayViewer({
     })
   }, [denseBySlot, sparseWaypoints, match.players])
   const hasAnyWaypoints = waypointsBySlot.some((w) => w.length > 0)
-  // The API can orchestrate the OpenDota parse itself when the salt isn't
-  // known yet, so full playback is offerable for any match.
-  const canFetchFullPlayback = true
 
   const buildingDeaths = useMemo(() => buildingDeathTimes(match), [match])
   const wardLives = useMemo(() => extractWardLives(match), [match])
-
-  function adoptResult(result: {
-    positions: Record<string, PositionPoint[]>
-    kills?: ParsedKill[]
-  }) {
-    const map = new Map<number, PositionPoint[]>()
-    for (const [slot, pts] of Object.entries(result.positions)) map.set(Number(slot), pts)
-    setDenseBySlot(map)
-    if (result.kills?.length) setParsedKills(result.kills)
-    setFullPlaybackState('done')
-  }
-
-  function applyStatus(status: ReplayStatus): boolean {
-    switch (status.kind) {
-      case 'done':
-        if (pollRef.current) clearInterval(pollRef.current)
-        adoptResult(status.result)
-        return true
-      case 'failed':
-        if (pollRef.current) clearInterval(pollRef.current)
-        setWorkPhase(null)
-        setFullPlaybackState(status.phase === 'gone' ? 'unavailable' : 'error')
-        return true
-      case 'working':
-        setWorkPhase(status.phase)
-        setFullPlaybackState('working')
-        return false
-      default:
-        return false
-    }
-  }
-
-  // The polling doubles as a keep-alive for the scale-to-zero API machine.
-  function startPolling() {
-    if (pollRef.current) clearInterval(pollRef.current)
-    pollRef.current = setInterval(async () => {
-      try {
-        const s = await getReplayStatus(match.match_id)
-        if (s.kind !== 'none') applyStatus(s)
-      } catch {}
-    }, 6000)
-  }
-
-  // Opening the tab checks for a result or job already in progress (e.g. a
-  // previous parse, or one started from another tab) and adopts/resumes it
-  // without waiting for a "Full Playback" click.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only check; applyStatus/startPolling are redefined every render and must not retrigger this effect
-  useEffect(() => {
-    let cancelled = false
-    getReplayStatus(match.match_id).then((status) => {
-      if (cancelled) return
-      if (applyStatus(status)) return
-      if (status.kind === 'working') startPolling()
-    })
-    return () => {
-      cancelled = true
-      if (pollRef.current) clearInterval(pollRef.current)
-    }
-  }, [match.match_id])
-
-  // One click starts the server-side job (which requests an OpenDota parse
-  // first when the replay salt isn't known yet); after that we just poll.
-  async function fetchFullPlayback() {
-    setFullPlaybackState('working')
-    setWorkPhase(match.replay_salt != null ? 'parsing' : 'requesting_parse')
-    try {
-      const status = await startReplayParse(match.match_id, match.cluster, match.replay_salt)
-      if (applyStatus(status)) return
-      startPolling()
-    } catch {
-      setFullPlaybackState('error')
-    }
-  }
 
   const events = useMemo(() => {
     const kills = parsedKills?.length
@@ -951,20 +834,6 @@ export function ReplayViewer({
     }
   }, [playing, duration, speed])
 
-  // Our own parser works independently of OpenDota's parse, so the playback
-  // UI stays available whenever position data exists OR could still be
-  // fetched from Valve's CDN. Only give up when neither is true.
-  if (!hasAnyWaypoints && !denseBySlot && !canFetchFullPlayback) {
-    if (match.version === null) return <ParseRequest matchId={match.match_id} />
-    return (
-      <div className="p-8 text-center font-dota" style={{ background: C.panel }}>
-        <p className="text-[14px] text-slate-muted">
-          No teamfight or ward position data available for this match.
-        </p>
-      </div>
-    )
-  }
-
   const scoreRadiant = teamScoreAtTime(match, true, time)
   const scoreDire = teamScoreAtTime(match, false, time)
 
@@ -999,40 +868,13 @@ export function ReplayViewer({
             </span>
             <span className="text-[26px] leading-none tabular-nums text-dire">{scoreDire}</span>
           </div>
-          {canFetchFullPlayback && fullPlaybackState !== 'done' && (
-            <div className="flex items-center gap-2.5">
-              {fullPlaybackState === 'unavailable' && (
-                <span className="text-[12px] text-slate-muted">Replay no longer available</span>
-              )}
-              {fullPlaybackState === 'error' && (
-                <span className="text-[12px] text-dire">Failed to parse replay</span>
-              )}
-              <button
-                type="button"
-                onClick={fetchFullPlayback}
-                disabled={fullPlaybackState === 'working'}
-                className="inline-flex items-center gap-2 px-3 py-1.5 text-[12px] uppercase cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-60 text-radiant"
-                style={{ background: '#1d2a12', border: '1px solid #3d5a24', letterSpacing: '1px' }}
-                title="Parses the raw replay ourselves for true continuous hero movement plus live HP/mana/levels. If OpenDota hasn't parsed the match yet, the server requests that first and continues automatically; only works while Valve still serves the replay file"
-              >
-                <RefreshCw
-                  className={`h-3.5 w-3.5 ${fullPlaybackState === 'working' ? 'animate-spin' : ''}`}
-                />
-                {fullPlaybackState === 'working'
-                  ? workPhase === 'requesting_parse'
-                    ? 'Requesting OpenDota Parse…'
-                    : workPhase === 'waiting_salt'
-                      ? 'Waiting For Replay Info…'
-                      : 'Parsing Replay…'
-                  : fullPlaybackState === 'error'
-                    ? 'Retry Parse Details'
-                    : 'Parse Details'}
-              </button>
-            </div>
-          )}
-          {fullPlaybackState === 'done' && (
+          {denseBySlot ? (
             <span className="text-[12px] uppercase text-radiant" style={{ letterSpacing: '1px' }}>
               ✓ Full playback
+            </span>
+          ) : (
+            <span className="text-[12px] text-slate-muted">
+              Parsing full playback… check back shortly
             </span>
           )}
         </div>
@@ -1049,10 +891,7 @@ export function ReplayViewer({
                 className="px-4 py-3 text-center text-[13px] text-slate-foreground border border-slate-card"
                 style={{ background: 'rgba(8,10,12,0.85)' }}
               >
-                No position data from OpenDota for this match.
-                {fullPlaybackState === 'working'
-                  ? ' Working on it, this can take a few minutes for unparsed matches…'
-                  : ' Use Parse Details above to parse the replay directly.'}
+                No position data yet for this match — still parsing, check back shortly.
               </p>
             </div>
           )}

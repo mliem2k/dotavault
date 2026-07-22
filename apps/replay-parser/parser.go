@@ -132,7 +132,14 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 
 	clName := func(idx uint32) string {
 		s, _ := p.LookupStringByIndex("CombatLogNames", int32(idx))
-		return s
+		// Valve's combat-log string table carries items with a raw
+		// "item_" prefix (e.g. item_ring_of_protection); no legitimate
+		// hero, building, or ability internal name ever starts with
+		// "item_" (heroes/buildings are npc_dota_..., abilities are bare
+		// names like sven_storm_bolt), so it's always correct to strip it
+		// here, unconditionally, for every caller. This matches OpenDota's
+		// key convention that the existing frontend was built against.
+		return strings.TrimPrefix(s, "item_")
 	}
 	p.Callbacks.OnCMsgDOTACombatLogEntry(func(m *dota.CMsgDOTACombatLogEntry) error {
 		switch m.GetType() {

@@ -22,6 +22,7 @@ import { MatchStory } from '@/components/match/match_story'
 import { MatchVision } from '@/components/match/match_vision'
 import { ReplayViewer } from '@/components/match/replay_viewer'
 import { Spinner } from '@/components/ui/spinner'
+import { fetchMatch, isFullyParsed } from '@/lib/api_match'
 import { opendota } from '@/lib/opendota'
 import { usePageTitle } from '@/lib/title'
 
@@ -62,7 +63,12 @@ function MatchPage() {
 
   const match = useQuery({
     queryKey: ['match', matchId],
-    queryFn: () => opendota.match(matchId),
+    queryFn: () => fetchMatch(matchId),
+    refetchInterval: (query) => {
+      const data = query.state.data
+      if (!data || isFullyParsed(data)) return false
+      return 15_000 // still parsing — poll every 15s while our own parse job runs
+    },
   })
 
   const heroStats = useQuery({

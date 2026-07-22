@@ -60,12 +60,6 @@ async function get<T>(path: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
-async function post<T>(path: string): Promise<T> {
-  const res = await fetchWithRetry(`${BASE}${path}`, { method: 'POST' })
-  if (!res.ok) throw new Error(`OpenDota ${res.status}: ${path}`)
-  return res.json() as Promise<T>
-}
-
 export const opendota = {
   player: (id: string) => get<Player>(`/players/${id}`),
   playerWL: (id: string) => get<PlayerWL>(`/players/${id}/wl`),
@@ -409,7 +403,6 @@ export const opendota = {
     >(`/players/${id}/peers`),
   playerCounts: (id: string) =>
     get<Record<string, Record<string, { games: number; win: number }>>>(`/players/${id}/counts`),
-  requestParse: (matchId: string) => post<{ job: { jobId: number } }>(`/request/${matchId}`),
   team: (id: number) =>
     get<{
       team_id: number

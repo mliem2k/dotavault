@@ -1,21 +1,21 @@
 import { eq } from 'drizzle-orm'
-import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { replayPositions } from '../db/schema'
-import { env } from '../lib/env'
-import { fetchReplayInfo, requestOpendotaParse } from '../lib/opendota'
+import { parsedMatches } from '../db/schema'
+import { env } from './env'
+import { fetchReplayInfo, requestOpendotaParse } from './opendota'
 
-/* Self-parsed replay positions. The heavy lifting is a Go binary
+/* Self-parsed replay data. The heavy lifting is a Go binary
    (apps/replay-parser) invoked as a subprocess: it downloads the .dem from
    Valve's CDN, parses it with manta, and prints the result as JSON on
-   stdout. Results are cached in Postgres forever (replay files are
-   immutable), so each match is parsed at most once.
+   stdout. Results are cached in the parsed_matches table (Turso/libsql)
+   forever (replay files are immutable), so each match is parsed at most
+   once.
 
    When the replay salt isn't known yet (OpenDota hasn't parsed the match),
-   POST /replay/:matchId/parse orchestrates the whole pipeline server-side:
-   request an OpenDota parse, poll until the salt appears, then run our own
-   parser. The frontend asks once and polls GET for status; its polling also
-   keeps this scale-to-zero machine awake while the job runs. */
+   startParseJob orchestrates the whole pipeline server-side: request an
+   OpenDota parse, poll until the salt appears, then run our own parser.
+   Callers poll currentJobStatus for status; that polling also keeps this
+   scale-to-zero machine awake while the job runs. */
 
 export type ReplayPoint = {
   t: number
@@ -41,11 +41,11 @@ export type ReplayParseResult = {
   kills?: ReplayKill[]
 }
 
-type JobPhase = 'requesting_parse' | 'waiting_salt' | 'parsing' | 'failed' | 'gone'
-type Job = { phase: JobPhase; error?: string; updatedAt: number }
+export type JobPhase = 'requesting_parse' | 'waiting_salt' | 'parsing' | 'failed' | 'gone'
+export type Job = { phase: JobPhase; error?: string; updatedAt: number }
 
 // In-memory job state, fine for a single machine: if it restarts mid-job the
-// frontend's next poll simply sees no job and can start over.
+// caller's next poll simply sees no job and can start over.
 const jobs = new Map<number, Job>()
 const FAILED_RETENTION_MS = 5 * 60 * 1000
 const SALT_POLL_INTERVAL_MS = 20 * 1000
@@ -63,7 +63,7 @@ function setJob(matchId: number, phase: JobPhase, error?: string) {
   jobs.set(matchId, { phase, error, updatedAt: Date.now() })
 }
 
-function currentJob(matchId: number): Job | null {
+export function currentJobStatus(matchId: number): Job | null {
   const job = jobs.get(matchId)
   if (!job) return null
   // Let failed/gone states expire so a later retry can start fresh.
@@ -108,7 +108,7 @@ async function parseAndStore(matchId: number, cluster: number, salt: number): Pr
   // The parser cap protects memory; wait for a slot instead of failing.
   while (running >= MAX_CONCURRENT_PARSES) await sleep(5000)
   const result = await runParser(matchId, cluster, salt)
-  await db.insert(replayPositions).values({ matchId, data: result }).onConflictDoNothing()
+  await db.insert(parsedMatches).values({ matchId, data: result }).onConflictDoNothing()
   jobs.delete(matchId)
 }
 
@@ -147,81 +147,19 @@ async function orchestrate(
   }
 }
 
-async function getCached(matchId: number): Promise<ReplayParseResult | null> {
-  const [row] = await db
-    .select({ data: replayPositions.data })
-    .from(replayPositions)
-    .where(eq(replayPositions.matchId, matchId))
-  return row ? (row.data as ReplayParseResult) : null
+// Reserves the job synchronously, before any await, so two concurrent
+// callers for the same match can't both see "no job" and both start an
+// orchestration.
+export function startParseJob(matchId: number, hint?: { cluster: number; salt: number }): void {
+  if (currentJobStatus(matchId)) return // already running or recently failed/gone
+  setJob(matchId, hint ? 'parsing' : 'waiting_salt')
+  void orchestrate(matchId, hint) // fire-and-forget; caller polls currentJobStatus
 }
 
-export const replayPlugin = new Elysia({ prefix: '/replay' })
-  .get(
-    '/:matchId',
-    async ({ params, set }) => {
-      const matchId = Number(params.matchId)
-      if (!Number.isInteger(matchId) || matchId <= 0) {
-        set.status = 400
-        return { error: 'invalid match id' }
-      }
-
-      const cached = await getCached(matchId)
-      if (cached) return cached
-
-      const job = currentJob(matchId)
-      if (job) {
-        set.status = job.phase === 'failed' || job.phase === 'gone' ? 502 : 202
-        return { status: job.phase, error: job.error }
-      }
-
-      set.status = 404
-      return { error: 'not parsed' }
-    },
-    { params: t.Object({ matchId: t.String() }) },
-  )
-  .post(
-    '/:matchId/parse',
-    async ({ params, body, set }) => {
-      const matchId = Number(params.matchId)
-      if (!Number.isInteger(matchId) || matchId <= 0) {
-        set.status = 400
-        return { error: 'invalid match id' }
-      }
-
-      // Reserve the job synchronously, before any await, so two concurrent
-      // requests for the same match can't both see "no job" and both start
-      // an orchestration. If the match turns out to already be cached, undo
-      // the reservation below.
-      let job = currentJob(matchId)
-      let claimed = false
-      let hint: { cluster: number; salt: number } | undefined
-      if (!job) {
-        const cluster = Number(body?.cluster)
-        const salt = Number(body?.salt)
-        hint =
-          Number.isInteger(cluster) && cluster > 0 && Number.isInteger(salt) && salt > 0
-            ? { cluster, salt }
-            : undefined
-        setJob(matchId, hint ? 'parsing' : 'waiting_salt')
-        claimed = true
-        job = currentJob(matchId)
-      }
-
-      if (claimed) {
-        const cached = await getCached(matchId)
-        if (cached) {
-          jobs.delete(matchId)
-          return cached
-        }
-        // Fire and forget: the frontend follows along by polling GET.
-        void orchestrate(matchId, hint)
-      }
-
-      set.status = 202
-      return { status: job?.phase ?? 'waiting_salt', error: job?.error }
-    },
-    {
-      params: t.Object({ matchId: t.String() }),
-      body: t.Optional(t.Object({ cluster: t.Optional(t.Number()), salt: t.Optional(t.Number()) })),
-    },
-  )
+export async function getParsedMatch(matchId: number): Promise<unknown | null> {
+  const [row] = await db
+    .select({ data: parsedMatches.data })
+    .from(parsedMatches)
+    .where(eq(parsedMatches.matchId, matchId))
+  return row ? row.data : null
+}
