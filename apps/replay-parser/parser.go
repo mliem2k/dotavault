@@ -128,6 +128,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 	var rawKills []rawKill
 	goldLost := map[string]int32{} // "ts|victim" -> death gold loss
 	var objectives []ObjectiveEvent
+	var chat []ChatMessage
 
 	clName := func(idx uint32) string {
 		s, _ := p.LookupStringByIndex("CombatLogNames", int32(idx))
@@ -367,6 +368,54 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		return nil
 	})
 
+	// Chat wheel and chat messages carry the same global 0-9 player-index
+	// numbering as CDOTAUserMsg_LocationPing above, so they reuse
+	// playerIDToTeam/playerIDToMatchSlot as-is. ChatMessageId is a numeric
+	// chat-wheel phrase ID with no confirmed name-lookup table, so it's
+	// stored as the raw integer string, matching the same honesty
+	// convention already used for gold_reasons/rune_type.
+	p.Callbacks.OnCDOTAUserMsg_ChatWheel(func(m *dota.CDOTAUserMsg_ChatWheel) error {
+		if !gameStartSet {
+			return nil
+		}
+		playerID := int(m.GetPlayerId())
+		team, ok := playerIDToTeam[playerID]
+		if !ok {
+			return nil
+		}
+		slot := playerIDToMatchSlot(playerID, team)
+		matchTime := float64(p.NetTick)/tickRate - gameStartTime
+		chat = append(chat, ChatMessage{
+			T:          matchTime,
+			Type:       "chatwheel",
+			Key:        fmt.Sprintf("%d", m.GetChatMessageId()),
+			Slot:       int32(slot),
+			PlayerSlot: int32(slot),
+		})
+		return nil
+	})
+
+	p.Callbacks.OnCDOTAUserMsg_ChatMessage(func(m *dota.CDOTAUserMsg_ChatMessage) error {
+		if !gameStartSet {
+			return nil
+		}
+		playerID := int(m.GetSourcePlayerId())
+		team, ok := playerIDToTeam[playerID]
+		if !ok {
+			return nil
+		}
+		slot := playerIDToMatchSlot(playerID, team)
+		matchTime := float64(p.NetTick)/tickRate - gameStartTime
+		chat = append(chat, ChatMessage{
+			T:          matchTime,
+			Type:       "chat",
+			Key:        m.GetMessageText(),
+			Slot:       int32(slot),
+			PlayerSlot: int32(slot),
+		})
+		return nil
+	})
+
 	// sampleTeamData reads one side's per-minute economy snapshot off
 	// CDOTA_DataRadiant/CDOTA_DataDire. slotOffset is 0 for Radiant (match
 	// slots 0-4) and 128 for Dire (match slots 128-132) — Task 6's Step 0
@@ -455,6 +504,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		Players:    players,
 		Kills:      kills,
 		Objectives: objectives,
+		Chat:       chat,
 	}
 	if slot, ok := firstBloodSlot(pm.Kills, heroNameToSlot); ok {
 		pm.Players[fmtSlot(slot)].FirstbloodClaimed = 1
