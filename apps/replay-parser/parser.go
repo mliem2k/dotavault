@@ -58,6 +58,27 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 	}
 	heroNameToSlot := map[string]int{}
 
+	// xpBySlot tracks each hero's highest known m_iCurrentXP, fed by the
+	// hero OnEntity callback below and consumed by sampleTeamData's
+	// per-minute sampling further down (XP lives on the hero unit itself,
+	// not on CDOTA_DataRadiant/CDOTA_DataDire — see FIELD_NOTES.md). It
+	// latches the running maximum rather than overwriting on every
+	// update because some heroes (Monkey King, Arc Warden — confirmed
+	// empirically in this fixture while verifying Task 6's slot
+	// alignment, see FIELD_NOTES.md's "Entity contamination" section)
+	// have multiple entities sharing their exact class name, m_iPlayerID,
+	// and m_iTeamNum: one real hero plus one or more decoys that always
+	// read m_iCurrentXP=0. XP is never-decreasing in Dota, so latching
+	// the max is immune to those always-zero decoys without needing any
+	// per-entity identity tracking — verified to reproduce
+	// CDOTA_DataRadiant/CDOTA_DataDire's independently-tracked
+	// m_iTotalEarnedXP exactly, for all 10 heroes in this fixture.
+	xpBySlot := map[string]int32{}
+	lastSampledMinute := map[string]int{}
+	for _, slot := range []int{0, 1, 2, 3, 4, 128, 129, 130, 131, 132} {
+		lastSampledMinute[fmtSlot(slot)] = -1
+	}
+
 	// DOTA_GAMERULES_STATE_GAME_IN_PROGRESS / _POST_GAME. Position samples
 	// only make sense strictly between these two: before 5 the match clock
 	// isn't running yet, and heroes keep sending updates through the
@@ -183,6 +204,14 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		if !ok {
 			return nil
 		}
+		// xpBySlot is latched (fresh, every valid update, max-wins — see
+		// xpBySlot's doc comment above) regardless of the per-second
+		// position dedup below — XP lives on this same hero entity (see
+		// FIELD_NOTES.md's XP section) but has no reason to be coupled to
+		// position-field availability or the 1Hz position sampling rate.
+		if v, ok := e.GetInt32("m_iCurrentXP"); ok && v > xpBySlot[fmtSlot(slot)] {
+			xpBySlot[fmtSlot(slot)] = v
+		}
 		// The naive "strip CDOTA_Unit_Hero_ prefix + lowercase" transform
 		// (e.g. CDOTA_Unit_Hero_Axe -> npc_dota_hero_axe) breaks for
 		// multi-word hero names, and Dota's internal names are
@@ -237,6 +266,54 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		}
 		positions[slot] = append(positions[slot], pt)
 		players[fmtSlot(slot)].Positions = append(players[fmtSlot(slot)].Positions, pt)
+		return nil
+	})
+
+	// sampleTeamData reads one side's per-minute economy snapshot off
+	// CDOTA_DataRadiant/CDOTA_DataDire. slotOffset is 0 for Radiant (match
+	// slots 0-4) and 128 for Dire (match slots 128-132) — Task 6's Step 0
+	// verification confirmed this team-relative m_vecDataTeam.<0-4> slot
+	// numbering lines up directly with the match-slot numbering used
+	// everywhere else in this parser (see FIELD_NOTES.md's "Entity
+	// contamination" / slot-alignment section), so no remapping is
+	// needed: which entity (Radiant vs Dire) this read comes from already
+	// tells us the side.
+	sampleTeamData := func(e *manta.Entity, matchTime float64, slotOffset int) {
+		minute := int(matchTime / 60)
+		for slot := 0; slot < 5; slot++ {
+			reliable, ok1 := e.GetInt32(fmt.Sprintf("m_vecDataTeam.%04d.m_iReliableGold", slot))
+			unreliable, ok2 := e.GetInt32(fmt.Sprintf("m_vecDataTeam.%04d.m_iUnreliableGold", slot))
+			lh, ok3 := e.GetInt32(fmt.Sprintf("m_vecDataTeam.%04d.m_iLastHitCount", slot))
+			dn, ok4 := e.GetInt32(fmt.Sprintf("m_vecDataTeam.%04d.m_iDenyCount", slot))
+			if !ok1 || !ok2 || !ok3 || !ok4 {
+				continue
+			}
+			key := fmtSlot(slotOffset + slot)
+			pl := players[key]
+			if pl == nil {
+				continue
+			}
+			last := lastSampledMinute[key]
+			// xp filled in separately by the hero callback above, via xpBySlot
+			sampleMinute(pl, minute, reliable+unreliable, lh, dn, xpBySlot[key], &last)
+			lastSampledMinute[key] = last
+		}
+	}
+
+	p.OnEntity(func(e *manta.Entity, op manta.EntityOp) error {
+		if !op.Flag(manta.EntityOpUpdated) || !gameStartSet || gameEndSet {
+			return nil
+		}
+		matchTime := float64(p.NetTick)/tickRate - gameStartTime
+		if matchTime < 0 {
+			return nil
+		}
+		switch e.GetClassName() {
+		case "CDOTA_DataRadiant":
+			sampleTeamData(e, matchTime, 0)
+		case "CDOTA_DataDire":
+			sampleTeamData(e, matchTime, 128)
+		}
 		return nil
 	})
 

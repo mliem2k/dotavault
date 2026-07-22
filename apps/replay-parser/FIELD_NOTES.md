@@ -228,6 +228,111 @@ wraith`/`arc_warden_tempest_double`, slot 131 under `tidehunter_anchor_smash`/
 roster from the top of this file), and every player's `kills_log` length
 equals the sum of their `killed` map's values.
 
+## Per-minute time series: slot alignment + entity contamination (Task 6)
+**Step 0's question, answered:** yes, `CDOTA_DataRadiant`/`CDOTA_DataDire`'s
+`m_vecDataTeam.<slot 0-4>` numbering lines up **directly** with the
+match-slot numbering used everywhere else in this parser (Radiant
+`m_vecDataTeam.<N>` = match slot N, Dire `m_vecDataTeam.<N>` = match slot
+128+N). No remapping needed. Verified two ways against this fixture:
+
+1. Ranking: for every hero, `m_iCurrentXP` (read off the hero unit entity,
+   attributed to a match slot via `playerSlot`) ranked/tracked with
+   `CDOTA_DataRadiant`/`CDOTA_DataDire`'s same-numbered
+   `m_vecDataTeam.<slot>.m_iTotalEarnedXP`, for both sides.
+2. Exact value match: since Dota's XP never decreases, `m_iCurrentXP`
+   (hero entity, max value seen) and `m_iTotalEarnedXP` (team-data entity,
+   same slot, max value seen) should be — and, once the entity-
+   contamination issue below is corrected for, **are** — numerically
+   identical, not just correlated. Confirmed exactly equal for all 10
+   heroes (both read continuously through the whole parse, independent of
+   `ExtractMatch`'s own per-minute sampling cadence): Enchantress
+   14919/14919, MonkeyKing 7000/7000, LoneDruid 9351/9351, ArcWarden
+   10409/10409, Pudge 3200/3200, Slark 10905/10905, Nevermore
+   17202/17202, Viper 15838/15838, Tidehunter 23914/23914, Sniper
+   14187/14187. (Note: this is a *max-observed-value* comparison, not a
+   claim about what any single per-minute `xp_t` sample will read — a
+   per-minute snapshot can legitimately land a little below the
+   eventual max if it fires before that minute's biggest XP grant lands
+   on the hero entity, since gold/lh/dn/xp are sampled together once per
+   minute off whichever entity's update crosses the minute boundary
+   first, not aggregated. Confirmed this isn't the `gameEndSet` gate
+   truncating things early: the max XP reached strictly before
+   post-game state matched the all-time max for every hero here too.)
+
+**Real finding, not anticipated by the brief: two heroes' own entity
+readings were contaminated by extra entities sharing their exact class
+name, `m_iPlayerID`, and `m_iTeamNum`** — discovered only because Step 0's
+verification checked *exact* value equality, not just "nonempty" or rough
+ranking, on all 10 heroes rather than assuming the first two or three
+looked fine generalized:
+
+- **Monkey King** (Radiant slot 1): **29 distinct entities**, all classed
+  `CDOTA_Unit_Hero_MonkeyKing`, all reporting `m_iPlayerID=2`/`m_iTeamNum=2`
+  (Monkey King's real player), all created within a ~27-second window near
+  match start (one roughly every second, entity indices climbing steadily
+  — e.g. 531, 874, 902, 1287, 1373, 1416, 1538...2152), and — critically —
+  **none of them ever destroyed for the rest of the match** (`created=1,
+  deleted=0` for all 29, confirmed by tracking `EntityOpCreated`/
+  `EntityOpDeleted` directly). Of these 29, exactly **one** (in this
+  fixture, entity index 1373) ever reports a nonzero `m_iCurrentXP`; the
+  other 28 report `m_iCurrentXP=0` on every single one of the ~13,000
+  updates each receives over the full match. The likely mechanism:
+  Monkey King's kit (Primal Split) requires the engine to be able to field
+  multiple simultaneous hero-body forms, and this game version appears to
+  pre-reserve a pool of dormant same-classed entity slots for that
+  capability at hero spawn regardless of whether the ability is ever
+  cast — not confirmed by decompiling engine internals, but consistent
+  with every other observation (only Monkey King shows this; the dormant
+  entities are inert, never real gameplay units; the real hero entity is
+  indistinguishable from them except by which one ever has nonzero XP).
+- **Arc Warden** (Radiant slot 3): a much smaller version of the same
+  phenomenon — 2 distinct entities instead of 29, consistent with the
+  well-documented Tempest Double clone (a real, single, temporary
+  hero-body copy, not a dormant pool). Reading "whichever entity updates
+  last" produced XP off by ~900 from ground truth.
+- **The other 8 heroes** in this fixture (Enchantress, Lone Druid, Pudge,
+  Slark, Nevermore, Viper, Tidehunter, Sniper) each had exactly **one**
+  entity ever match their class+player, confirming this is specific to
+  certain hero kits, not a general artifact of hero entities.
+
+**Why "first entity index observed for a slot" is the wrong fix, even
+though it happens to look plausible:** the real hero entity and Monkey
+King's dormant pool are *all* created within the same few-second window
+right at match start (well before gameStartSet's gate even opens in some
+cases), so "lock onto whichever entity's Updated event arrives first"
+non-deterministically locks onto a dormant decoy just as often as the real
+hero — confirmed directly: this fixture's real hero entity's first
+post-gate Updated event did not win the race, so index-locking latched
+onto a permanently-zero decoy (531), reproducing exactly the failure this
+whole verification exists to catch (a nonempty, non-crashing, silently
+wrong series).
+
+**The fix that works, used in `parser.go`'s `xpBySlot` tracking: latch
+the running maximum `m_iCurrentXP` ever observed for a slot, across all
+entities, rather than tracking a specific entity's identity at all.**
+Dota's XP is never-decreasing for a real hero, and every decoy/dormant
+entity observed in this fixture reads a flat `0` forever, which can never
+exceed a previously-latched higher value — so the max-latch is immune to
+decoys without needing any per-entity identity or index bookkeeping.
+Verified to reproduce `CDOTA_DataRadiant`/`CDOTA_DataDire`'s independently
+tracked `m_iTotalEarnedXP` exactly for all 10 heroes, including both
+contaminated ones (Monkey King 7000, Arc Warden 10409).
+
+**Note for future tasks (`ability_uses`/`item_uses`/`hero_hits`/damage
+attribution and anything else keyed off this same hero `OnEntity`
+callback):** gold/last-hits/denies (from `CDOTA_DataRadiant`/
+`CDOTA_DataDire`) are **not** affected by this — those come from a single
+entity per side, with no multi-entity ambiguity. But this task's discovery
+means the *existing* Position/Level/HP/Mana sampling on the hero entity
+(from Tasks 2-5, unchanged here) is reading from whichever entity happens
+to satisfy the per-second dedup first for Monkey King's and Arc Warden's
+slots specifically — out of this task's scope to fix, but a real,
+demonstrated gap: those two heroes' `positions` arrays may already
+interleave samples from decoy/clone entities rather than the real hero
+body. A future task touching Position/Level/HP should re-verify this
+specifically for Monkey King/Arc Warden-containing fixtures, not just
+assume the existing per-second dedup is entity-identity-safe.
+
 ## User-command messages (Tier 3)
 - location_ping count (real minimap pings — this is what `pings` should be built from): 6
 - net_ping count (irrelevant — network-latency diagnostic, not gameplay): 0
