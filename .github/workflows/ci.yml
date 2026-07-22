@@ -48,6 +48,9 @@ jobs:
       - name: Build replay-parser (Go)
         run: cd apps/replay-parser && go build ./...
 
+      - name: Test replay-parser (Go)
+        run: cd apps/replay-parser && go test ./...
+
       - name: Install Turso CLI
         run: |
           curl -sSfL https://get.tur.so/install.sh | bash

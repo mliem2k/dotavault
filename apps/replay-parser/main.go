@@ -25,13 +25,6 @@ import (
 	"time"
 )
 
-type parseResponse struct {
-	MatchID   int64                      `json:"match_id"`
-	Duration  float64                    `json:"duration"`
-	Positions map[string][]PositionPoint `json:"positions"`
-	Kills     []KillEvent                `json:"kills"`
-}
-
 type errorResponse struct {
 	Error string `json:"error"`
 }
@@ -58,8 +51,9 @@ func main() {
 	}
 }
 
-// fetchAndParse downloads the replay from Valve's CDN and extracts positions.
-func fetchAndParse(matchID, cluster, salt int64) (*parseResponse, error) {
+// fetchAndParse downloads the replay from Valve's CDN and extracts the full
+// match.
+func fetchAndParse(matchID, cluster, salt int64) (*ParsedMatch, error) {
 	replayURL := fmt.Sprintf("http://replay%d.valve.net/570/%d_%d.dem.bz2", cluster, matchID, salt)
 	log.Printf("match %d: fetching %s", matchID, replayURL)
 
@@ -77,16 +71,7 @@ func fetchAndParse(matchID, cluster, salt int64) (*parseResponse, error) {
 		return nil, fmt.Errorf("replay CDN returned %d", resp.StatusCode)
 	}
 
-	pm, err := ExtractMatch(matchID, bzip2.NewReader(resp.Body))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse replay: %w", err)
-	}
-
-	out := make(map[string][]PositionPoint, len(pm.Players))
-	for slot, p := range pm.Players {
-		out[slot] = p.Positions
-	}
-	return &parseResponse{MatchID: matchID, Duration: pm.Duration, Positions: out, Kills: pm.Kills}, nil
+	return ExtractMatch(matchID, bzip2.NewReader(resp.Body))
 }
 
 /* ---------------- subprocess (CLI) mode ---------------- */
@@ -212,17 +197,10 @@ func runLocalFile(path string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("duration=%.2fs slots=%d kills=%d\n", pm.Duration, len(pm.Players), len(pm.Kills))
-	for _, k := range pm.Kills[:min(3, len(pm.Kills))] {
-		fmt.Printf("  kill t=%.1f %s -> %s inflictor=%q gold=%d\n", k.T, k.Attacker, k.Victim, k.Inflictor, k.GoldLost)
-	}
+	fmt.Printf("duration=%.2fs players=%d kills=%d teamfights=%d objectives=%d\n",
+		pm.Duration, len(pm.Players), len(pm.Kills), len(pm.Teamfights), len(pm.Objectives))
 	for slot, p := range pm.Players {
-		pts := p.Positions
-		if len(pts) == 0 {
-			continue
-		}
-		mid := pts[len(pts)/2]
-		fmt.Printf("  slot=%-3s samples=%-5d first_t=%.2f last_t=%.2f mid={t=%.0f lvl=%d hp=%d/%d mp=%d/%d}\n",
-			slot, len(pts), pts[0].T, pts[len(pts)-1].T, mid.T, mid.Level, mid.HP, mid.MaxHP, mid.MP, mid.MaxMP)
+		fmt.Printf("  slot=%-3s purchases=%-3d wards(obs)=%-3d gold_t_len=%-3d damage_targets=%d\n",
+			slot, len(p.PurchaseLog), len(p.ObsLog), len(p.GoldT), len(p.Damage))
 	}
 }
