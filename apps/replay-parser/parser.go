@@ -97,6 +97,17 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 	lastEmittedSecond := map[int]int{}
 	positions := map[int][]PositionPoint{}
 
+	// heroPositions tracks each hero's latest known position, updated as a
+	// side effect of the hero OnEntity callback below. The ward OnEntity
+	// callback further down reads this to resolve which hero placed a given
+	// ward by spatial proximity (see wards.go's wardOwnerSlot) — wards have
+	// no live owner field to read directly once placed. This sits
+	// downstream of Task 100's decoy/clone rejection gate in the hero
+	// callback (the xpBySlot latch-and-reject logic), so it only ever
+	// reflects the real hero entity, never a Primal Split/Tempest Double
+	// decoy.
+	heroPositions := map[int][2]float64{}
+
 	// Combat-log kills buffer raw timestamps (same clock as
 	// m_flGameStartTime) and convert to match time after the parse, since
 	// pre-horn kills arrive before the start time is known.
@@ -259,6 +270,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		if !xok || !yok {
 			return nil
 		}
+		heroPositions[slot] = [2]float64{x, y}
 
 		lastEmittedSecond[slot] = second
 
@@ -280,6 +292,42 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		}
 		positions[slot] = append(positions[slot], pt)
 		players[fmtSlot(slot)].Positions = append(players[fmtSlot(slot)].Positions, pt)
+		return nil
+	})
+
+	// Observer ward lifecycle. FIELD_NOTES.md's "Ward entity classes"
+	// section confirms CDOTA_NPC_Observer_Ward as the placed-in-world unit
+	// (the unplaced backpack item, CDOTA_Item_ObserverWard, is a different
+	// class and not relevant here). The sentry ward class is genuinely
+	// unknown — this fixture had zero sentry wards placed, so SenLog/
+	// SenLeftLog are deliberately left unpopulated rather than guessed at
+	// by analogy with the observer ward's name. isSentry is always false
+	// below; recordWardPlaced/recordWardRemoved keep the parameter so
+	// wiring in a confirmed sentry class later is a one-line addition to
+	// this switch, not a rewrite.
+	p.OnEntity(func(e *manta.Entity, op manta.EntityOp) error {
+		if e.GetClassName() != "CDOTA_NPC_Observer_Ward" {
+			return nil
+		}
+		if !gameStartSet {
+			return nil
+		}
+		x, xok := cellPosition(e, "CBodyComponent.m_cellX", "CBodyComponent.m_vecX")
+		y, yok := cellPosition(e, "CBodyComponent.m_cellY", "CBodyComponent.m_vecY")
+		if !xok || !yok {
+			return nil
+		}
+		matchTime := float64(p.NetTick)/tickRate - gameStartTime
+		ownerSlot, ok := wardOwnerSlot(x, y, heroPositions)
+		if !ok {
+			return nil
+		}
+		if op.Flag(manta.EntityOpCreated) {
+			recordWardPlaced(players, ownerSlot, false, x, y, matchTime)
+		}
+		if op.Flag(manta.EntityOpDeleted) {
+			recordWardRemoved(players, ownerSlot, false, x, y, matchTime)
+		}
 		return nil
 	})
 

@@ -344,3 +344,20 @@ assume the existing per-second dedup is entity-identity-safe.
   user-input events. `actions_per_min` would need a broader definition of
   "action" than just these two message types (this fixture only directly
   confirms pings and chat, not a general action-count message).
+
+## Ward extraction results (Task 7)
+Only 2 observer wards placed in this whole 11.6-minute Turbo match (both
+also eventually destroyed, i.e. `ObsLeftLog` got 2 entries too) — plausible
+for a short Turbo game, but means this fixture only lightly exercises ward
+extraction. Both wards' spatial-proximity ownership heuristic
+(`wardOwnerSlot`, `wards.go`) resolved cleanly to a single closest hero each,
+well inside the 200-unit threshold:
+- Match slot 132 (Sniper), placed t≈41.2s at (X≈84.4, Y≈164.6).
+- Match slot 2 (Lone Druid), placed t≈365.8s at (X≈78.1, Y≈138.7).
+
+Coordinates use `cellPosition` exactly as the existing hero-position code
+does, so they land in the same ~64-192 world-grid scale as `Positions`/
+OpenDota's `obs_log` — no unit conversion needed. `SenLog`/`SenLeftLog`
+stay empty for every player, as expected (see this file's "Ward entity
+classes" section above): this fixture never had a sentry ward to observe,
+so that gap is left genuinely unimplemented rather than guessed at.
