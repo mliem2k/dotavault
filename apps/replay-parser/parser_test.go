@@ -39,3 +39,18 @@ func TestExtractMatch_PositionsAndKills(t *testing.T) {
 		}
 	}
 }
+
+func TestExtractMatch_PositionsNotContaminatedByDecoyEntities(t *testing.T) {
+	pm, err := ExtractMatch(1, openFixture(t))
+	if err != nil {
+		t.Fatalf("ExtractMatch: %v", err)
+	}
+	for slot, p := range pm.Players {
+		for i := 1; i < len(p.Positions); i++ {
+			if p.Positions[i].Level < p.Positions[i-1].Level {
+				t.Errorf("player %s: hero level decreased at position sample %d (%d -> %d) — sample likely read from a decoy/clone entity instead of the real hero (see FIELD_NOTES.md's entity-contamination section)",
+					slot, i, p.Positions[i-1].Level, p.Positions[i].Level)
+			}
+		}
+	}
+}

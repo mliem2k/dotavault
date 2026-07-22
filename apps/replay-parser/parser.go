@@ -209,8 +209,22 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		// position dedup below — XP lives on this same hero entity (see
 		// FIELD_NOTES.md's XP section) but has no reason to be coupled to
 		// position-field availability or the 1Hz position sampling rate.
-		if v, ok := e.GetInt32("m_iCurrentXP"); ok && v > xpBySlot[fmtSlot(slot)] {
-			xpBySlot[fmtSlot(slot)] = v
+		key := fmtSlot(slot)
+		xp, hasXP := e.GetInt32("m_iCurrentXP")
+		if hasXP && xp > xpBySlot[key] {
+			xpBySlot[key] = xp
+		}
+		if hasXP && xp < xpBySlot[key] {
+			// This entity has fallen behind the highest-ever-seen XP for this
+			// slot. For heroes with clone/split mechanics (Monkey King, Arc
+			// Warden — see FIELD_NOTES.md's "Entity contamination" section),
+			// that means it's a dormant decoy sharing the real hero's exact
+			// class/player/team, not the real hero body — XP never decreases,
+			// so only the real hero can hold the current max. Reject this
+			// entity's data outright (heroNameToSlot resolution, position,
+			// level, HP, mana) rather than let it race the real entity for
+			// "whichever fires first this second."
+			return nil
 		}
 		// The naive "strip CDOTA_Unit_Hero_ prefix + lowercase" transform
 		// (e.g. CDOTA_Unit_Hero_Axe -> npc_dota_hero_axe) breaks for
