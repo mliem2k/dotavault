@@ -89,23 +89,39 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		lastSampledMinute[fmtSlot(slot)] = -1
 	}
 
-	// DOTA_GAMERULES_STATE_GAME_IN_PROGRESS / _POST_GAME. Position samples
-	// only make sense strictly between these two: before 5 the match clock
-	// isn't running yet, and heroes keep sending updates through the
+	// DOTA_GAMERULES_STATE_PRE_GAME / _GAME_IN_PROGRESS / _POST_GAME. Heroes
+	// have already spawned in base and can move during PRE_GAME (the ~90s
+	// countdown before creeps spawn), so position sampling starts there, not
+	// at GAME_IN_PROGRESS — but heroes keep sending updates through the
 	// post-game scoreboard screen (states 6-7) well past when the match
 	// actually ended, which would otherwise inflate the derived duration
-	// past OpenDota's own (confirmed empirically: without this gate, the
-	// derived duration overshot OpenDota's by ~2.5 minutes of post-game
+	// past OpenDota's own (confirmed empirically: without that upper gate,
+	// the derived duration overshot OpenDota's by ~2.5 minutes of post-game
 	// lobby time).
+	const statePreGame = 4
 	const stateGameInProgress = 5
 	const statePostGame = 6
 
+	var preGameSet bool
 	var gameStartTime float64 // demo-clock seconds when the match clock hits 0:00
 	var gameStartSet bool
 	var gameEndTime float64 // demo-clock seconds when the match actually ended
 	var gameEndSet bool
 	lastEmittedSecond := map[int]int{}
 	positions := map[int][]PositionPoint{}
+
+	// Pregame position samples (state 4) arrive before gameStartTime is
+	// known (that's only set once state reaches 5), so they're buffered
+	// with the raw demo-clock second — same "buffer now, convert after"
+	// approach as rawKills below, same reason. Shifted into match-time and
+	// prepended to each player's Positions once gameStartTime is final,
+	// right after p.Start() returns.
+	type rawPreGamePoint struct {
+		rawT float64
+		pt   PositionPoint
+	}
+	preGamePositions := map[int][]rawPreGamePoint{}
+	lastEmittedPreGameSecond := map[int]int{}
 
 	// heroPositions tracks each hero's latest known position, updated as a
 	// side effect of the hero OnEntity callback below. The ward OnEntity
@@ -202,6 +218,8 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		if name == "CDOTAGamerulesProxy" {
 			if state, ok := e.Get("m_pGameRules.m_nGameState").(int32); ok {
 				switch {
+				case state >= statePreGame && !preGameSet:
+					preGameSet = true
 				case state >= stateGameInProgress && !gameStartSet:
 					if v, ok := e.Get("m_pGameRules.m_flGameStartTime").(float32); ok && v > 0 {
 						gameStartTime = float64(v)
@@ -217,8 +235,8 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		if !strings.HasPrefix(name, "CDOTA_Unit_Hero_") || !op.Flag(manta.EntityOpUpdated) {
 			return nil
 		}
-		if !gameStartSet || gameEndSet {
-			return nil // clock not running yet, or match already over
+		if !preGameSet || gameEndSet {
+			return nil // heroes haven't spawned yet, or match already over
 		}
 
 		playerID, ok := e.Get("m_iPlayerID").(uint32)
@@ -274,10 +292,31 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			}
 		}
 
-		matchTime := float64(p.NetTick)/tickRate - gameStartTime
-		if matchTime < 0 {
+		// gameStartTime (the true 0:00 anchor) is only known once state
+		// reaches GAME_IN_PROGRESS. Samples during PRE_GAME (state 4) can't
+		// compute a real match-time yet, so they're buffered by raw
+		// demo-clock second and shifted once the anchor is known — see
+		// preGamePositions' doc comment above.
+		if !gameStartSet {
+			second := int(float64(p.NetTick) / tickRate)
+			if lastEmittedPreGameSecond[slot] == second && len(preGamePositions[slot]) > 0 {
+				return nil
+			}
+			x, xok := cellPosition(e, "CBodyComponent.m_cellX", "CBodyComponent.m_vecX")
+			y, yok := cellPosition(e, "CBodyComponent.m_cellY", "CBodyComponent.m_vecY")
+			if !xok || !yok {
+				return nil
+			}
+			heroPositions[slot] = [2]float64{x, y}
+			lastEmittedPreGameSecond[slot] = second
+			preGamePositions[slot] = append(preGamePositions[slot], rawPreGamePoint{
+				rawT: float64(p.NetTick) / tickRate,
+				pt:   readHeroPositionFields(e, x, y),
+			})
 			return nil
 		}
+
+		matchTime := float64(p.NetTick)/tickRate - gameStartTime
 		second := int(matchTime)
 		if lastEmittedSecond[slot] == second && len(positions[slot]) > 0 {
 			return nil // already have a sample for this second
@@ -292,22 +331,8 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 
 		lastEmittedSecond[slot] = second
 
-		pt := PositionPoint{T: matchTime, X: x, Y: y}
-		if v, ok := e.Get("m_iCurrentLevel").(int32); ok {
-			pt.Level = v
-		}
-		if v, ok := e.Get("m_iHealth").(int32); ok {
-			pt.HP = v
-		}
-		if v, ok := e.Get("m_iMaxHealth").(int32); ok {
-			pt.MaxHP = v
-		}
-		if v, ok := e.Get("m_flMana").(float32); ok {
-			pt.MP = int32(v)
-		}
-		if v, ok := e.Get("m_flMaxMana").(float32); ok {
-			pt.MaxMP = int32(v)
-		}
+		pt := readHeroPositionFields(e, x, y)
+		pt.T = matchTime
 		positions[slot] = append(positions[slot], pt)
 		players[fmtSlot(slot)].Positions = append(players[fmtSlot(slot)].Positions, pt)
 		recordLanePosSample(players[fmtSlot(slot)], x, y, matchTime)
@@ -497,6 +522,25 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		}
 	}
 
+	// Shift buffered pregame samples (raw demo-clock seconds) into match
+	// time now that gameStartTime is final, and prepend them — pregame
+	// chronologically precedes everything already in Positions. Skipped
+	// entirely if the replay never reached GAME_IN_PROGRESS (gameStartTime
+	// unknown): there's no anchor to shift by, and no in-progress data to
+	// prepend to anyway.
+	if gameStartSet {
+		for slot, buffered := range preGamePositions {
+			shifted := make([]PositionPoint, len(buffered))
+			for i, rp := range buffered {
+				pt := rp.pt
+				pt.T = rp.rawT - gameStartTime
+				shifted[i] = pt
+			}
+			key := fmtSlot(slot)
+			players[key].Positions = append(shifted, players[key].Positions...)
+		}
+	}
+
 	duration := gameEndTime - gameStartTime
 	if duration <= 0 {
 		// Match never reached post-game in this stream (e.g. truncated
@@ -588,6 +632,31 @@ func playerSlot(playerID uint32, teamNum uint64) (int, bool) {
 	default:
 		return 0, false
 	}
+}
+
+// readHeroPositionFields builds a PositionPoint from a hero entity's current
+// level/health/mana fields, given an already-resolved x/y. T is left zero;
+// callers set it themselves (either directly, once match-time is known, or
+// later via the pregame shift pass, since pregame samples don't know their
+// final T yet when this is called).
+func readHeroPositionFields(e *manta.Entity, x, y float64) PositionPoint {
+	pt := PositionPoint{X: x, Y: y}
+	if v, ok := e.Get("m_iCurrentLevel").(int32); ok {
+		pt.Level = v
+	}
+	if v, ok := e.Get("m_iHealth").(int32); ok {
+		pt.HP = v
+	}
+	if v, ok := e.Get("m_iMaxHealth").(int32); ok {
+		pt.MaxHP = v
+	}
+	if v, ok := e.Get("m_flMana").(float32); ok {
+		pt.MP = int32(v)
+	}
+	if v, ok := e.Get("m_flMaxMana").(float32); ok {
+		pt.MaxMP = int32(v)
+	}
+	return pt
 }
 
 // cellPosition combines a coarse integer grid cell with its fine sub-cell

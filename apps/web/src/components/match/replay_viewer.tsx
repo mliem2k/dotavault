@@ -537,6 +537,17 @@ export function ReplayViewer({
     for (const p of match.players) map.set(p.player_slot, p.positions ?? [])
     return map
   }, [match.players])
+  // Positions can start before 0:00 (heroes spawn ~90s before the horn, see
+  // apps/replay-parser's pregame handling) — the earliest sample across all
+  // players is the actual scrubbable start of the timeline, not 0.
+  const minTime = useMemo(() => {
+    if (!denseBySlot) return 0
+    let min = 0
+    for (const pts of denseBySlot.values()) {
+      if (pts.length && pts[0].t < min) min = pts[0].t
+    }
+    return min
+  }, [denseBySlot])
   const parsedKills = match.kills ?? null
   const waypointsBySlot = useMemo(() => {
     if (!denseBySlot) return sparseWaypoints
@@ -902,7 +913,7 @@ export function ReplayViewer({
             onClick={() => {
               setPlaying(false)
               const prev = [...events].reverse().find((e) => e.time < time - 0.5)
-              if (prev) setTime(Math.max(0, prev.time))
+              if (prev) setTime(Math.max(minTime, prev.time))
             }}
             disabled={!events.some((e) => e.time < time - 0.5)}
             className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-30 text-slate-foreground border border-slate-card"
@@ -977,6 +988,7 @@ export function ReplayViewer({
           <GameTimeSlider
             timeSec={time}
             duration={duration}
+            minTime={minTime}
             onChange={(t) => {
               setPlaying(false)
               setTime(t)

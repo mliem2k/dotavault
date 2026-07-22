@@ -272,26 +272,32 @@ export type TimelineMarker = { time: number; color: string }
 export function GameTimeSlider({
   timeSec,
   duration,
+  minTime = 0,
   onChange,
   markers,
   fullWidth,
 }: {
   timeSec: number
   duration: number
+  // Earliest scrubbable time, negative for matches with pregame position
+  // data (heroes spawn ~90s before the 0:00 horn). Defaults to 0 for tabs
+  // that only ever have in-progress (non-negative) data.
+  minTime?: number
   onChange: (t: number) => void
   markers?: TimelineMarker[]
   fullWidth?: boolean
 }) {
   const trackRef = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
-  const pct = duration > 0 ? Math.min(1, Math.max(0, timeSec / duration)) : 0
+  const span = duration - minTime
+  const pct = span > 0 ? Math.min(1, Math.max(0, (timeSec - minTime) / span)) : 0
 
   function setFromClientX(clientX: number) {
     const el = trackRef.current
     if (!el) return
     const r = el.getBoundingClientRect()
     const f = Math.min(1, Math.max(0, (clientX - r.left) / r.width))
-    onChange(Math.round(f * duration))
+    onChange(Math.round(minTime + f * span))
   }
 
   return (
@@ -323,14 +329,14 @@ export function GameTimeSlider({
           className="absolute left-0 h-[12px]"
           style={{ width: `${pct * 100}%`, background: 'rgba(255,255,255,0.18)' }}
         />
-        {duration > 0 &&
+        {span > 0 &&
           markers?.map((m, i) => (
             <div
               // biome-ignore lint/suspicious/noArrayIndexKey: static marker list
               key={i}
               className="absolute pointer-events-none"
               style={{
-                left: `${Math.min(100, Math.max(0, (m.time / duration) * 100))}%`,
+                left: `${Math.min(100, Math.max(0, ((m.time - minTime) / span) * 100))}%`,
                 width: 2,
                 height: 12,
                 background: m.color,
