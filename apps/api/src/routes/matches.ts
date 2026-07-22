@@ -14,8 +14,13 @@ import { currentJobStatus, getParsedMatch, startParseJob } from '../lib/parse_or
    parsing" from "done" by checking for a parsed-only field's presence. */
 export const matchesPlugin = new Elysia({ prefix: '/matches' }).get(
   '/:id',
-  async ({ params }) => {
+  async ({ params, set }) => {
     const matchId = Number(params.id)
+    if (!Number.isInteger(matchId) || matchId <= 0) {
+      set.status = 400
+      return { error: 'invalid match id' }
+    }
+
     const basic = (await fetchCached(`/matches/${params.id}`, 60 * 60 * 24)) as Match
 
     const parsed = (await getParsedMatch(matchId)) as ParsedMatch | null

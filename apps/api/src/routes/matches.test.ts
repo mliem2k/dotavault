@@ -72,4 +72,22 @@ describe('GET /matches/:id', () => {
     expect(res.status).toBe(200)
     expect(startParseJobCalls).toEqual([])
   })
+
+  it('returns 400 for a non-numeric match id without starting a parse job', async () => {
+    startParseJobCalls.length = 0
+    const res = await matchesPlugin.handle(new Request('http://localhost/matches/abc'))
+    const body = await res.json()
+    expect(res.status).toBe(400)
+    expect(body).toEqual({ error: 'invalid match id' })
+    expect(startParseJobCalls).toEqual([])
+  })
+
+  it('returns 400 for a non-positive match id without starting a parse job', async () => {
+    startParseJobCalls.length = 0
+    const res = await matchesPlugin.handle(new Request('http://localhost/matches/-5'))
+    const body = await res.json()
+    expect(res.status).toBe(400)
+    expect(body).toEqual({ error: 'invalid match id' })
+    expect(startParseJobCalls).toEqual([])
+  })
 })
