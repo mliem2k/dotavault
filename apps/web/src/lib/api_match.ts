@@ -32,9 +32,17 @@ export async function fetchMatch(matchId: string): Promise<Match> {
   throw new Error('match API unreachable')
 }
 
-// A match is still being parsed if none of these parsed-only fields have
-// shown up yet — matches how the endpoint itself signals "not done": it
-// never wraps the response, absence of these fields IS the signal.
+// A match is still being parsed if our own parser hasn't landed yet. This
+// deliberately checks `kills`, not fields like `radiant_gold_adv`/
+// `teamfights`: those mirror OpenDota's own schema, so OpenDota can
+// populate them independently once *its* parse completes, well before our
+// own parse does for the same match — checking them would stop polling
+// on OpenDota's data and never pick up our own (richer, since-corrected)
+// version. `kills` (and per-player `positions`) exist only because our own
+// Go parser adds them; OpenDota's API never returns either under this
+// shape (that's exactly why the old codebase needed a separate manual
+// pipeline just to fetch positions), so seeing it populated is a reliable
+// signal that /matches/:id's merge has actually run.
 export function isFullyParsed(match: Match): boolean {
-  return match.radiant_gold_adv != null && match.teamfights != null
+  return match.kills != null
 }
