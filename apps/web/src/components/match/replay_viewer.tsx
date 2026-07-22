@@ -11,6 +11,7 @@ import type {
 } from 'types'
 import { BUILDINGS, buildingDeathTimes, MAP_MAX, MAP_MIN } from '@/lib/buildings'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { ItemIcon } from './item_icon'
 import { extractObjectiveEvents, type ObjectiveEvent } from './match_objectives'
 import { PlayerNameLink } from './match_roster'
 import {
@@ -418,29 +419,14 @@ function PlayerRow({
         {items.map((id, i) => {
           const name = id ? (idToName.get(id) ?? null) : null
           return (
-            <div
+            <ItemIcon
               // biome-ignore lint/suspicious/noArrayIndexKey: fixed 6 slots
               key={i}
-              className="overflow-hidden border border-slate-bg"
-              style={{ width: 26, height: 20, background: '#0d1012' }}
-            >
-              {name && (
-                <img
-                  src={`/items/${name}.webp`}
-                  alt=""
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    const img = e.currentTarget
-                    if (!img.src.includes('cdn.cloudflare')) {
-                      img.src = `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/${name}.png`
-                    } else {
-                      img.onerror = null
-                      img.style.opacity = '0.12'
-                    }
-                  }}
-                />
-              )}
-            </div>
+              name={name}
+              meta={name ? itemConst[name] : undefined}
+              width={26}
+              height={20}
+            />
           )
         })}
       </div>
