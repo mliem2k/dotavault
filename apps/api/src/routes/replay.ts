@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { replayPositions } from '../db/schema'
+import { parsedMatches } from '../db/schema'
 import { env } from '../lib/env'
 import { fetchReplayInfo, requestOpendotaParse } from '../lib/opendota'
 
@@ -108,7 +108,7 @@ async function parseAndStore(matchId: number, cluster: number, salt: number): Pr
   // The parser cap protects memory; wait for a slot instead of failing.
   while (running >= MAX_CONCURRENT_PARSES) await sleep(5000)
   const result = await runParser(matchId, cluster, salt)
-  await db.insert(replayPositions).values({ matchId, data: result }).onConflictDoNothing()
+  await db.insert(parsedMatches).values({ matchId, data: result }).onConflictDoNothing()
   jobs.delete(matchId)
 }
 
@@ -149,9 +149,9 @@ async function orchestrate(
 
 async function getCached(matchId: number): Promise<ReplayParseResult | null> {
   const [row] = await db
-    .select({ data: replayPositions.data })
-    .from(replayPositions)
-    .where(eq(replayPositions.matchId, matchId))
+    .select({ data: parsedMatches.data })
+    .from(parsedMatches)
+    .where(eq(parsedMatches.matchId, matchId))
   return row ? (row.data as ReplayParseResult) : null
 }
 
