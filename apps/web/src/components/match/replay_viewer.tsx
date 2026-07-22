@@ -545,7 +545,6 @@ export function ReplayViewer({
       return pts.map((pt) => ({ time: pt.t, x: pt.x, y: pt.y }))
     })
   }, [denseBySlot, sparseWaypoints, match.players])
-  const hasAnyWaypoints = waypointsBySlot.some((w) => w.length > 0)
 
   const buildingDeaths = useMemo(() => buildingDeathTimes(match), [match])
   const wardLives = useMemo(() => extractWardLives(match), [match])
@@ -717,10 +716,11 @@ export function ReplayViewer({
         ctx.restore()
       }
 
+      if (!denseBySlot) return // sparse/ghost interpolation can't be trusted around deaths - see file header comment
       match.players.forEach((player, idx) => {
         const pos = interpolate(waypointsBySlot[idx] ?? [], t)
         if (!pos) return
-        const sample = denseBySlot ? sampleAt(denseBySlot.get(player.player_slot), t) : null
+        const sample = sampleAt(denseBySlot.get(player.player_slot), t)
         const dead = sample != null && sample.hp === 0
         const cx = toCanvas(pos.x, size)
         const cy = size - toCanvas(pos.y, size)
@@ -885,13 +885,13 @@ export function ReplayViewer({
             height={560}
             className="w-full max-w-[560px] border border-slate-bg"
           />
-          {!hasAnyWaypoints && !denseBySlot && (
+          {!denseBySlot && (
             <div className="absolute inset-0 flex items-center justify-center px-8">
               <p
                 className="px-4 py-3 text-center text-[13px] text-slate-foreground border border-slate-card"
                 style={{ background: 'rgba(8,10,12,0.85)' }}
               >
-                No position data yet for this match — still parsing, check back shortly.
+                Full playback isn't ready yet for this match — still parsing, check back shortly.
               </p>
             </div>
           )}
@@ -914,7 +914,9 @@ export function ReplayViewer({
           <button
             type="button"
             onClick={() => setPlaying((p) => !p)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 text-slate-foreground border border-slate-card"
+            disabled={!denseBySlot}
+            title={denseBySlot ? undefined : "Full playback isn't ready yet"}
+            className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-30 text-slate-foreground border border-slate-card"
             style={{ background: '#1a2024' }}
           >
             {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -939,7 +941,8 @@ export function ReplayViewer({
                 key={s}
                 type="button"
                 onClick={() => setSpeed(s)}
-                className={`px-2.5 py-1.5 text-[12px] cursor-pointer ${speed === s ? 'bg-slate-card text-white' : 'text-slate-muted'}`}
+                disabled={!denseBySlot}
+                className={`px-2.5 py-1.5 text-[12px] cursor-pointer disabled:cursor-default disabled:opacity-30 ${speed === s ? 'bg-slate-card text-white' : 'text-slate-muted'}`}
               >
                 {s}x
               </button>
@@ -947,7 +950,11 @@ export function ReplayViewer({
           </div>
           <div
             className="flex items-center shrink-0 border border-slate-card"
-            title="Fog of war: show only what this team can see"
+            title={
+              denseBySlot
+                ? 'Fog of war: show only what this team can see'
+                : "Full playback isn't ready yet"
+            }
           >
             <span
               className="px-2 text-[11px] uppercase text-slate-muted"
@@ -960,7 +967,8 @@ export function ReplayViewer({
                 key={f}
                 type="button"
                 onClick={() => setFogTeam(f)}
-                className={`px-2 py-1.5 text-[12px] uppercase cursor-pointer ${fogTeam === f ? 'bg-slate-card' : ''} ${fogTeam === f ? (f === 'radiant' ? 'text-radiant' : f === 'dire' ? 'text-dire' : 'text-white') : 'text-slate-muted'}`}
+                disabled={!denseBySlot}
+                className={`px-2 py-1.5 text-[12px] uppercase cursor-pointer disabled:cursor-default disabled:opacity-30 ${fogTeam === f ? 'bg-slate-card' : ''} ${fogTeam === f ? (f === 'radiant' ? 'text-radiant' : f === 'dire' ? 'text-dire' : 'text-white') : 'text-slate-muted'}`}
               >
                 {f === 'off' ? 'Off' : f === 'radiant' ? 'Rad' : 'Dire'}
               </button>
