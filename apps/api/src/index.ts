@@ -11,12 +11,10 @@ import { matchesPlugin } from './routes/matches'
 import { playersPlugin } from './routes/players'
 import { proPlugin } from './routes/pro'
 import { proMetaPlugin } from './routes/pro_meta'
-import { replayPlugin } from './routes/replay'
 import { searchPlugin } from './routes/search'
 
 // Generous general-purpose limit — this is a public read-only API with no
-// per-user quota, just abuse mitigation. The replay endpoint has its own
-// tighter concurrency cap (see routes/replay.ts) on top of this.
+// per-user quota, just abuse mitigation.
 const GENERAL_RATE_LIMIT = 240
 const GENERAL_RATE_WINDOW_MS = 60_000
 
@@ -74,7 +72,6 @@ const app = new Elysia()
   .use(proPlugin)
   .use(proMetaPlugin)
   .use(searchPlugin)
-  .use(replayPlugin)
   .listen(env.PORT)
 
 console.log(`dotavault api running on port ${env.PORT}`)
