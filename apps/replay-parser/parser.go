@@ -433,6 +433,9 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		}
 	}
 
+	pm.RadiantGoldAdv = radiantGoldAdvantage(pm.Players)
+	pm.RadiantXpAdv = radiantXpAdvantage(pm.Players)
+
 	return pm, nil
 }
 
