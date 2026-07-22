@@ -316,15 +316,15 @@ describe('getProMeta', () => {
 
   it('returns the cached blob without recomputing when both patch and result are cached', async () => {
     // Fixed past dates so "current patch" resolution is deterministic
-    // regardless of when this test runs.
-    await cacheSet(
-      'opendota:/constants/patch',
-      [
+    // regardless of when this test runs. Patch resolution goes through this
+    // injected fetchFn (see patch.ts's resolveCurrentPatch), not a real
+    // OpenDota call, so this test can't depend on network availability.
+    const fetchFn = fakeFetch({
+      '/constants/patch': [
         { name: '7.38', date: '2020-01-01 00:00:00' },
         { name: '7.39', date: '2021-01-01 00:00:00' },
       ],
-      3600,
-    )
+    })
     const blob: ProMetaResponse = {
       patch: { id: 1, name: '7.39', releasedAt: '2021-01-01 00:00:00' },
       totalMatches: 5,
@@ -346,15 +346,13 @@ describe('getProMeta', () => {
     }
     await cacheSet('pro-meta:1', blob, 3600)
 
-    expect(await getProMeta()).toEqual(blob)
+    expect(await getProMeta(fetchFn)).toEqual(blob)
   })
 
   it('serves a technically-expired blob rather than nothing (getProMeta has no compute path of its own)', async () => {
-    await cacheSet(
-      'opendota:/constants/patch',
-      [{ name: '7.39', date: '2020-01-01 00:00:00' }],
-      3600,
-    )
+    const fetchFn = fakeFetch({
+      '/constants/patch': [{ name: '7.39', date: '2020-01-01 00:00:00' }],
+    })
     const stale: ProMetaResponse = {
       patch: { id: 0, name: '7.39', releasedAt: '2020-01-01 00:00:00' },
       totalMatches: 3,
@@ -375,15 +373,13 @@ describe('getProMeta', () => {
       heroes: [],
     }
     await cacheSet('pro-meta:0', stale, -1) // already expired -> only reachable via cacheGetStale
-    expect(await getProMeta()).toEqual(stale)
+    expect(await getProMeta(fetchFn)).toEqual(stale)
   })
 
   it('returns null when nothing is cached at all', async () => {
-    await cacheSet(
-      'opendota:/constants/patch',
-      [{ name: '7.39', date: '2020-01-01 00:00:00' }],
-      3600,
-    )
-    expect(await getProMeta()).toBeNull()
+    const fetchFn = fakeFetch({
+      '/constants/patch': [{ name: '7.39', date: '2020-01-01 00:00:00' }],
+    })
+    expect(await getProMeta(fetchFn)).toBeNull()
   })
 })

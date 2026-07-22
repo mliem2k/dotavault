@@ -1,5 +1,5 @@
 # Go replay parser (apps/replay-parser), invoked by the Bun API as a
-# subprocess for /replay/:matchId cache misses.
+# subprocess when /matches/:id has nothing parsed yet for a match.
 FROM golang:1.23-alpine AS goparser
 WORKDIR /src
 COPY apps/replay-parser/go.mod apps/replay-parser/go.sum ./

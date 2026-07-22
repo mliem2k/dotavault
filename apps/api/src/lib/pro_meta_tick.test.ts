@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'bun:test'
 import type { ProMatch, ProMetaResponse } from 'types'
 import { db } from '../db'
 import { apiCache } from '../db/schema'
-import { cacheGet, cacheSet } from './cache'
+import { cacheGet } from './cache'
 import { runProMetaTick } from './pro_meta_tick'
 
 function proMatch(overrides: Partial<ProMatch>): ProMatch {
@@ -27,10 +27,19 @@ function proMatch(overrides: Partial<ProMatch>): ProMatch {
 
 const RELEASED_MS = new Date('2026-01-01 00:00:00').getTime()
 
+// Every test resolves the current patch via this same injected fetchFn (see
+// patch.ts's resolveCurrentPatch), not a real OpenDota call or a pre-warmed
+// apiCache row - baked in here so no test needs to repeat it, and a test can
+// still override by including its own '/constants/patch' entry.
+const DEFAULT_PATCH_PAGES: Record<string, unknown> = {
+  '/constants/patch': [{ name: '7.40', date: '2026-01-01 00:00:00' }],
+}
+
 function fakeFetch(pages: Record<string, unknown>) {
+  const allPages = { ...DEFAULT_PATCH_PAGES, ...pages }
   return async (path: string) => {
-    if (!(path in pages)) throw new Error(`unexpected fetch: ${path}`)
-    return pages[path]
+    if (!(path in allPages)) throw new Error(`unexpected fetch: ${path}`)
+    return allPages[path]
   }
 }
 
@@ -42,7 +51,6 @@ const MULTI_TICK_TIMEOUT_MS = 20_000
 
 beforeEach(async () => {
   await db.delete(apiCache)
-  await cacheSet('opendota:/constants/patch', [{ name: '7.40', date: '2026-01-01 00:00:00' }], 3600)
 })
 
 describe('runProMetaTick', () => {

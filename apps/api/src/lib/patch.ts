@@ -15,7 +15,9 @@ export function currentPatchFromList(
   return { id: bestIndex, name: patch.name, releasedAt: patch.date }
 }
 
-export async function resolveCurrentPatch(): Promise<ProMetaPatch> {
-  const patches = (await fetchCached('/constants/patch', 60 * 60 * 24)) as PatchConstant[]
+type FetchFn = (path: string, ttlSeconds: number) => Promise<unknown>
+
+export async function resolveCurrentPatch(fetchFn: FetchFn = fetchCached): Promise<ProMetaPatch> {
+  const patches = (await fetchFn('/constants/patch', 60 * 60 * 24)) as PatchConstant[]
   return currentPatchFromList(patches)
 }

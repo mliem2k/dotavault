@@ -80,7 +80,7 @@ async function fetchMatchDetailForIngest(
 // request, which routinely exceeded both OpenDota's rate limit and Fly's
 // gateway timeout in production.
 export async function runProMetaTick(fetchFn: FetchFn = fetchCached): Promise<void> {
-  const patch = await resolveCurrentPatch()
+  const patch = await resolveCurrentPatch(fetchFn)
   const sKey = stateKey(patch.id)
   const releasedAtMs = new Date(patch.releasedAt).getTime()
 

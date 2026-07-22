@@ -344,9 +344,9 @@ export function proMetaResultKey(patchId: number): string {
 // this function just reads whatever's there. cacheGetStale (not cacheGet)
 // so a technically-past-TTL blob is still served rather than discarded -
 // something is better than a hard 503 while the next tick catches up.
-export async function getProMeta(): Promise<ProMetaResponse | null> {
+export async function getProMeta(fetchFn: FetchFn = fetchCached): Promise<ProMetaResponse | null> {
   try {
-    const patch = await resolveCurrentPatch()
+    const patch = await resolveCurrentPatch(fetchFn)
     const cached = await cacheGetStale(proMetaResultKey(patch.id))
     return cached ? (cached.data as ProMetaResponse) : null
   } catch (err) {
