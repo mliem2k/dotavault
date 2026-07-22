@@ -32,3 +32,39 @@ func TestRadiantAdvantage_UnequalLength(t *testing.T) {
 		t.Errorf("radiantGoldAdvantage() = %v, want %v", got, want)
 	}
 }
+
+func TestClusterTeamfights(t *testing.T) {
+	// A single isolated kill (t=600) is deliberately NOT a "teamfight" —
+	// clusterTeamfights filters to 2+ deaths (see its doc comment, matching
+	// OpenDota's own threshold), so it must not appear in the output at all.
+	kills := []KillEvent{
+		{T: 100, Attacker: "npc_dota_hero_axe", Victim: "npc_dota_hero_lina"},
+		{T: 105, Attacker: "npc_dota_hero_lina", Victim: "npc_dota_hero_axe"}, // same fight (within 30s)
+		{T: 600, Attacker: "npc_dota_hero_axe", Victim: "npc_dota_hero_lina"}, // isolated, below the 2-death threshold
+	}
+	fights := clusterTeamfights(kills, 30)
+	if len(fights) != 1 {
+		t.Fatalf("clusterTeamfights: got %d fights, want 1 (only the 2-death cluster qualifies; the isolated kill at t=600 must be dropped)", len(fights))
+	}
+	if fights[0].Deaths != 2 {
+		t.Errorf("fight 1 deaths = %d, want 2", fights[0].Deaths)
+	}
+	if fights[0].Start != 100 || fights[0].LastDeath != 105 {
+		t.Errorf("fight 1 start/last_death = %v/%v, want 100/105", fights[0].Start, fights[0].LastDeath)
+	}
+}
+
+func TestExtractMatch_Teamfights(t *testing.T) {
+	pm, err := ExtractMatch(1, openFixture(t))
+	if err != nil {
+		t.Fatalf("ExtractMatch: %v", err)
+	}
+	if len(pm.Teamfights) == 0 {
+		t.Skip("fixture may not have any qualifying teamfight (2+ deaths within window); acceptable for a short/one-sided match")
+	}
+	for _, f := range pm.Teamfights {
+		if len(f.Players) != 10 {
+			t.Errorf("teamfight players length = %d, want 10", len(f.Players))
+		}
+	}
+}

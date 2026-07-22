@@ -436,6 +436,12 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 	pm.RadiantGoldAdv = radiantGoldAdvantage(pm.Players)
 	pm.RadiantXpAdv = radiantXpAdvantage(pm.Players)
 
+	const teamfightWindowSeconds = 30
+	for _, fight := range clusterTeamfights(pm.Kills, teamfightWindowSeconds) {
+		fight.Players = buildTeamfightPlayers(pm.Players, fight, pm.Kills)
+		pm.Teamfights = append(pm.Teamfights, fight)
+	}
+
 	return pm, nil
 }
 
