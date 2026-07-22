@@ -44,6 +44,7 @@ func runInspect(path string) {
 
 	seenClasses := map[string]bool{}
 	combatLogSamples := map[dota.DOTA_COMBATLOG_TYPES]int{}
+	seenPlayerTeamField := map[string]bool{}
 	const sampleLimit = 5
 
 	clName := func(idx uint32) string {
@@ -93,6 +94,24 @@ func runInspect(path string) {
 				if strings.Contains(lower, "gold") || strings.Contains(lower, "lasthit") ||
 					strings.Contains(lower, "deny") || strings.Contains(lower, "xp") || strings.Contains(lower, "networth") {
 					fmt.Println(cn+" field:", k)
+				}
+			}
+		}
+		// Task 11: per-player team field on CDOTA_PlayerResource, needed to
+		// build a global playerID->team map for CDOTAUserMsg_LocationPing
+		// (which only carries a global 0-9 PlayerId, no team). Checked on
+		// every update (creation alone doesn't have the value populated
+		// yet) but printed only once per distinct field+value pair so a
+		// 10-player match doesn't spam identical lines every tick.
+		if cn == "CDOTA_PlayerResource" && op.Flag(manta.EntityOpUpdated) {
+			for k, v := range e.Map() {
+				if !strings.Contains(strings.ToLower(k), "team") {
+					continue
+				}
+				line := fmt.Sprintf("%s team-field: %s = %v", cn, k, v)
+				if !seenPlayerTeamField[line] {
+					seenPlayerTeamField[line] = true
+					fmt.Println(line)
 				}
 			}
 		}

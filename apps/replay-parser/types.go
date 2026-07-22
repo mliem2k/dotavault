@@ -40,9 +40,14 @@ type PlayerParsed struct {
 	TowersKilled      int32                       `json:"towers_killed"`
 	RoshansKilled     int32                       `json:"roshans_killed"`
 	FirstbloodClaimed int32                       `json:"firstblood_claimed"`
-	Pings             *int32                      `json:"pings,omitempty"`
-	Actions           map[string]int32            `json:"actions,omitempty"`
-	ActionsPerMin     *float64                    `json:"actions_per_min,omitempty"`
+	// Pings: populated from OnCDOTAUserMsg_LocationPing (confirmed present in
+	// the replay stream against testdata/fixture.dem.bz2 — see FIELD_NOTES.md).
+	// Actions/ActionsPerMin: not populated by this task — FIELD_NOTES.md only
+	// confirms pings and chat messages fire, not a general action-count
+	// message; left nil rather than approximated from an incomplete signal.
+	Pings         *int32           `json:"pings,omitempty"`
+	Actions       map[string]int32 `json:"actions,omitempty"`
+	ActionsPerMin *float64         `json:"actions_per_min,omitempty"`
 }
 
 type WardEvent struct {

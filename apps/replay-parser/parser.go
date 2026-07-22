@@ -58,6 +58,16 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 	}
 	heroNameToSlot := map[string]int{}
 
+	// playerIDToTeam maps CDOTA_PlayerResource's global 0-9 player index to
+	// team (2 Radiant, 3 Dire), confirmed via -inspect against this fixture:
+	// m_vecPlayerData.<playerID>.m_iPlayerTeam is 2 for playerID 0-4 and 3
+	// for playerID 5-9. This is unrelated to CDOTA_DataRadiant/
+	// CDOTA_DataDire's team-relative 0-4 slot (Task 6) — CDOTAUserMsg_
+	// LocationPing's PlayerId uses this global 0-9 numbering, so it needs
+	// its own mapping to this parser's match-slot convention (see
+	// usermessages.go's playerIDToMatchSlot).
+	playerIDToTeam := map[int]int{}
+
 	// xpBySlot tracks each hero's highest known m_iCurrentXP, fed by the
 	// hero OnEntity callback below and consumed by sampleTeamData's
 	// per-minute sampling further down (XP lives on the hero unit itself,
@@ -329,6 +339,31 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		if op.Flag(manta.EntityOpDeleted) {
 			recordWardRemoved(players, ownerSlot, false, x, y, matchTime)
 		}
+		return nil
+	})
+
+	// CDOTA_PlayerResource: builds playerIDToTeam, the global 0-9
+	// player-index -> team lookup CDOTAUserMsg_LocationPing needs (see
+	// playerIDToTeam's doc comment above).
+	p.OnEntity(func(e *manta.Entity, op manta.EntityOp) error {
+		if e.GetClassName() != "CDOTA_PlayerResource" || !op.Flag(manta.EntityOpUpdated) {
+			return nil
+		}
+		for playerID := 0; playerID < 10; playerID++ {
+			if team, ok := e.GetInt32(fmt.Sprintf("m_vecPlayerData.%04d.m_iPlayerTeam", playerID)); ok {
+				playerIDToTeam[playerID] = int(team)
+			}
+		}
+		return nil
+	})
+
+	p.Callbacks.OnCDOTAUserMsg_LocationPing(func(m *dota.CDOTAUserMsg_LocationPing) error {
+		playerID := int(m.GetPlayerId())
+		team, ok := playerIDToTeam[playerID]
+		if !ok {
+			return nil
+		}
+		recordPing(players, playerIDToMatchSlot(playerID, team))
 		return nil
 	})
 
