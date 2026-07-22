@@ -8,7 +8,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { opendota, type ProMatchRow } from '@/lib/opendota'
 import { rankBadge, rankName } from '@/lib/rank'
 import { applySort, useSort } from '@/lib/sortable'
-import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl, heroSlug } from '@/lib/utils'
+import { cdnFallback, heroLandscapeCdn, heroLandscapeUrl } from '@/lib/utils'
 
 const PAGE_SIZE = 30
 
@@ -619,31 +619,17 @@ export function AllMatches({ accountId, heroStats }: { accountId: string; heroSt
 
                       <div className="flex-1 min-w-0 flex items-center gap-2.5">
                         {hero && (
-                          <a
-                            href={`/hero/${heroSlug(hero.localized_name)}`}
-                            className="relative z-10 shrink-0 block"
-                          >
-                            <img
-                              src={heroLandscapeUrl(hero.name)}
-                              alt=""
-                              className="object-cover"
-                              style={{ width: 58, height: 33 }}
-                              onError={cdnFallback(heroLandscapeCdn(hero.name))}
-                            />
-                          </a>
+                          <img
+                            src={heroLandscapeUrl(hero.name)}
+                            alt=""
+                            className="object-cover shrink-0 pointer-events-none"
+                            style={{ width: 58, height: 33 }}
+                            onError={cdnFallback(heroLandscapeCdn(hero.name))}
+                          />
                         )}
-                        {hero ? (
-                          <a
-                            href={`/hero/${heroSlug(hero.localized_name)}`}
-                            className="relative z-10 text-[14px] truncate hover:underline text-slate-foreground-light"
-                          >
-                            {hero.localized_name}
-                          </a>
-                        ) : (
-                          <span className="text-[14px] truncate pointer-events-none text-slate-foreground-light">
-                            {`Hero ${m.hero_id}`}
-                          </span>
-                        )}
+                        <span className="text-[14px] truncate pointer-events-none text-slate-foreground-light">
+                          {hero ? hero.localized_name : `Hero ${m.hero_id}`}
+                        </span>
                       </div>
 
                       <div
