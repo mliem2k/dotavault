@@ -206,7 +206,45 @@ function respawnCountdown(points: PositionPoint[] | undefined, t: number): numbe
    simultaneous instances of the exact same modifier name (rare — e.g. the
    same debuff from two different casters) would collapse into one entry
    here rather than two, and a removal of either would clear both. Not
-   worth the extra field just for that edge case. */
+   worth the extra field just for that edge case.
+
+   One more consolidation happens after the above: some abilities create
+   several simultaneous modifiers for different internal sub-states of one
+   conceptual effect — e.g. Ember Spirit's Sleight of Fist shows an
+   "in_progress" marker, a "caster_invulnerable" window, and a "caster" tag
+   all at once, and Fire Remnant similarly splits into a base effect plus
+   its own "_timer"/"_remnant_tracker" bookkeeping entries. These collapse
+   to one entry per shared root (see canonicalModifierRoot) rather than
+   showing 3 names for what's really one active ability. */
+const MODIFIER_SUFFIXES_TO_STRIP = [
+  'caster_invulnerable',
+  'caster_invulnerability',
+  'remnant_tracker',
+  'in_progress',
+  'caster',
+  'tracker',
+  'timer',
+  'counter',
+  'vfx',
+  'marker',
+  'reveal',
+]
+
+function canonicalModifierRoot(name: string): string {
+  let root = name
+  for (let stripped = true; stripped; ) {
+    stripped = false
+    for (const suffix of MODIFIER_SUFFIXES_TO_STRIP) {
+      if (root.endsWith(`_${suffix}`)) {
+        root = root.slice(0, -(suffix.length + 1))
+        stripped = true
+        break
+      }
+    }
+  }
+  return root
+}
+
 function activeModifiersAt(
   modifiers: ModifierEvent[] | null | undefined,
   t: number,
@@ -222,12 +260,14 @@ function activeModifiersAt(
       active.delete(m.name)
     }
   }
-  const result: { name: string; stacks: number }[] = []
+  const byRoot = new Map<string, { stacks: number }>()
   for (const [name, v] of active) {
     if (v.expiresAt != null && t >= v.expiresAt) continue
-    result.push({ name, stacks: v.stacks })
+    const root = canonicalModifierRoot(name)
+    const existing = byRoot.get(root)
+    if (!existing || v.stacks > existing.stacks) byRoot.set(root, { stacks: v.stacks })
   }
-  return result
+  return [...byRoot.entries()].map(([name, v]) => ({ name, stacks: v.stacks }))
 }
 
 function humanizeModifierName(raw: string): string {
