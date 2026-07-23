@@ -186,6 +186,16 @@ function respawnCountdown(points: PositionPoint[] | undefined, t: number): numbe
    assigning), so this can stop at the first future event instead of
    scanning the whole list every call.
 
+   Two things this deliberately filters, both learned from watching a real
+   match: aura=true entries (nearby tower/fountain/etc auras) are excluded
+   entirely — they're a passive environmental state, not the hero's own
+   buff, and they dominate the list by count since they re-fire on a short
+   timer for as long as the hero stays in range. And any entry with a fixed
+   duration expires on its own once that time passes, even with no
+   matching removal ever following it — many modifiers (again, mostly
+   aura-refresh ones) just stop being re-applied rather than sending an
+   explicit removal, so without this they'd show as stuck on forever.
+
    Tracked by name only, not by the Go side's per-slot Index: two
    simultaneous instances of the exact same modifier name (rare — e.g. the
    same debuff from two different casters) would collapse into one entry
@@ -196,13 +206,22 @@ function activeModifiersAt(
   t: number,
 ): { name: string; stacks: number }[] {
   if (!modifiers?.length) return []
-  const active = new Map<string, number>()
+  const active = new Map<string, { stacks: number; expiresAt: number | null }>()
   for (const m of modifiers) {
     if (m.t > t) break
-    if (m.active) active.set(m.name, m.stacks ?? 1)
-    else active.delete(m.name)
+    if (m.aura) continue
+    if (m.active) {
+      active.set(m.name, { stacks: m.stacks ?? 1, expiresAt: m.duration ? m.t + m.duration : null })
+    } else {
+      active.delete(m.name)
+    }
   }
-  return [...active.entries()].map(([name, stacks]) => ({ name, stacks }))
+  const result: { name: string; stacks: number }[] = []
+  for (const [name, v] of active) {
+    if (v.expiresAt != null && t >= v.expiresAt) continue
+    result.push({ name, stacks: v.stacks })
+  }
+  return result
 }
 
 function humanizeModifierName(raw: string): string {

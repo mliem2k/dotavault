@@ -342,9 +342,10 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			}
 			heroPositions[slot] = [2]float64{x, y}
 			lastEmittedPreGameSecond[slot] = second
-			msBonus, asBonus, arBonus := activeBonus(activeModifiersBySlot[slot])
+			rawNow := float64(p.NetTick) / tickRate
+			msBonus, asBonus, arBonus := activeBonus(activeModifiersBySlot[slot], rawNow)
 			preGamePositions[slot] = append(preGamePositions[slot], rawPreGamePoint{
-				rawT: float64(p.NetTick) / tickRate,
+				rawT: rawNow,
 				pt:   readHeroPositionFields(e, x, y, msBonus, asBonus, arBonus),
 			})
 			return nil
@@ -365,7 +366,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 
 		lastEmittedSecond[slot] = second
 
-		msBonus, asBonus, arBonus := activeBonus(activeModifiersBySlot[slot])
+		msBonus, asBonus, arBonus := activeBonus(activeModifiersBySlot[slot], float64(p.NetTick)/tickRate)
 		pt := readHeroPositionFields(e, x, y, msBonus, asBonus, arBonus)
 		pt.T = matchTime
 		positions[slot] = append(positions[slot], pt)
@@ -588,10 +589,12 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			key := fmtSlot(slot)
 			for _, re := range events {
 				players[key].Modifiers = append(players[key].Modifiers, ModifierEvent{
-					T:      re.rawT - gameStartTime,
-					Name:   re.name,
-					Active: re.active,
-					Stacks: re.stacks,
+					T:        re.rawT - gameStartTime,
+					Name:     re.name,
+					Active:   re.active,
+					Stacks:   re.stacks,
+					Duration: re.duration,
+					Aura:     re.aura,
 				})
 			}
 		}

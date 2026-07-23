@@ -11,12 +11,16 @@ import (
 // hero: the Index field on CDOTAModifierBuffTableEntry is a fixed slot
 // per entity, reused across a match, so a REMOVED event for the same
 // Index correctly clears exactly the modifier that occupied it rather
-// than needing to match by name.
+// than needing to match by name. appliedAt/duration let activeBonus expire
+// a modifier on its own timer even if no REMOVED event ever arrives for it
+// (see ModifierEvent's doc comment in types.go for why that happens).
 type activeModifier struct {
 	name        string
 	moveSpeed   int32
 	attackSpeed int32
 	armor       int32
+	appliedAt   float64
+	duration    float64
 }
 
 // rawModifierEvent buffers a lifecycle transition by raw demo-clock
@@ -24,11 +28,13 @@ type activeModifier struct {
 // preGamePositions in parser.go: gameStartTime (the 0:00 anchor) isn't
 // known yet for any event that arrives during pregame.
 type rawModifierEvent struct {
-	rawT   float64
-	slot   int
-	name   string
-	active bool
-	stacks int32
+	rawT     float64
+	slot     int
+	name     string
+	active   bool
+	stacks   int32
+	duration float64
+	aura     bool
 }
 
 // trackModifiers registers the OnModifierTableEntry callback. It keeps
@@ -83,10 +89,11 @@ func trackModifiers(
 			activeBySlot[slot] = map[int32]*activeModifier{}
 		}
 		idx := m.GetIndex()
+		now := rawT()
 
 		if m.GetEntryType() == dota.DOTA_MODIFIER_ENTRY_TYPE_DOTA_MODIFIER_ENTRY_TYPE_REMOVED {
 			delete(activeBySlot[slot], idx)
-			*rawEvents = append(*rawEvents, rawModifierEvent{rawT: rawT(), slot: slot, name: name, active: false})
+			*rawEvents = append(*rawEvents, rawModifierEvent{rawT: now, slot: slot, name: name, active: false})
 			return nil
 		}
 
@@ -95,20 +102,29 @@ func trackModifiers(
 			moveSpeed:   m.GetMovementSpeed(),
 			attackSpeed: m.GetAttackSpeed(),
 			armor:       m.GetArmor(),
+			appliedAt:   now,
+			duration:    float64(m.GetDuration()),
 		}
 		*rawEvents = append(*rawEvents, rawModifierEvent{
-			rawT: rawT(), slot: slot, name: name, active: true, stacks: m.GetStackCount(),
+			rawT: now, slot: slot, name: name, active: true,
+			stacks: m.GetStackCount(), duration: float64(m.GetDuration()), aura: m.GetAura(),
 		})
 		return nil
 	})
 }
 
-// activeBonus sums every currently-active modifier's stat contribution for
-// one hero, consumed by the position sampler to compute live Speed/
-// AttackTime/Armor (see PositionPoint's doc comment for why these can't
-// just be read off the hero entity directly).
-func activeBonus(active map[int32]*activeModifier) (moveSpeed, attackSpeed, armor int32) {
+// activeBonus sums every currently-active, not-yet-expired modifier's stat
+// contribution for one hero at raw demo-clock second now, consumed by the
+// position sampler to compute live Speed/AttackTime/Armor (see
+// PositionPoint's doc comment for why these can't just be read off the
+// hero entity directly). A modifier with a fixed duration that has run out
+// since it was last applied/refreshed is excluded even if no REMOVED event
+// ever arrived for it (see ModifierEvent's doc comment in types.go).
+func activeBonus(active map[int32]*activeModifier, now float64) (moveSpeed, attackSpeed, armor int32) {
 	for _, m := range active {
+		if m.duration > 0 && now >= m.appliedAt+m.duration {
+			continue
+		}
 		moveSpeed += m.moveSpeed
 		attackSpeed += m.attackSpeed
 		armor += m.armor

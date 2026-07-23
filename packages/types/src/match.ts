@@ -165,11 +165,18 @@ export type ParsedKillEvent = {
 // One buff/debuff lifecycle transition from apps/replay-parser (ModifierEvent
 // in apps/replay-parser/types.go). Raw and unfiltered, same "aura"/
 // "building"/"courier" noise the real Dota 2 client's buff bar carries too.
+// duration/aura are only meaningful when active is true: duration lets a
+// consumer expire this on its own timer (many modifiers, especially
+// aura=true ones, never send an explicit removal — see the Go type's doc
+// comment); aura flags a passive/environmental refresh state (nearby
+// tower/fountain/etc) rather than the hero's own active buff.
 export type ModifierEvent = {
   t: number
   name: string
   active: boolean
   stacks?: number
+  duration?: number
+  aura?: boolean
 }
 
 export type MatchPlayer = {

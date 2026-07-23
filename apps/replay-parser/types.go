@@ -58,12 +58,21 @@ type PlayerParsed struct {
 // ModifierEvent is one buff/debuff lifecycle transition (applied or
 // removed) on a hero. Name is resolved through the replay's ModifierNames
 // string table (see modifiers.go), same lookup pattern as CombatLogNames/
-// EntityNames elsewhere in this parser.
+// EntityNames elsewhere in this parser. Duration/Aura are only meaningful
+// on an Active=true event (empirically confirmed: many modifiers, like
+// aura-refresh buffs, never send an explicit removal — they're just
+// re-applied on a short timer for as long as their condition holds, so a
+// consumer that only tracks explicit ACTIVE/REMOVED pairs would show them
+// as stuck on forever the moment refreshing stops; Duration lets a
+// consumer expire them on its own instead of waiting for a removal that
+// may never come).
 type ModifierEvent struct {
-	T      float64 `json:"t"`
-	Name   string  `json:"name"`
-	Active bool    `json:"active"` // false = removed at T
-	Stacks int32   `json:"stacks,omitempty"`
+	T        float64 `json:"t"`
+	Name     string  `json:"name"`
+	Active   bool    `json:"active"` // false = removed at T
+	Stacks   int32   `json:"stacks,omitempty"`
+	Duration float64 `json:"duration,omitempty"` // seconds after T this expires on its own; 0 = no fixed duration, relies on an explicit removal instead
+	Aura     bool    `json:"aura,omitempty"`      // true = a passive/environmental aura-refresh state (nearby tower/fountain/etc), not the hero's own active buff
 }
 
 type WardEvent struct {

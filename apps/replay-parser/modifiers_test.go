@@ -47,7 +47,7 @@ func TestExtractMatch_Modifiers(t *testing.T) {
 		t.Fatalf("ExtractMatch: %v", err)
 	}
 	var total int
-	var sawActive, sawRemoved, sawKnownItemBuff bool
+	var sawActive, sawRemoved, sawKnownItemBuff, sawAura, sawFixedDuration bool
 	for _, p := range pm.Players {
 		for _, m := range p.Modifiers {
 			total++
@@ -62,6 +62,12 @@ func TestExtractMatch_Modifiers(t *testing.T) {
 			if m.Name == "modifier_item_magic_wand" || m.Name == "modifier_item_magic_stick_hero" {
 				sawKnownItemBuff = true
 			}
+			if m.Aura {
+				sawAura = true
+			}
+			if m.Duration > 0 {
+				sawFixedDuration = true
+			}
 		}
 	}
 	if total == 0 {
@@ -75,5 +81,32 @@ func TestExtractMatch_Modifiers(t *testing.T) {
 	}
 	if !sawKnownItemBuff {
 		t.Error("expected at least one modifier_item_magic_wand/modifier_item_magic_stick_hero event in the fixture (both items are purchased in this match)")
+	}
+	if !sawAura {
+		t.Error("expected at least one Aura=true event (e.g. modifier_tower_aura_bonus/modifier_fountain_aura_buff, both expected near base/towers in this fixture)")
+	}
+	if !sawFixedDuration {
+		t.Error("expected at least one event with Duration > 0 (e.g. modifier_teleporting, dur=3.0)")
+	}
+}
+
+// A modifier with a real Duration must expire on its own once that time
+// passes, even with no matching Active=false event ever following it — the
+// real bug this covers: aura-refresh modifiers (dur=0.5, re-applied on a
+// timer for as long as their condition holds) can go a long stretch with
+// no explicit removal at all, so a consumer that only tracks explicit
+// ACTIVE/REMOVED pairs would see them "stuck on" forever.
+func TestActiveBonus_ExpiresOnDurationWithoutRemoval(t *testing.T) {
+	active := map[int32]*activeModifier{
+		1: {name: "modifier_tower_aura_bonus", armor: 3, appliedAt: 100.0, duration: 0.5},
+		2: {name: "modifier_item_magic_wand", moveSpeed: 0, appliedAt: 100.0, duration: 0}, // no fixed duration
+	}
+	_, _, armorBefore := activeBonus(active, 100.4) // still within the 0.5s window
+	if armorBefore != 3 {
+		t.Errorf("armor bonus before expiry = %d, want 3", armorBefore)
+	}
+	_, _, armorAfter := activeBonus(active, 100.6) // past appliedAt+duration, no removal ever arrived
+	if armorAfter != 0 {
+		t.Errorf("armor bonus after expiry = %d, want 0 (should have expired on its own)", armorAfter)
 	}
 }
