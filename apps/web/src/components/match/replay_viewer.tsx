@@ -12,6 +12,7 @@ import type {
 } from 'types'
 import { BUILDINGS, buildingDeathTimes, MAP_MAX, MAP_MIN } from '@/lib/buildings'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { AbilityIcon } from './ability_icon'
 import { ItemIcon } from './item_icon'
 import { extractObjectiveEvents, type ObjectiveEvent } from './match_objectives'
 import { PlayerNameLink } from './match_roster'
@@ -300,6 +301,38 @@ function humanizeModifierName(raw: string): string {
     .join(' ')
 }
 
+type ModifierIconMatch =
+  | { kind: 'ability'; key: string; meta: AbilityConst }
+  | { kind: 'item'; key: string; meta: ItemConst }
+
+/* Best-effort mapping from a modifier's raw name to a real ability/item
+   icon + tooltip, so the buff row can look like the in-game status bar
+   instead of a wall of text pills. Dota suffixes a lot of modifier names
+   with internal sub-state/target info that isn't part of the ability's
+   own identifier (e.g. "life_stealer_infest_effect" is Infest's effect on
+   the infested unit, "axe_battle_hunger_self_movespeed" is Battle
+   Hunger's bonus on Axe himself) — this drops trailing "_word" segments
+   one at a time until what's left exactly matches a real ability or item
+   key. Requiring an exact hit against the real constants dictionary
+   (rather than a guessed name transform) makes a wrong match essentially
+   impossible; the cost is that some names never resolve, because they
+   really do belong to no single ability (generic states like Silence,
+   Stunned, Fountain Invulnerability) — those fall through to the plain
+   text pill below, same as before this existed. */
+function resolveModifierIcon(
+  name: string,
+  abilityConst: Record<string, AbilityConst>,
+  itemConst: Record<string, ItemConst>,
+): ModifierIconMatch | null {
+  const parts = name.replace(/^modifier_/, '').split('_')
+  for (let i = parts.length; i > 0; i--) {
+    const key = parts.slice(0, i).join('_')
+    if (abilityConst[key]) return { kind: 'ability', key, meta: abilityConst[key] }
+    if (itemConst[key]) return { kind: 'item', key, meta: itemConst[key] }
+  }
+  return null
+}
+
 function extractKillEvents(
   match: Match,
   heroMap: Map<number, HeroStat>,
@@ -393,6 +426,7 @@ function PlayerRow({
   timeSec,
   idToName,
   itemConst,
+  abilityConst,
   dense,
 }: {
   player: MatchPlayer
@@ -401,6 +435,7 @@ function PlayerRow({
   timeSec: number
   idToName: Map<number, string>
   itemConst: Record<string, ItemConst>
+  abilityConst: Record<string, AbilityConst>
   dense: PositionPoint[] | undefined
 }) {
   const stats = statsAtTime(player, match.players, hero?.name ?? '', timeSec, match.duration)
@@ -553,17 +588,45 @@ function PlayerRow({
 
       {activeMods.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-1">
-          {activeMods.map((m) => (
-            <span
-              key={m.name}
-              className="px-1 py-0.5 text-[10px] leading-none border border-slate-card text-slate-foreground-light"
-              style={{ background: 'rgba(255,255,255,0.05)' }}
-              title={m.name}
-            >
-              {humanizeModifierName(m.name)}
-              {m.stacks > 1 && ` x${m.stacks}`}
-            </span>
-          ))}
+          {activeMods.map((m) => {
+            const resolved = resolveModifierIcon(m.name, abilityConst, itemConst)
+            if (!resolved) {
+              return (
+                <span
+                  key={m.name}
+                  className="px-1 py-0.5 text-[10px] leading-none border border-slate-card text-slate-foreground-light"
+                  style={{ background: 'rgba(255,255,255,0.05)' }}
+                  title={m.name}
+                >
+                  {humanizeModifierName(m.name)}
+                  {m.stacks > 1 && ` x${m.stacks}`}
+                </span>
+              )
+            }
+            return (
+              <div key={m.name} className="relative">
+                {resolved.kind === 'ability' ? (
+                  <AbilityIcon
+                    name={resolved.key}
+                    meta={resolved.meta}
+                    isTalent={resolved.key.startsWith('special_bonus')}
+                    level={0}
+                    size={20}
+                  />
+                ) : (
+                  <ItemIcon name={resolved.key} meta={resolved.meta} width={20} height={20} />
+                )}
+                {m.stacks > 1 && (
+                  <span
+                    className="absolute -bottom-1 -right-1 flex items-center justify-center text-[9px] tabular-nums leading-none text-gold border border-slate-card"
+                    style={{ minWidth: 12, height: 12, background: '#0d1012' }}
+                  >
+                    {m.stacks}
+                  </span>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
 
@@ -594,6 +657,7 @@ function TeamPanel({
   timeSec,
   idToName,
   itemConst,
+  abilityConst,
   denseBySlot,
 }: {
   side: 'radiant' | 'dire'
@@ -603,6 +667,7 @@ function TeamPanel({
   timeSec: number
   idToName: Map<number, string>
   itemConst: Record<string, ItemConst>
+  abilityConst: Record<string, AbilityConst>
   denseBySlot: Map<number, PositionPoint[]> | null
 }) {
   return (
@@ -622,6 +687,7 @@ function TeamPanel({
           timeSec={timeSec}
           idToName={idToName}
           itemConst={itemConst}
+          abilityConst={abilityConst}
           dense={denseBySlot?.get(p.player_slot)}
         />
       ))}
@@ -996,6 +1062,7 @@ export function ReplayViewer({
         timeSec={time}
         idToName={idToName}
         itemConst={itemConst}
+        abilityConst={abilityConst}
         denseBySlot={denseBySlot}
       />
 
@@ -1151,6 +1218,7 @@ export function ReplayViewer({
         timeSec={time}
         idToName={idToName}
         itemConst={itemConst}
+        abilityConst={abilityConst}
         denseBySlot={denseBySlot}
       />
 
