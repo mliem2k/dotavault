@@ -215,7 +215,28 @@ function respawnCountdown(points: PositionPoint[] | undefined, t: number): numbe
    all at once, and Fire Remnant similarly splits into a base effect plus
    its own "_timer"/"_remnant_tracker" bookkeeping entries. These collapse
    to one entry per shared root (see canonicalModifierRoot) rather than
-   showing 3 names for what's really one active ability. */
+   showing 3 names for what's really one active ability.
+
+   A last, different kind of noise: MODIFIER_NAMES_TO_HIDE. Some
+   single-target spells put a same-named copy of themselves on their own
+   caster purely as an internal "this was just cast" marker — Rubick's
+   Fade Bolt and Life Stealer's Infest both do this. The spell's real,
+   felt effect lands on whoever the caster targeted, under a separately
+   named modifier (modifier_rubick_fade_bolt_debuff, modifier_
+   life_stealer_infest_effect) that isn't filtered here. The caster's own
+   copy carries Duration=0 and never gets an explicit removal, so once it
+   fires even once it would otherwise show as a permanently-stuck fake
+   buff on the caster for a skill they merely used on someone else. Not
+   generalizable to a name/suffix rule: some abilities' bare caster-side
+   name IS a real status worth keeping (Ember Spirit's Flame Guard shield
+   is the caster's own bare name and has the exact same _debuff-sibling
+   shape as Fade Bolt, but should stay visible) — so this is a short,
+   explicit list of the specific names confirmed to be cast-only noise. */
+const MODIFIER_NAMES_TO_HIDE = new Set([
+  'modifier_rubick_fade_bolt',
+  'modifier_life_stealer_infest',
+])
+
 const MODIFIER_SUFFIXES_TO_STRIP = [
   'caster_invulnerable',
   'caster_invulnerability',
@@ -253,7 +274,8 @@ function activeModifiersAt(
   const active = new Map<string, { stacks: number; expiresAt: number | null }>()
   for (const m of modifiers) {
     if (m.t > t) break
-    if (m.aura || m.name.startsWith('modifier_item_')) continue
+    if (m.aura || m.name.startsWith('modifier_item_') || MODIFIER_NAMES_TO_HIDE.has(m.name))
+      continue
     if (m.active) {
       active.set(m.name, { stacks: m.stacks ?? 1, expiresAt: m.duration ? m.t + m.duration : null })
     } else {
