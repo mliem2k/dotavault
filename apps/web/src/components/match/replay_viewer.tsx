@@ -6,13 +6,11 @@ import type {
   ItemConst,
   Match,
   MatchPlayer,
-  ModifierEvent,
   ParsedKillEvent,
   PositionPoint,
 } from 'types'
 import { BUILDINGS, buildingDeathTimes, MAP_MAX, MAP_MIN } from '@/lib/buildings'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
-import { AbilityIcon } from './ability_icon'
 import { ItemIcon } from './item_icon'
 import { extractObjectiveEvents, type ObjectiveEvent } from './match_objectives'
 import { PlayerNameLink } from './match_roster'
@@ -181,181 +179,6 @@ function respawnCountdown(points: PositionPoint[] | undefined, t: number): numbe
   return null
 }
 
-/* Every buff/debuff active on a hero at time t, reconstructed by replaying
-   the lifecycle log (see ModifierEvent's doc comment) up to t. Modifiers
-   are guaranteed t-ascending (apps/replay-parser sorts them before
-   assigning), so this can stop at the first future event instead of
-   scanning the whole list every call.
-
-   Three things this deliberately filters, all learned from watching a
-   real match: aura=true entries (nearby tower/fountain/etc auras) are
-   excluded entirely — they're a passive environmental state, not the
-   hero's own buff, and they dominate the list by count since they re-fire
-   on a short timer for as long as the hero stays in range. Item-granted
-   modifiers (name starting "modifier_item_") are excluded too — a hero's
-   items are already shown as icons below, so listing "Item Yasha", "Item
-   Radiance" etc. as buffs is redundant, and by late game a heavily-itemed
-   hero can have a dozen+ passive item modifiers permanently active,
-   dwarfing the actual ability buffs/debuffs the list exists to surface.
-   And any entry with a fixed duration expires on its own once that time
-   passes, even with no matching removal ever following it — many
-   modifiers (again, mostly aura-refresh ones) just stop being re-applied
-   rather than sending an explicit removal, so without this they'd show as
-   stuck on forever.
-
-   Tracked by name only, not by the Go side's per-slot Index: two
-   simultaneous instances of the exact same modifier name (rare — e.g. the
-   same debuff from two different casters) would collapse into one entry
-   here rather than two, and a removal of either would clear both. Not
-   worth the extra field just for that edge case.
-
-   One more consolidation happens after the above: some abilities create
-   several simultaneous modifiers for different internal sub-states of one
-   conceptual effect — e.g. Ember Spirit's Sleight of Fist shows an
-   "in_progress" marker, a "caster_invulnerable" window, and a "caster" tag
-   all at once, and Fire Remnant similarly splits into a base effect plus
-   its own "_timer"/"_remnant_tracker" bookkeeping entries. These collapse
-   to one entry per shared root (see canonicalModifierRoot) rather than
-   showing 3 names for what's really one active ability.
-
-   A last, different kind of noise: MODIFIER_NAMES_TO_HIDE. Some
-   single-target spells put a same-named copy of themselves on their own
-   caster purely as an internal "this was just cast" marker: Rubick's
-   Fade Bolt, Life Stealer's Infest, and Skywrath Mage's Shard (the
-   Aghanim's Shard grant itself, not its bonus) all do this. The spell's
-   real, felt effect lands on whoever the caster targeted, or under a
-   separately named modifier, that isn't filtered here. The caster's own
-   copy carries Duration=0 and never gets an explicit removal, so once it
-   fires even once it would otherwise show as a permanently-stuck fake
-   buff on the caster for a skill they merely used on someone else. Not
-   generalizable to a name/suffix rule: some abilities' bare caster-side
-   name IS a real status worth keeping (Ember Spirit's Flame Guard shield
-   is the caster's own bare name and has the exact same _debuff-sibling
-   shape as Fade Bolt, but should stay visible) — so this is a short,
-   explicit list of the specific names confirmed to be cast-only noise. */
-const MODIFIER_NAMES_TO_HIDE = new Set([
-  'modifier_rubick_fade_bolt',
-  'modifier_life_stealer_infest',
-  'modifier_skywrath_mage_shard',
-])
-
-/* Any "_counter"-suffixed modifier is dropped outright rather than merged
-   via canonicalModifierRoot below: confirmed on real data that a
-   "_counter" modifier's own stack number belongs to a DIFFERENT, already
-   separately-displayed effect, not the ability its name prefix suggests.
-   Skywrath Mage's modifier_skywrath_mage_shard_bonus_counter mirrors
-   modifier_skywrath_mage_shield_barrier's stack count exactly (both go
-   7, 4, 3, 2, 1 in lockstep) while sharing a name prefix with the
-   unrelated, always-1-stack modifier_skywrath_mage_shard_bonus; merging
-   it there (as the old suffix-strip list did) attached Shield Barrier's
-   stack count to the Shard Bonus tag, showing a stack number that had
-   nothing to do with what was actually displayed. Huskar's
-   modifier_huskar_burning_spear_counter is redundant with the debuff
-   that already covers it, for the same "this is bookkeeping, not a
-   distinct effect" reason its name states outright. */
-function isModifierCounter(name: string): boolean {
-  return name.endsWith('_counter')
-}
-
-const MODIFIER_SUFFIXES_TO_STRIP = [
-  'caster_invulnerable',
-  'caster_invulnerability',
-  'remnant_tracker',
-  'in_progress',
-  'caster',
-  'tracker',
-  'timer',
-  'vfx',
-  'marker',
-  'reveal',
-]
-
-function canonicalModifierRoot(name: string): string {
-  let root = name
-  for (let stripped = true; stripped; ) {
-    stripped = false
-    for (const suffix of MODIFIER_SUFFIXES_TO_STRIP) {
-      if (root.endsWith(`_${suffix}`)) {
-        root = root.slice(0, -(suffix.length + 1))
-        stripped = true
-        break
-      }
-    }
-  }
-  return root
-}
-
-function activeModifiersAt(
-  modifiers: ModifierEvent[] | null | undefined,
-  t: number,
-): { name: string; stacks: number }[] {
-  if (!modifiers?.length) return []
-  const active = new Map<string, { stacks: number; expiresAt: number | null }>()
-  for (const m of modifiers) {
-    if (m.t > t) break
-    if (
-      m.aura ||
-      m.name.startsWith('modifier_item_') ||
-      MODIFIER_NAMES_TO_HIDE.has(m.name) ||
-      isModifierCounter(m.name)
-    )
-      continue
-    if (m.active) {
-      active.set(m.name, { stacks: m.stacks ?? 1, expiresAt: m.duration ? m.t + m.duration : null })
-    } else {
-      active.delete(m.name)
-    }
-  }
-  const byRoot = new Map<string, { stacks: number }>()
-  for (const [name, v] of active) {
-    if (v.expiresAt != null && t >= v.expiresAt) continue
-    const root = canonicalModifierRoot(name)
-    const existing = byRoot.get(root)
-    if (!existing || v.stacks > existing.stacks) byRoot.set(root, { stacks: v.stacks })
-  }
-  return [...byRoot.entries()].map(([name, v]) => ({ name, stacks: v.stacks }))
-}
-
-function humanizeModifierName(raw: string): string {
-  return raw
-    .replace(/^modifier_/, '')
-    .split('_')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
-}
-
-type ModifierIconMatch =
-  | { kind: 'ability'; key: string; meta: AbilityConst }
-  | { kind: 'item'; key: string; meta: ItemConst }
-
-/* Best-effort mapping from a modifier's raw name to a real ability/item
-   icon + tooltip, so the buff row can look like the in-game status bar
-   instead of a wall of text pills. Dota suffixes a lot of modifier names
-   with internal sub-state/target info that isn't part of the ability's
-   own identifier (e.g. "life_stealer_infest_effect" is Infest's effect on
-   the infested unit, "axe_battle_hunger_self_movespeed" is Battle
-   Hunger's bonus on Axe himself) — this drops trailing "_word" segments
-   one at a time until what's left exactly matches a real ability or item
-   key. Requiring an exact hit against the real constants dictionary
-   (rather than a guessed name transform) makes a wrong match essentially
-   impossible; the cost is that some names never resolve, because they
-   really do belong to no single ability (generic states like Silence,
-   Stunned, Fountain Invulnerability) — those fall through to the plain
-   text pill below, same as before this existed. */
-function resolveModifierIcon(
-  name: string,
-  abilityConst: Record<string, AbilityConst>,
-  itemConst: Record<string, ItemConst>,
-): ModifierIconMatch | null {
-  const parts = name.replace(/^modifier_/, '').split('_')
-  for (let i = parts.length; i > 0; i--) {
-    const key = parts.slice(0, i).join('_')
-    if (abilityConst[key]) return { kind: 'ability', key, meta: abilityConst[key] }
-    if (itemConst[key]) return { kind: 'item', key, meta: itemConst[key] }
-  }
-  return null
-}
-
 function extractKillEvents(
   match: Match,
   heroMap: Map<number, HeroStat>,
@@ -449,7 +272,6 @@ function PlayerRow({
   timeSec,
   idToName,
   itemConst,
-  abilityConst,
   dense,
 }: {
   player: MatchPlayer
@@ -458,7 +280,6 @@ function PlayerRow({
   timeSec: number
   idToName: Map<number, string>
   itemConst: Record<string, ItemConst>
-  abilityConst: Record<string, AbilityConst>
   dense: PositionPoint[] | undefined
 }) {
   const stats = statsAtTime(player, match.players, hero?.name ?? '', timeSec, match.duration)
@@ -483,7 +304,6 @@ function PlayerRow({
       : -1
   const maybeDead = lastDeathTime >= 0 && timeSec - lastDeathTime <= 100
   const items = itemsAtTime(player, idToName, timeSec, match.duration, itemConst)
-  const activeMods = activeModifiersAt(player.modifiers, timeSec)
 
   const portrait = (
     <div className="relative shrink-0">
@@ -596,60 +416,15 @@ function PlayerRow({
       )}
 
       {sample && (
-        <div
-          className="mt-1 grid grid-cols-4 gap-x-1 text-[11px] tabular-nums text-slate-muted-light"
-          title="Move speed / attacks per second / damage / armor, live from the parsed replay"
-        >
-          <span>{sample.speed}</span>
-          <span>{sample.atk_time > 0 ? (1 / sample.atk_time).toFixed(2) : '-'}/s</span>
-          <span>
+        <div className="mt-1 grid grid-cols-4 gap-x-1 text-[11px] tabular-nums text-slate-muted-light">
+          <span title="Move speed">{sample.speed}</span>
+          <span title="Attack speed (attacks per second)">
+            {sample.atk_time > 0 ? (1 / sample.atk_time).toFixed(2) : '-'}/s
+          </span>
+          <span title="Damage (min-max)">
             {sample.dmg_min}-{sample.dmg_max}
           </span>
-          <span>{sample.armor.toFixed(1)}</span>
-        </div>
-      )}
-
-      {activeMods.length > 0 && (
-        <div className="mt-1 flex flex-wrap gap-1">
-          {activeMods.map((m) => {
-            const resolved = resolveModifierIcon(m.name, abilityConst, itemConst)
-            if (!resolved) {
-              return (
-                <span
-                  key={m.name}
-                  className="px-1 py-0.5 text-[10px] leading-none border border-slate-card text-slate-foreground-light"
-                  style={{ background: 'rgba(255,255,255,0.05)' }}
-                  title={m.name}
-                >
-                  {humanizeModifierName(m.name)}
-                  {m.stacks > 1 && ` x${m.stacks}`}
-                </span>
-              )
-            }
-            return (
-              <div key={m.name} className="relative">
-                {resolved.kind === 'ability' ? (
-                  <AbilityIcon
-                    name={resolved.key}
-                    meta={resolved.meta}
-                    isTalent={resolved.key.startsWith('special_bonus')}
-                    level={0}
-                    size={20}
-                  />
-                ) : (
-                  <ItemIcon name={resolved.key} meta={resolved.meta} width={20} height={20} />
-                )}
-                {m.stacks > 1 && (
-                  <span
-                    className="absolute -bottom-1 -right-1 flex items-center justify-center text-[9px] tabular-nums leading-none text-gold border border-slate-card"
-                    style={{ minWidth: 12, height: 12, background: '#0d1012' }}
-                  >
-                    {m.stacks}
-                  </span>
-                )}
-              </div>
-            )
-          })}
+          <span title="Armor">{sample.armor.toFixed(1)}</span>
         </div>
       )}
 
@@ -680,7 +455,6 @@ function TeamPanel({
   timeSec,
   idToName,
   itemConst,
-  abilityConst,
   denseBySlot,
 }: {
   side: 'radiant' | 'dire'
@@ -690,7 +464,6 @@ function TeamPanel({
   timeSec: number
   idToName: Map<number, string>
   itemConst: Record<string, ItemConst>
-  abilityConst: Record<string, AbilityConst>
   denseBySlot: Map<number, PositionPoint[]> | null
 }) {
   return (
@@ -710,7 +483,6 @@ function TeamPanel({
           timeSec={timeSec}
           idToName={idToName}
           itemConst={itemConst}
-          abilityConst={abilityConst}
           dense={denseBySlot?.get(p.player_slot)}
         />
       ))}
@@ -1085,7 +857,6 @@ export function ReplayViewer({
         timeSec={time}
         idToName={idToName}
         itemConst={itemConst}
-        abilityConst={abilityConst}
         denseBySlot={denseBySlot}
       />
 
@@ -1241,7 +1012,6 @@ export function ReplayViewer({
         timeSec={time}
         idToName={idToName}
         itemConst={itemConst}
-        abilityConst={abilityConst}
         denseBySlot={denseBySlot}
       />
 
