@@ -220,11 +220,11 @@ function respawnCountdown(points: PositionPoint[] | undefined, t: number): numbe
 
    A last, different kind of noise: MODIFIER_NAMES_TO_HIDE. Some
    single-target spells put a same-named copy of themselves on their own
-   caster purely as an internal "this was just cast" marker — Rubick's
-   Fade Bolt and Life Stealer's Infest both do this. The spell's real,
-   felt effect lands on whoever the caster targeted, under a separately
-   named modifier (modifier_rubick_fade_bolt_debuff, modifier_
-   life_stealer_infest_effect) that isn't filtered here. The caster's own
+   caster purely as an internal "this was just cast" marker: Rubick's
+   Fade Bolt, Life Stealer's Infest, and Skywrath Mage's Shard (the
+   Aghanim's Shard grant itself, not its bonus) all do this. The spell's
+   real, felt effect lands on whoever the caster targeted, or under a
+   separately named modifier, that isn't filtered here. The caster's own
    copy carries Duration=0 and never gets an explicit removal, so once it
    fires even once it would otherwise show as a permanently-stuck fake
    buff on the caster for a skill they merely used on someone else. Not
@@ -236,7 +236,26 @@ function respawnCountdown(points: PositionPoint[] | undefined, t: number): numbe
 const MODIFIER_NAMES_TO_HIDE = new Set([
   'modifier_rubick_fade_bolt',
   'modifier_life_stealer_infest',
+  'modifier_skywrath_mage_shard',
 ])
+
+/* Any "_counter"-suffixed modifier is dropped outright rather than merged
+   via canonicalModifierRoot below: confirmed on real data that a
+   "_counter" modifier's own stack number belongs to a DIFFERENT, already
+   separately-displayed effect, not the ability its name prefix suggests.
+   Skywrath Mage's modifier_skywrath_mage_shard_bonus_counter mirrors
+   modifier_skywrath_mage_shield_barrier's stack count exactly (both go
+   7, 4, 3, 2, 1 in lockstep) while sharing a name prefix with the
+   unrelated, always-1-stack modifier_skywrath_mage_shard_bonus; merging
+   it there (as the old suffix-strip list did) attached Shield Barrier's
+   stack count to the Shard Bonus tag, showing a stack number that had
+   nothing to do with what was actually displayed. Huskar's
+   modifier_huskar_burning_spear_counter is redundant with the debuff
+   that already covers it, for the same "this is bookkeeping, not a
+   distinct effect" reason its name states outright. */
+function isModifierCounter(name: string): boolean {
+  return name.endsWith('_counter')
+}
 
 const MODIFIER_SUFFIXES_TO_STRIP = [
   'caster_invulnerable',
@@ -246,7 +265,6 @@ const MODIFIER_SUFFIXES_TO_STRIP = [
   'caster',
   'tracker',
   'timer',
-  'counter',
   'vfx',
   'marker',
   'reveal',
@@ -275,7 +293,12 @@ function activeModifiersAt(
   const active = new Map<string, { stacks: number; expiresAt: number | null }>()
   for (const m of modifiers) {
     if (m.t > t) break
-    if (m.aura || m.name.startsWith('modifier_item_') || MODIFIER_NAMES_TO_HIDE.has(m.name))
+    if (
+      m.aura ||
+      m.name.startsWith('modifier_item_') ||
+      MODIFIER_NAMES_TO_HIDE.has(m.name) ||
+      isModifierCounter(m.name)
+    )
       continue
     if (m.active) {
       active.set(m.name, { stacks: m.stacks ?? 1, expiresAt: m.duration ? m.t + m.duration : null })
