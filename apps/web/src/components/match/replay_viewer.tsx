@@ -186,15 +186,21 @@ function respawnCountdown(points: PositionPoint[] | undefined, t: number): numbe
    assigning), so this can stop at the first future event instead of
    scanning the whole list every call.
 
-   Two things this deliberately filters, both learned from watching a real
-   match: aura=true entries (nearby tower/fountain/etc auras) are excluded
-   entirely — they're a passive environmental state, not the hero's own
-   buff, and they dominate the list by count since they re-fire on a short
-   timer for as long as the hero stays in range. And any entry with a fixed
-   duration expires on its own once that time passes, even with no
-   matching removal ever following it — many modifiers (again, mostly
-   aura-refresh ones) just stop being re-applied rather than sending an
-   explicit removal, so without this they'd show as stuck on forever.
+   Three things this deliberately filters, all learned from watching a
+   real match: aura=true entries (nearby tower/fountain/etc auras) are
+   excluded entirely — they're a passive environmental state, not the
+   hero's own buff, and they dominate the list by count since they re-fire
+   on a short timer for as long as the hero stays in range. Item-granted
+   modifiers (name starting "modifier_item_") are excluded too — a hero's
+   items are already shown as icons below, so listing "Item Yasha", "Item
+   Radiance" etc. as buffs is redundant, and by late game a heavily-itemed
+   hero can have a dozen+ passive item modifiers permanently active,
+   dwarfing the actual ability buffs/debuffs the list exists to surface.
+   And any entry with a fixed duration expires on its own once that time
+   passes, even with no matching removal ever following it — many
+   modifiers (again, mostly aura-refresh ones) just stop being re-applied
+   rather than sending an explicit removal, so without this they'd show as
+   stuck on forever.
 
    Tracked by name only, not by the Go side's per-slot Index: two
    simultaneous instances of the exact same modifier name (rare — e.g. the
@@ -209,7 +215,7 @@ function activeModifiersAt(
   const active = new Map<string, { stacks: number; expiresAt: number | null }>()
   for (const m of modifiers) {
     if (m.t > t) break
-    if (m.aura) continue
+    if (m.aura || m.name.startsWith('modifier_item_')) continue
     if (m.active) {
       active.set(m.name, { stacks: m.stacks ?? 1, expiresAt: m.duration ? m.t + m.duration : null })
     } else {
