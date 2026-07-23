@@ -1,5 +1,6 @@
 import { Pause, Play, SkipBack, SkipForward } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type {
   AbilityConst,
   HeroStat,
@@ -285,6 +286,11 @@ function PlayerRow({
   const stats = statsAtTime(player, match.players, hero?.name ?? '', timeSec, match.duration)
   const sample = sampleAt(dense, timeSec)
   const level = sample?.lvl || stats.level
+  // Native title="" tooltips proved unreliable on these small, tightly
+  // packed cells (easy to drift off the target before the browser's hover
+  // delay fires), so this tracks hover state itself and renders a portal
+  // tooltip, the same reliable pattern ItemIcon/AbilityIcon already use.
+  const [statTip, setStatTip] = useState<{ label: string; x: number; y: number } | null>(null)
   const dead = sample != null && sample.hp === 0
   const respawnIn = dead ? respawnCountdown(dense, timeSec) : null
   // Without a parse, there's no continuous HP data to know exactly when a
@@ -416,17 +422,48 @@ function PlayerRow({
       )}
 
       {sample && (
-        <div className="mt-1 grid grid-cols-4 gap-x-1 text-[11px] tabular-nums text-slate-muted-light">
-          <span title="Move speed">{sample.speed}</span>
-          <span title="Attack speed (attacks per second)">
+        // biome-ignore lint/a11y/noStaticElementInteractions: mouse-only hover label for sighted users, equivalent to a native title attribute (unreliable on these small cells); numbers are already plain visible text
+        <div
+          className="mt-1 grid grid-cols-4 gap-x-1 text-[11px] tabular-nums text-slate-muted-light"
+          onMouseMove={(e) => {
+            const label = (e.target as HTMLElement).dataset.statLabel
+            if (label) setStatTip({ label, x: e.clientX, y: e.clientY })
+          }}
+          onMouseLeave={() => setStatTip(null)}
+        >
+          <span data-stat-label="Move speed">{sample.speed}</span>
+          <span data-stat-label="Attack speed (attacks per second)">
             {sample.atk_time > 0 ? (1 / sample.atk_time).toFixed(2) : '-'}/s
           </span>
-          <span title="Damage (min-max)">
+          <span data-stat-label="Damage (min-max)">
             {sample.dmg_min}-{sample.dmg_max}
           </span>
-          <span title="Armor">{sample.armor.toFixed(1)}</span>
+          <span data-stat-label="Armor">{sample.armor.toFixed(1)}</span>
         </div>
       )}
+      {statTip &&
+        createPortal(
+          <div
+            className="pointer-events-none font-dota"
+            style={{
+              position: 'fixed',
+              left: Math.min(statTip.x + 12, window.innerWidth - 220),
+              top: Math.max(8, statTip.y - 32),
+              zIndex: 9999,
+              background: '#0b0a08',
+              border: '1px solid #3a352a',
+              borderRadius: 4,
+              boxShadow: '0 6px 24px rgba(0,0,0,0.7)',
+              padding: '4px 8px',
+              fontSize: 11,
+              color: '#ece6d8',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {statTip.label}
+          </div>,
+          document.body,
+        )}
 
       <div className="mt-1 flex gap-0.5">
         {items.map((id, i) => {
