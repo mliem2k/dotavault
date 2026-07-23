@@ -11,6 +11,7 @@ export type {
   KillLog,
   Match,
   MatchPlayer,
+  ModifierEvent,
   Objective,
   ParsedKillEvent,
   PickBan,

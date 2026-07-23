@@ -133,7 +133,9 @@ export type AghsDesc = {
 
 // One sampled hero snapshot from apps/replay-parser (PositionPoint in
 // apps/replay-parser/parser.go). X/Y share OpenDota's obs_log/deaths_pos
-// ~64-192 world-grid scale.
+// ~64-192 world-grid scale. speed/atk_time/armor already include every
+// currently-active modifier's bonus (see parser.go's PositionPoint doc
+// comment); dmg_min/dmg_max already include the hero's live damage bonus.
 export type PositionPoint = {
   t: number
   x: number
@@ -143,6 +145,11 @@ export type PositionPoint = {
   mhp: number
   mp: number
   mmp: number
+  speed: number
+  atk_time: number
+  dmg_min: number
+  dmg_max: number
+  armor: number
 }
 
 // One hero death from apps/replay-parser's combat log (KillEvent in
@@ -153,6 +160,16 @@ export type ParsedKillEvent = {
   victim: string
   inflictor?: string
   gold?: number
+}
+
+// One buff/debuff lifecycle transition from apps/replay-parser (ModifierEvent
+// in apps/replay-parser/types.go). Raw and unfiltered, same "aura"/
+// "building"/"courier" noise the real Dota 2 client's buff bar carries too.
+export type ModifierEvent = {
+  t: number
+  name: string
+  active: boolean
+  stacks?: number
 }
 
 export type MatchPlayer = {
@@ -247,6 +264,7 @@ export type MatchPlayer = {
   hero_hits?: Record<string, number> | null
   multi_kills?: Record<string, number> | null
   kill_streaks?: Record<string, number> | null
+  modifiers?: ModifierEvent[] | null
 }
 
 export type Match = {

@@ -6,6 +6,7 @@ import type {
   ItemConst,
   Match,
   MatchPlayer,
+  ModifierEvent,
   ParsedKillEvent,
   PositionPoint,
 } from 'types'
@@ -179,6 +180,39 @@ function respawnCountdown(points: PositionPoint[] | undefined, t: number): numbe
   return null
 }
 
+/* Every buff/debuff active on a hero at time t, reconstructed by replaying
+   the lifecycle log (see ModifierEvent's doc comment) up to t. Modifiers
+   are guaranteed t-ascending (apps/replay-parser sorts them before
+   assigning), so this can stop at the first future event instead of
+   scanning the whole list every call.
+
+   Tracked by name only, not by the Go side's per-slot Index: two
+   simultaneous instances of the exact same modifier name (rare — e.g. the
+   same debuff from two different casters) would collapse into one entry
+   here rather than two, and a removal of either would clear both. Not
+   worth the extra field just for that edge case. */
+function activeModifiersAt(
+  modifiers: ModifierEvent[] | null | undefined,
+  t: number,
+): { name: string; stacks: number }[] {
+  if (!modifiers?.length) return []
+  const active = new Map<string, number>()
+  for (const m of modifiers) {
+    if (m.t > t) break
+    if (m.active) active.set(m.name, m.stacks ?? 1)
+    else active.delete(m.name)
+  }
+  return [...active.entries()].map(([name, stacks]) => ({ name, stacks }))
+}
+
+function humanizeModifierName(raw: string): string {
+  return raw
+    .replace(/^modifier_/, '')
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+}
+
 function extractKillEvents(
   match: Match,
   heroMap: Map<number, HeroStat>,
@@ -304,6 +338,7 @@ function PlayerRow({
       : -1
   const maybeDead = lastDeathTime >= 0 && timeSec - lastDeathTime <= 100
   const items = itemsAtTime(player, idToName, timeSec, match.duration, itemConst)
+  const activeMods = activeModifiersAt(player.modifiers, timeSec)
 
   const portrait = (
     <div className="relative shrink-0">
@@ -412,6 +447,36 @@ function PlayerRow({
               }}
             />
           </div>
+        </div>
+      )}
+
+      {sample && (
+        <div
+          className="mt-1 grid grid-cols-4 gap-x-1 text-[11px] tabular-nums text-slate-muted-light"
+          title="Move speed / attacks per second / damage / armor, live from the parsed replay"
+        >
+          <span>{sample.speed}</span>
+          <span>{sample.atk_time > 0 ? (1 / sample.atk_time).toFixed(2) : '-'}/s</span>
+          <span>
+            {sample.dmg_min}-{sample.dmg_max}
+          </span>
+          <span>{sample.armor.toFixed(1)}</span>
+        </div>
+      )}
+
+      {activeMods.length > 0 && (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {activeMods.map((m) => (
+            <span
+              key={m.name}
+              className="px-1 py-0.5 text-[10px] leading-none border border-slate-card text-slate-foreground-light"
+              style={{ background: 'rgba(255,255,255,0.05)' }}
+              title={m.name}
+            >
+              {humanizeModifierName(m.name)}
+              {m.stacks > 1 && ` x${m.stacks}`}
+            </span>
+          ))}
         </div>
       )}
 

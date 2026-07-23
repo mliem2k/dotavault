@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"github.com/dotabuff/manta"
@@ -23,6 +24,25 @@ type PositionPoint struct {
 	MaxHP int32   `json:"mhp"`
 	MP    int32   `json:"mp"`
 	MaxMP int32   `json:"mmp"`
+	// Speed/Armor: m_iMoveSpeed and m_flPhysicalArmorValue are base-only on
+	// the hero entity (confirmed empirically: never change over a full
+	// match, even as boots/armor items are bought), so the live total is
+	// base + the sum of every currently-active modifier's own bonus (see
+	// modifiers.go's activeBonus) — same reasoning as AttackTime below.
+	Speed int32 `json:"speed"`
+	// AttackTime: seconds per attack, lower = faster. m_flBaseAttackTime
+	// alone is also base-only (same empirical check), so this is
+	// BaseAttackTime adjusted by the sum of active modifiers' AttackSpeed
+	// bonus (Dota's real formula: base / (1 + totalIAS/100)).
+	AttackTime float64 `json:"atk_time"`
+	// DamageMin/DamageMax: unlike Speed/Armor above, m_iDamageBonus *does*
+	// update live on its own (confirmed empirically), so this is just
+	// base damage + that field, no modifier-sum needed — summing modifier
+	// Damage bonuses on top would double-count whatever m_iDamageBonus
+	// already reflects.
+	DamageMin int32 `json:"dmg_min"`
+	DamageMax int32 `json:"dmg_max"`
+	Armor     float64 `json:"armor"`
 }
 
 // KillEvent is one hero death from the combat log, with the detail OpenDota
@@ -109,6 +129,19 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 	var gameEndSet bool
 	lastEmittedSecond := map[int]int{}
 	positions := map[int][]PositionPoint{}
+
+	// activeModifiersBySlot is kept live by trackModifiers (modifiers.go) as
+	// ModifierTableEntry events stream in, so the position sampler below can
+	// read "what's active on this hero right now" via activeBonus without
+	// re-scanning history. rawModifierEvents buffers the same "buffer now,
+	// convert after" way as rawKills/preGamePositions — shifted into
+	// match-time and appended to each player's Modifiers once gameStartTime
+	// is final.
+	activeModifiersBySlot := map[int]map[int32]*activeModifier{}
+	var rawModifierEvents []rawModifierEvent
+	trackModifiers(p, activeModifiersBySlot, &rawModifierEvents, func() float64 {
+		return float64(p.NetTick) / tickRate
+	})
 
 	// Pregame position samples (state 4) arrive before gameStartTime is
 	// known (that's only set once state reaches 5), so they're buffered
@@ -309,9 +342,10 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			}
 			heroPositions[slot] = [2]float64{x, y}
 			lastEmittedPreGameSecond[slot] = second
+			msBonus, asBonus, arBonus := activeBonus(activeModifiersBySlot[slot])
 			preGamePositions[slot] = append(preGamePositions[slot], rawPreGamePoint{
 				rawT: float64(p.NetTick) / tickRate,
-				pt:   readHeroPositionFields(e, x, y),
+				pt:   readHeroPositionFields(e, x, y, msBonus, asBonus, arBonus),
 			})
 			return nil
 		}
@@ -331,7 +365,8 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 
 		lastEmittedSecond[slot] = second
 
-		pt := readHeroPositionFields(e, x, y)
+		msBonus, asBonus, arBonus := activeBonus(activeModifiersBySlot[slot])
+		pt := readHeroPositionFields(e, x, y, msBonus, asBonus, arBonus)
 		pt.T = matchTime
 		positions[slot] = append(positions[slot], pt)
 		players[fmtSlot(slot)].Positions = append(players[fmtSlot(slot)].Positions, pt)
@@ -539,6 +574,27 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			key := fmtSlot(slot)
 			players[key].Positions = append(shifted, players[key].Positions...)
 		}
+
+		// Same shift for buffered modifier lifecycle events, grouped by
+		// slot and sorted by raw time first since rawModifierEvents is one
+		// flat, arrival-ordered buffer across every hero (unlike
+		// preGamePositions, which was already bucketed per slot).
+		bySlot := map[int][]rawModifierEvent{}
+		for _, re := range rawModifierEvents {
+			bySlot[re.slot] = append(bySlot[re.slot], re)
+		}
+		for slot, events := range bySlot {
+			sort.Slice(events, func(i, j int) bool { return events[i].rawT < events[j].rawT })
+			key := fmtSlot(slot)
+			for _, re := range events {
+				players[key].Modifiers = append(players[key].Modifiers, ModifierEvent{
+					T:      re.rawT - gameStartTime,
+					Name:   re.name,
+					Active: re.active,
+					Stacks: re.stacks,
+				})
+			}
+		}
 	}
 
 	duration := gameEndTime - gameStartTime
@@ -635,11 +691,14 @@ func playerSlot(playerID uint32, teamNum uint64) (int, bool) {
 }
 
 // readHeroPositionFields builds a PositionPoint from a hero entity's current
-// level/health/mana fields, given an already-resolved x/y. T is left zero;
+// level/health/mana/combat-stat fields, given an already-resolved x/y and
+// the hero's currently-active modifier bonus totals (see modifiers.go's
+// activeBonus — Speed/AttackTime/Armor need these summed in, since the
+// entity's own base fields never change over a match). T is left zero;
 // callers set it themselves (either directly, once match-time is known, or
 // later via the pregame shift pass, since pregame samples don't know their
 // final T yet when this is called).
-func readHeroPositionFields(e *manta.Entity, x, y float64) PositionPoint {
+func readHeroPositionFields(e *manta.Entity, x, y float64, moveSpeedBonus, attackSpeedBonus, armorBonus int32) PositionPoint {
 	pt := PositionPoint{X: x, Y: y}
 	if v, ok := e.Get("m_iCurrentLevel").(int32); ok {
 		pt.Level = v
@@ -655,6 +714,25 @@ func readHeroPositionFields(e *manta.Entity, x, y float64) PositionPoint {
 	}
 	if v, ok := e.Get("m_flMaxMana").(float32); ok {
 		pt.MaxMP = int32(v)
+	}
+	if v, ok := e.Get("m_iMoveSpeed").(int32); ok {
+		pt.Speed = v + moveSpeedBonus
+	}
+	if v, ok := e.Get("m_flPhysicalArmorValue").(float32); ok {
+		pt.Armor = float64(v) + float64(armorBonus)
+	}
+	if v, ok := e.Get("m_flBaseAttackTime").(float32); ok && v > 0 {
+		// Dota's real IAS formula: effective attack time = base / (1 + totalIAS/100).
+		pt.AttackTime = float64(v) / (1 + float64(attackSpeedBonus)/100)
+	}
+	dmgMin, hasMin := e.Get("m_iBaseDamageMin").(int32)
+	dmgMax, hasMax := e.Get("m_iBaseDamageMax").(int32)
+	bonus, _ := e.Get("m_iDamageBonus").(int32) // absent -> 0, a fine default (no bonus)
+	if hasMin {
+		pt.DamageMin = dmgMin + bonus
+	}
+	if hasMax {
+		pt.DamageMax = dmgMax + bonus
 	}
 	return pt
 }

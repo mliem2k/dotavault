@@ -48,6 +48,22 @@ type PlayerParsed struct {
 	Pings         *int32           `json:"pings,omitempty"`
 	Actions       map[string]int32 `json:"actions,omitempty"`
 	ActionsPerMin *float64         `json:"actions_per_min,omitempty"`
+	// Modifiers: every buff/debuff lifecycle transition on this hero,
+	// resolved via the replay's ModifierNames string table (see
+	// modifiers.go) — raw and unfiltered, same "aura"/"building"/"courier"
+	// noise the real Dota 2 client's buff bar also carries internally.
+	Modifiers []ModifierEvent `json:"modifiers"`
+}
+
+// ModifierEvent is one buff/debuff lifecycle transition (applied or
+// removed) on a hero. Name is resolved through the replay's ModifierNames
+// string table (see modifiers.go), same lookup pattern as CombatLogNames/
+// EntityNames elsewhere in this parser.
+type ModifierEvent struct {
+	T      float64 `json:"t"`
+	Name   string  `json:"name"`
+	Active bool    `json:"active"` // false = removed at T
+	Stacks int32   `json:"stacks,omitempty"`
 }
 
 type WardEvent struct {
