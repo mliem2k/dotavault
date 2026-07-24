@@ -82,6 +82,28 @@ export function itemsAtTime(
   return ids
 }
 
+// Neutral item + its enhancement tier at `timeSec`, reconstructed from the
+// timestamped pickup/enhancement-reroll log (there's no purchase_log entry
+// for these; they're found from camps, not bought). A later entry omits
+// `item_neutral` when it's an enhancement reroll on the same still-held
+// item rather than a new tier pickup, so the last-seen item name carries
+// forward across those. Before the first entry's time, the player hasn't
+// found one yet.
+export function neutralItemAtTime(
+  player: MatchPlayer,
+  timeSec: number,
+): { itemName: string | null; enhancement: string | null } {
+  const log = player.neutral_item_history ?? []
+  let itemName: string | null = null
+  let enhancement: string | null = null
+  for (const e of [...log].sort((a, b) => a.time - b.time)) {
+    if (e.time > timeSec) break
+    if (e.item_neutral) itemName = e.item_neutral
+    if (e.item_neutral_enhancement) enhancement = e.item_neutral_enhancement
+  }
+  return { itemName, enhancement }
+}
+
 // Aghanim's Scepter/Shard grant their hero-specific upgrade three different
 // ways, each needing different treatment:
 //   - 'held': bought and still sitting in their final inventory. Already

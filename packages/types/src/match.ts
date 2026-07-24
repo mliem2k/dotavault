@@ -205,8 +205,19 @@ export type MatchPlayer = {
   // NOT a second neutral item slot — there's only ever one. This is a
   // pseudo-item id (patch 7.36+'s "enhancement" mechanic) whose name in the
   // item constants is literally `enhancement_tough`/`enhancement_alert`/etc,
-  // resolving to the bonus tier currently applied to `item_neutral`.
+  // resolving to the bonus tier CURRENTLY applied to `item_neutral` (final
+  // state only; use neutral_item_history below to reconstruct earlier
+  // points in the match).
   item_neutral2?: number
+  // Timestamped log of neutral item pickups/enhancement rerolls. A later
+  // entry omits `item_neutral` when it's an enhancement reroll on the same
+  // still-held item rather than a new tier pickup; carry the last-seen
+  // item/enhancement forward when reconstructing state at a given time.
+  neutral_item_history?: {
+    item_neutral?: string
+    time: number
+    item_neutral_enhancement?: string
+  }[]
   aghanims_scepter: number
   aghanims_shard: number
   moonshard: number
