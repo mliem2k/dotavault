@@ -306,7 +306,7 @@ function PlayerPage() {
       }}
     >
       <div className="flex flex-col gap-0 font-dota">
-        {/* Tab strip — PROFILE / MATCHES / STATS */}
+        {/* Tab strip: PROFILE / MATCHES / STATS / META */}
         <div
           className="flex items-center gap-1 flex-wrap mt-3 mb-3 px-3 py-2.5"
           style={{ background: 'rgba(8,10,12,0.55)' }}
