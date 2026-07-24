@@ -143,6 +143,10 @@ type SideFilter = 'all' | 'radiant' | 'dire'
 type NumOrAll = number | 'all'
 
 const SELECT_CLASS = 'bg-slate-bg text-slate-foreground border border-slate-card'
+// Bumps touch targets to the 44px minimum only for coarse (touch) pointers,
+// leaving the dense mouse-oriented sizing this toolbar is designed around
+// untouched on desktop.
+const TOUCH_TARGET = '[@media(pointer:coarse)]:min-h-[44px]'
 
 function selectStyle(disabled?: boolean): React.CSSProperties {
   return {
@@ -317,7 +321,7 @@ export function AllMatches({ accountId, heroStats }: { accountId: string; heroSt
         <select
           value={heroFilter}
           onChange={(e) => setHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className={`text-[13px] px-2 py-1.5 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
+          className={`text-[13px] px-2 py-1.5 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS} ${TOUCH_TARGET}`}
           style={selectStyle()}
         >
           <option value="all">My Hero</option>
@@ -334,7 +338,7 @@ export function AllMatches({ accountId, heroStats }: { accountId: string; heroSt
           onChange={(e) =>
             setWithHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
           }
-          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
+          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS} ${TOUCH_TARGET}`}
           style={selectStyle(proOnly)}
         >
           <option value="all">With Hero</option>
@@ -351,7 +355,7 @@ export function AllMatches({ accountId, heroStats }: { accountId: string; heroSt
           onChange={(e) =>
             setAgainstHeroFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
           }
-          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
+          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS} ${TOUCH_TARGET}`}
           style={selectStyle(proOnly)}
         >
           <option value="all">Against Hero</option>
@@ -368,7 +372,7 @@ export function AllMatches({ accountId, heroStats }: { accountId: string; heroSt
           onChange={(e) =>
             setWithPlayerFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
           }
-          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
+          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS} ${TOUCH_TARGET}`}
           style={selectStyle(proOnly)}
         >
           <option value="all">With Player</option>
@@ -385,7 +389,7 @@ export function AllMatches({ accountId, heroStats }: { accountId: string; heroSt
           onChange={(e) =>
             setGameModeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
           }
-          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
+          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS} ${TOUCH_TARGET}`}
           style={selectStyle(proOnly)}
         >
           <option value="all">All Modes</option>
@@ -402,7 +406,7 @@ export function AllMatches({ accountId, heroStats }: { accountId: string; heroSt
           onChange={(e) =>
             setLobbyTypeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
           }
-          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
+          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS} ${TOUCH_TARGET}`}
           style={selectStyle(proOnly)}
         >
           <option value="all">All Lobbies</option>
@@ -419,7 +423,7 @@ export function AllMatches({ accountId, heroStats }: { accountId: string; heroSt
           onChange={(e) =>
             setLaneRoleFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
           }
-          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
+          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS} ${TOUCH_TARGET}`}
           style={selectStyle(proOnly)}
         >
           <option value="all">All Roles</option>
@@ -434,7 +438,7 @@ export function AllMatches({ accountId, heroStats }: { accountId: string; heroSt
           value={sideFilter}
           disabled={proOnly}
           onChange={(e) => setSideFilter(e.target.value as SideFilter)}
-          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
+          className={`text-[13px] px-2 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS} ${TOUCH_TARGET}`}
           style={selectStyle(proOnly)}
         >
           <option value="all">Any Side</option>
@@ -445,7 +449,7 @@ export function AllMatches({ accountId, heroStats }: { accountId: string; heroSt
         <select
           value={dateFilter}
           onChange={(e) => setDateFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          className={`text-[13px] px-2 py-1.5 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS}`}
+          className={`text-[13px] px-2 py-1.5 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold ${SELECT_CLASS} ${TOUCH_TARGET}`}
           style={selectStyle()}
         >
           <option value="all">All Time</option>
@@ -462,7 +466,7 @@ export function AllMatches({ accountId, heroStats }: { accountId: string; heroSt
               key={r}
               type="button"
               onClick={() => setResultFilter(r)}
-              className={`px-3 py-1.5 text-[12px] uppercase cursor-pointer transition-colors ${
+              className={`px-3 py-1.5 text-[12px] uppercase cursor-pointer transition-colors ${TOUCH_TARGET} ${
                 resultFilter === r ? 'bg-slate-card text-white' : 'text-slate-muted-light'
               }`}
               style={{ letterSpacing: '1px' }}
@@ -475,7 +479,7 @@ export function AllMatches({ accountId, heroStats }: { accountId: string; heroSt
         <button
           type="button"
           onClick={() => setProOnly((v) => !v)}
-          className={`px-3 py-1.5 text-[12px] uppercase cursor-pointer transition-colors border ${
+          className={`px-3 py-1.5 text-[12px] uppercase cursor-pointer transition-colors border ${TOUCH_TARGET} ${
             proOnly ? 'text-gold border-gold' : 'text-slate-muted-light border-slate-card'
           }`}
           style={{
@@ -490,7 +494,7 @@ export function AllMatches({ accountId, heroStats }: { accountId: string; heroSt
           <button
             type="button"
             onClick={resetFilters}
-            className="text-[12px] uppercase cursor-pointer hover:text-white text-slate-muted"
+            className={`flex items-center px-1 text-[12px] uppercase cursor-pointer hover:text-white text-slate-muted ${TOUCH_TARGET}`}
             style={{ letterSpacing: '1px' }}
           >
             Reset Filters
@@ -503,7 +507,12 @@ export function AllMatches({ accountId, heroStats }: { accountId: string; heroSt
       </div>
 
       <div className="overflow-x-auto">
-        <div className="min-w-[900px]">
+        {/* No fixed min-width here: the fixed-width columns below (shrink-0)
+            already set the row's real minimum, and it changes automatically
+            as GPM/XPM/LH/Type toggle visibility at each breakpoint. A hard
+            min-width used to force horizontal scroll well past that point,
+            into dead space where those hidden columns used to be. */}
+        <div className="min-w-fit">
           {/* Header row */}
           <div
             className="flex items-center px-3 py-2.5 text-[12px] uppercase text-slate-muted-light"

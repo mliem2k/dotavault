@@ -172,7 +172,7 @@ function BuildingTooltip({
                   {a.damage.toLocaleString()}
                 </span>
                 <span className="truncate" style={{ color: playerColor(a.player.player_slot) }}>
-                  {a.player.personaname ?? 'Anonymous'}
+                  {a.player.personaname ?? a.player.name ?? 'Anonymous'}
                 </span>
                 {a.lastHit && <span className="ml-auto shrink-0 text-gold">last hit</span>}
               </div>

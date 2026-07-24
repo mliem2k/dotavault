@@ -4,6 +4,7 @@ import { SortHeader } from '@/components/ui/sort_header'
 import { orderTypeName, playerColor } from '@/lib/dotaconst'
 import { applySort, useSort } from '@/lib/sortable'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { usePlayerName } from './match_roster'
 
 /* Actions tab (OpenDota-style): how each player actually piloted their hero:
    per-order-type command counts (players[].actions, keyed by unit order id)
@@ -26,6 +27,71 @@ const C = {
 type SortKey = 'player' | 'apm' | 'total'
 
 const totalActions = (p: MatchPlayer) => Object.values(p.actions ?? {}).reduce((s, v) => s + v, 0)
+
+function ActionsRow({
+  player: p,
+  hero,
+  columns,
+  maxCell,
+}: {
+  player: MatchPlayer
+  hero: HeroStat | undefined
+  columns: string[]
+  maxCell: number
+}) {
+  const name = usePlayerName(p)
+  const total = totalActions(p)
+  return (
+    <tr style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+      <td className="px-3 py-1.5">
+        <div className="flex items-center gap-2">
+          <span style={{ width: 3, height: 22, background: playerColor(p.player_slot) }} />
+          <img
+            src={hero ? heroIconUrl(hero.name) : ''}
+            alt=""
+            title={hero?.localized_name}
+            style={{ width: 26, height: 26 }}
+            onError={(e) => {
+              if (!hero) return
+              const img = e.currentTarget
+              img.onerror = null
+              img.src = heroIconFromPath(hero.icon)
+            }}
+          />
+          <span
+            className={`max-w-[130px] truncate text-[13px] ${p.player_slot < 128 ? 'text-radiant' : 'text-dire'}`}
+          >
+            {name}
+          </span>
+        </div>
+      </td>
+      <td className="px-2 text-right text-[13px] tabular-nums text-gold">
+        {p.actions_per_min ?? '-'}
+      </td>
+      <td className="px-2 text-right text-[13px] tabular-nums text-white">
+        {total ? total.toLocaleString() : '-'}
+      </td>
+      {columns.map((id) => {
+        const v = p.actions?.[id] ?? 0
+        return (
+          <td key={id} className="px-1 py-1">
+            <div
+              className={`flex h-[22px] items-center justify-center text-[13px] tabular-nums ${v > 0 ? 'text-slate-foreground' : 'text-slate-border'}`}
+              style={{
+                background:
+                  v > 0
+                    ? `rgba(159,191,63,${0.06 + 0.4 * (v / maxCell)})`
+                    : 'rgba(255,255,255,0.02)',
+              }}
+            >
+              {v ? v.toLocaleString() : ''}
+            </div>
+          </td>
+        )
+      })}
+    </tr>
+  )
+}
 
 export function MatchActions({ match, heroStats }: { match: Match; heroStats: HeroStat[] }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
@@ -59,7 +125,9 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
   const compare = (a: MatchPlayer, b: MatchPlayer) => {
     switch (sortKey) {
       case 'player':
-        return (a.personaname ?? 'Anonymous').localeCompare(b.personaname ?? 'Anonymous')
+        return (a.personaname ?? a.name ?? 'Anonymous').localeCompare(
+          b.personaname ?? b.name ?? 'Anonymous',
+        )
       case 'total':
         return totalActions(a) - totalActions(b)
       default:
@@ -77,60 +145,15 @@ export function MatchActions({ match, heroStats }: { match: Match; heroStats: He
     compare,
   )
 
-  const row = (p: MatchPlayer) => {
-    const hero = heroMap.get(p.hero_id)
-    const total = totalActions(p)
-    return (
-      <tr key={p.player_slot} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <td className="px-3 py-1.5">
-          <div className="flex items-center gap-2">
-            <span style={{ width: 3, height: 22, background: playerColor(p.player_slot) }} />
-            <img
-              src={hero ? heroIconUrl(hero.name) : ''}
-              alt=""
-              title={hero?.localized_name}
-              style={{ width: 26, height: 26 }}
-              onError={(e) => {
-                if (!hero) return
-                const img = e.currentTarget
-                img.onerror = null
-                img.src = heroIconFromPath(hero.icon)
-              }}
-            />
-            <span
-              className={`max-w-[130px] truncate text-[13px] ${p.player_slot < 128 ? 'text-radiant' : 'text-dire'}`}
-            >
-              {p.personaname ?? 'Anonymous'}
-            </span>
-          </div>
-        </td>
-        <td className="px-2 text-right text-[13px] tabular-nums text-gold">
-          {p.actions_per_min ?? '-'}
-        </td>
-        <td className="px-2 text-right text-[13px] tabular-nums text-white">
-          {total ? total.toLocaleString() : '-'}
-        </td>
-        {columns.map((id) => {
-          const v = p.actions?.[id] ?? 0
-          return (
-            <td key={id} className="px-1 py-1">
-              <div
-                className={`flex h-[22px] items-center justify-center text-[13px] tabular-nums ${v > 0 ? 'text-slate-foreground' : 'text-slate-border'}`}
-                style={{
-                  background:
-                    v > 0
-                      ? `rgba(159,191,63,${0.06 + 0.4 * (v / maxCell)})`
-                      : 'rgba(255,255,255,0.02)',
-                }}
-              >
-                {v ? v.toLocaleString() : ''}
-              </div>
-            </td>
-          )
-        })}
-      </tr>
-    )
-  }
+  const row = (p: MatchPlayer) => (
+    <ActionsRow
+      key={p.player_slot}
+      player={p}
+      hero={heroMap.get(p.hero_id)}
+      columns={columns}
+      maxCell={maxCell}
+    />
+  )
 
   return (
     <div className="overflow-x-auto font-dota" style={{ background: C.panel }}>

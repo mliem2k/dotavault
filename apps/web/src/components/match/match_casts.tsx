@@ -8,6 +8,7 @@ import {
   ITEM_CDN_FALLBACK,
   itemIconUrl,
 } from '@/lib/utils'
+import { usePlayerName } from './match_roster'
 
 /* Casts tab (OpenDota-style): per player, how often each ability and each
    active item was used (ability_uses / item_uses), plus hit counts
@@ -110,6 +111,7 @@ function PlayerCasts({
   abilityConst: Record<string, AbilityConst>
   itemConst: Record<string, ItemConst>
 }) {
+  const name = usePlayerName(player)
   const abilities = sortedEntries(player.ability_uses).filter(([k]) => !SKIP_KEYS.has(k))
   const items = sortedEntries(player.item_uses).filter(([k]) => k !== 'tpscroll')
   const tp = player.item_uses?.tpscroll ?? 0
@@ -134,9 +136,7 @@ function PlayerCasts({
         <span className={`text-[13px] ${isRadiant ? 'text-radiant' : 'text-dire'}`}>
           {hero?.localized_name ?? 'Unknown'}
         </span>
-        <span className="truncate text-[13px] text-slate-muted">
-          {player.personaname ?? 'Anonymous'}
-        </span>
+        <span className="truncate text-[13px] text-slate-muted">{name}</span>
         <span className="ml-auto shrink-0 text-[12px] tabular-nums text-slate-muted">
           {attacks > 0 ? `${attacks.toLocaleString()} attacks landed` : ''}
           {tp > 0 ? `${attacks > 0 ? ' · ' : ''}${tp} TPs` : ''}

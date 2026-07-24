@@ -1,6 +1,7 @@
-import type { HeroStat, Match } from 'types'
+import type { HeroStat, Match, MatchPlayer } from 'types'
 import { playerColor } from '@/lib/dotaconst'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { usePlayerName } from './match_roster'
 
 /* Cosmetics tab (OpenDota-style): the equipped cosmetic items each player
    brought into the match, when the API recorded any. */
@@ -26,6 +27,65 @@ const RARITY_COLORS: Record<string, string> = {
   ancient: '#eb4b4b',
 }
 
+function CosmeticsRow({ player: p, hero }: { player: MatchPlayer; hero: HeroStat | undefined }) {
+  const name = usePlayerName(p)
+  return (
+    <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="mb-2 flex items-center gap-2">
+        <span style={{ width: 3, height: 22, background: playerColor(p.player_slot) }} />
+        <img
+          src={hero ? heroIconUrl(hero.name) : ''}
+          alt=""
+          style={{ width: 26, height: 26 }}
+          onError={(e) => {
+            if (!hero) return
+            const img = e.currentTarget
+            img.onerror = null
+            img.src = heroIconFromPath(hero.icon)
+          }}
+        />
+        <span className={`text-[13px] ${p.player_slot < 128 ? 'text-radiant' : 'text-dire'}`}>
+          {hero?.localized_name ?? 'Unknown'}
+        </span>
+        <span className="truncate text-[13px] text-slate-muted">{name}</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {(p.cosmetics ?? []).map((c) => {
+          const rarityColor = RARITY_COLORS[c.item_rarity ?? '']
+          return (
+            <div
+              key={c.item_id}
+              className={`flex items-center gap-1.5 px-2 py-1 ${rarityColor ? '' : 'border-slate-bg'}`}
+              style={{
+                background: 'rgba(8,10,12,0.6)',
+                border: rarityColor ? `1px solid ${rarityColor}` : '1px solid',
+              }}
+              title={c.item_rarity ?? undefined}
+            >
+              {c.image_path && (
+                <img
+                  src={`https://steamcdn-a.akamaihd.net/apps/570/${c.image_path}`}
+                  alt=""
+                  style={{ width: 44, height: 30, objectFit: 'contain' }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+              )}
+              <span
+                className={`text-[13px] ${rarityColor ? '' : 'text-slate-foreground'}`}
+                style={rarityColor ? { color: rarityColor } : undefined}
+              >
+                {c.name ?? `Item ${c.item_id}`}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export function MatchCosmetics({ match, heroStats }: { match: Match; heroStats: HeroStat[] }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const withItems = match.players.filter((p) => (p.cosmetics?.length ?? 0) > 0)
@@ -38,70 +98,9 @@ export function MatchCosmetics({ match, heroStats }: { match: Match; heroStats: 
       >
         Cosmetics
       </div>
-      {withItems.map((p) => {
-        const hero = heroMap.get(p.hero_id)
-        return (
-          <div
-            key={p.player_slot}
-            className="px-4 py-3"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
-          >
-            <div className="mb-2 flex items-center gap-2">
-              <span style={{ width: 3, height: 22, background: playerColor(p.player_slot) }} />
-              <img
-                src={hero ? heroIconUrl(hero.name) : ''}
-                alt=""
-                style={{ width: 26, height: 26 }}
-                onError={(e) => {
-                  if (!hero) return
-                  const img = e.currentTarget
-                  img.onerror = null
-                  img.src = heroIconFromPath(hero.icon)
-                }}
-              />
-              <span className={`text-[13px] ${p.player_slot < 128 ? 'text-radiant' : 'text-dire'}`}>
-                {hero?.localized_name ?? 'Unknown'}
-              </span>
-              <span className="truncate text-[13px] text-slate-muted">
-                {p.personaname ?? 'Anonymous'}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {(p.cosmetics ?? []).map((c) => {
-                const rarityColor = RARITY_COLORS[c.item_rarity ?? '']
-                return (
-                  <div
-                    key={c.item_id}
-                    className={`flex items-center gap-1.5 px-2 py-1 ${rarityColor ? '' : 'border-slate-bg'}`}
-                    style={{
-                      background: 'rgba(8,10,12,0.6)',
-                      border: rarityColor ? `1px solid ${rarityColor}` : '1px solid',
-                    }}
-                    title={c.item_rarity ?? undefined}
-                  >
-                    {c.image_path && (
-                      <img
-                        src={`https://steamcdn-a.akamaihd.net/apps/570/${c.image_path}`}
-                        alt=""
-                        style={{ width: 44, height: 30, objectFit: 'contain' }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none'
-                        }}
-                      />
-                    )}
-                    <span
-                      className={`text-[13px] ${rarityColor ? '' : 'text-slate-foreground'}`}
-                      style={rarityColor ? { color: rarityColor } : undefined}
-                    >
-                      {c.name ?? `Item ${c.item_id}`}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )
-      })}
+      {withItems.map((p) => (
+        <CosmeticsRow key={p.player_slot} player={p} hero={heroMap.get(p.hero_id)} />
+      ))}
       {withItems.length === 0 && (
         <div className="py-10 text-center text-[13px] text-slate-muted">
           No cosmetic data recorded for this match.

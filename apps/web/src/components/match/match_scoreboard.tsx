@@ -373,8 +373,14 @@ function ItemsCell({
   duration: number
 }) {
   const items = itemsAtTime(player, idToName, timeSec, duration, itemConst)
+  // The neutral item has no purchase_log entry (it's found, not bought), so
+  // there's no way to reconstruct when it was picked up — only its final
+  // state is known. Showing it while scrubbing would imply a timestamp we
+  // don't have, so it only ever appears once the slider reaches the end.
+  const atEnd = timeSec >= duration
+  const neutralName = player.item_neutral ? (idToName.get(player.item_neutral) ?? null) : null
   return (
-    <div className="flex gap-[3px]">
+    <div className="flex items-center gap-[3px]">
       {items.map((id, i) => {
         const name = id ? (idToName.get(id) ?? null) : null
         return (
@@ -388,6 +394,20 @@ function ItemsCell({
           />
         )
       })}
+      {atEnd && (
+        <div
+          className="ml-1.5 pl-1.5"
+          style={{ borderLeft: '1px solid rgba(255,255,255,0.08)' }}
+          title="Neutral item"
+        >
+          <ItemIcon
+            name={neutralName}
+            meta={neutralName ? itemConst[neutralName] : undefined}
+            width={36}
+            height={27}
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -450,8 +470,10 @@ const PlayerRow = memo(function PlayerRow({
 
   return (
     <tr
-      tabIndex={0}
+      // biome-ignore lint/a11y/noRedundantRoles: display:flex strips the implicit row role
+      role="row"
       aria-selected={active}
+      tabIndex={0}
       onClick={toggle}
       onKeyDown={onKeyDown}
       className="flex items-stretch w-full text-left cursor-pointer hover:bg-white/[0.04]"
@@ -465,6 +487,8 @@ const PlayerRow = memo(function PlayerRow({
         <td
           // biome-ignore lint/suspicious/noArrayIndexKey: fixed column position, not reorderable
           key={i}
+          // biome-ignore lint/a11y/noRedundantRoles: display:flex strips the implicit cell role
+          role="cell"
           className={`shrink-0 flex items-center ${i === 4 ? 'justify-start pl-1' : 'justify-center'}`}
           style={{ width: c.width }}
         >
@@ -472,7 +496,11 @@ const PlayerRow = memo(function PlayerRow({
         </td>
       ))}
       {hasPurchases && (
-        <td className="flex items-center shrink-0">
+        <td
+          // biome-ignore lint/a11y/noRedundantRoles: display:flex strips the implicit cell role
+          role="cell"
+          className="flex items-center shrink-0"
+        >
           <SupportItemsGroup
             player={player}
             itemConst={itemConst}
@@ -482,12 +510,20 @@ const PlayerRow = memo(function PlayerRow({
         </td>
       )}
       {hasBuffs && (
-        <td className="flex items-center shrink-0">
+        <td
+          // biome-ignore lint/a11y/noRedundantRoles: display:flex strips the implicit cell role
+          role="cell"
+          className="flex items-center shrink-0"
+        >
           <BuffsGroup player={player} idToName={idToName} itemConst={itemConst} />
         </td>
       )}
       {maxAbilities > 0 && (
-        <td className="flex items-center shrink-0">
+        <td
+          // biome-ignore lint/a11y/noRedundantRoles: display:flex strips the implicit cell role
+          role="cell"
+          className="flex items-center shrink-0"
+        >
           <AbilityBuildGroup
             player={player}
             abilities={abilities}
@@ -587,7 +623,10 @@ export function MatchScoreboard({
       },
       {
         label: 'Items',
-        width: 6 * 36 + 5 * 3,
+        // 6 main slots + the neutral item's own separated slot (margin + a
+        // 1px divider + its own 36px icon), shown only once the slider
+        // reaches the end (see ItemsCell).
+        width: 6 * 36 + 5 * 3 + 6 + 6 + 1 + 36,
         render: (p) => (
           <ItemsCell
             player={p}
@@ -685,6 +724,8 @@ export function MatchScoreboard({
     <th
       key={key}
       scope="col"
+      // biome-ignore lint/a11y/noRedundantRoles: display:flex strips the implicit columnheader role
+      role="columnheader"
       className={`shrink-0 flex items-center justify-center text-[13px] uppercase text-slate-muted-light font-dota ${extraClass}`}
       style={{ width, height: headerH, letterSpacing: '1px' }}
     >
@@ -696,6 +737,8 @@ export function MatchScoreboard({
     <th
       key={key}
       scope="col"
+      // biome-ignore lint/a11y/noRedundantRoles: display:flex strips the implicit columnheader role
+      role="columnheader"
       className="shrink-0 flex items-center justify-center"
       style={{ width: c.width, height: headerH }}
     >
@@ -713,14 +756,21 @@ export function MatchScoreboard({
 
   const headerRow = () => {
     return (
-      <tr className="flex items-stretch" style={{ height: headerH }}>
+      // biome-ignore lint/a11y/noRedundantRoles: display:flex strips the implicit row role
+      <tr role="row" className="flex items-stretch" style={{ height: headerH }}>
         {cols.map((c, i) =>
           c.sortKey
             ? sortableLabel(i, c, i === 4 ? 'justify-start pl-1' : '')
             : label(i, c.label, c.width, i === 4 ? 'justify-start pl-1' : ''),
         )}
         {hasPurchases && (
-          <th scope="col" className="flex items-center shrink-0 pl-2" style={{ width: 266 }}>
+          <th
+            scope="col"
+            // biome-ignore lint/a11y/noRedundantRoles: display:flex strips the implicit columnheader role
+            role="columnheader"
+            className="flex items-center shrink-0 pl-2"
+            style={{ width: 266 }}
+          >
             <span
               className="text-[13px] uppercase flex-1 text-slate-muted-light font-dota"
               style={{ letterSpacing: '1px' }}
@@ -732,7 +782,13 @@ export function MatchScoreboard({
           </th>
         )}
         {hasBuffs && (
-          <th scope="col" className="flex items-center shrink-0 pl-2" style={{ width: 140 }}>
+          <th
+            scope="col"
+            // biome-ignore lint/a11y/noRedundantRoles: display:flex strips the implicit columnheader role
+            role="columnheader"
+            className="flex items-center shrink-0 pl-2"
+            style={{ width: 140 }}
+          >
             <span
               className="text-[13px] uppercase text-slate-muted-light font-dota"
               style={{ letterSpacing: '1px' }}
@@ -742,7 +798,12 @@ export function MatchScoreboard({
           </th>
         )}
         {maxAbilities > 0 && (
-          <th scope="col" className="flex items-center gap-[3px] px-2 shrink-0">
+          <th
+            scope="col"
+            // biome-ignore lint/a11y/noRedundantRoles: display:flex strips the implicit columnheader role
+            role="columnheader"
+            className="flex items-center gap-[3px] px-2 shrink-0"
+          >
             {/* width matches AbilityIcon's default 26px size exactly (not a
                 round number like 29) so each header number stays lined up
                 with its own ability icon below instead of drifting right
@@ -781,7 +842,15 @@ export function MatchScoreboard({
         />
         {/* Stats pane — scrolls horizontally, rows aligned with the sidebar */}
         <div className="flex-1 min-w-0 overflow-x-auto">
-          <table className="inline-block min-w-full">
+          {/* Explicit table/row/cell/columnheader roles restore the semantics
+              `display: inline-block`/`flex` (needed for the fixed-width
+              column layout) otherwise strip in Chromium/Firefox's
+              accessibility tree — Biome's static a11y rules can't see the
+              CSS display override, hence the ignores below. `cell` (not
+              `gridcell`) since rows toggle selection on click/Enter/Space
+              rather than implementing full grid arrow-key navigation. */}
+          {/* biome-ignore lint/a11y/noRedundantRoles: display:inline-block strips the implicit table role */}
+          <table role="table" className="inline-block min-w-full">
             {headerRow()}
             {sortedRadiant.map((p) => (
               <PlayerRow

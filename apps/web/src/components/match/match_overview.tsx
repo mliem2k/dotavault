@@ -140,26 +140,50 @@ function HeroRender({
   scale?: number
 }) {
   const [failed, setFailed] = useState(false)
+  const [visible, setVisible] = useState(false)
   const playedRef = useRef(false)
+  const elRef = useRef<HTMLVideoElement | HTMLImageElement | null>(null)
   const shortName = hero.name.replace('npc_dota_hero_', '')
+  const posterUrl = `${RENDER}/${shortName}.png`
   const style = {
     objectPosition,
     transform: scale !== 1 ? `scale(${scale})` : undefined,
     transformOrigin: 'center top',
   }
 
+  // Team view renders up to 10 of these at once; only the ones actually
+  // scrolled into view start fetching/decoding their ~1.3MB clip. The
+  // poster frame (shown below until then) is what autoPlay would have
+  // painted first anyway, so there's no visible swap-in.
+  useEffect(() => {
+    const el = elRef.current
+    if (!el || visible) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setVisible(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '200px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [visible])
+
   // Fall back to the static portrait if the clip isn't playable in time.
   useEffect(() => {
-    if (failed) return
+    if (failed || !visible) return
     const t = setTimeout(() => {
       if (!playedRef.current) setFailed(true)
     }, 5000)
     return () => clearTimeout(t)
-  }, [failed])
+  }, [failed, visible])
 
   if (failed) {
     return (
       <img
+        ref={elRef as React.Ref<HTMLImageElement>}
         src={heroVertUrl(hero.name)}
         alt={hero.localized_name}
         className={className}
@@ -177,14 +201,28 @@ function HeroRender({
       />
     )
   }
+
+  if (!visible) {
+    return (
+      <img
+        ref={elRef as React.Ref<HTMLImageElement>}
+        src={posterUrl}
+        alt={hero.localized_name}
+        className={className}
+        style={style}
+      />
+    )
+  }
+
   return (
     <video
+      ref={elRef as React.Ref<HTMLVideoElement>}
       key={shortName}
       autoPlay
       loop
       muted
       playsInline
-      poster={`${RENDER}/${shortName}.png`}
+      poster={posterUrl}
       className={className}
       style={style}
       onCanPlay={() => {
@@ -1388,11 +1426,13 @@ export function MatchOverview({
     selectedSlot: number | null,
     selectedPlayer: MatchPlayer | undefined,
   ) => {
-    // Collapsed → thumbnail strip + detail panel. Capped at half the page so
-    // a single selected side doesn't sprawl over the other team's cards.
+    // Collapsed → thumbnail strip + detail panel. Full width on mobile so the
+    // panel can reflow all the way down; capped at half the page on wider
+    // viewports so a single selected side doesn't sprawl over the other
+    // team's cards.
     if (selectedSlot != null && selectedPlayer) {
       return (
-        <div className="flex-1 min-w-0 space-y-4" style={{ maxWidth: '50%' }}>
+        <div className="flex-1 min-w-0 w-full md:max-w-[50%] space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <ThumbStrip
               players={players}
@@ -1415,18 +1455,23 @@ export function MatchOverview({
       )
     }
 
-    // Expanded → full portrait cards
+    // Expanded → full portrait cards. These are fixed-width and can't
+    // meaningfully reflow, so they scroll in their own lane (same pattern as
+    // the team-view row above) instead of forcing the whole selection view
+    // wide and burying the other team's collapsed detail panel off-screen.
     return (
-      <div className="shrink-0 flex gap-1">
-        {players.map((p) => (
-          <HeroPortraitCard
-            key={p.player_slot}
-            player={p}
-            hero={heroMap.get(p.hero_id)}
-            idToName={idToName}
-            onClick={() => selectHero(p)}
-          />
-        ))}
+      <div className="min-w-0 overflow-x-auto">
+        <div className="flex gap-1">
+          {players.map((p) => (
+            <HeroPortraitCard
+              key={p.player_slot}
+              player={p}
+              hero={heroMap.get(p.hero_id)}
+              idToName={idToName}
+              onClick={() => selectHero(p)}
+            />
+          ))}
+        </div>
       </div>
     )
   }
@@ -1444,21 +1489,23 @@ export function MatchOverview({
   const direSide = renderTeamSide(false, dire, selDire, selDirePlayer)
 
   return (
-    <div className="overflow-x-auto">
-      <div className="space-y-6" style={{ minWidth: 1080 }}>
-        <div className="flex items-start gap-8">
-          <div ref={selRadiant != null ? radiantSelectedRef : undefined} className="contents">
-            {radiantSide}
-          </div>
-          <div ref={selDire != null ? direSelectedRef : undefined} className="contents">
-            {direSide}
-          </div>
+    <div className="space-y-6">
+      {/* flex-wrap (not a forced min-width) so a collapsed, reflow-ready
+          side can shrink to the full viewport width on mobile instead of
+          being squeezed onto one wide horizontal-scrolling canvas together
+          with the other, non-reflowable expanded side. */}
+      <div className="flex flex-wrap items-start gap-8">
+        <div ref={selRadiant != null ? radiantSelectedRef : undefined} className="contents">
+          {radiantSide}
         </div>
-
-        {scrubbable && (
-          <GameTimeSlider timeSec={timeSec} duration={match.duration} onChange={setTimeSec} />
-        )}
+        <div ref={selDire != null ? direSelectedRef : undefined} className="contents">
+          {direSide}
+        </div>
       </div>
+
+      {scrubbable && (
+        <GameTimeSlider timeSec={timeSec} duration={match.duration} onChange={setTimeSec} />
+      )}
     </div>
   )
 }

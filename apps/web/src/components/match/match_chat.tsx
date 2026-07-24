@@ -110,17 +110,20 @@ export function MatchChat({
                 {formatDuration(Math.max(0, msg.time))}
               </span>
               {hero && (
-                <img
-                  src={heroIconUrl(hero.name)}
-                  alt=""
-                  className="shrink-0"
-                  style={{ width: 32, height: 32, borderLeft: `3px solid ${color}` }}
-                  onError={(e) => {
-                    const img = e.currentTarget
-                    img.onerror = null
-                    img.src = heroIconFromPath(hero.icon)
-                  }}
-                />
+                <>
+                  <span className="shrink-0" style={{ width: 3, height: 32, background: color }} />
+                  <img
+                    src={heroIconUrl(hero.name)}
+                    alt=""
+                    className="shrink-0"
+                    style={{ width: 32, height: 32 }}
+                    onError={(e) => {
+                      const img = e.currentTarget
+                      img.onerror = null
+                      img.src = heroIconFromPath(hero.icon)
+                    }}
+                  />
+                </>
               )}
               {player ? (
                 <PlayerNameLink

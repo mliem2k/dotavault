@@ -219,7 +219,7 @@ function MatchPage() {
               <Link
                 to="/match/$matchId/$tab"
                 params={{ matchId, tab: g.tabs[0] }}
-                className="text-[14px] font-semibold uppercase cursor-pointer whitespace-nowrap"
+                className="text-[14px] font-semibold uppercase cursor-pointer whitespace-nowrap [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:min-h-[44px]"
                 style={{
                   // #7d8b95 is not in the Token Mapping Reference — left as-is per
                   // task instructions.
@@ -256,7 +256,7 @@ function MatchPage() {
               <Link
                 to="/match/$matchId/$tab"
                 params={{ matchId, tab: t }}
-                className="text-[13px] uppercase cursor-pointer whitespace-nowrap"
+                className="text-[13px] uppercase cursor-pointer whitespace-nowrap [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:min-h-[44px]"
                 style={{
                   // #7d8b95 is not in the Token Mapping Reference — left as-is per
                   // task instructions.

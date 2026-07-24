@@ -308,6 +308,7 @@ export function GameTimeSlider({
       <div
         ref={trackRef}
         className="relative h-7 flex items-center cursor-pointer"
+        style={{ touchAction: 'none' }}
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId)
           dragging.current = true

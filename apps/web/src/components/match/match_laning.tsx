@@ -13,6 +13,7 @@ import { MAP_MAX, MAP_MIN } from '@/lib/buildings'
 import { playerColor } from '@/lib/dotaconst'
 import { applySort, useSort } from '@/lib/sortable'
 import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
+import { usePlayerName } from './match_roster'
 
 /* Laning tab (OpenDota-style): where each hero actually stood during the
    laning phase (players[].lane_pos, a position-count heatmap over the first
@@ -29,6 +30,67 @@ type SortKey = 'player' | 'lane' | 'eff' | 'lh' | 'gold' | 'xp'
 
 function toCanvas(val: number, size: number): number {
   return ((val - MAP_MIN) / (MAP_MAX - MAP_MIN)) * size
+}
+
+function LaningRow({
+  player: p,
+  hero,
+  at10,
+}: {
+  player: MatchPlayer
+  hero: HeroStat | undefined
+  at10: (arr: number[] | null | undefined) => number | null
+}) {
+  const name = usePlayerName(p)
+  const isRadiant = p.player_slot < 128
+  return (
+    <TableRow className="hover:bg-transparent border-t border-white/5 border-x-0 border-b-0">
+      <TableCell className="p-0 px-2 py-1.5 whitespace-normal">
+        <div className="flex items-center gap-2">
+          <span style={{ width: 3, height: 20, background: playerColor(p.player_slot) }} />
+          <a
+            href={hero ? `/hero/${heroSlug(hero.localized_name)}` : '#'}
+            className="block shrink-0"
+          >
+            <img
+              src={hero ? heroIconUrl(hero.name) : ''}
+              alt=""
+              title={hero?.localized_name}
+              style={{ width: 24, height: 24 }}
+              onError={(e) => {
+                if (!hero) return
+                const img = e.currentTarget
+                img.onerror = null
+                img.src = heroIconFromPath(hero.icon)
+              }}
+            />
+          </a>
+          <span
+            className={`max-w-[120px] truncate text-[13px] ${isRadiant ? 'text-radiant' : 'text-dire'}`}
+          >
+            {name}
+          </span>
+        </div>
+      </TableCell>
+      <TableCell className="p-0 px-2 text-[13px] text-slate-foreground whitespace-normal">
+        {p.lane_role ? (LANE_NAMES[p.lane_role] ?? '?') : '?'}
+      </TableCell>
+      <TableCell
+        className={`p-0 px-2 text-right text-[13px] tabular-nums ${p.lane_efficiency_pct != null && p.lane_efficiency_pct >= 60 ? 'text-gold' : 'text-slate-foreground'}`}
+      >
+        {p.lane_efficiency_pct != null ? `${p.lane_efficiency_pct}%` : '-'}
+      </TableCell>
+      <TableCell className="p-0 px-2 text-right text-[13px] tabular-nums text-slate-foreground">
+        {at10(p.lh_t) ?? '-'} / {at10(p.dn_t) ?? '-'}
+      </TableCell>
+      <TableCell className="p-0 px-2 text-right text-[13px] tabular-nums text-gold">
+        {at10(p.gold_t)?.toLocaleString() ?? '-'}
+      </TableCell>
+      <TableCell className="p-0 px-2 text-right text-[13px] tabular-nums text-slate-foreground">
+        {at10(p.xp_t)?.toLocaleString() ?? '-'}
+      </TableCell>
+    </TableRow>
+  )
 }
 
 export function MatchLaning({ match, heroStats }: { match: Match; heroStats: HeroStat[] }) {
@@ -115,7 +177,9 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
   const compare = (a: MatchPlayer, b: MatchPlayer) => {
     switch (sortKey) {
       case 'player':
-        return (a.personaname ?? 'Anonymous').localeCompare(b.personaname ?? 'Anonymous')
+        return (a.personaname ?? a.name ?? 'Anonymous').localeCompare(
+          b.personaname ?? b.name ?? 'Anonymous',
+        )
       case 'lane':
         return (a.lane_role ?? 0) - (b.lane_role ?? 0)
       case 'lh':
@@ -139,61 +203,9 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
     compare,
   )
 
-  const statRow = (p: MatchPlayer) => {
-    const hero = heroMap.get(p.hero_id)
-    const isRadiant = p.player_slot < 128
-    return (
-      <TableRow
-        key={p.player_slot}
-        className="hover:bg-transparent border-t border-white/5 border-x-0 border-b-0"
-      >
-        <TableCell className="p-0 px-2 py-1.5 whitespace-normal">
-          <div className="flex items-center gap-2">
-            <span style={{ width: 3, height: 20, background: playerColor(p.player_slot) }} />
-            <a
-              href={hero ? `/hero/${heroSlug(hero.localized_name)}` : '#'}
-              className="block shrink-0"
-            >
-              <img
-                src={hero ? heroIconUrl(hero.name) : ''}
-                alt=""
-                title={hero?.localized_name}
-                style={{ width: 24, height: 24 }}
-                onError={(e) => {
-                  if (!hero) return
-                  const img = e.currentTarget
-                  img.onerror = null
-                  img.src = heroIconFromPath(hero.icon)
-                }}
-              />
-            </a>
-            <span
-              className={`max-w-[120px] truncate text-[13px] ${isRadiant ? 'text-radiant' : 'text-dire'}`}
-            >
-              {p.personaname ?? 'Anonymous'}
-            </span>
-          </div>
-        </TableCell>
-        <TableCell className="p-0 px-2 text-[13px] text-slate-foreground whitespace-normal">
-          {p.lane_role ? (LANE_NAMES[p.lane_role] ?? '?') : '?'}
-        </TableCell>
-        <TableCell
-          className={`p-0 px-2 text-right text-[13px] tabular-nums ${p.lane_efficiency_pct != null && p.lane_efficiency_pct >= 60 ? 'text-gold' : 'text-slate-foreground'}`}
-        >
-          {p.lane_efficiency_pct != null ? `${p.lane_efficiency_pct}%` : '-'}
-        </TableCell>
-        <TableCell className="p-0 px-2 text-right text-[13px] tabular-nums text-slate-foreground">
-          {at10(p.lh_t) ?? '-'} / {at10(p.dn_t) ?? '-'}
-        </TableCell>
-        <TableCell className="p-0 px-2 text-right text-[13px] tabular-nums text-gold">
-          {at10(p.gold_t)?.toLocaleString() ?? '-'}
-        </TableCell>
-        <TableCell className="p-0 px-2 text-right text-[13px] tabular-nums text-slate-foreground">
-          {at10(p.xp_t)?.toLocaleString() ?? '-'}
-        </TableCell>
-      </TableRow>
-    )
-  }
+  const statRow = (p: MatchPlayer) => (
+    <LaningRow key={p.player_slot} player={p} hero={heroMap.get(p.hero_id)} at10={at10} />
+  )
 
   return (
     <div className="flex flex-wrap gap-4 font-dota">

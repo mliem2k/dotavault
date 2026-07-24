@@ -11,6 +11,7 @@ import {
 import { playerColor } from '@/lib/dotaconst'
 import { applySort, useSort } from '@/lib/sortable'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
+import { usePlayerName } from './match_roster'
 
 /* Fantasy tab: fantasy points per player using the standard OpenDota
    scoring (same components Dota's official fantasy leagues use). */
@@ -104,7 +105,67 @@ const COMPONENTS: Component[] = [
 ]
 
 const totalPoints = (p: MatchPlayer) => COMPONENTS.reduce((s, c) => s + c.points(p), 0)
-const playerLabel = (p: MatchPlayer) => p.personaname ?? 'Anonymous'
+const playerLabel = (p: MatchPlayer) => p.personaname ?? p.name ?? 'Anonymous'
+
+function FantasyRow({
+  player: p,
+  hero,
+  best,
+}: {
+  player: MatchPlayer
+  hero: HeroStat | undefined
+  best: number
+}) {
+  const name = usePlayerName(p)
+  const total = totalPoints(p)
+  return (
+    <TableRow className="hover:bg-transparent border-t border-white/5 border-x-0 border-b-0">
+      <TableCell className="p-0 px-3 py-1.5 whitespace-normal">
+        <div className="flex items-center gap-2">
+          <span style={{ width: 3, height: 22, background: playerColor(p.player_slot) }} />
+          <img
+            src={hero ? heroIconUrl(hero.name) : ''}
+            alt=""
+            title={hero?.localized_name}
+            style={{ width: 26, height: 26 }}
+            onError={(e) => {
+              if (!hero) return
+              const img = e.currentTarget
+              img.onerror = null
+              img.src = heroIconFromPath(hero.icon)
+            }}
+          />
+          <span
+            className={`max-w-[130px] truncate text-[13px] ${p.player_slot < 128 ? 'text-radiant' : 'text-dire'}`}
+          >
+            {name}
+          </span>
+        </div>
+      </TableCell>
+      <TableCell className="p-0 px-2 text-right">
+        <span
+          className={`text-[15px] font-bold tabular-nums ${total === best ? 'text-gold' : 'text-white'}`}
+          title={total === best ? 'Best fantasy score of the match' : undefined}
+        >
+          {total.toFixed(1)}
+        </span>
+      </TableCell>
+      {COMPONENTS.map((c) => {
+        const pts = c.points(p)
+        return (
+          <TableCell key={c.label} className="p-0 px-2 text-center whitespace-normal">
+            <div
+              className={`text-[13px] tabular-nums ${pts > 0 ? 'text-slate-foreground' : 'text-slate-border'}`}
+            >
+              {pts.toFixed(1)}
+            </div>
+            <div className="text-[11px] tabular-nums text-slate-muted">{c.value(p)}</div>
+          </TableCell>
+        )
+      })}
+    </TableRow>
+  )
+}
 
 export function MatchFantasy({ match, heroStats }: { match: Match; heroStats: HeroStat[] }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
@@ -134,60 +195,9 @@ export function MatchFantasy({ match, heroStats }: { match: Match; heroStats: He
     compare,
   )
 
-  const row = (p: MatchPlayer) => {
-    const hero = heroMap.get(p.hero_id)
-    const total = totalPoints(p)
-    return (
-      <TableRow
-        key={p.player_slot}
-        className="hover:bg-transparent border-t border-white/5 border-x-0 border-b-0"
-      >
-        <TableCell className="p-0 px-3 py-1.5 whitespace-normal">
-          <div className="flex items-center gap-2">
-            <span style={{ width: 3, height: 22, background: playerColor(p.player_slot) }} />
-            <img
-              src={hero ? heroIconUrl(hero.name) : ''}
-              alt=""
-              title={hero?.localized_name}
-              style={{ width: 26, height: 26 }}
-              onError={(e) => {
-                if (!hero) return
-                const img = e.currentTarget
-                img.onerror = null
-                img.src = heroIconFromPath(hero.icon)
-              }}
-            />
-            <span
-              className={`max-w-[130px] truncate text-[13px] ${p.player_slot < 128 ? 'text-radiant' : 'text-dire'}`}
-            >
-              {p.personaname ?? 'Anonymous'}
-            </span>
-          </div>
-        </TableCell>
-        <TableCell className="p-0 px-2 text-right">
-          <span
-            className={`text-[15px] font-bold tabular-nums ${total === best ? 'text-gold' : 'text-white'}`}
-            title={total === best ? 'Best fantasy score of the match' : undefined}
-          >
-            {total.toFixed(1)}
-          </span>
-        </TableCell>
-        {COMPONENTS.map((c) => {
-          const pts = c.points(p)
-          return (
-            <TableCell key={c.label} className="p-0 px-2 text-center whitespace-normal">
-              <div
-                className={`text-[13px] tabular-nums ${pts > 0 ? 'text-slate-foreground' : 'text-slate-border'}`}
-              >
-                {pts.toFixed(1)}
-              </div>
-              <div className="text-[11px] tabular-nums text-slate-muted">{c.value(p)}</div>
-            </TableCell>
-          )
-        })}
-      </TableRow>
-    )
-  }
+  const row = (p: MatchPlayer) => (
+    <FantasyRow key={p.player_slot} player={p} hero={heroMap.get(p.hero_id)} best={best} />
+  )
 
   return (
     <div className="overflow-x-auto font-dota" style={{ background: C.panel }}>

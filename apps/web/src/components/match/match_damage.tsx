@@ -274,7 +274,6 @@ export function MatchDamage({
               width: IDENTITY_W,
               height: TEAM_HEADER_H,
               padding: '0 10px',
-              borderLeft: `3px solid ${color}`,
               background: `${color}12`,
             }}
           >

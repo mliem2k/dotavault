@@ -411,21 +411,27 @@ export function MatchVision({
                   </div>
                   <div className="flex items-center gap-2">
                     {hero && (
-                      <img
-                        src={heroIconUrl(hero.name)}
-                        alt=""
-                        style={{ width: 26, height: 26, borderLeft: `3px solid ${color}` }}
-                        onError={(e) => {
-                          const img = e.currentTarget
-                          img.onerror = null
-                          img.src = heroIconFromPath(hero.icon)
-                        }}
-                      />
+                      <>
+                        <span
+                          className="shrink-0"
+                          style={{ width: 3, height: 26, background: color }}
+                        />
+                        <img
+                          src={heroIconUrl(hero.name)}
+                          alt=""
+                          style={{ width: 26, height: 26 }}
+                          onError={(e) => {
+                            const img = e.currentTarget
+                            img.onerror = null
+                            img.src = heroIconFromPath(hero.icon)
+                          }}
+                        />
+                      </>
                     )}
                     <div className="min-w-0">
                       <div className="text-[14px] truncate text-white">{hero?.localized_name}</div>
                       <div className="text-[11px] truncate text-slate-muted">
-                        {player?.personaname ?? 'Anonymous'}
+                        {player?.personaname ?? player?.name ?? 'Anonymous'}
                       </div>
                     </div>
                   </div>
