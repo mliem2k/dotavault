@@ -335,6 +335,14 @@ function PlayerPage() {
           >
             Stats
           </Link>
+          <Link
+            to="/player/$accountId/meta"
+            params={{ accountId }}
+            className={tabLinkClass(activeTab === 'meta')}
+            style={tabLinkStyle(activeTab === 'meta')}
+          >
+            Meta
+          </Link>
         </div>
 
         {/* Header bar */}

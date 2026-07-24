@@ -36,6 +36,7 @@ import { Route as MatchMatchIdIndexRouteImport } from './routes/match.$matchId.i
 import { Route as LeagueLeagueIdIndexRouteImport } from './routes/league.$leagueId.index'
 import { Route as PlayerAccountIdStatsRouteImport } from './routes/player.$accountId.stats'
 import { Route as PlayerAccountIdProfileRouteImport } from './routes/player.$accountId.profile'
+import { Route as PlayerAccountIdMetaRouteImport } from './routes/player.$accountId.meta'
 import { Route as PlayerAccountIdMatchesRouteImport } from './routes/player.$accountId.matches'
 import { Route as MatchMatchIdTabRouteImport } from './routes/match.$matchId.$tab'
 import { Route as LeagueLeagueIdResultsRouteImport } from './routes/league.$leagueId.results'
@@ -180,6 +181,11 @@ const PlayerAccountIdProfileRoute = PlayerAccountIdProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => PlayerAccountIdRoute,
 } as any)
+const PlayerAccountIdMetaRoute = PlayerAccountIdMetaRouteImport.update({
+  id: '/meta',
+  path: '/meta',
+  getParentRoute: () => PlayerAccountIdRoute,
+} as any)
 const PlayerAccountIdMatchesRoute = PlayerAccountIdMatchesRouteImport.update({
   id: '/matches',
   path: '/matches',
@@ -252,6 +258,7 @@ export interface FileRoutesByFullPath {
   '/league/$leagueId/results': typeof LeagueLeagueIdResultsRouteWithChildren
   '/match/$matchId/$tab': typeof MatchMatchIdTabRoute
   '/player/$accountId/matches': typeof PlayerAccountIdMatchesRoute
+  '/player/$accountId/meta': typeof PlayerAccountIdMetaRoute
   '/player/$accountId/profile': typeof PlayerAccountIdProfileRouteWithChildren
   '/player/$accountId/stats': typeof PlayerAccountIdStatsRoute
   '/league/$leagueId/': typeof LeagueLeagueIdIndexRoute
@@ -282,6 +289,7 @@ export interface FileRoutesByTo {
   '/league/$leagueId/$tab': typeof LeagueLeagueIdTabRoute
   '/match/$matchId/$tab': typeof MatchMatchIdTabRoute
   '/player/$accountId/matches': typeof PlayerAccountIdMatchesRoute
+  '/player/$accountId/meta': typeof PlayerAccountIdMetaRoute
   '/player/$accountId/stats': typeof PlayerAccountIdStatsRoute
   '/league/$leagueId': typeof LeagueLeagueIdIndexRoute
   '/match/$matchId': typeof MatchMatchIdIndexRoute
@@ -319,6 +327,7 @@ export interface FileRoutesById {
   '/league/$leagueId/results': typeof LeagueLeagueIdResultsRouteWithChildren
   '/match/$matchId/$tab': typeof MatchMatchIdTabRoute
   '/player/$accountId/matches': typeof PlayerAccountIdMatchesRoute
+  '/player/$accountId/meta': typeof PlayerAccountIdMetaRoute
   '/player/$accountId/profile': typeof PlayerAccountIdProfileRouteWithChildren
   '/player/$accountId/stats': typeof PlayerAccountIdStatsRoute
   '/league/$leagueId/': typeof LeagueLeagueIdIndexRoute
@@ -358,6 +367,7 @@ export interface FileRouteTypes {
     | '/league/$leagueId/results'
     | '/match/$matchId/$tab'
     | '/player/$accountId/matches'
+    | '/player/$accountId/meta'
     | '/player/$accountId/profile'
     | '/player/$accountId/stats'
     | '/league/$leagueId/'
@@ -388,6 +398,7 @@ export interface FileRouteTypes {
     | '/league/$leagueId/$tab'
     | '/match/$matchId/$tab'
     | '/player/$accountId/matches'
+    | '/player/$accountId/meta'
     | '/player/$accountId/stats'
     | '/league/$leagueId'
     | '/match/$matchId'
@@ -424,6 +435,7 @@ export interface FileRouteTypes {
     | '/league/$leagueId/results'
     | '/match/$matchId/$tab'
     | '/player/$accountId/matches'
+    | '/player/$accountId/meta'
     | '/player/$accountId/profile'
     | '/player/$accountId/stats'
     | '/league/$leagueId/'
@@ -642,6 +654,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayerAccountIdProfileRouteImport
       parentRoute: typeof PlayerAccountIdRoute
     }
+    '/player/$accountId/meta': {
+      id: '/player/$accountId/meta'
+      path: '/meta'
+      fullPath: '/player/$accountId/meta'
+      preLoaderRoute: typeof PlayerAccountIdMetaRouteImport
+      parentRoute: typeof PlayerAccountIdRoute
+    }
     '/player/$accountId/matches': {
       id: '/player/$accountId/matches'
       path: '/matches'
@@ -809,6 +828,7 @@ const PlayerAccountIdProfileRouteWithChildren =
 
 interface PlayerAccountIdRouteChildren {
   PlayerAccountIdMatchesRoute: typeof PlayerAccountIdMatchesRoute
+  PlayerAccountIdMetaRoute: typeof PlayerAccountIdMetaRoute
   PlayerAccountIdProfileRoute: typeof PlayerAccountIdProfileRouteWithChildren
   PlayerAccountIdStatsRoute: typeof PlayerAccountIdStatsRoute
   PlayerAccountIdIndexRoute: typeof PlayerAccountIdIndexRoute
@@ -816,6 +836,7 @@ interface PlayerAccountIdRouteChildren {
 
 const PlayerAccountIdRouteChildren: PlayerAccountIdRouteChildren = {
   PlayerAccountIdMatchesRoute: PlayerAccountIdMatchesRoute,
+  PlayerAccountIdMetaRoute: PlayerAccountIdMetaRoute,
   PlayerAccountIdProfileRoute: PlayerAccountIdProfileRouteWithChildren,
   PlayerAccountIdStatsRoute: PlayerAccountIdStatsRoute,
   PlayerAccountIdIndexRoute: PlayerAccountIdIndexRoute,
