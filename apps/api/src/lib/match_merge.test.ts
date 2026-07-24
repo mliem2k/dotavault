@@ -74,6 +74,32 @@ describe('mergeParsedMatch', () => {
     expect(merged.radiant_xp_adv).toEqual([20])
   })
 
+  it('fills account_id/personaname from the replay only when OpenDota has none', () => {
+    const basic = basicMatch()
+    basic.players[1] = {
+      ...basic.players[1],
+      account_id: 12345,
+      personaname: 'PublicPlayer',
+    } as Match['players'][number]
+    const parsed: ParsedMatch = {
+      match_id: 1,
+      duration: 1800,
+      players: {
+        // slot 0: OpenDota has nothing, replay resolved an identity.
+        '0': { account_id: 999, personaname: 'FromReplay' },
+        // slot 128: OpenDota already has a public identity; the replay's
+        // account_id must not override it even though it's also present.
+        '128': { account_id: 111, personaname: 'ShouldNotAppear' },
+      },
+      kills: [],
+    }
+    const merged = mergeParsedMatch(basic, parsed)
+    expect(merged.players[0].account_id).toBe(999)
+    expect(merged.players[0].personaname).toBe('FromReplay')
+    expect(merged.players[1].account_id).toBe(12345)
+    expect(merged.players[1].personaname).toBe('PublicPlayer')
+  })
+
   it('leaves a player unmerged if its slot has no counterpart in parsed data', () => {
     const basic = basicMatch()
     const parsed: ParsedMatch = {

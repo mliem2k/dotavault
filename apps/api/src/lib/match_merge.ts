@@ -31,7 +31,16 @@ export function mergeParsedMatch(basic: Match, parsed: ParsedMatch | null): Matc
   if (!parsed) return basic
   const players: MatchPlayer[] = basic.players.map((p) => {
     const parsedPlayer = parsed.players[String(p.player_slot)]
-    return parsedPlayer ? { ...p, ...parsedPlayer } : p
+    if (!parsedPlayer) return p
+    const merged = { ...p, ...parsedPlayer }
+    // account_id/personaname: our own parse can resolve an identity from
+    // the replay's own player info that OpenDota's API redacted (see
+    // PlayerParsed.AccountID's doc comment in the Go parser's types.go) —
+    // but only as a fallback for players OpenDota couldn't already
+    // identify, never overriding a value OpenDota itself disclosed.
+    merged.account_id = p.account_id ?? parsedPlayer.account_id ?? null
+    merged.personaname = p.personaname ?? parsedPlayer.personaname ?? null
+    return merged
   })
   return {
     ...basic,

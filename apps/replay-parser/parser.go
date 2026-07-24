@@ -550,6 +550,19 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		return nil
 	})
 
+	// CDemoFileInfo carries each player's real steamid + player_name (see
+	// PlayerParsed.AccountID's doc comment in types.go for why). It's keyed
+	// by hero_name, not player_slot, so resolving it against heroNameToSlot
+	// has to wait until that map is fully populated — collect the raw list
+	// here and apply it after p.Start() returns, below.
+	var demoPlayerInfos []*dota.CGameInfo_CDotaGameInfo_CPlayerInfo
+	p.Callbacks.OnCDemoFileInfo(func(m *dota.CDemoFileInfo) error {
+		if dotaInfo := m.GetGameInfo().GetDota(); dotaInfo != nil {
+			demoPlayerInfos = dotaInfo.GetPlayerInfo()
+		}
+		return nil
+	})
+
 	if err := p.Start(); err != nil {
 		// manta returns an error at end-of-stream for most replays; only
 		// treat it as fatal if we extracted nothing at all.
@@ -557,6 +570,11 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			return nil, fmt.Errorf("parse: %w", err)
 		}
 	}
+
+	// heroNameToSlot is only fully populated once parsing has finished, so
+	// this has to run after p.Start() returns, not from inside the
+	// OnCDemoFileInfo callback registered above.
+	applyDemoPlayerInfo(players, heroNameToSlot, demoPlayerInfos)
 
 	// Shift buffered pregame samples (raw demo-clock seconds) into match
 	// time now that gameStartTime is final, and prepend them — pregame

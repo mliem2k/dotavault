@@ -53,6 +53,20 @@ type PlayerParsed struct {
 	// modifiers.go) — raw and unfiltered, same "aura"/"building"/"courier"
 	// noise the real Dota 2 client's buff bar also carries internally.
 	Modifiers []ModifierEvent `json:"modifiers"`
+	// AccountID/PersonaName: resolved from the replay's own CDemoFileInfo
+	// player info (steamid64 + player_name), which Valve's engine embeds for
+	// every player regardless of the "expose public match data" opt-out that
+	// makes OpenDota's own account_id null for these players (that setting
+	// only gates the Steam Web API OpenDota's basic match fetch uses, not
+	// what's recorded in the replay — see steamID64ToAccountID in
+	// demoplayerinfo.go for the standard, public Steam32 conversion).
+	// match_merge.ts only takes these when OpenDota's own value is null: a
+	// fallback for otherwise-anonymous players, never an override of a
+	// value OpenDota already disclosed. Omitted (not merged in) when
+	// resolution fails, e.g. a bot (is_fake_client) or a hero_name that
+	// didn't match this parse's own heroNameToSlot.
+	AccountID   *int32  `json:"account_id,omitempty"`
+	PersonaName *string `json:"personaname,omitempty"`
 }
 
 // ModifierEvent is one buff/debuff lifecycle transition (applied or
