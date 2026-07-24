@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { Spinner } from '@/components/ui/spinner'
 import { divisionLabel, divisionShort, findLeaderboardPosition } from '@/lib/leaderboard'
 import { opendota } from '@/lib/opendota'
+import { currentPatchFromList } from '@/lib/patch'
 import { PlayerDataContext } from '@/lib/player_data_context'
 import { rankBadge, rankName } from '@/lib/rank'
 import { fetchSteamProfile, resolveVanitySteamId } from '@/lib/steam'
@@ -36,7 +37,9 @@ function PlayerPage() {
     ? 'matches'
     : pathname.includes('/stats')
       ? 'stats'
-      : 'profile'
+      : pathname.includes('/meta')
+        ? 'meta'
+        : 'profile'
   const activeFeed = pathname.endsWith('/teammates') ? 'teammates' : 'recent'
 
   // /player/mliem etc: the id in the URL is a Steam vanity slug, not a
@@ -121,6 +124,20 @@ function PlayerPage() {
     queryFn: () => opendota.playerHeroRankings(accountId),
     staleTime: 60 * 60 * 1000,
     enabled: isNumeric && activeTab === 'stats',
+  })
+  // Resolved once per session and cached hard: patch releases are rare, and
+  // this must stay available even if the separate self-computed pro-meta
+  // job (which also resolves a current patch) is down or still computing.
+  const currentPatch = useQuery({
+    queryKey: ['current_patch'],
+    queryFn: async () => currentPatchFromList(await opendota.patchConstants()),
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: isNumeric && activeTab === 'meta',
+  })
+  const playerHeroesThisPatch = useQuery({
+    queryKey: ['player_heroes_this_patch', accountId, currentPatch.data?.id],
+    queryFn: () => opendota.playerHeroes(accountId, currentPatch.data?.id),
+    enabled: isNumeric && activeTab === 'meta' && currentPatch.data != null,
   })
   // Small, slow-changing roster — shared cache with the Pro page if visited.
   const proPlayers = useQuery({
@@ -284,6 +301,8 @@ function PlayerPage() {
         peers,
         countsQ,
         heroRankings,
+        currentPatch,
+        playerHeroesThisPatch,
       }}
     >
       <div className="flex flex-col gap-0 font-dota">

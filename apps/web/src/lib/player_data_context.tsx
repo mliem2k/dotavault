@@ -1,6 +1,6 @@
 import type { UseQueryResult } from '@tanstack/react-query'
 import { createContext, useContext } from 'react'
-import type { HeroStat } from 'types'
+import type { HeroStat, ProMetaPatch } from 'types'
 import type { Division } from '@/lib/leaderboard'
 import type { opendota } from '@/lib/opendota'
 import type { rankBadge } from '@/lib/rank'
@@ -26,6 +26,8 @@ export type PlayerData = {
   peers: UseQueryResult<Awaited<ReturnType<typeof opendota.playerPeers>>>
   countsQ: UseQueryResult<Awaited<ReturnType<typeof opendota.playerCounts>>>
   heroRankings: UseQueryResult<Awaited<ReturnType<typeof opendota.playerHeroRankings>>>
+  currentPatch: UseQueryResult<ProMetaPatch>
+  playerHeroesThisPatch: UseQueryResult<Awaited<ReturnType<typeof opendota.playerHeroes>>>
 }
 
 export const PlayerDataContext = createContext<PlayerData | null>(null)
