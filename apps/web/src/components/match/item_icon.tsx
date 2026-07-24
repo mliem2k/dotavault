@@ -8,11 +8,13 @@ function ItemTooltip({
   x,
   y,
   badge,
+  badgeMeta,
 }: {
   meta: ItemConst
   x: number
   y: number
   badge?: string
+  badgeMeta?: ItemConst
 }) {
   // Clamp to viewport (tooltip ~ 300px wide)
   const W = 300
@@ -21,6 +23,11 @@ function ItemTooltip({
   // Only attribs with a curated `display` template are player-facing bonus lines;
   // the rest (model_scale, tooltip_*, images_count, …) are internal values.
   const attribs = (meta.attrib ?? []).filter((a) => a.display)
+  // Enhancement tiers scale up over the match (e.g. "+7 / 15 / 23 / 31 Attack
+  // Speed"); we don't know which of those the player is currently at, so the
+  // full slash-separated progression is shown as-is, same as Dota's own
+  // tooltips do for values that scale by level.
+  const badgeAttribs = (badgeMeta?.attrib ?? []).filter((a) => a.display)
 
   return (
     <div
@@ -39,11 +46,22 @@ function ItemTooltip({
       }}
     >
       {badge && (
-        <div
-          className="text-[11px] font-bold uppercase mb-1.5 pb-1.5"
-          style={{ color: '#d4af37', letterSpacing: '1px', borderBottom: '1px solid #3a352a' }}
-        >
-          {badge} Enhancement
+        <div className="mb-1.5 pb-1.5" style={{ borderBottom: '1px solid #3a352a' }}>
+          <div
+            className="text-[11px] font-bold uppercase"
+            style={{ color: '#d4af37', letterSpacing: '1px' }}
+          >
+            {badge} Enhancement
+          </div>
+          {badgeAttribs.length > 0 && (
+            <div className="space-y-0.5 mt-1">
+              {badgeAttribs.map((a) => (
+                <div key={a.key} className="text-[11px] leading-tight text-radiant">
+                  {(a.display ?? '').replace(/\{value\}/g, String(a.value)).trim()}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
       <div className="flex items-center justify-between gap-3 mb-1">
@@ -120,6 +138,7 @@ export function ItemIcon({
   className = '',
   style,
   badge,
+  badgeMeta,
 }: {
   name: string | null
   meta: ItemConst | undefined
@@ -131,6 +150,9 @@ export function ItemIcon({
   // item's enhancement tier) instead of a second, separately-triggered
   // tooltip stacking on top of it.
   badge?: string
+  // The enhancement's own item-constant entry, so its stat bonuses (attrib)
+  // can render under the badge line.
+  badgeMeta?: ItemConst
 }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
 
@@ -183,7 +205,10 @@ export function ItemIcon({
           can't hijack the fixed-position containing block. */}
       {pos &&
         meta &&
-        createPortal(<ItemTooltip meta={meta} x={pos.x} y={pos.y} badge={badge} />, document.body)}
+        createPortal(
+          <ItemTooltip meta={meta} x={pos.x} y={pos.y} badge={badge} badgeMeta={badgeMeta} />,
+          document.body,
+        )}
     </>
   )
 }

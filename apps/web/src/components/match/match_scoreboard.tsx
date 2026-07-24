@@ -428,6 +428,7 @@ function ItemsCell({
             height={27}
             style={enhancement ? { border: ENHANCEMENT_BORDER } : undefined}
             badge={enhancement ? formatEnhancement(enhancement, itemConst) : undefined}
+            badgeMeta={enhancement ? itemConst[enhancement] : undefined}
           />
         </div>
       )}
