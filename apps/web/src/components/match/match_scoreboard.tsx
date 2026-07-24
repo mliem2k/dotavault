@@ -393,23 +393,28 @@ function ItemsCell({
   const items = itemsAtTime(player, idToName, timeSec, duration, itemConst)
   // Neutral items are found from camps, not bought, so there's no
   // purchase_log entry — but neutral_item_history is a real timestamped log
-  // of pickups/enhancement rerolls, so scrubbing still works. At (or past)
-  // the end, or for older matches with no history logged, fall back to the
-  // authoritative final item_neutral/item_neutral2 fields directly.
+  // of pickups/enhancement rerolls (and, via its entry count, the current
+  // enhancement tier — see neutralItemAtTime), so scrubbing still works.
+  // Older matches with no history logged fall back to the authoritative
+  // final item_neutral/item_neutral2 fields, with no way to tell the tier.
   const atEnd = timeSec >= duration
   const hasHistory = (player.neutral_item_history?.length ?? 0) > 0
   let neutralName: string | null
   let enhancement: string | undefined
-  if (atEnd || !hasHistory) {
+  let enhancementTier: number | undefined
+  if (hasHistory) {
+    const at = neutralItemAtTime(player, atEnd ? duration : timeSec)
+    neutralName = at.itemName
+    enhancement = at.enhancement ?? undefined
+    enhancementTier = at.enhancementTier || undefined
+  } else if (atEnd) {
     neutralName = player.item_neutral ? (idToName.get(player.item_neutral) ?? null) : null
     // item_neutral2 isn't a second item — it's a pseudo-item id naming the
     // enhancement tier currently applied to item_neutral (see the type def).
     const enhancementName = player.item_neutral2 ? idToName.get(player.item_neutral2) : undefined
     enhancement = enhancementName?.startsWith('enhancement_') ? enhancementName : undefined
   } else {
-    const at = neutralItemAtTime(player, timeSec)
-    neutralName = at.itemName
-    enhancement = at.enhancement ?? undefined
+    neutralName = null
   }
   return (
     <div className="flex items-center gap-[3px]">
@@ -440,6 +445,7 @@ function ItemsCell({
             style={enhancement ? { border: ENHANCEMENT_BORDER } : undefined}
             badge={enhancement ? formatEnhancement(enhancement, itemConst) : undefined}
             badgeMeta={enhancement ? itemConst[enhancement] : undefined}
+            badgeTier={enhancementTier}
           />
         </div>
       )}

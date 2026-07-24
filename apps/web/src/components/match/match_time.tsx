@@ -89,19 +89,32 @@ export function itemsAtTime(
 // item rather than a new tier pickup, so the last-seen item name carries
 // forward across those. Before the first entry's time, the player hasn't
 // found one yet.
+//
+// enhancementTier: the enhancement's type is fixed once assigned (every
+// entry we've observed for a given player keeps the same name even across
+// a genuinely new item pickup), and each entry that carries one is a real
+// tier-reveal event confirmed by the replay itself — so counting entries
+// up to `timeSec` (1-indexed) is the tier level, matching the position in
+// the item constants' own slash-separated tiered value (e.g. the 3rd tier
+// of "7 / 15 / 23 / 31" is 23). There's no separate numeric tier field to
+// read this from directly.
 export function neutralItemAtTime(
   player: MatchPlayer,
   timeSec: number,
-): { itemName: string | null; enhancement: string | null } {
+): { itemName: string | null; enhancement: string | null; enhancementTier: number } {
   const log = player.neutral_item_history ?? []
   let itemName: string | null = null
   let enhancement: string | null = null
+  let enhancementTier = 0
   for (const e of [...log].sort((a, b) => a.time - b.time)) {
     if (e.time > timeSec) break
     if (e.item_neutral) itemName = e.item_neutral
-    if (e.item_neutral_enhancement) enhancement = e.item_neutral_enhancement
+    if (e.item_neutral_enhancement) {
+      enhancement = e.item_neutral_enhancement
+      enhancementTier += 1
+    }
   }
-  return { itemName, enhancement }
+  return { itemName, enhancement, enhancementTier }
 }
 
 // Aghanim's Scepter/Shard grant their hero-specific upgrade three different
