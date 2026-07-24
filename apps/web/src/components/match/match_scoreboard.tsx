@@ -359,6 +359,18 @@ type Col = {
   render: (p: MatchPlayer, t: TimedStats) => JSX.Element
 }
 
+// "enhancement_tough" -> "Tough". The tiers observed are all single words,
+// so this is deliberately simple rather than a lookup table.
+function formatEnhancement(key: string): string {
+  const word = key.replace(/^enhancement_/, '')
+  return word.charAt(0).toUpperCase() + word.slice(1)
+}
+
+// Same "extra significance beyond the base item" callout already used for
+// a sold/blessed Aghs upgrade (see BUFF_BORDER below), reused here since an
+// enhancement is conceptually the same idea: a bonus layered on the item.
+const ENHANCEMENT_BORDER = '2px solid #d4af37'
+
 function ItemsCell({
   player,
   idToName,
@@ -379,6 +391,10 @@ function ItemsCell({
   // don't have, so it only ever appears once the slider reaches the end.
   const atEnd = timeSec >= duration
   const neutralName = player.item_neutral ? (idToName.get(player.item_neutral) ?? null) : null
+  // item_neutral2 isn't a second item — it's a pseudo-item id naming the
+  // enhancement tier currently applied to item_neutral (see the type def).
+  const enhancementName = player.item_neutral2 ? idToName.get(player.item_neutral2) : undefined
+  const enhancement = enhancementName?.startsWith('enhancement_') ? enhancementName : undefined
   return (
     <div className="flex items-center gap-[3px]">
       {items.map((id, i) => {
@@ -394,18 +410,30 @@ function ItemsCell({
           />
         )
       })}
-      {atEnd && (
+      {atEnd && neutralName && (
         <div
           className="ml-1.5 pl-1.5"
           style={{ borderLeft: '1px solid rgba(255,255,255,0.08)' }}
-          title="Neutral item"
+          title={enhancement ? undefined : 'Neutral item'}
         >
-          <ItemIcon
-            name={neutralName}
-            meta={neutralName ? itemConst[neutralName] : undefined}
-            width={36}
-            height={27}
-          />
+          {enhancement ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <ItemIcon
+                    name={neutralName}
+                    meta={itemConst[neutralName]}
+                    width={36}
+                    height={27}
+                    style={{ border: ENHANCEMENT_BORDER }}
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>{formatEnhancement(enhancement)} Enhancement</TooltipContent>
+            </Tooltip>
+          ) : (
+            <ItemIcon name={neutralName} meta={itemConst[neutralName]} width={36} height={27} />
+          )}
         </div>
       )}
     </div>

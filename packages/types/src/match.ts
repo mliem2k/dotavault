@@ -202,6 +202,11 @@ export type MatchPlayer = {
   item_4: number
   item_5: number
   item_neutral: number
+  // NOT a second neutral item slot — there's only ever one. This is a
+  // pseudo-item id (patch 7.36+'s "enhancement" mechanic) whose name in the
+  // item constants is literally `enhancement_tough`/`enhancement_alert`/etc,
+  // resolving to the bonus tier currently applied to `item_neutral`.
+  item_neutral2?: number
   aghanims_scepter: number
   aghanims_shard: number
   moonshard: number
