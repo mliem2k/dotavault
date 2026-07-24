@@ -23,6 +23,7 @@ import {
   GameTimeSlider,
   hasTimeline,
   itemsAtTime,
+  NeutralItemIcon,
   scepterSource,
   shardSource,
   statsAtTime,
@@ -1028,6 +1029,19 @@ function DetailPanel({
             )
           })}
         </div>
+
+        <NeutralItemIcon
+          player={player}
+          idToName={idToName}
+          itemConst={itemConst}
+          timeSec={timeSec}
+          duration={durationSec}
+          width={88}
+          height={64}
+          label="Neutral Item"
+          wrapperClassName="border border-slate-bg inline-block"
+          wrapperStyle={{ background: 'rgba(10,13,15,0.9)', maxWidth: 88 }}
+        />
 
         <PlayStyleBars style={style} />
 

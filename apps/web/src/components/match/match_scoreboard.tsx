@@ -12,7 +12,7 @@ import {
   hasMoonshardBuff,
   hasTimeline,
   itemsAtTime,
-  neutralItemAtTime,
+  NeutralItemIcon,
   scepterSource,
   shardSource,
   statsAtTime,
@@ -360,23 +360,6 @@ type Col = {
   render: (p: MatchPlayer, t: TimedStats) => JSX.Element
 }
 
-// There are ~27 enhancement tiers (Tough, Keen-eyed, Vast, ...), some
-// multi-word and at least one (enhancement_curious -> "Unleashed") whose
-// display name doesn't derive from its key at all, so the item constants'
-// own dname is the only reliable source; hand-formatting the raw key is
-// just the fallback for the rare case dname is missing.
-function formatEnhancement(key: string, itemConst: Record<string, ItemConst>): string {
-  const dname = itemConst[key]?.dname
-  if (dname) return dname
-  const word = key.replace(/^enhancement_/, '').replace(/_/g, '-')
-  return word.charAt(0).toUpperCase() + word.slice(1)
-}
-
-// Same "extra significance beyond the base item" callout already used for
-// a sold/blessed Aghs upgrade (see BUFF_BORDER below), reused here since an
-// enhancement is conceptually the same idea: a bonus layered on the item.
-const ENHANCEMENT_BORDER = '2px solid #d4af37'
-
 function ItemsCell({
   player,
   idToName,
@@ -391,31 +374,6 @@ function ItemsCell({
   duration: number
 }) {
   const items = itemsAtTime(player, idToName, timeSec, duration, itemConst)
-  // Neutral items are found from camps, not bought, so there's no
-  // purchase_log entry — but neutral_item_history is a real timestamped log
-  // of pickups/enhancement rerolls (and, via its entry count, the current
-  // enhancement tier — see neutralItemAtTime), so scrubbing still works.
-  // Older matches with no history logged fall back to the authoritative
-  // final item_neutral/item_neutral2 fields, with no way to tell the tier.
-  const atEnd = timeSec >= duration
-  const hasHistory = (player.neutral_item_history?.length ?? 0) > 0
-  let neutralName: string | null
-  let enhancement: string | undefined
-  let enhancementTier: number | undefined
-  if (hasHistory) {
-    const at = neutralItemAtTime(player, atEnd ? duration : timeSec)
-    neutralName = at.itemName
-    enhancement = at.enhancement ?? undefined
-    enhancementTier = at.enhancementTier || undefined
-  } else if (atEnd) {
-    neutralName = player.item_neutral ? (idToName.get(player.item_neutral) ?? null) : null
-    // item_neutral2 isn't a second item — it's a pseudo-item id naming the
-    // enhancement tier currently applied to item_neutral (see the type def).
-    const enhancementName = player.item_neutral2 ? idToName.get(player.item_neutral2) : undefined
-    enhancement = enhancementName?.startsWith('enhancement_') ? enhancementName : undefined
-  } else {
-    neutralName = null
-  }
   return (
     <div className="flex items-center gap-[3px]">
       {items.map((id, i) => {
@@ -431,24 +389,15 @@ function ItemsCell({
           />
         )
       })}
-      {neutralName && (
-        <div
-          className="ml-1.5 pl-1.5"
-          style={{ borderLeft: '1px solid rgba(255,255,255,0.08)' }}
-          title={enhancement ? undefined : 'Neutral item'}
-        >
-          <ItemIcon
-            name={neutralName}
-            meta={itemConst[neutralName]}
-            width={36}
-            height={27}
-            style={enhancement ? { border: ENHANCEMENT_BORDER } : undefined}
-            badge={enhancement ? formatEnhancement(enhancement, itemConst) : undefined}
-            badgeMeta={enhancement ? itemConst[enhancement] : undefined}
-            badgeTier={enhancementTier}
-          />
-        </div>
-      )}
+      <NeutralItemIcon
+        player={player}
+        idToName={idToName}
+        itemConst={itemConst}
+        timeSec={timeSec}
+        duration={duration}
+        wrapperClassName="ml-1.5 pl-1.5"
+        wrapperStyle={{ borderLeft: '1px solid rgba(255,255,255,0.08)' }}
+      />
     </div>
   )
 }

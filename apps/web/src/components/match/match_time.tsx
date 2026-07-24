@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import type { ItemConst, Match, MatchPlayer } from 'types'
+import { ItemIcon } from './item_icon'
 import { levelFromXp } from './match_roster'
 
 /* Shared game-time scrubbing: reconstructs player stats / inventories at a
@@ -115,6 +116,111 @@ export function neutralItemAtTime(
     }
   }
   return { itemName, enhancement, enhancementTier }
+}
+
+// Same "extra significance beyond the base item" callout already used for
+// a sold/blessed Aghs upgrade elsewhere in the app.
+const ENHANCEMENT_BORDER = '2px solid #d4af37'
+
+// "enhancement_tough" -> "Tough". There are ~27 tiers, some multi-word, and
+// at least one (enhancement_curious -> "Unleashed") whose display name
+// doesn't derive from its key at all, so the item constants' own dname is
+// the only reliable source; hand-formatting the key is just the fallback
+// for the rare case dname is missing.
+function formatEnhancement(key: string, itemConst: Record<string, ItemConst>): string {
+  const dname = itemConst[key]?.dname
+  if (dname) return dname
+  const word = key.replace(/^enhancement_/, '').replace(/_/g, '-')
+  return word.charAt(0).toUpperCase() + word.slice(1)
+}
+
+// The neutral item slot (icon + enhancement border/tooltip), shared by the
+// Overview and Scoreboard tabs so this resolution logic lives once. Falls
+// back to the authoritative final item_neutral/item_neutral2 fields (with
+// no way to tell the tier) for older matches with no history logged.
+// Renders nothing before the player's found one yet.
+export function NeutralItemIcon({
+  player,
+  idToName,
+  itemConst,
+  timeSec,
+  duration,
+  width = 36,
+  height = 27,
+  wrapperClassName,
+  wrapperStyle,
+  label,
+}: {
+  player: MatchPlayer
+  idToName: Map<number, string>
+  itemConst: Record<string, ItemConst>
+  timeSec: number
+  duration: number
+  width?: number
+  height?: number
+  wrapperClassName?: string
+  wrapperStyle?: React.CSSProperties
+  // Optional heading shown above the icon (e.g. "Neutral Item"); only
+  // rendered once there's actually a neutral item to show, so callers don't
+  // need to duplicate the "is there one yet" check themselves.
+  label?: string
+}) {
+  const atEnd = timeSec >= duration
+  const hasHistory = (player.neutral_item_history?.length ?? 0) > 0
+  let neutralName: string | null
+  let enhancement: string | undefined
+  let enhancementTier: number | undefined
+  if (hasHistory) {
+    const at = neutralItemAtTime(player, atEnd ? duration : timeSec)
+    neutralName = at.itemName
+    enhancement = at.enhancement ?? undefined
+    enhancementTier = at.enhancementTier || undefined
+  } else if (atEnd) {
+    neutralName = player.item_neutral ? (idToName.get(player.item_neutral) ?? null) : null
+    // item_neutral2 isn't a second item — it's a pseudo-item id naming the
+    // enhancement tier currently applied to item_neutral (see the type def).
+    const enhancementName = player.item_neutral2 ? idToName.get(player.item_neutral2) : undefined
+    enhancement = enhancementName?.startsWith('enhancement_') ? enhancementName : undefined
+  } else {
+    neutralName = null
+  }
+  if (!neutralName) return null
+
+  const icon = (
+    <ItemIcon
+      name={neutralName}
+      meta={itemConst[neutralName]}
+      width={width}
+      height={height}
+      style={enhancement ? { border: ENHANCEMENT_BORDER } : undefined}
+      badge={enhancement ? formatEnhancement(enhancement, itemConst) : undefined}
+      badgeMeta={enhancement ? itemConst[enhancement] : undefined}
+      badgeTier={enhancementTier}
+    />
+  )
+  const content = label ? (
+    <>
+      <div
+        className="text-[11px] uppercase mb-1 text-slate-muted-light font-dota"
+        style={{ letterSpacing: '1px' }}
+      >
+        {label}
+      </div>
+      {icon}
+    </>
+  ) : (
+    icon
+  )
+  if (!wrapperClassName && !wrapperStyle) return content
+  return (
+    <div
+      className={wrapperClassName}
+      style={wrapperStyle}
+      title={enhancement ? undefined : 'Neutral item'}
+    >
+      {content}
+    </div>
+  )
 }
 
 // Aghanim's Scepter/Shard grant their hero-specific upgrade three different
