@@ -81,6 +81,13 @@ export type HeroBenchmarks = {
 
 export type ItemAttrib = { key: string; value: string | number; display?: string }
 
+// Active/passive effect text, the actual "what this item does" (e.g.
+// Conjurer's Catalyst's Spellover, Trusty Shovel's Dig) — separate from
+// attrib, which is the item's raw numeric fields, most without a curated
+// display template. Items with a real effect but no display-ready attrib
+// have no readable description without this.
+export type ItemAbility = { type?: string; title?: string; description?: string }
+
 export type ItemConst = {
   id: number
   img: string
@@ -91,6 +98,7 @@ export type ItemConst = {
   notes?: string
   hint?: string[]
   attrib?: ItemAttrib[]
+  abilities?: ItemAbility[]
   mc?: number | boolean
   cd?: number | boolean
   lore?: string

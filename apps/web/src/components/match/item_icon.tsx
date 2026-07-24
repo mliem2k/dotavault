@@ -107,6 +107,34 @@ function ItemTooltip({
         </div>
       )}
 
+      {(meta.abilities ?? []).map((ab, i) => (
+        <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: fixed ability-list position, not reorderable
+          key={i}
+          className="mb-1.5"
+        >
+          {ab.title && (
+            <div
+              className="text-[12px] font-bold uppercase mb-0.5"
+              style={{
+                color: ab.type === 'active' ? '#f2c94c' : '#8fbf3f',
+                letterSpacing: '0.5px',
+              }}
+            >
+              {ab.title}
+            </div>
+          )}
+          {ab.description && (
+            <div
+              className="text-[11px] leading-snug whitespace-pre-line"
+              style={{ color: '#cfd4d8' }}
+            >
+              {ab.description}
+            </div>
+          )}
+        </div>
+      ))}
+
       {attribs.length > 0 && (
         <div className="space-y-0.5 mb-1.5">
           {attribs.map((a) => (
