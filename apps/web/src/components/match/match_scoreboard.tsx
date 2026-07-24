@@ -359,10 +359,15 @@ type Col = {
   render: (p: MatchPlayer, t: TimedStats) => JSX.Element
 }
 
-// "enhancement_tough" -> "Tough". The tiers observed are all single words,
-// so this is deliberately simple rather than a lookup table.
-function formatEnhancement(key: string): string {
-  const word = key.replace(/^enhancement_/, '')
+// There are ~27 enhancement tiers (Tough, Keen-eyed, Vast, ...), some
+// multi-word and at least one (enhancement_curious -> "Unleashed") whose
+// display name doesn't derive from its key at all, so the item constants'
+// own dname is the only reliable source; hand-formatting the raw key is
+// just the fallback for the rare case dname is missing.
+function formatEnhancement(key: string, itemConst: Record<string, ItemConst>): string {
+  const dname = itemConst[key]?.dname
+  if (dname) return dname
+  const word = key.replace(/^enhancement_/, '').replace(/_/g, '-')
   return word.charAt(0).toUpperCase() + word.slice(1)
 }
 
@@ -416,24 +421,14 @@ function ItemsCell({
           style={{ borderLeft: '1px solid rgba(255,255,255,0.08)' }}
           title={enhancement ? undefined : 'Neutral item'}
         >
-          {enhancement ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <ItemIcon
-                    name={neutralName}
-                    meta={itemConst[neutralName]}
-                    width={36}
-                    height={27}
-                    style={{ border: ENHANCEMENT_BORDER }}
-                  />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>{formatEnhancement(enhancement)} Enhancement</TooltipContent>
-            </Tooltip>
-          ) : (
-            <ItemIcon name={neutralName} meta={itemConst[neutralName]} width={36} height={27} />
-          )}
+          <ItemIcon
+            name={neutralName}
+            meta={itemConst[neutralName]}
+            width={36}
+            height={27}
+            style={enhancement ? { border: ENHANCEMENT_BORDER } : undefined}
+            badge={enhancement ? formatEnhancement(enhancement, itemConst) : undefined}
+          />
         </div>
       )}
     </div>

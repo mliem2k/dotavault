@@ -3,7 +3,17 @@ import { createPortal } from 'react-dom'
 import type { ItemConst } from 'types'
 import { ITEM_CDN_FALLBACK, itemIconUrl } from '@/lib/utils'
 
-function ItemTooltip({ meta, x, y }: { meta: ItemConst; x: number; y: number }) {
+function ItemTooltip({
+  meta,
+  x,
+  y,
+  badge,
+}: {
+  meta: ItemConst
+  x: number
+  y: number
+  badge?: string
+}) {
   // Clamp to viewport (tooltip ~ 300px wide)
   const W = 300
   const left = Math.min(x + 16, window.innerWidth - W - 12)
@@ -28,6 +38,14 @@ function ItemTooltip({ meta, x, y }: { meta: ItemConst; x: number; y: number }) 
         padding: '10px 12px',
       }}
     >
+      {badge && (
+        <div
+          className="text-[11px] font-bold uppercase mb-1.5 pb-1.5"
+          style={{ color: '#d4af37', letterSpacing: '1px', borderBottom: '1px solid #3a352a' }}
+        >
+          {badge} Enhancement
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3 mb-1">
         <span className="text-[14px] font-bold" style={{ color: '#ece6d8' }}>
           {meta.dname ?? 'Unknown Item'}
@@ -101,6 +119,7 @@ export function ItemIcon({
   height,
   className = '',
   style,
+  badge,
 }: {
   name: string | null
   meta: ItemConst | undefined
@@ -108,6 +127,10 @@ export function ItemIcon({
   height: number
   className?: string
   style?: React.CSSProperties
+  // Extra callout line shown inside this item's own tooltip (e.g. a neutral
+  // item's enhancement tier) instead of a second, separately-triggered
+  // tooltip stacking on top of it.
+  badge?: string
 }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
 
@@ -158,7 +181,9 @@ export function ItemIcon({
       {box}
       {/* Portal to <body> so a transformed ancestor (e.g. the graphs timeline)
           can't hijack the fixed-position containing block. */}
-      {pos && meta && createPortal(<ItemTooltip meta={meta} x={pos.x} y={pos.y} />, document.body)}
+      {pos &&
+        meta &&
+        createPortal(<ItemTooltip meta={meta} x={pos.x} y={pos.y} badge={badge} />, document.body)}
     </>
   )
 }
