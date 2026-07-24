@@ -5,6 +5,7 @@ import type {
   ItemConst,
   LiveMatch,
   Match,
+  PatchConstant,
   Player,
   PlayerHero,
   PlayerMatch,
@@ -130,7 +131,12 @@ export const opendota = {
       (r) => r.rows,
     )
   },
-  playerHeroes: (id: string) => get<PlayerHero[]>(`/players/${id}/heroes`),
+  playerHeroes: (id: string, patch?: number) =>
+    get<PlayerHero[]>(`/players/${id}/heroes${patch != null ? `?patch=${patch}` : ''}`),
+  // OpenDota's raw patch list. Array index doubles as the patch id used by
+  // the `patch` query param above (and by Match.patch) - there's no
+  // separate id field in the response.
+  patchConstants: () => get<PatchConstant[]>('/constants/patch'),
   match: (id: string) => get<Match>(`/matches/${id}`),
   heroStats: () => get<HeroStat[]>('/heroStats'),
   heroBenchmarks: (heroId: number) => get<HeroBenchmarks>(`/benchmarks?hero_id=${heroId}`),
