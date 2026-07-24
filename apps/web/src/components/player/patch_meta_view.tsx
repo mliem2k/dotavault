@@ -9,14 +9,6 @@ const C = { white: 'var(--color-white)', panel: 'rgba(16,19,22,0.72)' }
 export function PatchMetaView() {
   const { currentPatch, playerHeroesThisPatch, heroStats } = usePlayerData()
 
-  if (currentPatch.isPending || playerHeroesThisPatch.isPending || heroStats.isPending) {
-    return (
-      <div className="flex justify-center py-10">
-        <Spinner />
-      </div>
-    )
-  }
-
   if (currentPatch.isError || playerHeroesThisPatch.isError) {
     return (
       <div className="text-sm text-muted py-10 text-center">
@@ -31,6 +23,14 @@ export function PatchMetaView() {
         >
           Try again
         </button>
+      </div>
+    )
+  }
+
+  if (currentPatch.isPending || playerHeroesThisPatch.isPending || heroStats.isPending) {
+    return (
+      <div className="flex justify-center py-10">
+        <Spinner />
       </div>
     )
   }
