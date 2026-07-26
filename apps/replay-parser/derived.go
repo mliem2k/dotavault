@@ -92,6 +92,52 @@ func clusterTeamfights(kills []KillEvent, windowSeconds float64) []Teamfight {
 	return qualifying
 }
 
+// computeTeamfightParticipation sets each player's TeamfightParticipation to
+// the fraction of qualifying teamfights (see clusterTeamfights) they were
+// part of, where "part of" means attacker, victim, or assist on at least one
+// kill whose timestamp falls inside that fight's [Start, End] window — the
+// same kill/death/assist definition Dota's own participation stat uses, not
+// just literally landing the killing blow (a support who stuns/heals
+// without ever tagging the final hit should still count as having fought).
+// Left nil (not zero) for every player when the match had zero qualifying
+// teamfights — "0% of 0 fights" isn't a meaningful number, unlike "0% of 12
+// fights."
+func computeTeamfightParticipation(players map[string]*PlayerParsed, fights []Teamfight, kills []KillEvent, heroNameToSlot map[string]int) {
+	if len(fights) == 0 {
+		return
+	}
+	participated := map[int]int{} // slot -> fights participated in
+	for _, fight := range fights {
+		inFight := map[int]bool{}
+		for _, k := range kills {
+			if k.T < fight.Start || k.T > fight.End {
+				continue
+			}
+			if slot, ok := heroNameToSlot[k.Attacker]; ok {
+				inFight[slot] = true
+			}
+			if slot, ok := heroNameToSlot[k.Victim]; ok {
+				inFight[slot] = true
+			}
+			for _, slot := range k.AssistSlots {
+				inFight[slot] = true
+			}
+		}
+		for slot := range inFight {
+			participated[slot]++
+		}
+	}
+	total := float64(len(fights))
+	for _, slot := range []int{0, 1, 2, 3, 4, 128, 129, 130, 131, 132} {
+		p := players[fmtSlot(slot)]
+		if p == nil {
+			continue
+		}
+		pct := float64(participated[slot]) / total
+		p.TeamfightParticipation = &pct
+	}
+}
+
 // buildTeamfightPlayers fills the fixed 10-entry (Radiant 0-4, Dire
 // 128-132) per-fight player stats slice.
 func buildTeamfightPlayers(players map[string]*PlayerParsed, fight Teamfight, kills []KillEvent) []TeamfightPlayerStats {

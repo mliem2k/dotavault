@@ -71,6 +71,58 @@ func TestClusterTeamfights(t *testing.T) {
 	}
 }
 
+func TestComputeTeamfightParticipation(t *testing.T) {
+	players := newTestPlayers()
+	heroNameToSlot := map[string]int{
+		"npc_dota_hero_axe":         0,   // attacker in fight 1 only
+		"npc_dota_hero_lina":        1,   // victim in fight 1 only
+		"npc_dota_hero_lich":        129, // assist in fight 1, attacker in fight 2 -> both
+		"npc_dota_hero_earthshaker": 128, // attacker in fight 2 only
+		"npc_dota_hero_puck":        130, // victim in fight 2 only
+	}
+	kills := []KillEvent{
+		{T: 100, Attacker: "npc_dota_hero_axe", Victim: "npc_dota_hero_lina", AssistSlots: []int{129}},
+		{T: 105, Attacker: "npc_dota_hero_axe", Victim: "npc_dota_hero_lina"},
+		{T: 500, Attacker: "npc_dota_hero_earthshaker", Victim: "npc_dota_hero_puck"},
+		{T: 505, Attacker: "npc_dota_hero_lich", Victim: "npc_dota_hero_puck"},
+	}
+	fights := clusterTeamfights(kills, 30)
+	if len(fights) != 2 {
+		t.Fatalf("clusterTeamfights: got %d fights, want 2", len(fights))
+	}
+
+	computeTeamfightParticipation(players, fights, kills, heroNameToSlot)
+
+	want := map[string]float64{
+		"0":   0.5, // axe: fight 1 only
+		"1":   0.5, // lina: fight 1 only (as victim)
+		"129": 1.0, // lich: assist in fight 1, attacker in fight 2
+		"128": 0.5, // earthshaker: fight 2 only
+		"130": 0.5, // puck: fight 2 only
+		"2":   0.0, // never in a fight at all
+	}
+	for slot, wantPct := range want {
+		p := players[slot]
+		if p.TeamfightParticipation == nil {
+			t.Errorf("slot %s: TeamfightParticipation is nil, want %v", slot, wantPct)
+			continue
+		}
+		if *p.TeamfightParticipation != wantPct {
+			t.Errorf("slot %s: TeamfightParticipation = %v, want %v", slot, *p.TeamfightParticipation, wantPct)
+		}
+	}
+}
+
+func TestComputeTeamfightParticipation_NoFightsLeavesNil(t *testing.T) {
+	players := newTestPlayers()
+	computeTeamfightParticipation(players, nil, nil, nil)
+	for slot, p := range players {
+		if p.TeamfightParticipation != nil {
+			t.Errorf("slot %s: TeamfightParticipation = %v, want nil (no qualifying teamfights)", slot, *p.TeamfightParticipation)
+		}
+	}
+}
+
 func TestExtractMatch_Teamfights(t *testing.T) {
 	pm, err := ExtractMatch(1, openFixture(t))
 	if err != nil {

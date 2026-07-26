@@ -40,8 +40,8 @@ type PositionPoint struct {
 	// base damage + that field, no modifier-sum needed — summing modifier
 	// Damage bonuses on top would double-count whatever m_iDamageBonus
 	// already reflects.
-	DamageMin int32 `json:"dmg_min"`
-	DamageMax int32 `json:"dmg_max"`
+	DamageMin int32   `json:"dmg_min"`
+	DamageMax int32   `json:"dmg_max"`
 	Armor     float64 `json:"armor"`
 }
 
@@ -55,6 +55,14 @@ type KillEvent struct {
 	Victim    string  `json:"victim"`
 	Inflictor string  `json:"inflictor,omitempty"` // absent = plain attack
 	GoldLost  int32   `json:"gold,omitempty"`
+	// AssistSlots: match player_slots of this kill's assists, resolved from
+	// the combat log's AssistPlayers field. Internal-only (json:"-") — feeds
+	// computeTeamfightParticipation (derived.go) so a player who peeled or
+	// stunned without landing the killing blow still counts as having
+	// fought, not just the attacker/victim of each individual kill; never
+	// exposed on the public Kills API since nothing outside this package
+	// consumes it.
+	AssistSlots []int `json:"-"`
 }
 
 // Dota 2 Source 2 replays tick at a fixed 30Hz. This is a stable, widely
@@ -187,6 +195,12 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 	type rawKill struct {
 		ts                          float64
 		attacker, victim, inflictor string
+		// assistPlayerIDs are CDOTA_PlayerResource global 0-9 indices (the
+		// same numbering BUYBACK's Value field uses, confirmed reliably
+		// populated: 160/161 hero deaths in a real match carried at least
+		// one), resolved to match player_slot once playerIDToTeam is final
+		// (see the kills-conversion loop below).
+		assistPlayerIDs []int32
 	}
 	var rawKills []rawKill
 	goldLost := map[string]int32{} // "ts|victim" -> death gold loss
@@ -212,10 +226,11 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 				return nil
 			}
 			rawKills = append(rawKills, rawKill{
-				ts:        float64(m.GetTimestamp()),
-				attacker:  clName(m.GetAttackerName()),
-				victim:    clName(m.GetTargetName()),
-				inflictor: clName(m.GetInflictorName()),
+				ts:              float64(m.GetTimestamp()),
+				attacker:        clName(m.GetAttackerName()),
+				victim:          clName(m.GetTargetName()),
+				inflictor:       clName(m.GetInflictorName()),
+				assistPlayerIDs: m.GetAssistPlayers(),
 			})
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DAMAGE:
 			handleDamage(players, heroNameToSlot, clName(m.GetAttackerName()), clName(m.GetTargetName()), clName(m.GetInflictorName()), int32(m.GetValue()))
@@ -682,6 +697,11 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		if rk.inflictor != "" && rk.inflictor != "dota_unknown" {
 			ev.Inflictor = rk.inflictor
 		}
+		for _, playerID := range rk.assistPlayerIDs {
+			if team, ok := playerIDToTeam[int(playerID)]; ok {
+				ev.AssistSlots = append(ev.AssistSlots, playerIDToMatchSlot(int(playerID), team))
+			}
+		}
 		kills = append(kills, ev)
 		handleKillAttribution(players, heroNameToSlot, rk.attacker, rk.victim, ev.T)
 	}
@@ -714,6 +734,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		fight.Players = buildTeamfightPlayers(pm.Players, fight, pm.Kills)
 		pm.Teamfights = append(pm.Teamfights, fight)
 	}
+	computeTeamfightParticipation(pm.Players, pm.Teamfights, kills, heroNameToSlot)
 
 	return pm, nil
 }

@@ -5,42 +5,43 @@ package main
 // packages/types/src/match.ts's MatchPlayer exactly; this is the JSON
 // contract apps/api merges into the full Match object (see Plan 2).
 type PlayerParsed struct {
-	Positions         []PositionPoint             `json:"positions"`
-	KillsLog          []KillLogEntry              `json:"kills_log"`
-	Purchase          map[string]int32            `json:"purchase"`
-	PurchaseLog       []PurchaseEvent             `json:"purchase_log"`
-	GoldT             []int32                     `json:"gold_t"`
-	LhT               []int32                     `json:"lh_t"`
-	DnT               []int32                     `json:"dn_t"`
-	XpT               []int32                     `json:"xp_t"`
-	ObsLog            []WardEvent                 `json:"obs_log"`
-	SenLog            []WardEvent                 `json:"sen_log"`
-	ObsLeftLog        []WardEvent                 `json:"obs_left_log"`
-	SenLeftLog        []WardEvent                 `json:"sen_left_log"`
-	Damage            map[string]int32            `json:"damage"`
-	DamageTaken       map[string]int32            `json:"damage_taken"`
-	DamageInflictor   map[string]int32            `json:"damage_inflictor"`
-	DamageTargets     map[string]map[string]int32 `json:"damage_targets"`
-	Killed            map[string]int32            `json:"killed"`
-	GoldReasons       map[string]int32            `json:"gold_reasons"`
-	XpReasons         map[string]int32            `json:"xp_reasons"`
-	LaneEfficiencyPct *float64                    `json:"lane_efficiency_pct,omitempty"`
-	Stuns             float64                     `json:"stuns"`
-	CampsStacked      int32                       `json:"camps_stacked"`
-	RunePickups       int32                       `json:"rune_pickups"`
-	BuybackCount      int32                       `json:"buyback_count"`
-	TotalGold         int32                       `json:"total_gold"`
-	RunesLog          []RuneEvent                 `json:"runes_log"`
-	BuybackLog        []BuybackEvent              `json:"buyback_log"`
-	LanePos           map[string]map[string]int32 `json:"lane_pos"`
-	AbilityUses       map[string]int32            `json:"ability_uses"`
-	ItemUses          map[string]int32            `json:"item_uses"`
-	HeroHits          map[string]int32            `json:"hero_hits"`
-	MultiKills        map[string]int32            `json:"multi_kills"`
-	KillStreaks       map[string]int32            `json:"kill_streaks"`
-	TowersKilled      int32                       `json:"towers_killed"`
-	RoshansKilled     int32                       `json:"roshans_killed"`
-	FirstbloodClaimed int32                       `json:"firstblood_claimed"`
+	Positions              []PositionPoint             `json:"positions"`
+	KillsLog               []KillLogEntry              `json:"kills_log"`
+	Purchase               map[string]int32            `json:"purchase"`
+	PurchaseLog            []PurchaseEvent             `json:"purchase_log"`
+	GoldT                  []int32                     `json:"gold_t"`
+	LhT                    []int32                     `json:"lh_t"`
+	DnT                    []int32                     `json:"dn_t"`
+	XpT                    []int32                     `json:"xp_t"`
+	ObsLog                 []WardEvent                 `json:"obs_log"`
+	SenLog                 []WardEvent                 `json:"sen_log"`
+	ObsLeftLog             []WardEvent                 `json:"obs_left_log"`
+	SenLeftLog             []WardEvent                 `json:"sen_left_log"`
+	Damage                 map[string]int32            `json:"damage"`
+	DamageTaken            map[string]int32            `json:"damage_taken"`
+	DamageInflictor        map[string]int32            `json:"damage_inflictor"`
+	DamageTargets          map[string]map[string]int32 `json:"damage_targets"`
+	Killed                 map[string]int32            `json:"killed"`
+	GoldReasons            map[string]int32            `json:"gold_reasons"`
+	XpReasons              map[string]int32            `json:"xp_reasons"`
+	LaneEfficiencyPct      *float64                    `json:"lane_efficiency_pct,omitempty"`
+	Stuns                  float64                     `json:"stuns"`
+	TeamfightParticipation *float64                    `json:"teamfight_participation,omitempty"`
+	CampsStacked           int32                       `json:"camps_stacked"`
+	RunePickups            int32                       `json:"rune_pickups"`
+	BuybackCount           int32                       `json:"buyback_count"`
+	TotalGold              int32                       `json:"total_gold"`
+	RunesLog               []RuneEvent                 `json:"runes_log"`
+	BuybackLog             []BuybackEvent              `json:"buyback_log"`
+	LanePos                map[string]map[string]int32 `json:"lane_pos"`
+	AbilityUses            map[string]int32            `json:"ability_uses"`
+	ItemUses               map[string]int32            `json:"item_uses"`
+	HeroHits               map[string]int32            `json:"hero_hits"`
+	MultiKills             map[string]int32            `json:"multi_kills"`
+	KillStreaks            map[string]int32            `json:"kill_streaks"`
+	TowersKilled           int32                       `json:"towers_killed"`
+	RoshansKilled          int32                       `json:"roshans_killed"`
+	FirstbloodClaimed      int32                       `json:"firstblood_claimed"`
 	// Pings: populated from OnCDOTAUserMsg_LocationPing (confirmed present in
 	// the replay stream against testdata/fixture.dem.bz2 — see FIELD_NOTES.md).
 	// Actions/ActionsPerMin: not populated by this task — FIELD_NOTES.md only
@@ -87,7 +88,7 @@ type ModifierEvent struct {
 	Active   bool    `json:"active"` // false = removed at T
 	Stacks   int32   `json:"stacks,omitempty"`
 	Duration float64 `json:"duration,omitempty"` // seconds after T this expires on its own; 0 = no fixed duration, relies on an explicit removal instead
-	Aura     bool    `json:"aura,omitempty"`      // true = a passive/environmental aura-refresh state (nearby tower/fountain/etc), not the hero's own active buff
+	Aura     bool    `json:"aura,omitempty"`     // true = a passive/environmental aura-refresh state (nearby tower/fountain/etc), not the hero's own active buff
 }
 
 type WardEvent struct {
