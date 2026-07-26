@@ -54,9 +54,8 @@ type rawModifierEvent struct {
 // resolves to the same player_slot as the real hero (same m_iPlayerID/
 // m_iTeamNum, matching the existing decoy-contamination note on the hero
 // OnEntity callback above), so a decoy's own modifiers can appear
-// attributed to that slot alongside the real hero's. Not filtered here,
-// same "document, don't over-engineer for a rare case" call as the
-// existing sentry-ward and buyback-attribution gaps.
+// attributed to that slot alongside the real hero's. Not filtered here — a
+// "document, don't over-engineer for a rare case" call.
 func trackModifiers(
 	p *manta.Parser,
 	activeBySlot map[int]map[int32]*activeModifier,

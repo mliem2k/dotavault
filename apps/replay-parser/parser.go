@@ -109,6 +109,20 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		lastSampledMinute[fmtSlot(slot)] = -1
 	}
 
+	// latestNetWorth holds each hero's most recently sampled net worth
+	// (updated on every CDOTA_DataRadiant/DataDire tick in sampleTeamData
+	// below, not just the once-a-minute samples GoldT/LhT/etc. keep), so a
+	// BUYBACK combat log entry — which can land at any second, not aligned
+	// to a minute boundary — has a fresh value to estimate its gold cost
+	// from (see handleBuyback/BuybackEvent.Gold's doc comments for why this
+	// is an estimate).
+	latestNetWorth := map[string]int32{}
+
+	// pendingWardDispenser buffers a same-tick "ward_dispenser" PURCHASE
+	// entry awaiting its specific ward_observer/ward_sentry pair — see
+	// handlePurchase's doc comment in combatlog_items.go.
+	pendingWardDispenser := map[int]float64{}
+
 	// DOTA_GAMERULES_STATE_PRE_GAME / _GAME_IN_PROGRESS / _POST_GAME. Heroes
 	// have already spawned in base and can move during PRE_GAME (the ~90s
 	// countdown before creeps spawn), so position sampling starts there, not
@@ -220,7 +234,11 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_XP:
 			handleXpReason(players, heroNameToSlot, clName(m.GetTargetName()), m.GetXpReason(), int32(m.GetValue()))
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_PURCHASE:
-			handlePurchase(players, heroNameToSlot, clName(m.GetTargetName()), clName(m.GetValue()), matchTimeOf(m, gameStartTime))
+			handlePurchase(players, heroNameToSlot, pendingWardDispenser, clName(m.GetTargetName()), clName(m.GetValue()), matchTimeOf(m, gameStartTime))
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_MODIFIER_ADD:
+			handleStun(players, heroNameToSlot, clName(m.GetAttackerName()), m.GetStunDuration())
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_BUYBACK:
+			handleBuyback(players, playerIDToTeam, latestNetWorth, m.GetValue(), matchTimeOf(m, gameStartTime))
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_PICKUP_RUNE:
 			handleRunePickup(players, heroNameToSlot, clName(m.GetAttackerName()), m.GetRuneType(), matchTimeOf(m, gameStartTime))
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_ABILITY:
@@ -375,27 +393,38 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		return nil
 	})
 
-	// Observer ward lifecycle. FIELD_NOTES.md's "Ward entity classes"
-	// section confirms CDOTA_NPC_Observer_Ward as the placed-in-world unit
-	// (the unplaced backpack item, CDOTA_Item_ObserverWard, is a different
-	// class and not relevant here). The sentry ward class is genuinely
-	// unknown — this fixture had zero sentry wards placed, so SenLog/
-	// SenLeftLog are deliberately left unpopulated rather than guessed at
-	// by analogy with the observer ward's name. isSentry is always false
-	// below; recordWardPlaced/recordWardRemoved keep the parameter so
-	// wiring in a confirmed sentry class later is a one-line addition to
-	// this switch, not a rewrite.
-	// wardOwnerByIndex records each ward entity's owner slot once, at
-	// creation, keyed by the entity's own stable index (e.GetIndex()) so
+	// Observer/sentry ward lifecycle. FIELD_NOTES.md's "Ward entity classes"
+	// section confirms CDOTA_NPC_Observer_Ward as the placed-in-world
+	// observer unit (the unplaced backpack item, CDOTA_Item_ObserverWard, is
+	// a different class and not relevant here). The sentry ward class was
+	// genuinely unknown when that note was written (the original test
+	// fixture was an 11.6-minute Turbo match with zero sentries bought) —
+	// confirmed since, via -inspect against a real 95-minute match with 60+
+	// sentry purchases: there is no separate "CDOTA_NPC_Sentry_Ward" class
+	// anywhere in that replay. The merged "Wards" item places
+	// CDOTA_NPC_Observer_Ward_TrueSight for a sentry charge instead — a
+	// distinct class, not a flag on the observer one.
+	// wardOwnerByIndex records each ward entity's owner slot and type once,
+	// at creation, keyed by the entity's own stable index (e.GetIndex()) so
 	// EntityOpDeleted can look the same owner back up rather than
 	// re-resolving it by spatial proximity. Re-resolving at deletion is
 	// wrong: the nearest hero when a ward is destroyed is usually whoever is
 	// dewarding it (an enemy), or on natural expiry just whoever happens to
 	// be nearby — not the original placer.
-	wardOwnerByIndex := map[int32]int{}
+	type wardOwner struct {
+		slot     int
+		isSentry bool
+	}
+	wardOwnerByIndex := map[int32]wardOwner{}
 
 	p.OnEntity(func(e *manta.Entity, op manta.EntityOp) error {
-		if e.GetClassName() != "CDOTA_NPC_Observer_Ward" {
+		var isSentry bool
+		switch e.GetClassName() {
+		case "CDOTA_NPC_Observer_Ward":
+			isSentry = false
+		case "CDOTA_NPC_Observer_Ward_TrueSight":
+			isSentry = true
+		default:
 			return nil
 		}
 		if !gameStartSet || gameEndSet {
@@ -414,16 +443,16 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			if !ok {
 				return nil
 			}
-			wardOwnerByIndex[idx] = ownerSlot
-			recordWardPlaced(players, ownerSlot, false, x, y, matchTime)
+			wardOwnerByIndex[idx] = wardOwner{slot: ownerSlot, isSentry: isSentry}
+			recordWardPlaced(players, ownerSlot, isSentry, x, y, matchTime)
 		}
 		if op.Flag(manta.EntityOpDeleted) {
-			ownerSlot, ok := wardOwnerByIndex[idx]
+			owner, ok := wardOwnerByIndex[idx]
 			if !ok {
 				return nil
 			}
 			delete(wardOwnerByIndex, idx)
-			recordWardRemoved(players, ownerSlot, false, x, y, matchTime)
+			recordWardRemoved(players, owner.slot, owner.isSentry, x, y, matchTime)
 		}
 		return nil
 	})
@@ -530,6 +559,14 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			// xp filled in separately by the hero callback above, via xpBySlot
 			sampleMinute(pl, minute, reliable+unreliable, lh, dn, xpBySlot[key], totalEarnedGold, &last)
 			lastSampledMinute[key] = last
+
+			// Net worth, unlike the fields above, is latched on every call
+			// (not gated by lastSampledMinute) since a buyback can land at
+			// any second and handleBuyback needs the freshest value, not
+			// last minute's.
+			if netWorth, ok := e.GetInt32(fmt.Sprintf("m_vecDataTeam.%04d.m_iNetWorth", slot)); ok {
+				latestNetWorth[key] = netWorth
+			}
 		}
 	}
 
@@ -570,6 +607,11 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			return nil, fmt.Errorf("parse: %w", err)
 		}
 	}
+
+	// A held ward_dispenser purchase with no specific pair by the time the
+	// demo ends still happened and must be counted — see handlePurchase's
+	// doc comment in combatlog_items.go.
+	flushPendingWardDispensers(players, pendingWardDispenser)
 
 	// heroNameToSlot is only fully populated once parsing has finished, so
 	// this has to run after p.Start() returns, not from inside the

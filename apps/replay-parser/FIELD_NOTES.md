@@ -16,14 +16,16 @@ short (small fixture) and still live on Valve's CDN when fetched.
   (confirmed created after a `PLAYERSTATS`/`obs_wards_placed=1` combat log
   entry). The unplaced inventory/backpack item is a separate class,
   `CDOTA_Item_ObserverWard`.
-- Sentry ward: **not observed in this fixture.** No entity class among the
-  338 distinct classes created during the match matched "sentry" (or
-  "truesight"/"true_sight"), and no "sentry"-containing string exists
-  anywhere in the `CombatLogNames` string table for this replay — i.e. no
-  player ever bought or placed a sentry ward in these 11.6 minutes. A longer
-  or non-Turbo match would be needed to confirm the real sentry ward class
-  name; do not assume a name (e.g. by analogy with the observer ward name)
-  without observing it directly in a replay.
+- Sentry ward: **not observed in this fixture** (no entity class among the
+  338 distinct classes created during the match matched "sentry", and no
+  "sentry"-containing string exists anywhere in this replay's
+  `CombatLogNames` table — nobody bought or placed one in these 11.6
+  minutes). Confirmed since, via `-inspect` against a real ~95-minute match
+  with 60+ sentry purchases: there is no separate "sentry"-named class at
+  all. The merged "Wards" item places `CDOTA_NPC_Observer_Ward_TrueSight`
+  for a sentry charge — a distinct class from the plain
+  `CDOTA_NPC_Observer_Ward` used for observer charges, not a flag on it.
+  Wired up in parser.go's ward OnEntity handler.
 
 ## CDOTA_PlayerResource field paths
 **Correction to this section's premise:** gold, last hits, denies, and net

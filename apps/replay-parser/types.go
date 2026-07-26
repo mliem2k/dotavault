@@ -25,6 +25,7 @@ type PlayerParsed struct {
 	GoldReasons       map[string]int32            `json:"gold_reasons"`
 	XpReasons         map[string]int32            `json:"xp_reasons"`
 	LaneEfficiencyPct *float64                    `json:"lane_efficiency_pct,omitempty"`
+	Stuns             float64                     `json:"stuns"`
 	CampsStacked      int32                       `json:"camps_stacked"`
 	RunePickups       int32                       `json:"rune_pickups"`
 	BuybackCount      int32                       `json:"buyback_count"`
@@ -110,6 +111,15 @@ type BuybackEvent struct {
 	T          float64 `json:"time"`
 	Slot       int32   `json:"slot"`
 	PlayerSlot int32   `json:"player_slot"`
+	// Gold is an ESTIMATE, not a value read off the replay: buyback's gold
+	// cost never appears in the combat log (verified against a real
+	// match — no GOLD-reason entry lines up with a BUYBACK entry's
+	// timestamp, only an unrelated death-loss entry seconds earlier).
+	// Computed instead from Valve's documented formula, floor(200 +
+	// net_worth/13) (dota2.fandom.com/wiki/Gold, liquipedia.net/dota2/Gold),
+	// using this hero's net worth (CDOTA_DataRadiant/DataDire's
+	// m_iNetWorth) as last sampled before this buyback's timestamp.
+	Gold int32 `json:"gold"`
 }
 
 type KillLogEntry struct {

@@ -42,6 +42,13 @@ function maxKey(rec: Record<string, number> | null | undefined): number | null {
   return keys.length ? Math.max(...keys) : null
 }
 
+// Sum of buyback_log's per-event gold estimates (see MatchPlayer.buyback_log's
+// doc comment in packages/types — this is Valve's buyback formula applied to
+// net worth at the time, not a value read directly off the replay).
+function buybackGold(p: MatchPlayer): number {
+  return (p.buyback_log ?? []).reduce((sum, b) => sum + b.gold, 0)
+}
+
 // Lane is a categorical position (Safe/Mid/Off/Jungle), not a scalar — there's
 // no natural "greater than" order between them, so it's left unsortable. All
 // other columns are discrete numbers and get a shared sort control.
@@ -53,6 +60,7 @@ type SortKey =
   | 'camps'
   | 'runes'
   | 'bb'
+  | 'bbGold'
   | 'multi'
   | 'streak'
   | 'pings'
@@ -72,6 +80,8 @@ function comparePerf(sortKey: SortKey) {
         return (a.rune_pickups ?? 0) - (b.rune_pickups ?? 0)
       case 'bb':
         return (a.buyback_count ?? 0) - (b.buyback_count ?? 0)
+      case 'bbGold':
+        return buybackGold(a) - buybackGold(b)
       case 'multi':
         return (maxKey(a.multi_kills) ?? 0) - (maxKey(b.multi_kills) ?? 0)
       case 'streak':
@@ -142,6 +152,13 @@ function Row({ p, hero }: { p: MatchPlayer; hero: HeroStat | undefined }) {
       {cell(p.camps_stacked ?? '-', 84)}
       {cell(p.rune_pickups ?? '-', 84)}
       {cell(p.buyback_count ?? '-', 70)}
+      <div
+        className="shrink-0 flex items-center justify-center text-[16px] tabular-nums font-dota text-slate-foreground"
+        style={{ width: 84 }}
+        title="Estimated from net worth at buyback time (Valve's buyback formula) — not read directly off the replay"
+      >
+        {p.buyback_log && p.buyback_log.length > 0 ? buybackGold(p).toLocaleString() : '-'}
+      </div>
       {cell(maxKey(p.multi_kills) != null ? `${maxKey(p.multi_kills)}x` : '-', 70)}
       {cell(maxKey(p.kill_streaks) ?? '-', 70)}
       {cell(p.pings ?? '-', 70)}
@@ -258,6 +275,14 @@ export function MatchPerformance({ match, heroStats }: { match: Match; heroStats
         dir={sortDir}
         onClick={onSort}
         className="w-[70px] shrink-0 justify-center"
+      />
+      <SortHeader
+        label="BB Gold"
+        sortKey="bbGold"
+        active={sortKey === 'bbGold'}
+        dir={sortDir}
+        onClick={onSort}
+        className="w-[84px] shrink-0 justify-center"
       />
       <SortHeader
         label="Multi"

@@ -38,7 +38,7 @@ func TestParsedMatch_JSONContract(t *testing.T) {
 		"positions", "kills_log", "purchase", "purchase_log", "gold_t", "lh_t", "dn_t", "xp_t",
 		"obs_log", "sen_log", "obs_left_log", "sen_left_log", "damage", "damage_taken",
 		"damage_inflictor", "damage_targets", "killed", "gold_reasons", "xp_reasons",
-		"camps_stacked", "rune_pickups", "buyback_count", "total_gold", "runes_log",
+		"stuns", "camps_stacked", "rune_pickups", "buyback_count", "total_gold", "runes_log",
 		"buyback_log", "lane_pos", "ability_uses", "item_uses", "hero_hits", "multi_kills",
 		"kill_streaks", "towers_killed", "roshans_killed", "firstblood_claimed", "modifiers",
 	}

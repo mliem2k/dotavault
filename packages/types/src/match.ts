@@ -275,7 +275,11 @@ export type MatchPlayer = {
   pings?: number | null
   total_gold?: number | null
   runes_log?: { time: number; key: string }[] | null
-  buyback_log?: { time: number; slot: number; player_slot: number }[] | null
+  // gold is an ESTIMATE (floor(200 + net_worth/13), Valve's documented
+  // buyback formula) — buyback's real gold cost never appears in the
+  // replay's combat log, only the hero's net worth just before the buyback
+  // (see apps/replay-parser's BuybackEvent.Gold doc comment).
+  buyback_log?: { time: number; slot: number; player_slot: number; gold: number }[] | null
   lane_pos?: Record<string, Record<string, number>> | null
   actions?: Record<string, number> | null
   damage_targets?: Record<string, Record<string, number>> | null
