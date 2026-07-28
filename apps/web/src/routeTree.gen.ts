@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProMetaRouteImport } from './routes/pro-meta'
+import { Route as ProDraftRouteImport } from './routes/pro-draft'
 import { Route as ProRouteImport } from './routes/pro'
 import { Route as MetaRouteImport } from './routes/meta'
 import { Route as LeaguesRouteImport } from './routes/leagues'
@@ -49,6 +50,11 @@ import { Route as LeagueLeagueIdResultsViewRouteImport } from './routes/league.$
 const ProMetaRoute = ProMetaRouteImport.update({
   id: '/pro-meta',
   path: '/pro-meta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProDraftRoute = ProDraftRouteImport.update({
+  id: '/pro-draft',
+  path: '/pro-draft',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProRoute = ProRouteImport.update({
@@ -239,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/leagues': typeof LeaguesRoute
   '/meta': typeof MetaRouteWithChildren
   '/pro': typeof ProRoute
+  '/pro-draft': typeof ProDraftRoute
   '/pro-meta': typeof ProMetaRoute
   '/explore/distributions': typeof ExploreDistributionsRoute
   '/explore/live': typeof ExploreLiveRoute
@@ -274,6 +281,7 @@ export interface FileRoutesByTo {
   '/heroes': typeof HeroesRoute
   '/leagues': typeof LeaguesRoute
   '/pro': typeof ProRoute
+  '/pro-draft': typeof ProDraftRoute
   '/pro-meta': typeof ProMetaRoute
   '/explore/distributions': typeof ExploreDistributionsRoute
   '/explore/live': typeof ExploreLiveRoute
@@ -308,6 +316,7 @@ export interface FileRoutesById {
   '/leagues': typeof LeaguesRoute
   '/meta': typeof MetaRouteWithChildren
   '/pro': typeof ProRoute
+  '/pro-draft': typeof ProDraftRoute
   '/pro-meta': typeof ProMetaRoute
   '/explore/distributions': typeof ExploreDistributionsRoute
   '/explore/live': typeof ExploreLiveRoute
@@ -348,6 +357,7 @@ export interface FileRouteTypes {
     | '/leagues'
     | '/meta'
     | '/pro'
+    | '/pro-draft'
     | '/pro-meta'
     | '/explore/distributions'
     | '/explore/live'
@@ -383,6 +393,7 @@ export interface FileRouteTypes {
     | '/heroes'
     | '/leagues'
     | '/pro'
+    | '/pro-draft'
     | '/pro-meta'
     | '/explore/distributions'
     | '/explore/live'
@@ -416,6 +427,7 @@ export interface FileRouteTypes {
     | '/leagues'
     | '/meta'
     | '/pro'
+    | '/pro-draft'
     | '/pro-meta'
     | '/explore/distributions'
     | '/explore/live'
@@ -455,6 +467,7 @@ export interface RootRouteChildren {
   LeaguesRoute: typeof LeaguesRoute
   MetaRoute: typeof MetaRouteWithChildren
   ProRoute: typeof ProRoute
+  ProDraftRoute: typeof ProDraftRoute
   ProMetaRoute: typeof ProMetaRoute
   HeroHeroNameRoute: typeof HeroHeroNameRoute
   LeagueLeagueIdRoute: typeof LeagueLeagueIdRouteWithChildren
@@ -470,6 +483,13 @@ declare module '@tanstack/react-router' {
       path: '/pro-meta'
       fullPath: '/pro-meta'
       preLoaderRoute: typeof ProMetaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pro-draft': {
+      id: '/pro-draft'
+      path: '/pro-draft'
+      fullPath: '/pro-draft'
+      preLoaderRoute: typeof ProDraftRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pro': {
@@ -854,6 +874,7 @@ const rootRouteChildren: RootRouteChildren = {
   LeaguesRoute: LeaguesRoute,
   MetaRoute: MetaRouteWithChildren,
   ProRoute: ProRoute,
+  ProDraftRoute: ProDraftRoute,
   ProMetaRoute: ProMetaRoute,
   HeroHeroNameRoute: HeroHeroNameRoute,
   LeagueLeagueIdRoute: LeagueLeagueIdRouteWithChildren,

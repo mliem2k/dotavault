@@ -5,6 +5,7 @@ const NAV_LINKS = [
   { to: '/heroes', label: 'Heroes' },
   { to: '/meta', label: 'Meta' },
   { to: '/pro-meta', label: 'Pro Meta' },
+  { to: '/pro-draft', label: 'Pro Draft' },
   { to: '/pro', label: 'Pro' },
   { to: '/leagues', label: 'Leagues' },
   { to: '/explore', label: 'Explore' },
