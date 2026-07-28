@@ -16,29 +16,40 @@ function isTransientStatus(status: unknown): boolean {
   return typeof status === 'number' && TRANSIENT_STATUSES.has(status)
 }
 
+// Returns as soon as the status is non-transient (or attempts run out),
+// never throws from inside the loop. That makes "retry only transient
+// failures" true by construction: the caller inspects the returned error
+// exactly once, after the loop, instead of a throw racing a sibling catch.
+async function withColdStartRetry<_T>(
+  call: () => Promise<{ data: unknown; error: { status: unknown; value: unknown } | null }>,
+  attempts = 4,
+  delayMs = 1500,
+): Promise<{ data: unknown; error: { status: unknown; value: unknown } | null }> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await call()
+      if (i === attempts - 1 || !isTransientStatus(res.error?.status)) return res
+    } catch {
+      if (i === attempts - 1) throw new Error('pro draft pairs API unreachable')
+    }
+    await new Promise((r) => setTimeout(r, delayMs))
+  }
+  return { data: null, error: null }
+}
+
 // 503 (still computing) surfaces as a thrown error here too, intentionally,
 // so a single useQuery isError branch covers both "genuinely down" and
 // "first computation still running".
 export async function fetchProDraftPairs(): Promise<ProDraftPairsResponse> {
-  const attempts = 4
-  const delayMs = 1500
-  for (let i = 0; i < attempts; i++) {
-    try {
-      const { data, error } = await api.pro['draft-pairs'].get()
-      if (!error) return data as ProDraftPairsResponse
-      if (i === attempts - 1 || !isTransientStatus(error.status)) {
-        const value = error.value
-        const message =
-          value && typeof value === 'object' && 'error' in value
-            ? String((value as { error: string }).error)
-            : 'pro draft pairs unavailable'
-        throw new Error(message)
-      }
-    } catch (err) {
-      if (i === attempts - 1)
-        throw err instanceof Error ? err : new Error('pro draft pairs unreachable')
-    }
-    await new Promise((r) => setTimeout(r, delayMs))
+  const { data, error } = await withColdStartRetry(() => api.pro['draft-pairs'].get())
+  if (error) {
+    const value = error.value
+    const message =
+      value && typeof value === 'object' && 'error' in value
+        ? String((value as { error: string }).error)
+        : 'pro draft pairs unavailable'
+    throw new Error(message)
   }
-  throw new Error('pro draft pairs unavailable')
+  if (!data) throw new Error('pro draft pairs unavailable')
+  return data as ProDraftPairsResponse
 }
