@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { averageOrder, bucketTotal } from './order_math'
+import { averageOrder, bucketTotal, sortNullsLast } from './order_math'
 
 describe('averageOrder', () => {
   test('returns null for no data, so the UI can show a placeholder', () => {
@@ -44,5 +44,45 @@ describe('bucketTotal', () => {
 
   test('tolerates a missing field from an older API', () => {
     expect(bucketTotal(undefined)).toBe(0)
+  })
+})
+
+describe('sortNullsLast', () => {
+  test('ascending: rows with data ascend, no-data rows come after them', () => {
+    const rows = [
+      { id: 'c', value: 10 },
+      { id: 'a', value: 2 },
+      { id: 'b', value: null as number | null },
+    ]
+    const sorted = sortNullsLast(rows, 'asc', (r) => r.value)
+    expect(sorted.map((r) => r.id)).toEqual(['a', 'c', 'b'])
+  })
+
+  test('descending: rows with data descend, no-data rows still come after them', () => {
+    // This is the assertion that would have caught the original bug: the
+    // old comparator sorted ascending with null mapped to +Infinity, then
+    // reversed the whole array, which put the no-data row first instead of
+    // last.
+    const rows = [
+      { id: 'a', value: 2 },
+      { id: 'b', value: null as number | null },
+      { id: 'c', value: 10 },
+    ]
+    const sorted = sortNullsLast(rows, 'desc', (r) => r.value)
+    expect(sorted.map((r) => r.id)).toEqual(['c', 'a', 'b'])
+  })
+
+  test('a row with data for one column but not the other lands correctly when each column is the active sort', () => {
+    const rows = [
+      { id: 'onlyBan', avgBan: 3, avgPick: null as number | null },
+      { id: 'onlyPick', avgBan: null as number | null, avgPick: 7 },
+      { id: 'both', avgBan: 1, avgPick: 1 },
+    ]
+
+    const byBan = sortNullsLast(rows, 'asc', (r) => r.avgBan)
+    expect(byBan.map((r) => r.id)).toEqual(['both', 'onlyBan', 'onlyPick'])
+
+    const byPick = sortNullsLast(rows, 'asc', (r) => r.avgPick)
+    expect(byPick.map((r) => r.id)).toEqual(['both', 'onlyPick', 'onlyBan'])
   })
 })

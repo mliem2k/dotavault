@@ -20,3 +20,32 @@ export function averageOrder(buckets: ProMetaOrderBucket[] | undefined): number 
 export function bucketTotal(buckets: ProMetaOrderBucket[] | undefined): number {
   return (buckets ?? []).reduce((sum, b) => sum + b.count, 0)
 }
+
+// Sorts rows by a numeric value, pushing rows with no value (null) to the
+// end regardless of direction. This cannot be done with a +Infinity
+// sentinel passed through lib/sortable's applySort: applySort always sorts
+// ascending via the comparator and then reverses the WHOLE array for
+// 'desc', so a sentinel that lands last ascending lands first once that
+// reverse runs. Partitioning first, sorting only the rows that have a
+// value, and always concatenating the no-value rows onto the end avoids
+// that failure mode in both directions.
+export function sortNullsLast<T>(
+  rows: T[],
+  dir: 'asc' | 'desc',
+  getValue: (row: T) => number | null,
+): T[] {
+  const withValue: T[] = []
+  const withoutValue: T[] = []
+  for (const row of rows) {
+    if (getValue(row) === null) {
+      withoutValue.push(row)
+    } else {
+      withValue.push(row)
+    }
+  }
+  withValue.sort((a, b) => (getValue(a) as number) - (getValue(b) as number))
+  if (dir === 'desc') {
+    withValue.reverse()
+  }
+  return [...withValue, ...withoutValue]
+}

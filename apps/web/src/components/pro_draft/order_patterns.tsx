@@ -4,9 +4,9 @@ import type { ProMetaHeroRow } from 'types'
 import { SortHeader } from '@/components/ui/sort_header'
 import { Spinner } from '@/components/ui/spinner'
 import { opendota } from '@/lib/opendota'
-import { applySort, useSort } from '@/lib/sortable'
+import { useSort } from '@/lib/sortable'
 import { heroIconUrl, heroSlug } from '@/lib/utils'
-import { averageOrder, bucketTotal } from './order_math'
+import { averageOrder, bucketTotal, sortNullsLast } from './order_math'
 
 /* Where in the Captains Mode draft each hero tends to go. Order buckets are
    only populated from Captains Mode matches (see the API's CAPTAINS_MODE
@@ -19,12 +19,6 @@ const PANEL_BG = 'rgba(12,11,14,0.72)'
 const MIN_ORDER_SAMPLE = 5
 
 type OrderSortKey = 'pickOrder' | 'banOrder' | 'picks' | 'bans'
-
-// Heroes with no data for the sorted column sink to the bottom rather than
-// sorting as if their average were 0 (the earliest possible slot).
-function nullsLast(v: number | null): number {
-  return v ?? Number.POSITIVE_INFINITY
-}
 
 export function OrderPatterns({ heroes }: { heroes: ProMetaHeroRow[] }) {
   const heroStats = useQuery({
@@ -52,14 +46,16 @@ export function OrderPatterns({ heroes }: { heroes: ProMetaHeroRow[] }) {
   )
 
   const { key, dir, onSort } = useSort<OrderSortKey>('banOrder', 'asc')
-  const cmp: Record<OrderSortKey, (a: (typeof rows)[number], b: (typeof rows)[number]) => number> =
-    {
-      pickOrder: (a, b) => nullsLast(a.avgPick) - nullsLast(b.avgPick),
-      banOrder: (a, b) => nullsLast(a.avgBan) - nullsLast(b.avgBan),
-      picks: (a, b) => a.pickCount - b.pickCount,
-      bans: (a, b) => a.banCount - b.banCount,
-    }
-  const sorted = applySort(rows, dir, cmp[key])
+  // Heroes with no value for the active column sink to the bottom, in both
+  // sort directions, via sortNullsLast (see order_math.ts for why a
+  // +Infinity sentinel through applySort cannot do this).
+  const getValue: Record<OrderSortKey, (r: (typeof rows)[number]) => number | null> = {
+    pickOrder: (r) => r.avgPick,
+    banOrder: (r) => r.avgBan,
+    picks: (r) => r.pickCount,
+    bans: (r) => r.banCount,
+  }
+  const sorted = sortNullsLast(rows, dir, getValue[key])
 
   if (heroStats.isPending) {
     return (
