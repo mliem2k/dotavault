@@ -32,6 +32,11 @@ export type {
 } from './player'
 export type { LiveMatch, ProMatch, ProPlayer } from './pro'
 export type {
+  ProDraftPairCell,
+  ProDraftPairRow,
+  ProDraftPairsResponse,
+} from './pro_draft_pairs'
+export type {
   ProMetaHeroRow,
   ProMetaLaneRole,
   ProMetaOrderBucket,
