@@ -7,6 +7,7 @@ import { opendota } from '@/lib/opendota'
 import { fetchProMeta } from '@/lib/pro_meta'
 import { usePageTitle } from '@/lib/title'
 import { heroIconUrl, heroSlug } from '@/lib/utils'
+import { HeroPairs } from './hero_pairs'
 import { OrderPatterns } from './order_patterns'
 
 /* Pro Draft page: draft-shaped stats pulled out of the Pro Meta hero table
@@ -200,6 +201,8 @@ export function ProDraftView() {
       <MostContested heroes={data.heroes} />
 
       <OrderPatterns heroes={data.heroes} />
+
+      <HeroPairs />
     </div>
   )
 }
