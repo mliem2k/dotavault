@@ -86,7 +86,47 @@ describe('runProDraftPairsTick', () => {
   })
 
   it(
-    'produces the same tally whether matches arrive in one batch or across two ticks',
+    'processes only TICK_BATCH_SIZE (20) matches per call, resuming the remaining one on the next call',
+    async () => {
+      // 21 candidates against a batch size of 20 forces a genuine split:
+      // tick 1 must leave exactly one id unprocessed, and tick 2 must pick
+      // it back up from persisted state rather than starting over. Built
+      // programmatically so the split boundary (20 vs 21) is unambiguous.
+      const matchIds = Array.from({ length: 21 }, (_, i) => 700 + i)
+      const pages: Record<string, unknown> = {
+        '/proMatches': matchIds.map((id) =>
+          proMatch({ match_id: id, start_time: RELEASED_MS / 1000 + 1000 }),
+        ),
+        [`/proMatches?less_than_match_id=${matchIds[matchIds.length - 1]}`]: [],
+      }
+      for (const id of matchIds) {
+        pages[`/matches/${id}`] = {
+          patch: 0,
+          radiant_win: true,
+          picks_bans: draft([1, 2], [8, 9]),
+        }
+      }
+      const fetchFn = fakeFetch(pages)
+
+      await runProDraftPairsTick(fetchFn)
+      let state = (await cacheGet('pro-draft-pairs-ingest:0')) as { remainingIds: number[] }
+      expect(state.remainingIds).toEqual([matchIds[20]])
+
+      let result = (await cacheGet('pro-draft-pairs:0')) as ProDraftPairsResponse
+      expect(result.totalMatches).toBe(20)
+
+      await runProDraftPairsTick(fetchFn)
+      state = (await cacheGet('pro-draft-pairs-ingest:0')) as { remainingIds: number[] }
+      expect(state.remainingIds).toEqual([])
+
+      result = (await cacheGet('pro-draft-pairs:0')) as ProDraftPairsResponse
+      expect(result.totalMatches).toBe(21)
+    },
+    MULTI_TICK_TIMEOUT_MS,
+  )
+
+  it(
+    'once fully caught up, a second tick that finds no newer matches leaves the tally unchanged',
     async () => {
       const detail = (radiantWin: boolean) => ({
         patch: 0,
@@ -103,6 +143,10 @@ describe('runProDraftPairsTick', () => {
         '/matches/100': detail(false),
       })
 
+      // Both candidates fit in a single 20-sized batch, so this tick
+      // finishes them in one call and the second call exercises the
+      // "fully caught up, check for newer matches" branch instead: it
+      // finds nothing past the high-water mark and leaves the tally as is.
       await runProDraftPairsTick(fetchFn)
       await runProDraftPairsTick(fetchFn)
 
