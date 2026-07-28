@@ -26,8 +26,12 @@ const LABEL = 'pro draft pairs tick'
 
 // Larger than the meta tick's 5. The persisted pair tally is a few hundred
 // KB against pro-meta's few KB, so the goal is fewer, larger writes rather
-// than more, smaller ones. Per-match detail fetches are usually already warm
-// in cache from the meta tick, so the bigger batch costs little extra time.
+// than more, smaller ones. Note this is not free: both ticks walk the same
+// ordered candidate list, and at 4x the meta tick's batch size this pipeline
+// consumes ids faster and runs ahead of it, so its per-match detail fetches
+// are typically the ones that are cold, not reused from the meta tick's
+// cache. That extra request volume is acceptable because production has an
+// OPENDOTA_API_KEY configured, which lifts the free-tier rate limit.
 const TICK_BATCH_SIZE = 20
 
 const config: IngestTickConfig<ProDraftPairTally, CollectedMatch, ProDraftPairsResponse> = {

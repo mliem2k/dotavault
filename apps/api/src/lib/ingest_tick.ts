@@ -92,6 +92,14 @@ export async function runIngestTick<TTally, TDetail, TResponse>(
       truncated,
     }
     await cacheSet(sKey, state, STATE_TTL_SECONDS)
+  } else {
+    // A tally persisted before a pipeline's shape gained new fields (e.g. an
+    // older deploy's blob, still sitting in the cache under this same key)
+    // would otherwise be missing them entirely, not just zeroed, and folding
+    // into a missing field throws. Merge onto a fresh empty tally so any
+    // field the current shape expects is always present; persisted values
+    // win, so nothing already accumulated is lost.
+    state.tally = { ...config.emptyTally(), ...(state.tally as object) } as TTally
   }
 
   if (state.remainingIds.length === 0) {
