@@ -4,12 +4,14 @@ import { openapi } from '@elysiajs/openapi'
 import { Elysia } from 'elysia'
 import { deleteExpired } from './lib/cache'
 import { env } from './lib/env'
+import { maybeRunProDraftPairsTick } from './lib/pro_draft_pairs_tick'
 import { maybeRunProMetaTick } from './lib/pro_meta_tick'
 import { checkRateLimit, clientIp } from './lib/rate-limit'
 import { heroesPlugin } from './routes/heroes'
 import { matchesPlugin } from './routes/matches'
 import { playersPlugin } from './routes/players'
 import { proPlugin } from './routes/pro'
+import { proDraftPairsPlugin } from './routes/pro_draft_pairs'
 import { proMetaPlugin } from './routes/pro_meta'
 import { searchPlugin } from './routes/search'
 
@@ -50,6 +52,7 @@ const app = new Elysia()
     const { pathname } = new URL(request.url)
     if (pathname === '/health') return
     maybeRunProMetaTick()
+    maybeRunProDraftPairsTick()
   })
   .onBeforeHandle(({ set, request }) => {
     const { pathname } = new URL(request.url)
@@ -71,6 +74,7 @@ const app = new Elysia()
   .use(heroesPlugin)
   .use(proPlugin)
   .use(proMetaPlugin)
+  .use(proDraftPairsPlugin)
   .use(searchPlugin)
   .listen(env.PORT)
 
