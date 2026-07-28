@@ -3,6 +3,7 @@ import type {
   PickBan,
   ProMatch,
   ProMetaHeroRow,
+  ProMetaOrderBucket,
   ProMetaPatch,
   ProMetaResponse,
   ProMetaWinrateCell,
@@ -20,6 +21,12 @@ export function firstPickTeam(picksBans: PickBan[]): 0 | 1 | null {
   const first = picks.reduce((a, b) => (a.order < b.order ? a : b))
   return first.team === 0 ? 0 : 1
 }
+
+// OpenDota game_mode 2 is Captains Mode (verified against
+// /constants/game_mode). Order buckets only count these matches: a pro All
+// Pick showmatch also carries picks_bans with an order field, but its draft
+// sequence is different, so pooling them would corrupt every bucket.
+const CAPTAINS_MODE = 2
 
 type HeroTally = { picks: number; wins: number }
 
@@ -71,6 +78,12 @@ export type ProMetaTally = {
   // Real per-match data, not a kit-based guess - a hero only counts as
   // "played mid" here if it was actually recorded with lane_role 2.
   heroLaneRoles: Record<number, Record<number, HeroTally>>
+  // heroId -> draft order slot -> count. Counts only, no win/loss: the
+  // frontend reports average pick/ban order, and a winrate sliced by both
+  // hero and exact order slot would have far too small a sample to mean
+  // anything.
+  heroPickOrder: Record<number, Record<number, number>>
+  heroBanOrder: Record<number, Record<number, number>>
 }
 
 export function emptyProMetaTally(): ProMetaTally {
@@ -95,6 +108,8 @@ export function emptyProMetaTally(): ProMetaTally {
     heroFirstPick: {},
     heroSecondPick: {},
     heroLaneRoles: {},
+    heroPickOrder: {},
+    heroBanOrder: {},
   }
 }
 
@@ -120,11 +135,23 @@ function bumpLaneRole(
   record[heroId] = heroLanes
 }
 
+function bumpOrderBucket(
+  record: Record<number, Record<number, number>>,
+  heroId: number,
+  order: number,
+): void {
+  const buckets = record[heroId] ?? {}
+  buckets[order] = (buckets[order] ?? 0) + 1
+  record[heroId] = buckets
+}
+
 // Mutates tally in place with one match's contribution. The unit both
 // aggregateProMeta (below) and the tick's incremental ingest build on.
 export function foldMatchIntoTally(
   tally: ProMetaTally,
-  match: Pick<Match, 'radiant_win' | 'picks_bans'> & { players: MatchPlayerForLane[] },
+  match: Pick<Match, 'radiant_win' | 'picks_bans' | 'game_mode'> & {
+    players: MatchPlayerForLane[]
+  },
 ): void {
   tally.totalMatches += 1
   if (match.radiant_win) tally.radiantWins += 1
@@ -146,14 +173,18 @@ export function foldMatchIntoTally(
     if (!match.radiant_win) direCell.wins += 1
   }
 
+  const captainsMode = match.game_mode === CAPTAINS_MODE
+
   for (const pb of match.picks_bans ?? []) {
     if (pb.hero_id <= 0) continue
     if (!pb.is_pick) {
       bumpCount(tally.heroBans, pb.hero_id)
+      if (captainsMode) bumpOrderBucket(tally.heroBanOrder, pb.hero_id, pb.order)
       continue
     }
     const heroWon = pb.team === 0 ? match.radiant_win : !match.radiant_win
     bumpCount(tally.heroPicks, pb.hero_id)
+    if (captainsMode) bumpOrderBucket(tally.heroPickOrder, pb.hero_id, pb.order)
     if (heroWon) bumpCount(tally.heroWins, pb.hero_id)
     bumpRecordTally(pb.team === 0 ? tally.heroRadiant : tally.heroDire, pb.hero_id, heroWon)
     if (fp !== null)
@@ -182,6 +213,10 @@ export function finalizeProMetaTally(tally: ProMetaTally): ProMetaCore {
     ...Object.keys(tally.heroLaneRoles).map(Number),
   ])
   const empty: HeroTally = { picks: 0, wins: 0 }
+  const toBuckets = (rec: Record<number, number> | undefined): ProMetaOrderBucket[] =>
+    Object.entries(rec ?? {})
+      .map(([order, count]) => ({ order: Number(order), count }))
+      .sort((a, b) => a.order - b.order)
   const heroes: ProMetaHeroRow[] = [...heroIds].map((heroId) => {
     const picks = tally.heroPicks[heroId] ?? 0
     const bans = tally.heroBans[heroId] ?? 0
@@ -206,6 +241,8 @@ export function finalizeProMetaTally(tally: ProMetaTally): ProMetaCore {
       firstPick: cell(first.wins, first.picks),
       secondPick: cell(second.wins, second.picks),
       laneRoles,
+      pickOrder: toBuckets(tally.heroPickOrder[heroId]),
+      banOrder: toBuckets(tally.heroBanOrder[heroId]),
     }
   })
 
@@ -228,7 +265,9 @@ export function finalizeProMetaTally(tally: ProMetaTally): ProMetaCore {
 }
 
 export function aggregateProMeta(
-  matches: (Pick<Match, 'radiant_win' | 'picks_bans'> & { players: MatchPlayerForLane[] })[],
+  matches: (Pick<Match, 'radiant_win' | 'picks_bans' | 'game_mode'> & {
+    players: MatchPlayerForLane[]
+  })[],
 ): ProMetaCore {
   const tally = emptyProMetaTally()
   for (const match of matches) foldMatchIntoTally(tally, match)

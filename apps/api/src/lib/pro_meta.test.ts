@@ -165,13 +165,14 @@ describe('aggregateProMeta', () => {
 
   it('tallies real per-hero lane_role picks and wins from match players, not a kit guess', () => {
     // aggregateProMeta's actual parameter type only needs radiant_win,
-    // picks_bans, and a minimal players shape (hero_id/lane_role/
+    // picks_bans, game_mode, and a minimal players shape (hero_id/lane_role/
     // player_slot) - built directly against that instead of through
     // makeMatch, which returns a full Match with a much heavier
     // MatchPlayer[] players type this test doesn't need.
     const matches = [
       {
         // hero 1 on radiant (slot 0), radiant wins -> hero 1 wins this game.
+        game_mode: 2,
         radiant_win: true,
         picks_bans: null,
         players: [{ hero_id: 1, lane_role: 2, player_slot: 0 }],
@@ -180,6 +181,7 @@ describe('aggregateProMeta', () => {
         // hero 1 on dire (slot 128) this time, radiant wins -> dire (hero 1)
         // loses. Same hero, a different lane_role - a genuinely multi-role
         // hero, which is exactly what real per-match data should capture.
+        game_mode: 2,
         radiant_win: true,
         picks_bans: null,
         players: [
@@ -199,6 +201,61 @@ describe('aggregateProMeta', () => {
     )
     expect(hero1?.laneRoles.length).toBe(2)
     expect(heroes.find((h) => h.heroId === 0)).toBeUndefined()
+  })
+})
+
+describe('pick/ban order buckets', () => {
+  it('buckets picks and bans by their raw draft order', () => {
+    const core = aggregateProMeta([
+      makeMatch({
+        radiant_win: true,
+        picks_bans: [
+          pb({ is_pick: false, hero_id: 5, team: 0, order: 0 }),
+          pb({ is_pick: true, hero_id: 10, team: 0, order: 6 }),
+          pb({ is_pick: true, hero_id: 11, team: 1, order: 7 }),
+        ],
+      }),
+    ])
+
+    const banned = core.heroes.find((h) => h.heroId === 5)
+    expect(banned?.banOrder).toEqual([{ order: 0, count: 1 }])
+    expect(banned?.pickOrder).toEqual([])
+
+    const picked = core.heroes.find((h) => h.heroId === 10)
+    expect(picked?.pickOrder).toEqual([{ order: 6, count: 1 }])
+    expect(picked?.banOrder).toEqual([])
+  })
+
+  it('accumulates repeated order slots across matches and sorts by order', () => {
+    const match = (order: number) =>
+      makeMatch({
+        radiant_win: true,
+        picks_bans: [pb({ is_pick: true, hero_id: 10, team: 0, order })],
+      })
+    const core = aggregateProMeta([match(9), match(3), match(9)])
+
+    const hero = core.heroes.find((h) => h.heroId === 10)
+    expect(hero?.pickOrder).toEqual([
+      { order: 3, count: 1 },
+      { order: 9, count: 2 },
+    ])
+  })
+
+  it('ignores order for non-Captains-Mode matches but still counts the pick', () => {
+    // game_mode 1 is All Pick. Its picks_bans carries an `order` field too,
+    // but the draft sequence is entirely different, so mixing the two would
+    // make an order slot mean two different things.
+    const core = aggregateProMeta([
+      makeMatch({
+        game_mode: 1,
+        radiant_win: true,
+        picks_bans: [pb({ is_pick: true, hero_id: 10, team: 0, order: 6 })],
+      }),
+    ])
+
+    const hero = core.heroes.find((h) => h.heroId === 10)
+    expect(hero?.picks).toBe(1)
+    expect(hero?.pickOrder).toEqual([])
   })
 })
 

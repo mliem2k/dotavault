@@ -34,6 +34,7 @@ export type { LiveMatch, ProMatch, ProPlayer } from './pro'
 export type {
   ProMetaHeroRow,
   ProMetaLaneRole,
+  ProMetaOrderBucket,
   ProMetaPatch,
   ProMetaResponse,
   ProMetaWinrateCell,

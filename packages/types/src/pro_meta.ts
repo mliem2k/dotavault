@@ -18,6 +18,17 @@ export type ProMetaLaneRole = {
   wins: number
 }
 
+// One slot in Captains Mode's sequential draft, from picks_bans[].order.
+// Stored as raw ordinal positions rather than named phases ("first ban")
+// because the exact ban/pick sequence has been reshuffled across patches;
+// the ordinal is the stable thing to record. Naming happens at render time.
+// Only populated from Captains Mode matches (game_mode 2), since an order
+// slot is not comparable across draft formats.
+export type ProMetaOrderBucket = {
+  order: number
+  count: number
+}
+
 export type ProMetaHeroRow = {
   heroId: number
   picks: number
@@ -29,6 +40,8 @@ export type ProMetaHeroRow = {
   firstPick: ProMetaWinrateCell
   secondPick: ProMetaWinrateCell
   laneRoles: ProMetaLaneRole[]
+  pickOrder: ProMetaOrderBucket[]
+  banOrder: ProMetaOrderBucket[]
 }
 
 export type ProMetaResponse = {

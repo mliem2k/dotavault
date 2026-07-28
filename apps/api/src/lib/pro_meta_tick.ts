@@ -18,6 +18,7 @@ import {
 // kept every match's raw data around and grew to 40+MB, OOM-killing the
 // API).
 type CollectedMatch = {
+  game_mode: number
   radiant_win: boolean
   picks_bans: PickBan[] | null
   players: MatchPlayerForLane[]
@@ -51,12 +52,14 @@ async function fetchMatchDetailForIngest(
     try {
       const detail = (await fetchFn(`/matches/${id}`, 60 * 60 * 24 * 7)) as {
         patch: number | null
+        game_mode: number
         radiant_win: boolean
         picks_bans: PickBan[] | null
         players: MatchPlayerForLane[]
       }
       if (detail.patch !== patchId) return null
       return {
+        game_mode: detail.game_mode,
         radiant_win: detail.radiant_win,
         picks_bans: detail.picks_bans,
         players: detail.players,
