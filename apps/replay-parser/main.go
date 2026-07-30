@@ -15,7 +15,6 @@
 package main
 
 import (
-	"compress/bzip2"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -71,7 +70,11 @@ func fetchAndParse(matchID, cluster, salt int64) (*ParsedMatch, error) {
 		return nil, fmt.Errorf("replay CDN returned %d", resp.StatusCode)
 	}
 
-	return ExtractMatch(matchID, bzip2.NewReader(resp.Body))
+	dem, err := decompressReplay(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return ExtractMatch(matchID, dem)
 }
 
 /* ---------------- subprocess (CLI) mode ---------------- */

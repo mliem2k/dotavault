@@ -2,7 +2,10 @@ module dotavault/replay-parser
 
 go 1.23
 
-require github.com/dotabuff/manta v1.5.0
+require (
+	github.com/dotabuff/manta v1.5.0
+	github.com/klauspost/compress v1.18.0
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.0 // indirect
