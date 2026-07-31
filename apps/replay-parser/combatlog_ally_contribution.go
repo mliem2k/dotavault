@@ -1,5 +1,30 @@
 package main
 
+// damageTypePhysical matches Dota's documented VScript/Lua modding API
+// (DAMAGE_TYPES_PHYSICAL=1, DAMAGE_TYPES_MAGICAL=2, DAMAGE_TYPES_PURE=4, a
+// bitmask, not sequential 0/1/2). Confirmed against a real match's combat
+// log: every damage_type=1 entry sampled was a plain autoattack (physical
+// by definition), damage_type=2 entries were all named spell inflictors
+// (Shackles, Death Pulse, Boulder Smash, all magical), and damage_type=4
+// entries were both damage-over-time sources (Doom's ultimate, Blood
+// Grenade's bleed, both pure in Dota). Gated on the bit rather than
+// equality in case a future entry sets more than one type bit.
+//
+// Only physical damage is buffered because armor debuffs affect physical
+// damage exclusively; magical and pure damage is unaffected either way.
+const damageTypePhysical = 1
+
+// rawPhysicalHit buffers a physical-damage DAMAGE combat log entry by raw
+// demo-clock second, same "buffer now, convert after" reason as rawKills in
+// parser.go: gameStartTime isn't known yet for any event that arrives
+// during pregame.
+type rawPhysicalHit struct {
+	rawT                     float64
+	attackerSlot, targetSlot int
+	inflictor                string
+	value                    int32
+}
+
 // rawArmorDebuffCast buffers a MODIFIER_ADD combat log entry flagged
 // ArmorDebuffModifier, by raw demo-clock second, same "buffer now, convert
 // after" reason as rawKills/rawPhysicalHits: gameStartTime isn't known yet

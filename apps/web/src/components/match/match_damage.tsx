@@ -74,18 +74,9 @@ function SourcesRow({
     .slice(0, 8)
   const attacks = player.damage_inflictor?.null ?? 0
   const total = Object.values(player.damage_inflictor ?? {}).reduce((s, v) => s + v, 0) || 1
-  const mitigated = player.damage_mitigated ?? {}
 
   const chip = (icon: React.ReactNode, value: number, key: string) => (
-    <div
-      key={key}
-      className="flex items-center gap-1 shrink-0"
-      title={
-        mitigated[key]
-          ? `~${fmtK(mitigated[key])} more physical damage blocked by armor (estimate)`
-          : undefined
-      }
-    >
+    <div key={key} className="flex items-center gap-1 shrink-0">
       {icon}
       <span className="text-[12px] tabular-nums font-dota" style={{ color: '#e8c0a0' }}>
         {fmtK(value)}
@@ -93,11 +84,6 @@ function SourcesRow({
       <span className="text-[10px] tabular-nums font-dota text-slate-muted">
         {Math.round((value / total) * 100)}%
       </span>
-      {mitigated[key] > 0 && (
-        <span className="text-[10px] tabular-nums font-dota" style={{ color: '#7d8b95' }}>
-          (+{fmtK(mitigated[key])} blocked)
-        </span>
-      )}
     </div>
   )
 
@@ -422,14 +408,6 @@ export function MatchDamage({
       .filter((h): h is HeroStat => !!h)
     const kills = players.reduce((s, p) => s + p.kills, 0)
     const isWinner = isRadiant ? match.radiant_win : !match.radiant_win
-    // Team Damage Mitigated: how much of the ENEMY team's physical damage
-    // output this team's armor blocked, i.e. the enemy players' own
-    // damage_mitigated totals (each attributed to the attacker, see
-    // apps/replay-parser's DamageMitigated doc comment) summed together.
-    const teamMitigated = enemyPlayers.reduce(
-      (s, p) => s + Object.values(p.damage_mitigated ?? {}).reduce((a, b) => a + b, 0),
-      0,
-    )
 
     return (
       <div style={{ background: '#101316', border: '1px solid #1f2529' }}>
@@ -452,14 +430,6 @@ export function MatchDamage({
             <span className="text-[11px] uppercase tracking-wide font-dota text-slate-muted">
               Score: <span className={isRadiant ? 'text-radiant' : 'text-dire'}>{kills}</span>
             </span>
-            {teamMitigated > 0 && (
-              <span
-                className="text-[11px] uppercase tracking-wide font-dota text-slate-muted"
-                title="Estimated physical damage this team's armor blocked from the enemy's attacks"
-              >
-                Mitigated: <span style={{ color: '#7d8b95' }}>{fmtK(teamMitigated)}</span>
-              </span>
-            )}
             {isWinner && (
               <span
                 className="text-[11px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ml-auto text-radiant"

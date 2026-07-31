@@ -158,7 +158,6 @@ export type PositionPoint = {
   atk_time: number
   dmg_min: number
   dmg_max: number
-  armor: number
 }
 
 // One hero death from apps/replay-parser's combat log (KillEvent in
@@ -284,13 +283,6 @@ export type MatchPlayer = {
   lane_pos?: Record<string, Record<string, number>> | null
   actions?: Record<string, number> | null
   damage_targets?: Record<string, Record<string, number>> | null
-  // ESTIMATE of physical damage this player's attacks had blocked by
-  // targets' armor, keyed like damage_inflictor. Estimated because the
-  // combat log's DAMAGE entries are already post-armor with no separate
-  // raw value to compare against (see apps/replay-parser's
-  // combatlog_mitigation.go). Magical and pure damage are never reduced by
-  // armor and are not included.
-  damage_mitigated?: Record<string, number> | null
   // Keyed like damage_inflictor by ability/item name, plus two synthetic
   // buckets neither the combat log nor any real inflictor name covers:
   // "regen" (passive HP regen) and "lifesteal" (see apps/replay-parser's

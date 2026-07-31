@@ -7,7 +7,7 @@ func TestExtractMatch_PositionStats(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ExtractMatch: %v", err)
 	}
-	var sawSpeed, sawAttackTime, sawArmor, sawDamage bool
+	var sawSpeed, sawAttackTime, sawDamage bool
 	for slot, p := range pm.Players {
 		for _, pt := range p.Positions {
 			if pt.Speed > 0 {
@@ -15,9 +15,6 @@ func TestExtractMatch_PositionStats(t *testing.T) {
 			}
 			if pt.AttackTime > 0 {
 				sawAttackTime = true
-			}
-			if pt.Armor > 0 {
-				sawArmor = true
 			}
 			if pt.DamageMax > 0 {
 				sawDamage = true
@@ -32,9 +29,6 @@ func TestExtractMatch_PositionStats(t *testing.T) {
 	}
 	if !sawAttackTime {
 		t.Error("no position sample had AttackTime > 0 across the whole match")
-	}
-	if !sawArmor {
-		t.Error("no position sample had Armor > 0 across the whole match")
 	}
 	if !sawDamage {
 		t.Error("no position sample had DamageMax > 0 across the whole match")
@@ -90,15 +84,12 @@ func TestExtractMatch_Modifiers(t *testing.T) {
 	}
 }
 
-// TestSanitizeStatBonus covers a real bug found while building the damage
-// mitigation feature: a cosmetic VFX modifier
-// (modifier_dark_carnival_balloon_thinker, a Halloween "balloon" effect)
-// carried an Armor value of 1449 in a real match, more than an order of
-// magnitude beyond anything a real armor source grants (Assault Cuirass's
-// aura, Dota's single largest armor buff, is +5). That one corrupt sample
-// briefly inflated a hero's tracked total armor from single digits to over
-// a thousand, which cascaded into wildly wrong damage-mitigation estimates
-// downstream.
+// TestSanitizeStatBonus covers a real bug: a cosmetic VFX modifier (a
+// Halloween "balloon" effect) reported a stat value of 1449 in a real
+// match, orders of magnitude beyond anything a real gameplay modifier
+// grants, and that one corrupt sample propagated into the hero's tracked
+// totals. These protobuf stat fields are not reserved for the stat their
+// name implies, so a bound is the only general defence available.
 func TestSanitizeStatBonus(t *testing.T) {
 	if got := sanitizeStatBonus(5, 100); got != 5 {
 		t.Errorf("sanitizeStatBonus(5, 100) = %d, want 5 (within bounds, unchanged)", got)
@@ -122,15 +113,15 @@ func TestSanitizeStatBonus(t *testing.T) {
 // ACTIVE/REMOVED pairs would see them "stuck on" forever.
 func TestActiveBonus_ExpiresOnDurationWithoutRemoval(t *testing.T) {
 	active := map[int32]*activeModifier{
-		1: {name: "modifier_tower_aura_bonus", armor: 3, appliedAt: 100.0, duration: 0.5},
+		1: {name: "modifier_haste_rune", moveSpeed: 100, appliedAt: 100.0, duration: 0.5},
 		2: {name: "modifier_item_magic_wand", moveSpeed: 0, appliedAt: 100.0, duration: 0}, // no fixed duration
 	}
-	_, _, armorBefore := activeBonus(active, 100.4) // still within the 0.5s window
-	if armorBefore != 3 {
-		t.Errorf("armor bonus before expiry = %d, want 3", armorBefore)
+	speedBefore, _ := activeBonus(active, 100.4) // still within the 0.5s window
+	if speedBefore != 100 {
+		t.Errorf("move speed bonus before expiry = %d, want 100", speedBefore)
 	}
-	_, _, armorAfter := activeBonus(active, 100.6) // past appliedAt+duration, no removal ever arrived
-	if armorAfter != 0 {
-		t.Errorf("armor bonus after expiry = %d, want 0 (should have expired on its own)", armorAfter)
+	speedAfter, _ := activeBonus(active, 100.6) // past appliedAt+duration, no removal ever arrived
+	if speedAfter != 0 {
+		t.Errorf("move speed bonus after expiry = %d, want 0 (should have expired on its own)", speedAfter)
 	}
 }

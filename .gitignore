@@ -11,3 +11,7 @@ dist
 .tmp/
 .tanstack/
 .worktrees/
+
+# `go build` with no -o drops the binary next to the source, named after the
+# module directory. It has been accidentally staged more than once.
+apps/replay-parser/replay-parser

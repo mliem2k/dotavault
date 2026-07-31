@@ -24,25 +24,31 @@ type PositionPoint struct {
 	MaxHP int32   `json:"mhp"`
 	MP    int32   `json:"mp"`
 	MaxMP int32   `json:"mmp"`
-	// Speed/Armor: m_iMoveSpeed and m_flPhysicalArmorValue are base-only on
-	// the hero entity (confirmed empirically: never change over a full
-	// match, even as boots/armor items are bought), so the live total is
-	// base + the sum of every currently-active modifier's own bonus (see
-	// modifiers.go's activeBonus) — same reasoning as AttackTime below.
+	// Speed: m_iMoveSpeed is base-only on the hero entity (confirmed
+	// empirically: never changes over a full match, even as boots are
+	// bought), so the live total is base plus the sum of every
+	// currently-active modifier's own bonus (see modifiers.go's
+	// activeBonus), same reasoning as AttackTime below.
+	//
+	// There is deliberately no Armor field here. A live total armor cannot
+	// be reconstructed from this replay stream: m_flPhysicalArmorValue is a
+	// per-hero constant for the whole match (base armor before agility),
+	// and the modifier buff table's own Armor field is repurposed as
+	// remaining barrier HP by barrier modifiers rather than carrying an
+	// armor delta. See FIELD_NOTES.md's armor section.
 	Speed int32 `json:"speed"`
 	// AttackTime: seconds per attack, lower = faster. m_flBaseAttackTime
 	// alone is also base-only (same empirical check), so this is
 	// BaseAttackTime adjusted by the sum of active modifiers' AttackSpeed
 	// bonus (Dota's real formula: base / (1 + totalIAS/100)).
 	AttackTime float64 `json:"atk_time"`
-	// DamageMin/DamageMax: unlike Speed/Armor above, m_iDamageBonus *does*
+	// DamageMin/DamageMax: unlike Speed above, m_iDamageBonus *does*
 	// update live on its own (confirmed empirically), so this is just
 	// base damage + that field, no modifier-sum needed — summing modifier
 	// Damage bonuses on top would double-count whatever m_iDamageBonus
 	// already reflects.
-	DamageMin int32   `json:"dmg_min"`
-	DamageMax int32   `json:"dmg_max"`
-	Armor     float64 `json:"armor"`
+	DamageMin int32 `json:"dmg_min"`
+	DamageMax int32 `json:"dmg_max"`
 }
 
 // KillEvent is one hero death from the combat log, with the detail OpenDota
@@ -409,10 +415,10 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			heroPositions[slot] = [2]float64{x, y}
 			lastEmittedPreGameSecond[slot] = second
 			rawNow := float64(p.NetTick) / tickRate
-			msBonus, asBonus, arBonus := activeBonus(activeModifiersBySlot[slot], rawNow)
+			msBonus, asBonus := activeBonus(activeModifiersBySlot[slot], rawNow)
 			preGamePositions[slot] = append(preGamePositions[slot], rawPreGamePoint{
 				rawT: rawNow,
-				pt:   readHeroPositionFields(e, x, y, msBonus, asBonus, arBonus),
+				pt:   readHeroPositionFields(e, x, y, msBonus, asBonus),
 			})
 			return nil
 		}
@@ -432,8 +438,8 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 
 		lastEmittedSecond[slot] = second
 
-		msBonus, asBonus, arBonus := activeBonus(activeModifiersBySlot[slot], float64(p.NetTick)/tickRate)
-		pt := readHeroPositionFields(e, x, y, msBonus, asBonus, arBonus)
+		msBonus, asBonus := activeBonus(activeModifiersBySlot[slot], float64(p.NetTick)/tickRate)
+		pt := readHeroPositionFields(e, x, y, msBonus, asBonus)
 		pt.T = matchTime
 		positions[slot] = append(positions[slot], pt)
 		players[fmtSlot(slot)].Positions = append(players[fmtSlot(slot)].Positions, pt)
@@ -703,20 +709,13 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 					Stacks:   re.stacks,
 					Duration: re.duration,
 					Aura:     re.aura,
-					Armor:    re.armor,
 				})
 			}
 		}
 
-		// Positions are fully built and pregame-shifted as of this point, so
-		// each buffered physical hit's target-armor-at-time-of-hit lookup can
-		// finally run (see combatlog_mitigation.go).
-		applyPhysicalMitigation(players, rawPhysicalHits, gameStartTime)
-
-		// Modifiers (with the Armor deltas just carried into them above) are
-		// also fully built now, so armor-debuff casts can be resolved
-		// against the target's own Modifiers log (see
-		// combatlog_ally_contribution.go).
+		// gameStartTime is final as of this point, so the buffered debuff
+		// casts and physical hits can be shifted into match time and paired
+		// up (see combatlog_ally_contribution.go).
 		applyAllyDamageContribution(players, rawArmorDebuffCasts, rawPhysicalHits, gameStartTime)
 	}
 
@@ -822,12 +821,12 @@ func playerSlot(playerID uint32, teamNum uint64) (int, bool) {
 // readHeroPositionFields builds a PositionPoint from a hero entity's current
 // level/health/mana/combat-stat fields, given an already-resolved x/y and
 // the hero's currently-active modifier bonus totals (see modifiers.go's
-// activeBonus — Speed/AttackTime/Armor need these summed in, since the
+// activeBonus: Speed and AttackTime need these summed in, since the
 // entity's own base fields never change over a match). T is left zero;
 // callers set it themselves (either directly, once match-time is known, or
 // later via the pregame shift pass, since pregame samples don't know their
 // final T yet when this is called).
-func readHeroPositionFields(e *manta.Entity, x, y float64, moveSpeedBonus, attackSpeedBonus, armorBonus int32) PositionPoint {
+func readHeroPositionFields(e *manta.Entity, x, y float64, moveSpeedBonus, attackSpeedBonus int32) PositionPoint {
 	pt := PositionPoint{X: x, Y: y}
 	if v, ok := e.Get("m_iCurrentLevel").(int32); ok {
 		pt.Level = v
@@ -846,9 +845,6 @@ func readHeroPositionFields(e *manta.Entity, x, y float64, moveSpeedBonus, attac
 	}
 	if v, ok := e.Get("m_iMoveSpeed").(int32); ok {
 		pt.Speed = v + moveSpeedBonus
-	}
-	if v, ok := e.Get("m_flPhysicalArmorValue").(float32); ok {
-		pt.Armor = float64(v) + float64(armorBonus)
 	}
 	if v, ok := e.Get("m_flBaseAttackTime").(float32); ok && v > 0 {
 		// Dota's real IAS formula: effective attack time = base / (1 + totalIAS/100).

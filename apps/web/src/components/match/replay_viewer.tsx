@@ -427,7 +427,6 @@ function PlayerRow({
           <span data-stat-label="Damage (min-max)">
             {sample.dmg_min}-{sample.dmg_max}
           </span>
-          <span data-stat-label="Armor">{sample.armor.toFixed(1)}</span>
         </div>
       )}
       {statTip &&

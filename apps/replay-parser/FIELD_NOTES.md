@@ -90,52 +90,72 @@ Death Pulse, Boulder Smash), and `damage_type=4` entries were both
 damage-over-time sources (Doom's ultimate, Blood Grenade's bleed, both pure
 in Dota). `damage_type=0` appeared only on Reaper's Scythe and a couple of
 odd self-damage entries, evidently a "bypasses the normal type tag" case
-rather than a 4th real type. `damageTypePhysical` (combatlog_mitigation.go)
-gates on bit 0, not equality, in case a future entry has multiple type bits
-set.
+rather than a 4th real type. `damageTypePhysical`
+(combatlog_ally_contribution.go) gates on bit 0, not equality, in case a
+future entry has multiple type bits set.
 
-## Physical damage mitigation (from Valve's "Upgraded Post-Game Breakdowns"
-patch)
-No dedicated combat log signal for this exists in practice: `SPELL_ABSORB`
-and `PHYSICAL_DAMAGE_PREVENTED` are real types in the schema but never
-appeared even once across 3 full real-match histograms, including a match
-with both a Linken's Sphere owner and a Butterfly (evasion) owner in final
-inventories, and zero `ATTACK_EVADE` entries either. Whatever mechanism
-Valve uses to compute mitigation for the actual Dota Plus feature isn't
-exposed in the replay's combat log stream via this manta version (v1.5.0,
-the latest release).
+## Armor is NOT recoverable from this replay stream (and neither is damage
+mitigation)
+This section records a feature that was built, shipped, and then removed,
+so nobody rebuilds it the same way. **There is no reliable live total-armor
+value available here.** Three independent probes against a real match:
 
-Built instead as an estimate: DAMAGE combat log entries are already final,
-post-armor values (same assumption every third-party Dota stats tool
-makes; there's no separate pre-mitigation number in the combat log to
-compare against). For physical-only entries (see damage-type section
-above), the target's live armor (`PositionPoint.Armor`, already tracked at
-~1Hz by the position sampler, base plus every active item/ability bonus)
-is used to back-calculate the pre-armor damage via Dota's current
-(post-7.20) formula, cross-checked via dotabuff.com/blog/2018-11-30-understanding-720-armor-changes:
-`reduction_pct = (0.052 * armor) / (0.9 + 0.048 * |armor|)`. Physical hits
-are buffered by raw demo-clock second during the main combat log pass
-(`rawPhysicalHits`) and resolved against the target's Positions only after
-Positions are fully built and pregame-shifted (mirrors the rawKills/
-rawModifierEvents "buffer now, convert after" pattern), since armor is only
-sampled once a second, not on every hit.
+1. **`m_flPhysicalArmorValue` on the hero entity is a single constant for
+   the entire match**, one value per hero, never updating: Windrunner 0,
+   Grimstroke 0, Nevermore 0, Earth Spirit 0, Mirana -2, Necrolyte 2, Doom
+   1, Lina 0, Shadow Shaman 2, Medusa -1. Those magnitudes match Dota's
+   per-hero *base* armor before the agility contribution. It is not live
+   total armor, and it is the only armor-named field on the hero entity.
+2. **The modifier buff table's `Armor` field is repurposed as remaining
+   barrier HP** by barrier-type modifiers, so summing it does not produce
+   armor. Observed: `modifier_item_pipe_barrier` 60 to 420,
+   `modifier_item_glimmer_cape_fade` 37 to 375, plus Consecrated Wraps,
+   Ash Legion Shield and Rune Shield behaving the same way. The only
+   genuine armor value found anywhere was `modifier_tower_aura_bonus`
+   (+3/+5), whose caster is a tower rather than a hero.
+3. **No armor field exists on the per-team Data entities** either, which is
+   where the other genuinely-live per-player stats (gold, XP, net worth)
+   turned out to live.
 
-**A real bug turned up while verifying this against a live match:** one
-player's tracked armor spiked from single digits to 1449 for about 5
-seconds, which the mitigation formula amplified into wildly wrong negative
-totals (as much as -190,000 on one player). Traced to a cosmetic VFX
-modifier, `modifier_dark_carnival_balloon_thinker` (a Halloween/Diretide
-"balloon" effect), firing dozens of rapid add/remove cycles at that exact
-moment and carrying a garbage value in the same protobuf field
-`trackModifiers` (modifiers.go) reads as a real armor bonus. Fixed at the
-source with `sanitizeStatBonus`, bounding any single modifier's
-armor/speed/attack-speed contribution against realistic real-game ranges
-(no known legitimate Dota modifier swings any of these by anywhere near
-this much), since there's no reliable way to enumerate every cosmetic
-effect that might exhibit the same pattern. This was a pre-existing bug in
-already-shipped Armor/Speed/AttackSpeed tracking, not something introduced
-by the mitigation feature, just first exposed by a consumer that does
-arithmetic with the value instead of only displaying it.
+The consequence is that the previously-shipped `PositionPoint.Armor` was
+"tiny per-hero constant plus leftover barrier HP", not armor. The
+`sanitizeStatBonus` bound caught the extreme barrier values but not ones
+at or below its threshold (37, 39, 60, 75, 77, 78 and 85 were all observed
+passing straight through and being summed as armor). `PositionPoint.Armor`
+has been removed rather than left to mislead, along with the replay
+viewer's Armor readout that displayed it.
+
+A physical-damage-mitigation estimate was built on top of that armor value
+(back-calculating pre-armor damage from the post-7.20 formula
+`reduction_pct = (0.052 * armor) / (0.9 + 0.048 * |armor|)`, per
+dotabuff.com/blog/2018-11-30-understanding-720-armor-changes) and has been
+removed with it. Reconstructing armor from first principles instead was
+considered and rejected: base armor plus `m_flAgilityTotal` (which IS live
+and correct) plus a static item-armor table would still stack a
+patch-sensitive agility ratio (reportedly changed to 0.2 per point, and
+higher for agility heroes) on a patch-sensitive item table, would miss
+ability-granted armor entirely, and critically still could not see
+**enemy armor reduction** (Desolator, Blight Stone, Medallion, Assault
+aura), which is precisely the term that matters most in a mitigation
+stat. Five stacked approximations, one of them known-missing, is not a
+basis for a number displayed to three significant figures.
+
+Also worth knowing for future work: Valve's own `SPELL_ABSORB`,
+`PHYSICAL_DAMAGE_PREVENTED` and `ATTACK_EVADE` combat log types are real
+in the schema but **never fired once** across 3 full real-match
+histograms, including a match with both a Linken's Sphere and a Butterfly
+in final inventories. Whatever powers the real Dota Plus mitigation
+feature is not in this stream.
+
+If mitigation is ever revisited, the most promising angle is empirical
+rather than reconstructive: compare observed autoattack damage against the
+attacker's own tracked `DamageMin`/`DamageMax` across many hits to measure
+effective reduction directly, with care around crits, procs and misses.
+
+**Modifier `Caster` does resolve reliably**, including across heroes
+(Necrolyte's Pipe barrier landing on Earth Spirit, Mirana's Pavise on
+Medusa), so ally attribution is available for features that need it, just
+not magnitudes.
 
 ## Healing breakdown by source (from the same patch)
 Straightforward, confirmed against the same real match. HEAL combat log

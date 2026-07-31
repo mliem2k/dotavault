@@ -18,21 +18,25 @@ type activeModifier struct {
 	name        string
 	moveSpeed   int32
 	attackSpeed int32
-	armor       int32
 	appliedAt   float64
 	duration    float64
 }
 
-// sanitizeStatBonus guards against a real, confirmed bug: a cosmetic VFX
-// modifier (modifier_dark_carnival_balloon_thinker, a Halloween "balloon"
-// effect) carried an Armor value of 1449 in a real match, an order of
-// magnitude beyond any real armor source (Assault Cuirass's aura, Dota's
-// single largest armor buff, is +5). trackModifiers has no way to tell
-// which modifier names are genuine gameplay bonuses versus cosmetic
-// effects that happen to populate the same protobuf fields with unrelated
-// data, so every single-modifier stat contribution is bounded against
-// max instead: no known real Dota modifier legitimately swings armor,
-// move speed, or attack speed by anywhere near this much in one hit.
+// sanitizeStatBonus guards against a real, confirmed class of bug: these
+// protobuf stat fields are not reserved for the stat their name implies,
+// and unrelated modifiers populate them with unrelated data. It was first
+// found via a cosmetic VFX modifier (a Halloween "balloon" effect) that
+// reported an armor value of 1449, and later confirmed to be systemic when
+// barrier modifiers turned out to report remaining barrier HP in that same
+// armor field (which is why armor is no longer derived from this table at
+// all, see activeBonus).
+//
+// trackModifiers has no way to tell which modifier names are genuine
+// gameplay bonuses, so every single-modifier contribution to the stats
+// still read here (move speed, attack speed) is bounded against max: no
+// known real Dota modifier legitimately swings either by anywhere near
+// this much in one hit. This is a floor on damage, not a guarantee, a
+// contaminated value below the bound still gets through.
 func sanitizeStatBonus(v, max int32) int32 {
 	if v > max || v < -max {
 		return 0
@@ -52,14 +56,6 @@ type rawModifierEvent struct {
 	stacks   int32
 	duration float64
 	aura     bool
-	// armor is this specific modifier's own sanitized armor delta (only set
-	// on active=true events). Only reliably populated for self/
-	// environmental buffs (e.g. Tower Aura Bonus); confirmed empirically
-	// that enemy-applied armor debuffs read 0 here regardless of their real
-	// effect (see combatlog_ally_contribution.go), so this exists as useful
-	// context on a buff/debuff log entry, not a magnitude to build an
-	// estimate on.
-	armor int32
 }
 
 // trackModifiers registers the OnModifierTableEntry callback. It keeps
@@ -121,19 +117,16 @@ func trackModifiers(
 			return nil
 		}
 
-		armorDelta := sanitizeStatBonus(m.GetArmor(), 100)
 		activeBySlot[slot][idx] = &activeModifier{
 			name:        name,
 			moveSpeed:   sanitizeStatBonus(m.GetMovementSpeed(), 1000),
 			attackSpeed: sanitizeStatBonus(m.GetAttackSpeed(), 1000),
-			armor:       armorDelta,
 			appliedAt:   now,
 			duration:    float64(m.GetDuration()),
 		}
 		*rawEvents = append(*rawEvents, rawModifierEvent{
 			rawT: now, slot: slot, name: name, active: true,
 			stacks: m.GetStackCount(), duration: float64(m.GetDuration()), aura: m.GetAura(),
-			armor: armorDelta,
 		})
 		return nil
 	})
@@ -141,19 +134,23 @@ func trackModifiers(
 
 // activeBonus sums every currently-active, not-yet-expired modifier's stat
 // contribution for one hero at raw demo-clock second now, consumed by the
-// position sampler to compute live Speed/AttackTime/Armor (see
-// PositionPoint's doc comment for why these can't just be read off the
-// hero entity directly). A modifier with a fixed duration that has run out
-// since it was last applied/refreshed is excluded even if no REMOVED event
-// ever arrived for it (see ModifierEvent's doc comment in types.go).
-func activeBonus(active map[int32]*activeModifier, now float64) (moveSpeed, attackSpeed, armor int32) {
+// position sampler to compute live Speed/AttackTime (see PositionPoint's
+// doc comment for why these can't just be read off the hero entity
+// directly). A modifier with a fixed duration that has run out since it was
+// last applied/refreshed is excluded even if no REMOVED event ever arrived
+// for it (see ModifierEvent's doc comment in types.go).
+//
+// Armor is deliberately NOT summed here. The buff table's Armor field is
+// repurposed as remaining barrier HP by barrier modifiers (Pipe, Glimmer
+// Cape, Consecrated Wraps, Rune Shield), so summing it produced a
+// meaningless total rather than a live armor value. See FIELD_NOTES.md.
+func activeBonus(active map[int32]*activeModifier, now float64) (moveSpeed, attackSpeed int32) {
 	for _, m := range active {
 		if m.duration > 0 && now >= m.appliedAt+m.duration {
 			continue
 		}
 		moveSpeed += m.moveSpeed
 		attackSpeed += m.attackSpeed
-		armor += m.armor
 	}
 	return
 }

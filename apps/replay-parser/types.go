@@ -21,14 +21,6 @@ type PlayerParsed struct {
 	DamageTaken     map[string]int32            `json:"damage_taken"`
 	DamageInflictor map[string]int32            `json:"damage_inflictor"`
 	DamageTargets   map[string]map[string]int32 `json:"damage_targets"`
-	// DamageMitigated: an ESTIMATE of physical damage this player's attacks
-	// had blocked by targets' armor, keyed the same as DamageInflictor.
-	// Estimated because the combat log's own DAMAGE entries are already
-	// post-armor with no separate raw value to compare against (see
-	// combatlog_mitigation.go's doc comments for the formula and the
-	// target-armor-at-time-of-hit approximation this relies on). Magical
-	// and pure damage are never reduced by armor and are not included.
-	DamageMitigated map[string]int32 `json:"damage_mitigated"`
 	// HealingDealt/HealingReceived: keyed like DamageInflictor by ability/
 	// item name, plus two synthetic buckets neither the combat log nor any
 	// real inflictor name covers: "regen" (passive HP regen) and
@@ -116,14 +108,6 @@ type ModifierEvent struct {
 	Stacks   int32   `json:"stacks,omitempty"`
 	Duration float64 `json:"duration,omitempty"` // seconds after T this expires on its own; 0 = no fixed duration, relies on an explicit removal instead
 	Aura     bool    `json:"aura,omitempty"`     // true = a passive/environmental aura-refresh state (nearby tower/fountain/etc), not the hero's own active buff
-	// Armor: this specific modifier's own sanitized armor delta, set only
-	// on active=true events for modifiers that carry one (0 for most).
-	// Only reliably populated for self/environmental buffs (e.g. Tower Aura
-	// Bonus); confirmed empirically that enemy-applied armor debuffs don't
-	// carry a value here at all (see combatlog_ally_contribution.go), so
-	// this is just useful context for a buff/debuff log entry, not
-	// something to build a debuff-magnitude estimate on.
-	Armor int32 `json:"armor,omitempty"`
 }
 
 type WardEvent struct {
