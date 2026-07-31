@@ -23,6 +23,23 @@ type activeModifier struct {
 	duration    float64
 }
 
+// sanitizeStatBonus guards against a real, confirmed bug: a cosmetic VFX
+// modifier (modifier_dark_carnival_balloon_thinker, a Halloween "balloon"
+// effect) carried an Armor value of 1449 in a real match, an order of
+// magnitude beyond any real armor source (Assault Cuirass's aura, Dota's
+// single largest armor buff, is +5). trackModifiers has no way to tell
+// which modifier names are genuine gameplay bonuses versus cosmetic
+// effects that happen to populate the same protobuf fields with unrelated
+// data, so every single-modifier stat contribution is bounded against
+// max instead: no known real Dota modifier legitimately swings armor,
+// move speed, or attack speed by anywhere near this much in one hit.
+func sanitizeStatBonus(v, max int32) int32 {
+	if v > max || v < -max {
+		return 0
+	}
+	return v
+}
+
 // rawModifierEvent buffers a lifecycle transition by raw demo-clock
 // second, same "buffer now, convert after" reason as rawKills/
 // preGamePositions in parser.go: gameStartTime (the 0:00 anchor) isn't
@@ -98,9 +115,9 @@ func trackModifiers(
 
 		activeBySlot[slot][idx] = &activeModifier{
 			name:        name,
-			moveSpeed:   m.GetMovementSpeed(),
-			attackSpeed: m.GetAttackSpeed(),
-			armor:       m.GetArmor(),
+			moveSpeed:   sanitizeStatBonus(m.GetMovementSpeed(), 1000),
+			attackSpeed: sanitizeStatBonus(m.GetAttackSpeed(), 1000),
+			armor:       sanitizeStatBonus(m.GetArmor(), 100),
 			appliedAt:   now,
 			duration:    float64(m.GetDuration()),
 		}

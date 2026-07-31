@@ -90,6 +90,30 @@ func TestExtractMatch_Modifiers(t *testing.T) {
 	}
 }
 
+// TestSanitizeStatBonus covers a real bug found while building the damage
+// mitigation feature: a cosmetic VFX modifier
+// (modifier_dark_carnival_balloon_thinker, a Halloween "balloon" effect)
+// carried an Armor value of 1449 in a real match, more than an order of
+// magnitude beyond anything a real armor source grants (Assault Cuirass's
+// aura, Dota's single largest armor buff, is +5). That one corrupt sample
+// briefly inflated a hero's tracked total armor from single digits to over
+// a thousand, which cascaded into wildly wrong damage-mitigation estimates
+// downstream.
+func TestSanitizeStatBonus(t *testing.T) {
+	if got := sanitizeStatBonus(5, 100); got != 5 {
+		t.Errorf("sanitizeStatBonus(5, 100) = %d, want 5 (within bounds, unchanged)", got)
+	}
+	if got := sanitizeStatBonus(1449, 100); got != 0 {
+		t.Errorf("sanitizeStatBonus(1449, 100) = %d, want 0 (the real corrupt value that caused this bug)", got)
+	}
+	if got := sanitizeStatBonus(-1449, 100); got != 0 {
+		t.Errorf("sanitizeStatBonus(-1449, 100) = %d, want 0 (corrupt values can be negative too)", got)
+	}
+	if got := sanitizeStatBonus(100, 100); got != 100 {
+		t.Errorf("sanitizeStatBonus(100, 100) = %d, want 100 (exactly at the bound is still valid)", got)
+	}
+}
+
 // A modifier with a real Duration must expire on its own once that time
 // passes, even with no matching Active=false event ever following it — the
 // real bug this covers: aura-refresh modifiers (dur=0.5, re-applied on a
