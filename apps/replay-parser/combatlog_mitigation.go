@@ -36,10 +36,15 @@ type rawPhysicalHit struct {
 // reduces incoming physical damage by ~37.5%, 10 to 20 adds another ~17
 // percentage points. Negative or zero armor amplifies damage rather than
 // reducing it, clamped to 0 here since "how much was mitigated" should
-// never go negative.
+// never go negative. The raw formula also asymptotically approaches (and
+// at implausibly high armor, exceeds) 1.0, which would flip the sign of
+// anything dividing by (1 - pct) downstream, so the upper end is clamped
+// too, defensively: no realistic in-game armor total gets remotely close
+// to the ~225 armor needed to hit this ceiling, even after the
+// sanitizeStatBonus fix for corrupt modifier data (modifiers.go).
 func physicalArmorReductionPct(armor float64) float64 {
 	pct := (0.052 * armor) / (0.9 + 0.048*math.Abs(armor))
-	return math.Max(0, pct)
+	return math.Min(0.95, math.Max(0, pct))
 }
 
 // physicalMitigation estimates how much MORE damage postArmorValue would

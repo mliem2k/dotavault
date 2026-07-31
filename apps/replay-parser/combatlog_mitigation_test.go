@@ -18,6 +18,12 @@ func TestPhysicalArmorReductionPct(t *testing.T) {
 	if got := physicalArmorReductionPct(-10); got != 0 {
 		t.Errorf("physicalArmorReductionPct(-10) = %v, want 0 (negative armor amplifies, never mitigates)", got)
 	}
+	// The raw formula asymptotically exceeds 1.0 well past any realistic
+	// in-game armor total (~225+), which would flip the sign of anything
+	// dividing by (1 - pct) downstream. Confirmed clamped instead.
+	if got := physicalArmorReductionPct(1000); got != 0.95 {
+		t.Errorf("physicalArmorReductionPct(1000) = %v, want 0.95 (clamped)", got)
+	}
 }
 
 func TestPhysicalMitigation(t *testing.T) {

@@ -5,22 +5,22 @@ package main
 // packages/types/src/match.ts's MatchPlayer exactly; this is the JSON
 // contract apps/api merges into the full Match object (see Plan 2).
 type PlayerParsed struct {
-	Positions              []PositionPoint             `json:"positions"`
-	KillsLog               []KillLogEntry              `json:"kills_log"`
-	Purchase               map[string]int32            `json:"purchase"`
-	PurchaseLog            []PurchaseEvent             `json:"purchase_log"`
-	GoldT                  []int32                     `json:"gold_t"`
-	LhT                    []int32                     `json:"lh_t"`
-	DnT                    []int32                     `json:"dn_t"`
-	XpT                    []int32                     `json:"xp_t"`
-	ObsLog                 []WardEvent                 `json:"obs_log"`
-	SenLog                 []WardEvent                 `json:"sen_log"`
-	ObsLeftLog             []WardEvent                 `json:"obs_left_log"`
-	SenLeftLog             []WardEvent                 `json:"sen_left_log"`
-	Damage                 map[string]int32            `json:"damage"`
-	DamageTaken            map[string]int32            `json:"damage_taken"`
-	DamageInflictor        map[string]int32            `json:"damage_inflictor"`
-	DamageTargets          map[string]map[string]int32 `json:"damage_targets"`
+	Positions       []PositionPoint             `json:"positions"`
+	KillsLog        []KillLogEntry              `json:"kills_log"`
+	Purchase        map[string]int32            `json:"purchase"`
+	PurchaseLog     []PurchaseEvent             `json:"purchase_log"`
+	GoldT           []int32                     `json:"gold_t"`
+	LhT             []int32                     `json:"lh_t"`
+	DnT             []int32                     `json:"dn_t"`
+	XpT             []int32                     `json:"xp_t"`
+	ObsLog          []WardEvent                 `json:"obs_log"`
+	SenLog          []WardEvent                 `json:"sen_log"`
+	ObsLeftLog      []WardEvent                 `json:"obs_left_log"`
+	SenLeftLog      []WardEvent                 `json:"sen_left_log"`
+	Damage          map[string]int32            `json:"damage"`
+	DamageTaken     map[string]int32            `json:"damage_taken"`
+	DamageInflictor map[string]int32            `json:"damage_inflictor"`
+	DamageTargets   map[string]map[string]int32 `json:"damage_targets"`
 	// DamageMitigated: an ESTIMATE of physical damage this player's attacks
 	// had blocked by targets' armor, keyed the same as DamageInflictor.
 	// Estimated because the combat log's own DAMAGE entries are already
@@ -34,8 +34,17 @@ type PlayerParsed struct {
 	// real inflictor name covers: "regen" (passive HP regen) and
 	// "lifesteal", both identified by the HEAL entry's own boolean flags
 	// rather than a name (see handleHeal's doc comment).
-	HealingDealt    map[string]int32            `json:"healing_dealt"`
-	HealingReceived map[string]int32            `json:"healing_received"`
+	HealingDealt    map[string]int32 `json:"healing_dealt"`
+	HealingReceived map[string]int32 `json:"healing_received"`
+	// AllyDamageContribution: a PROXY, not a precise causal estimate. Total
+	// physical damage ALLIES dealt to a target while this player's own
+	// armor debuff was active on it (never the player's own damage), keyed
+	// by the debuff ability's name. See combatlog_ally_contribution.go for
+	// why this couldn't be a precise "how much extra damage did the debuff
+	// cause" estimate (the debuff's actual magnitude isn't reliably
+	// available) and its other caveats, including double-counted credit
+	// when debuffs from different casters overlap on the same target.
+	AllyDamageContribution map[string]int32            `json:"ally_damage_contribution"`
 	Killed                 map[string]int32            `json:"killed"`
 	GoldReasons            map[string]int32            `json:"gold_reasons"`
 	XpReasons              map[string]int32            `json:"xp_reasons"`
@@ -107,6 +116,14 @@ type ModifierEvent struct {
 	Stacks   int32   `json:"stacks,omitempty"`
 	Duration float64 `json:"duration,omitempty"` // seconds after T this expires on its own; 0 = no fixed duration, relies on an explicit removal instead
 	Aura     bool    `json:"aura,omitempty"`     // true = a passive/environmental aura-refresh state (nearby tower/fountain/etc), not the hero's own active buff
+	// Armor: this specific modifier's own sanitized armor delta, set only
+	// on active=true events for modifiers that carry one (0 for most).
+	// Only reliably populated for self/environmental buffs (e.g. Tower Aura
+	// Bonus); confirmed empirically that enemy-applied armor debuffs don't
+	// carry a value here at all (see combatlog_ally_contribution.go), so
+	// this is just useful context for a buff/debuff log entry, not
+	// something to build a debuff-magnitude estimate on.
+	Armor int32 `json:"armor,omitempty"`
 }
 
 type WardEvent struct {

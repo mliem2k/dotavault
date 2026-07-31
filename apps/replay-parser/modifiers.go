@@ -52,6 +52,14 @@ type rawModifierEvent struct {
 	stacks   int32
 	duration float64
 	aura     bool
+	// armor is this specific modifier's own sanitized armor delta (only set
+	// on active=true events). Only reliably populated for self/
+	// environmental buffs (e.g. Tower Aura Bonus); confirmed empirically
+	// that enemy-applied armor debuffs read 0 here regardless of their real
+	// effect (see combatlog_ally_contribution.go), so this exists as useful
+	// context on a buff/debuff log entry, not a magnitude to build an
+	// estimate on.
+	armor int32
 }
 
 // trackModifiers registers the OnModifierTableEntry callback. It keeps
@@ -113,17 +121,19 @@ func trackModifiers(
 			return nil
 		}
 
+		armorDelta := sanitizeStatBonus(m.GetArmor(), 100)
 		activeBySlot[slot][idx] = &activeModifier{
 			name:        name,
 			moveSpeed:   sanitizeStatBonus(m.GetMovementSpeed(), 1000),
 			attackSpeed: sanitizeStatBonus(m.GetAttackSpeed(), 1000),
-			armor:       sanitizeStatBonus(m.GetArmor(), 100),
+			armor:       armorDelta,
 			appliedAt:   now,
 			duration:    float64(m.GetDuration()),
 		}
 		*rawEvents = append(*rawEvents, rawModifierEvent{
 			rawT: now, slot: slot, name: name, active: true,
 			stacks: m.GetStackCount(), duration: float64(m.GetDuration()), aura: m.GetAura(),
+			armor: armorDelta,
 		})
 		return nil
 	})

@@ -153,6 +153,47 @@ player's dealt total and another's received total for the same HEAL entry
 are always equal, except for self-heals where both land on the same
 player).
 
+## Ally Damage Contribution: the modifier buff-table's armor field isn't
+reliable for enemy-applied debuffs
+Attempted a precise version first: correlate a combat-log MODIFIER_ADD
+entry flagged `ArmorDebuffModifier` (which only says THAT a modifier is an
+armor debuff, not by how much) against the target's own buff-table stream
+(`trackModifiers`, modifiers.go), which is where the real per-modifier
+delta lives for other purposes (`activeBonus`'s armor sum). The two
+streams needed correlating by target slot + modifier name + closest
+timestamp, since `InflictorName` on the combat log entry matches the
+buff-table's own resolved `ModifierNames` string (confirmed identical:
+`modifier_nevermore_presence`), while the combat log's separate
+`ModifierAbility` field carries the different, ability-named string
+(`nevermore_dark_lord`) instead, useful for display but not for this
+correlation. Both were needed for different purposes, a real, easy mistake
+to make once (caught before shipping): using `ModifierAbility` for the
+correlation key would have silently never matched anything.
+
+Once correlated, the actual delta turned out to be unavailable anyway.
+Checked every distinct armor-debuff modifier that appeared in one real,
+~42-minute match (Shadow Fiend's Presence of the Dark Lord aura, Blight
+Stone, Medallion of Courage's active, and a neutral creep ability,
+Weakening Curse): all four read `Armor: 0` in the buff-table stream, with
+zero exceptions across 553 sampled instances of the most common one alone.
+Only self/environmental buffs (e.g. `modifier_tower_aura_bonus`, which did
+show real +5/+3 values) populate that field; Valve evidently computes
+enemy-applied debuffs through a different path that doesn't network the
+delta this way. Unrelated modifiers (`modifier_item_ash_legion_shield`,
+`modifier_item_consecrated_wraps_auto_barrier`) showed large, rapidly
+changing values in the same field slot during this investigation, more
+consistent with something like remaining barrier HP than an armor bonus,
+suggesting the field is repurposed per-modifier-type rather than being a
+dedicated, universally-meaningful "armor delta."
+
+Given the magnitude genuinely isn't available, `combatlog_ally_contribution.go`
+implements a proxy instead: total physical damage allies dealt to a target
+while a debuff (identified the same way, via `ArmorDebuffModifier`) was
+active on it, using the debuff's own `ModifierDuration` from the combat
+log directly for the window (no cross-stream correlation needed for
+timing, only the abandoned magnitude attempt needed that). This is
+"ally damage during your debuff," not "damage your debuff caused."
+
 ## CDOTA_PlayerResource field paths
 **Correction to this section's premise:** gold, last hits, denies, and net
 worth are **not** fields on `CDOTA_PlayerResource` in this game version.

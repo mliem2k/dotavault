@@ -297,6 +297,13 @@ export type MatchPlayer = {
   // handleHeal doc comment).
   healing_dealt?: Record<string, number> | null
   healing_received?: Record<string, number> | null
+  // ESTIMATE, not a precise causal number: total physical damage allies
+  // dealt to a target while this player's own armor debuff was active on
+  // it, keyed by the debuff ability's name. See apps/replay-parser's
+  // combatlog_ally_contribution.go for why this couldn't be a precise
+  // "damage the debuff caused" number (the debuff's actual magnitude isn't
+  // reliably available from the replay).
+  ally_damage_contribution?: Record<string, number> | null
   towers_killed?: number | null
   roshans_killed?: number | null
   observer_kills?: number | null

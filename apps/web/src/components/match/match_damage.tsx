@@ -9,13 +9,14 @@ const IDENTITY_W = 236
 const HERO_COL_W = 76
 const TOTAL_W = 84
 
-type Mode = 'dealt' | 'taken' | 'sources' | 'abilities' | 'healing'
+type Mode = 'dealt' | 'taken' | 'sources' | 'abilities' | 'healing' | 'contribution'
 const MODE_LABELS: Record<Mode, string> = {
   dealt: 'Damage Dealt',
   taken: 'Damage Taken',
   sources: 'Damage Sources',
   abilities: 'By Ability',
   healing: 'Healing',
+  contribution: 'Ally Contribution',
 }
 
 // Healing sources are keyed by ability/item name like damage_inflictor, plus
@@ -232,6 +233,62 @@ function HealingRow({
   )
 }
 
+/* ---- Ally Damage Contribution: an ESTIMATE, not a precise causal number.
+   Total physical damage allies dealt to a target while this player's own
+   armor debuff was active on it, i.e. "ally damage during your debuff",
+   not "damage your debuff caused". Some of it would have landed anyway. */
+function ContributionRow({
+  player,
+  abilities,
+}: {
+  player: MatchPlayer
+  abilities: Record<string, AbilityConst>
+}) {
+  const sources = Object.entries(player.ally_damage_contribution ?? {}).sort((a, b) => b[1] - a[1])
+
+  if (sources.length === 0) {
+    return (
+      <div
+        className="flex items-center px-3 text-[12px] font-dota text-slate-muted"
+        style={{ height: ROW_H }}
+      >
+        No ally damage contribution.
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="flex items-center gap-3 px-3"
+      style={{ height: ROW_H, minWidth: 640 }}
+      title="Estimate: total ally damage dealt to a target while this player's armor debuff was active on it, not a precise measure of damage the debuff caused"
+    >
+      {sources.map(([key, value]) => (
+        <div key={key} className="flex items-center gap-1 shrink-0">
+          {abilities[key] ? (
+            <AbilityIcon name={key} meta={abilities[key]} isTalent={false} level={0} />
+          ) : (
+            <div
+              className="shrink-0 rounded-sm border-slate-bg"
+              style={{
+                width: 26,
+                height: 26,
+                background: '#15181b',
+                borderWidth: 1,
+                borderStyle: 'solid',
+              }}
+              title={key}
+            />
+          )}
+          <span className="text-[12px] tabular-nums font-dota" style={{ color: '#c9a84a' }}>
+            {fmtK(value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /* Stratz Focus-style drill-down: for each damage source (ability, item, or
    plain attacks), how much went into each enemy hero (damage_targets). */
 function AbilityTargetsRow({
@@ -413,13 +470,18 @@ export function MatchDamage({
             )}
           </div>
 
-          {mode === 'sources' || mode === 'abilities' || mode === 'healing' ? (
+          {mode === 'sources' ||
+          mode === 'abilities' ||
+          mode === 'healing' ||
+          mode === 'contribution' ? (
             <div className="flex items-center px-3 text-[10px] font-bold uppercase tracking-wider font-dota text-slate-muted">
               {mode === 'sources'
                 ? 'Top damage sources (share of total)'
                 : mode === 'abilities'
                   ? 'Damage per ability, per enemy hero'
-                  : 'Healing dealt, by source (share of total)'}
+                  : mode === 'healing'
+                    ? 'Healing dealt, by source (share of total)'
+                    : 'Ally damage dealt while this player’s debuff was active (estimate)'}
             </div>
           ) : (
             <>
@@ -476,6 +538,8 @@ export function MatchDamage({
                 />
               ) : mode === 'healing' ? (
                 <HealingRow player={p} abilities={abilities} itemConst={itemConst} />
+              ) : mode === 'contribution' ? (
+                <ContributionRow player={p} abilities={abilities} />
               ) : (
                 <>
                   {cells.map((v, i) => (

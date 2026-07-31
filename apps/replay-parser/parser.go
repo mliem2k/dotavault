@@ -207,6 +207,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 	var objectives []ObjectiveEvent
 	var chat []ChatMessage
 	var rawPhysicalHits []rawPhysicalHit
+	var rawArmorDebuffCasts []rawArmorDebuffCast
 
 	clName := func(idx uint32) string {
 		s, _ := p.LookupStringByIndex("CombatLogNames", int32(idx))
@@ -267,6 +268,16 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			handlePurchase(players, heroNameToSlot, pendingWardDispenser, clName(m.GetTargetName()), clName(m.GetValue()), matchTimeOf(m, gameStartTime))
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_MODIFIER_ADD:
 			handleStun(players, heroNameToSlot, clName(m.GetAttackerName()), m.GetStunDuration())
+			if m.GetArmorDebuffModifier() {
+				if cSlot, ok := heroNameToSlot[clName(m.GetAttackerName())]; ok {
+					if tSlot, ok := heroNameToSlot[clName(m.GetTargetName())]; ok {
+						rawArmorDebuffCasts = append(rawArmorDebuffCasts, rawArmorDebuffCast{
+							rawT: float64(m.GetTimestamp()), casterSlot: cSlot, targetSlot: tSlot,
+							abilityName: clName(m.GetModifierAbility()), duration: float64(m.GetModifierDuration()),
+						})
+					}
+				}
+			}
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_MODIFIER_REMOVE:
 			if m.GetModifierPurged() {
 				handleDispel(players, heroNameToSlot,
@@ -692,6 +703,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 					Stacks:   re.stacks,
 					Duration: re.duration,
 					Aura:     re.aura,
+					Armor:    re.armor,
 				})
 			}
 		}
@@ -700,6 +712,12 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		// each buffered physical hit's target-armor-at-time-of-hit lookup can
 		// finally run (see combatlog_mitigation.go).
 		applyPhysicalMitigation(players, rawPhysicalHits, gameStartTime)
+
+		// Modifiers (with the Armor deltas just carried into them above) are
+		// also fully built now, so armor-debuff casts can be resolved
+		// against the target's own Modifiers log (see
+		// combatlog_ally_contribution.go).
+		applyAllyDamageContribution(players, rawArmorDebuffCasts, rawPhysicalHits, gameStartTime)
 	}
 
 	duration := gameEndTime - gameStartTime
