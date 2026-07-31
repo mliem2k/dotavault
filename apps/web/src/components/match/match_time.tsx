@@ -1,11 +1,30 @@
 import { useRef } from 'react'
-import type { ItemConst, Match, MatchPlayer } from 'types'
+import type { AbilityConst, ItemConst, Match, MatchPlayer } from 'types'
 import { ItemIcon } from './item_icon'
 import { levelFromXp } from './match_roster'
 
 /* Shared game-time scrubbing: reconstructs player stats / inventories at a
    point in time from the parsed series, plus the slider control itself.
    Used by the Overview and Scoreboard tabs. */
+
+// Turns a raw combat-log inflictor name (an ability's internal key, or an
+// item's with its "item_" prefix already stripped by the parser) into a
+// display name, falling back to a title-cased guess when neither constants
+// table has it. Shared by the Replay and Log tabs' kill feeds.
+export function humanizeAbilityOrItem(
+  raw: string,
+  abilityConst: Record<string, AbilityConst>,
+  itemConst: Record<string, ItemConst>,
+): string {
+  const item = itemConst[raw]
+  if (item?.dname) return item.dname
+  const ability = abilityConst[raw]
+  if (ability?.dname) return ability.dname
+  return raw
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+}
 
 export function formatClock(seconds: number): string {
   const neg = seconds < 0

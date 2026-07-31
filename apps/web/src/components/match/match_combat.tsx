@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import type { HeroStat, Match, MatchPlayer } from 'types'
+import type { AbilityConst, HeroStat, ItemConst, Match, MatchPlayer } from 'types'
 import {
   Table,
   TableBody,
@@ -9,6 +9,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { heroIconFromPath, heroIconUrl, heroSlug } from '@/lib/utils'
+import { AbilityIcon } from './ability_icon'
+import { ItemIcon } from './item_icon'
 import { orderedTeams } from './match_roster'
 
 /* Combat tab — kill matrix, chronological kill log, and teamfight summary.
@@ -140,7 +142,17 @@ function KillMatrix({ match, heroMap }: { match: Match; heroMap: Map<number, Her
 }
 
 /* ---- Chronological kill log ---- */
-function KillLogList({ match, heroMap }: { match: Match; heroMap: Map<number, HeroStat> }) {
+function KillLogList({
+  match,
+  heroMap,
+  abilityConst,
+  itemConst,
+}: {
+  match: Match
+  heroMap: Map<number, HeroStat>
+  abilityConst: Record<string, AbilityConst>
+  itemConst: Record<string, ItemConst>
+}) {
   const heroByName = new Map([...heroMap.values()].map((h) => [h.name, h]))
   const events = match.players
     .flatMap((p) =>
@@ -148,6 +160,7 @@ function KillLogList({ match, heroMap }: { match: Match; heroMap: Map<number, He
         time: e.time,
         killer: heroMap.get(p.hero_id),
         victim: heroByName.get(e.key),
+        inflictor: e.inflictor,
         radiant: p.player_slot < 128,
       })),
     )
@@ -175,6 +188,18 @@ function KillLogList({ match, heroMap }: { match: Match; heroMap: Map<number, He
             <HeroIcon hero={e.killer} size={30} />
             <span className="text-[13px] text-slate-muted">killed</span>
             <HeroIcon hero={e.victim} size={30} />
+            {e.inflictor &&
+              (abilityConst[e.inflictor] ? (
+                <AbilityIcon
+                  name={e.inflictor}
+                  meta={abilityConst[e.inflictor]}
+                  isTalent={false}
+                  level={0}
+                  size={22}
+                />
+              ) : itemConst[e.inflictor] ? (
+                <ItemIcon name={e.inflictor} meta={itemConst[e.inflictor]} width={22} height={16} />
+              ) : null)}
           </div>
         ))}
       </div>
@@ -280,7 +305,17 @@ function Teamfights({ match, heroMap }: { match: Match; heroMap: Map<number, Her
   )
 }
 
-export function MatchCombat({ match, heroStats }: { match: Match; heroStats: HeroStat[] }) {
+export function MatchCombat({
+  match,
+  heroStats,
+  abilityConst,
+  itemConst,
+}: {
+  match: Match
+  heroStats: HeroStat[]
+  abilityConst: Record<string, AbilityConst>
+  itemConst: Record<string, ItemConst>
+}) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const hasKilled = match.players.some((p) => Object.keys(p.killed ?? {}).length > 0)
 
@@ -288,7 +323,12 @@ export function MatchCombat({ match, heroStats }: { match: Match; heroStats: Her
     <div className="space-y-4">
       {hasKilled && <KillMatrix match={match} heroMap={heroMap} />}
       <Teamfights match={match} heroMap={heroMap} />
-      <KillLogList match={match} heroMap={heroMap} />
+      <KillLogList
+        match={match}
+        heroMap={heroMap}
+        abilityConst={abilityConst}
+        itemConst={itemConst}
+      />
     </div>
   )
 }

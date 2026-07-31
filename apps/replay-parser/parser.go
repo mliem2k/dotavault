@@ -703,7 +703,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			}
 		}
 		kills = append(kills, ev)
-		handleKillAttribution(players, heroNameToSlot, rk.attacker, rk.victim, ev.T)
+		handleKillAttribution(players, heroNameToSlot, rk.attacker, rk.victim, ev.T, ev.Inflictor)
 	}
 
 	pm := &ParsedMatch{

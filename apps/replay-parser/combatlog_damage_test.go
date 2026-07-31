@@ -103,6 +103,36 @@ func TestExtractMatch_GoldReasons(t *testing.T) {
 	}
 }
 
+// TestHandleKillAttribution_Inflictor exercises handleKillAttribution
+// directly (same pattern as TestHandleDamage_HeroHits above) since the
+// fixture's own kills all happen to be plain attacks, which wouldn't
+// distinguish "no inflictor" from "field never wired up".
+func TestHandleKillAttribution_Inflictor(t *testing.T) {
+	heroNameToSlot := map[string]int{
+		"npc_dota_hero_axe":  0,
+		"npc_dota_hero_lina": 128,
+	}
+
+	t.Run("ability killshot is recorded on the kills_log entry", func(t *testing.T) {
+		players := map[string]*PlayerParsed{"0": {}}
+		handleKillAttribution(players, heroNameToSlot, "npc_dota_hero_axe", "npc_dota_hero_lina", 100, "axe_culling_blade")
+		if len(players["0"].KillsLog) != 1 {
+			t.Fatalf("KillsLog has %d entries, want 1", len(players["0"].KillsLog))
+		}
+		if got := players["0"].KillsLog[0].Inflictor; got != "axe_culling_blade" {
+			t.Errorf("Inflictor = %q, want %q", got, "axe_culling_blade")
+		}
+	})
+
+	t.Run("plain attack killshot leaves inflictor empty", func(t *testing.T) {
+		players := map[string]*PlayerParsed{"0": {}}
+		handleKillAttribution(players, heroNameToSlot, "npc_dota_hero_axe", "npc_dota_hero_lina", 100, "")
+		if got := players["0"].KillsLog[0].Inflictor; got != "" {
+			t.Errorf("Inflictor = %q, want empty (plain attack)", got)
+		}
+	})
+}
+
 func TestExtractMatch_KillsLogAndKilled(t *testing.T) {
 	pm, err := ExtractMatch(1, openFixture(t))
 	if err != nil {

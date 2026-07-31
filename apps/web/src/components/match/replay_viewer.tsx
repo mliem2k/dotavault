@@ -18,6 +18,7 @@ import { PlayerNameLink } from './match_roster'
 import {
   formatClock,
   GameTimeSlider,
+  humanizeAbilityOrItem,
   itemsAtTime,
   statsAtTime,
   type TimelineMarker,
@@ -217,19 +218,7 @@ function parsedKillEvents(
       p.player_slot < 128 ? ('radiant' as const) : ('dire' as const),
     ]),
   )
-  const humanize = (raw: string): string => {
-    if (raw.startsWith('item_')) {
-      const item = itemConst[raw.slice(5)]
-      if (item?.dname) return item.dname
-    }
-    const ab = abilityConst[raw]
-    if (ab?.dname) return ab.dname
-    return raw
-      .replace(/^item_/, '')
-      .split('_')
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' ')
-  }
+  const humanize = (raw: string): string => humanizeAbilityOrItem(raw, abilityConst, itemConst)
   const displayName = (npc: string): string =>
     heroByName.get(npc)?.localized_name ?? npc.replace('npc_dota_hero_', '').replace(/_/g, ' ')
 

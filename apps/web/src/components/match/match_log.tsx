@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
-import type { HeroStat, Match } from 'types'
+import type { AbilityConst, HeroStat, ItemConst, Match } from 'types'
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
 import { RUNE_NAMES } from '@/lib/dotaconst'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { extractObjectiveEvents } from './match_objectives'
-import { formatClock } from './match_time'
+import { formatClock, humanizeAbilityOrItem } from './match_time'
 
 /* Log tab: one unified, filterable timeline of everything that happened in
    the match: kills, objectives (towers, Roshan, aegis, couriers), rune
@@ -42,7 +42,12 @@ type LogEvent = {
   heroId?: number
 }
 
-function buildEvents(match: Match, heroStats: HeroStat[]): LogEvent[] {
+function buildEvents(
+  match: Match,
+  heroStats: HeroStat[],
+  abilityConst: Record<string, AbilityConst>,
+  itemConst: Record<string, ItemConst>,
+): LogEvent[] {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const heroByName = new Map(heroStats.map((h) => [h.name, h]))
   const events: LogEvent[] = []
@@ -58,11 +63,14 @@ function buildEvents(match: Match, heroStats: HeroStat[]): LogEvent[] {
 
     for (const k of p.kills_log ?? []) {
       const victim = heroByName.get(k.key)
+      let text = `${heroName} killed ${victim?.localized_name ?? k.key.replace('npc_dota_hero_', '')}`
+      if (k.inflictor)
+        text += ` with ${humanizeAbilityOrItem(k.inflictor, abilityConst, itemConst)}`
       events.push({
         time: k.time,
         category: 'kills',
         icon: '⚔',
-        text: `${heroName} killed ${victim?.localized_name ?? k.key.replace('npc_dota_hero_', '')}`,
+        text,
         team,
         heroId: p.hero_id,
       })
@@ -187,9 +195,22 @@ function RunesSummary({ match, heroMap }: { match: Match; heroMap: Map<number, H
   )
 }
 
-export function MatchLog({ match, heroStats }: { match: Match; heroStats: HeroStat[] }) {
+export function MatchLog({
+  match,
+  heroStats,
+  abilityConst,
+  itemConst,
+}: {
+  match: Match
+  heroStats: HeroStat[]
+  abilityConst: Record<string, AbilityConst>
+  itemConst: Record<string, ItemConst>
+}) {
   const heroMap = useMemo(() => new Map(heroStats.map((h) => [h.id, h])), [heroStats])
-  const all = useMemo(() => buildEvents(match, heroStats), [match, heroStats])
+  const all = useMemo(
+    () => buildEvents(match, heroStats, abilityConst, itemConst),
+    [match, heroStats, abilityConst, itemConst],
+  )
   const present = useMemo(() => new Set(all.map((e) => e.category)), [all])
 
   const [categories, setCategories] = useState<Set<Category>>(

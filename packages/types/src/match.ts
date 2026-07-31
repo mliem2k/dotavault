@@ -1,6 +1,7 @@
 export type KillLog = {
   time: number
   key: string
+  inflictor?: string
 }
 
 export type PickBan = {

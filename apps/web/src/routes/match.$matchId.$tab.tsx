@@ -314,7 +314,16 @@ function MatchPage() {
         ))}
 
       {activeTab === 'combat' &&
-        (heroStats.data ? <MatchCombat match={m} heroStats={heroStats.data} /> : loading)}
+        (heroStats.data ? (
+          <MatchCombat
+            match={m}
+            heroStats={heroStats.data}
+            abilityConst={abilitiesData.data ?? {}}
+            itemConst={itemConst}
+          />
+        ) : (
+          loading
+        ))}
 
       {activeTab === 'damage' &&
         (heroStats.data ? (
@@ -360,7 +369,16 @@ function MatchPage() {
         ))}
 
       {activeTab === 'log' &&
-        (heroStats.data ? <MatchLog match={m} heroStats={heroStats.data} /> : loading)}
+        (heroStats.data ? (
+          <MatchLog
+            match={m}
+            heroStats={heroStats.data}
+            abilityConst={abilitiesData.data ?? {}}
+            itemConst={itemConst}
+          />
+        ) : (
+          loading
+        ))}
 
       {activeTab === 'actions' &&
         (heroStats.data ? <MatchActions match={m} heroStats={heroStats.data} /> : loading)}

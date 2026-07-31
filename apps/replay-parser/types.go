@@ -126,8 +126,9 @@ type BuybackEvent struct {
 }
 
 type KillLogEntry struct {
-	T   float64 `json:"time"`
-	Key string  `json:"key"`
+	T         float64 `json:"time"`
+	Key       string  `json:"key"`
+	Inflictor string  `json:"inflictor,omitempty"` // absent = plain attack
 }
 
 type ObjectiveEvent struct {

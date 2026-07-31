@@ -83,10 +83,10 @@ func handleXpReason(players map[string]*PlayerParsed, heroNameToSlot map[string]
 	p.XpReasons[fmt.Sprintf("%d", reason)] += value
 }
 
-func handleKillAttribution(players map[string]*PlayerParsed, heroNameToSlot map[string]int, attackerHero, victimHero string, t float64) {
+func handleKillAttribution(players map[string]*PlayerParsed, heroNameToSlot map[string]int, attackerHero, victimHero string, t float64, inflictor string) {
 	if aSlot, ok := heroNameToSlot[attackerHero]; ok {
 		p := players[fmtSlot(aSlot)]
-		p.KillsLog = append(p.KillsLog, KillLogEntry{T: t, Key: victimHero})
+		p.KillsLog = append(p.KillsLog, KillLogEntry{T: t, Key: victimHero, Inflictor: inflictor})
 		if p.Killed == nil {
 			p.Killed = map[string]int32{}
 		}
