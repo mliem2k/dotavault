@@ -122,6 +122,43 @@ function SourceIcon({
       </div>
     )
   }
+  // Synthetic healing buckets have no ability or item art behind them, so
+  // they get drawn marks rather than an empty frame.
+  if (sourceKey === 'regen' || sourceKey === 'lifesteal') {
+    const isRegen = sourceKey === 'regen'
+    return (
+      <div
+        className="shrink-0 flex items-center justify-center"
+        style={{
+          width: size,
+          height: size,
+          background: '#15181b',
+          border: `1px solid ${C.border}`,
+        }}
+        title={SYNTHETIC_LABELS[sourceKey]}
+      >
+        <svg
+          width={size * 0.58}
+          height={size * 0.58}
+          viewBox="0 0 16 16"
+          aria-hidden="true"
+          {...(isRegen
+            ? { fill: 'none', stroke: C.healing, strokeWidth: 2.2, strokeLinecap: 'round' as const }
+            : { fill: C.kill })}
+        >
+          <title>{SYNTHETIC_LABELS[sourceKey]}</title>
+          {isRegen ? (
+            <>
+              <path d="M8 3 L8 13" />
+              <path d="M3 8 L13 8" />
+            </>
+          ) : (
+            <path d="M8 2C8 2 3.6 7.6 3.6 10a4.4 4.4 0 0 0 8.8 0C12.4 7.6 8 2 8 2Z" />
+          )}
+        </svg>
+      </div>
+    )
+  }
   if (abilities[sourceKey]) {
     return (
       <AbilityIcon
@@ -143,12 +180,25 @@ function SourceIcon({
       />
     )
   }
+  // Unrecognised key (a modifier with no matching ability or item entry).
+  // Falls back to its initials rather than an empty frame, which read as a
+  // broken image.
   return (
     <div
-      className="shrink-0"
+      className="shrink-0 flex items-center justify-center"
       style={{ width: size, height: size, background: '#15181b', border: `1px solid ${C.border}` }}
       title={sourceKey}
-    />
+    >
+      <span
+        className="font-bold font-dota"
+        style={{ fontSize: Math.round(size * 0.36), color: C.mutedDim, letterSpacing: '0.5px' }}
+      >
+        {sourceKey
+          .replace(/^modifier_/, '')
+          .slice(0, 2)
+          .toUpperCase()}
+      </span>
+    </div>
   )
 }
 
