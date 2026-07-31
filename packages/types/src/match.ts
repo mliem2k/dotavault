@@ -285,6 +285,8 @@ export type MatchPlayer = {
   damage_targets?: Record<string, Record<string, number>> | null
   towers_killed?: number | null
   roshans_killed?: number | null
+  observer_kills?: number | null
+  sentry_kills?: number | null
   firstblood_claimed?: number | null
   cosmetics?:
     | {

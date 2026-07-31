@@ -41,6 +41,8 @@ type PlayerParsed struct {
 	KillStreaks            map[string]int32            `json:"kill_streaks"`
 	TowersKilled           int32                       `json:"towers_killed"`
 	RoshansKilled          int32                       `json:"roshans_killed"`
+	ObserverKills          int32                       `json:"observer_kills"`
+	SentryKills            int32                       `json:"sentry_kills"`
 	FirstbloodClaimed      int32                       `json:"firstblood_claimed"`
 	// Pings: populated from OnCDOTAUserMsg_LocationPing (confirmed present in
 	// the replay stream against testdata/fixture.dem.bz2 — see FIELD_NOTES.md).

@@ -58,13 +58,18 @@ func tallyCampStack(players map[string]*PlayerParsed, heroNameToSlot map[string]
 	players[fmtSlot(slot)].CampsStacked++
 }
 
-// handleNonHeroDeath tallies tower and Roshan kills. It's called from the
-// existing DEATH case's early-return branch (targets that aren't a
-// non-illusion hero), not from TEAM_BUILDING_KILL — FIELD_NOTES.md found
+// handleNonHeroDeath tallies tower, Roshan, and ward kills. It's called
+// from the existing DEATH case's early-return branch (targets that aren't a
+// non-illusion hero), not from TEAM_BUILDING_KILL. FIELD_NOTES.md found
 // TEAM_BUILDING_KILL's own is_target_building/building_type fields are
 // always 0/false; those live on the paired DEATH entry for the same event
 // instead. Roshan is a plain DEATH target too (neither IsTargetHero nor
-// IsTargetBuilding), identified by target name.
+// IsTargetBuilding), identified by target name. Ward deaths use the same
+// target-name identification, confirmed live against match 8921338975: a
+// ward's own natural-expiry death has the ward itself as attacker (fails
+// the heroNameToSlot lookup below and returns early, same as any other
+// non-hero attacker), while an enemy's deward has the killing hero as
+// attacker, so no extra self-kill filtering is needed here.
 func handleNonHeroDeath(players map[string]*PlayerParsed, heroNameToSlot map[string]int, attackerHero, targetName string, isTargetBuilding bool) {
 	slot, ok := heroNameToSlot[attackerHero]
 	if !ok {
@@ -74,8 +79,13 @@ func handleNonHeroDeath(players map[string]*PlayerParsed, heroNameToSlot map[str
 	if isTargetBuilding {
 		p.TowersKilled++
 	}
-	if targetName == "npc_dota_roshan" {
+	switch targetName {
+	case "npc_dota_roshan":
 		p.RoshansKilled++
+	case "npc_dota_observer_wards":
+		p.ObserverKills++
+	case "npc_dota_sentry_wards":
+		p.SentryKills++
 	}
 }
 

@@ -32,6 +32,7 @@ type SortKey =
   | 'heal'
   | 'bld'
   | 'wards'
+  | 'deward'
 
 function wardsAtTime(p: MatchPlayer, timeSec: number): number {
   const obs = p.obs_log ? p.obs_log.filter((w) => w.time <= timeSec).length : (p.obs_placed ?? 0)
@@ -69,6 +70,8 @@ function sortValue(
       return p.tower_damage ?? -1
     case 'wards':
       return wardsAtTime(p, timeSec)
+    case 'deward':
+      return (p.observer_kills ?? 0) + (p.sentry_kills ?? 0)
   }
 }
 
@@ -679,6 +682,18 @@ export function MatchScoreboard({
           const obs = p.obs_log ? p.obs_log.filter((w) => w.time <= timeSec).length : p.obs_placed
           const sen = p.sen_log ? p.sen_log.filter((w) => w.time <= timeSec).length : p.sen_placed
           return num('text-slate-foreground-light')(obs || sen ? `${obs ?? 0}/${sen ?? 0}` : '-')
+        },
+      },
+      {
+        label: 'DEWARD',
+        width: 66,
+        sortKey: 'deward',
+        render: (p) => {
+          const obsKills = p.observer_kills
+          const senKills = p.sentry_kills
+          return num('text-slate-foreground-light')(
+            obsKills || senKills ? `${obsKills ?? 0}/${senKills ?? 0}` : '-',
+          )
         },
       },
     ],

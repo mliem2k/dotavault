@@ -27,6 +27,24 @@ short (small fixture) and still live on Valve's CDN when fetched.
   `CDOTA_NPC_Observer_Ward` used for observer charges, not a flag on it.
   Wired up in parser.go's ward OnEntity handler.
 
+## Ward kills (dewards)
+Confirmed via a temporary `-inspect` probe against a real, ~42-minute match
+(8921338975), not the short fixture (which never had a ward destroyed by an
+enemy in 11.6 minutes). A ward's death is a plain DOTA_COMBATLOG_DEATH entry
+like any other non-hero death, target name `npc_dota_observer_wards` or
+`npc_dota_sentry_wards` (note: plural, unlike the singular entity class
+names above). Two distinct attacker patterns were observed for the same
+target names:
+- Natural expiry (duration ran out): attacker equals target, i.e. the ward
+  killed itself. One siege-creep-attacker case was also observed (a ward
+  standing in a creep wave's path). Neither resolves through
+  `heroNameToSlot`, so `handleNonHeroDeath` already ignores both for free,
+  the same way it silently ignores any other non-hero attacker.
+- An actual deward: attacker is the enemy hero who destroyed it (e.g.
+  `npc_dota_hero_windrunner`). Wired up in `handleNonHeroDeath`
+  (combatlog_events.go) as `ObserverKills`/`SentryKills`, same pattern as
+  `RoshansKilled`.
+
 ## CDOTA_PlayerResource field paths
 **Correction to this section's premise:** gold, last hits, denies, and net
 worth are **not** fields on `CDOTA_PlayerResource` in this game version.

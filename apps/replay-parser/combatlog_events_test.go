@@ -72,6 +72,44 @@ func TestHandleNonHeroDeath_Tower(t *testing.T) {
 	}
 }
 
+func TestHandleNonHeroDeath_ObserverWard(t *testing.T) {
+	players := map[string]*PlayerParsed{"0": {}}
+	heroNameToSlot := map[string]int{"npc_dota_hero_axe": 0}
+	handleNonHeroDeath(players, heroNameToSlot, "npc_dota_hero_axe", "npc_dota_observer_wards", false)
+	if players["0"].ObserverKills != 1 {
+		t.Errorf("ObserverKills = %d, want 1", players["0"].ObserverKills)
+	}
+	if players["0"].SentryKills != 0 {
+		t.Errorf("SentryKills = %d, want 0 (this was an observer ward kill, not a sentry)", players["0"].SentryKills)
+	}
+}
+
+func TestHandleNonHeroDeath_SentryWard(t *testing.T) {
+	players := map[string]*PlayerParsed{"0": {}}
+	heroNameToSlot := map[string]int{"npc_dota_hero_axe": 0}
+	handleNonHeroDeath(players, heroNameToSlot, "npc_dota_hero_axe", "npc_dota_sentry_wards", false)
+	if players["0"].SentryKills != 1 {
+		t.Errorf("SentryKills = %d, want 1", players["0"].SentryKills)
+	}
+	if players["0"].ObserverKills != 0 {
+		t.Errorf("ObserverKills = %d, want 0 (this was a sentry ward kill, not an observer)", players["0"].ObserverKills)
+	}
+}
+
+// A ward's own self-attack on natural expiry (attacker equals target, so it
+// never resolves through heroNameToSlot) must not be credited to anyone.
+// Confirmed live against match 8921338975's real combat log: every
+// natural-expiry ward death has npc_dota_observer_wards/npc_dota_sentry_wards
+// as its own attacker, distinct from an enemy hero's kill.
+func TestHandleNonHeroDeath_WardSelfExpiryNotCredited(t *testing.T) {
+	players := map[string]*PlayerParsed{"0": {}}
+	heroNameToSlot := map[string]int{"npc_dota_hero_axe": 0}
+	handleNonHeroDeath(players, heroNameToSlot, "npc_dota_observer_wards", "npc_dota_observer_wards", false)
+	if players["0"].ObserverKills != 0 {
+		t.Errorf("ObserverKills = %d, want 0 (natural expiry, not an enemy kill)", players["0"].ObserverKills)
+	}
+}
+
 func TestTallyCampStack(t *testing.T) {
 	players := map[string]*PlayerParsed{"0": {}}
 	heroNameToSlot := map[string]int{"npc_dota_hero_axe": 0}
