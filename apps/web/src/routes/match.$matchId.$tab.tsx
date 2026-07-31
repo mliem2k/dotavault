@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { DraftPanel } from '@/components/match/draft_panel'
 import { MatchActions } from '@/components/match/match_actions'
+import { MatchBreakdown } from '@/components/match/match_breakdown'
 import { MatchBuildings } from '@/components/match/match_buildings'
 import { MatchCasts } from '@/components/match/match_casts'
 import { MatchChat } from '@/components/match/match_chat'
@@ -32,6 +33,7 @@ type Tab =
   | 'graphs'
   | 'combat'
   | 'damage'
+  | 'breakdown'
   | 'performance'
   | 'laning'
   | 'casts'
@@ -121,6 +123,9 @@ function MatchPage() {
     (m.teamfights?.length ?? 0) > 0 ||
     m.players.some((p) => (p.kills_log?.length ?? 0) > 0 || Object.keys(p.killed ?? {}).length > 0)
   const hasDamage = m.players.some((p) => p.damage != null || p.damage_inflictor != null)
+  // The source-by-hero matrix needs the per-target splits, which only our
+  // own replay parser produces.
+  const hasBreakdown = m.players.some((p) => p.damage_targets != null || p.healing_targets != null)
   const hasPerformance = m.players.some((p) => p.lane_role != null || p.benchmarks != null)
   const hasFarm = m.players.some((p) => Object.keys(p.gold_reasons ?? {}).length > 0)
   const hasPurchases = m.players.some((p) => (p.purchase_log?.length ?? 0) > 0)
@@ -147,6 +152,7 @@ function MatchPage() {
     'graphs',
     ...(hasCombat ? (['combat'] as Tab[]) : []),
     ...(hasDamage ? (['damage'] as Tab[]) : []),
+    ...(hasBreakdown ? (['breakdown'] as Tab[]) : []),
     ...(hasPerformance ? (['performance'] as Tab[]) : []),
     ...(hasLaning ? (['laning'] as Tab[]) : []),
     ...(hasCasts ? (['casts'] as Tab[]) : []),
@@ -180,7 +186,7 @@ function MatchPage() {
     { label: 'overview', tabs: ['overview'] },
     { label: 'scoreboard', tabs: ['scoreboard'] },
     { label: 'graphs', tabs: ['graphs'] },
-    { label: 'combat', tabs: ['combat', 'damage', 'log'] },
+    { label: 'combat', tabs: ['combat', 'damage', 'breakdown', 'log'] },
     { label: 'economy', tabs: ['farm', 'purchases'] },
     { label: 'performance', tabs: ['performance', 'laning', 'casts', 'actions', 'fantasy'] },
     { label: 'maps', tabs: ['vision', 'buildings', 'objectives'] },
@@ -328,6 +334,18 @@ function MatchPage() {
       {activeTab === 'damage' &&
         (heroStats.data ? (
           <MatchDamage
+            match={m}
+            heroStats={heroStats.data}
+            abilities={abilitiesData.data ?? {}}
+            itemConst={itemConst}
+          />
+        ) : (
+          loading
+        ))}
+
+      {activeTab === 'breakdown' &&
+        (heroStats.data ? (
+          <MatchBreakdown
             match={m}
             heroStats={heroStats.data}
             abilities={abilitiesData.data ?? {}}
