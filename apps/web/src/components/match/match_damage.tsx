@@ -272,11 +272,20 @@ export function MatchDamage({
 
   const teamSection = (players: MatchPlayer[], isRadiant: boolean) => {
     const color = isRadiant ? '#9fbf3f' : '#c94a38'
-    const enemies = (isRadiant ? dire : radiant)
+    const enemyPlayers = isRadiant ? dire : radiant
+    const enemies = enemyPlayers
       .map((e) => heroMap.get(e.hero_id))
       .filter((h): h is HeroStat => !!h)
     const kills = players.reduce((s, p) => s + p.kills, 0)
     const isWinner = isRadiant ? match.radiant_win : !match.radiant_win
+    // Team Damage Mitigated: how much of the ENEMY team's physical damage
+    // output this team's armor blocked, i.e. the enemy players' own
+    // damage_mitigated totals (each attributed to the attacker, see
+    // apps/replay-parser's DamageMitigated doc comment) summed together.
+    const teamMitigated = enemyPlayers.reduce(
+      (s, p) => s + Object.values(p.damage_mitigated ?? {}).reduce((a, b) => a + b, 0),
+      0,
+    )
 
     return (
       <div style={{ background: '#101316', border: '1px solid #1f2529' }}>
@@ -299,6 +308,14 @@ export function MatchDamage({
             <span className="text-[11px] uppercase tracking-wide font-dota text-slate-muted">
               Score: <span className={isRadiant ? 'text-radiant' : 'text-dire'}>{kills}</span>
             </span>
+            {teamMitigated > 0 && (
+              <span
+                className="text-[11px] uppercase tracking-wide font-dota text-slate-muted"
+                title="Estimated physical damage this team's armor blocked from the enemy's attacks"
+              >
+                Mitigated: <span style={{ color: '#7d8b95' }}>{fmtK(teamMitigated)}</span>
+              </span>
+            )}
             {isWinner && (
               <span
                 className="text-[11px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ml-auto text-radiant"
