@@ -43,6 +43,7 @@ type PlayerParsed struct {
 	RoshansKilled          int32                       `json:"roshans_killed"`
 	ObserverKills          int32                       `json:"observer_kills"`
 	SentryKills            int32                       `json:"sentry_kills"`
+	DispelsLog             []DispelEvent               `json:"dispels_log"`
 	FirstbloodClaimed      int32                       `json:"firstblood_claimed"`
 	// Pings: populated from OnCDOTAUserMsg_LocationPing (confirmed present in
 	// the replay stream against testdata/fixture.dem.bz2 — see FIELD_NOTES.md).
@@ -129,6 +130,19 @@ type KillLogEntry struct {
 	T         float64 `json:"time"`
 	Key       string  `json:"key"`
 	Inflictor string  `json:"inflictor,omitempty"` // absent = plain attack
+}
+
+// DispelEvent is a forced modifier removal (Manta Style, BKB, Eul's, an
+// ally's Purification, etc.), not the debuff's own natural expiry. Target is
+// whoever had the debuff removed, usually but not always the same player
+// (an ally-targeted dispel has a different target than PlayerParsed's own
+// slot, see handleDispel's doc comment).
+type DispelEvent struct {
+	T            float64 `json:"time"`
+	Target       string  `json:"target"`
+	Modifier     string  `json:"modifier"`
+	PurgeAbility string  `json:"purge_ability"`
+	Duration     float64 `json:"duration"`
 }
 
 type ObjectiveEvent struct {

@@ -288,6 +288,17 @@ export type MatchPlayer = {
   roshans_killed?: number | null
   observer_kills?: number | null
   sentry_kills?: number | null
+  // target usually equals this player (a self-cast dispel, e.g. Manta Style
+  // or Black King Bar) but can differ for an ally-targeted dispel (Guardian
+  // Greaves, Oracle Purification). This player is always the one who cast
+  // the dispelling ability, never the target.
+  dispels_log?: {
+    time: number
+    target: string
+    modifier: string
+    purge_ability: string
+    duration: number
+  }[]
   firstblood_claimed?: number | null
   cosmetics?:
     | {

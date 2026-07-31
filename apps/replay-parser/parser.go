@@ -252,6 +252,13 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 			handlePurchase(players, heroNameToSlot, pendingWardDispenser, clName(m.GetTargetName()), clName(m.GetValue()), matchTimeOf(m, gameStartTime))
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_MODIFIER_ADD:
 			handleStun(players, heroNameToSlot, clName(m.GetAttackerName()), m.GetStunDuration())
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_MODIFIER_REMOVE:
+			if m.GetModifierPurged() {
+				handleDispel(players, heroNameToSlot,
+					clName(m.GetModifierPurgeNpc()), clName(m.GetModifierPurgeAbility()), clName(m.GetTargetName()),
+					clName(m.GetModifierAbility()), clName(m.GetInflictorName()),
+					float64(m.GetModifierPurgedDuration()), matchTimeOf(m, gameStartTime))
+			}
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_BUYBACK:
 			handleBuyback(players, playerIDToTeam, latestNetWorth, m.GetValue(), matchTimeOf(m, gameStartTime))
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_PICKUP_RUNE:

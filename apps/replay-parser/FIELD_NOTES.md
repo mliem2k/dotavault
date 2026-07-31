@@ -45,6 +45,38 @@ target names:
   (combatlog_events.go) as `ObserverKills`/`SentryKills`, same pattern as
   `RoshansKilled`.
 
+## Killshots and dispels (from Valve's "Upgraded Post-Game Breakdowns" patch)
+Both confirmed via the same real-match probe as the deward section above
+(match 8921338975).
+
+- **Killshots:** a hero DEATH combat log entry's `InflictorName` was already
+  being read into `rawKill.inflictor` (parser.go) and surfaced on the
+  top-level `Kills` feed, but never threaded into `KillsLog`
+  (`handleKillAttribution`, combatlog_damage.go) despite the data being
+  right there at the call site. One-line fix.
+- **Dispels:** a `MODIFIER_REMOVE` combat log entry with `ModifierPurged`
+  true is a forced dispel, not the modifier's own natural expiry (confirmed:
+  every unpurged REMOVE sampled was a `dota_fountain` aura buff naturally
+  falling off out of range, distinct in kind from a purged entry). Field
+  semantics, confirmed against 15 real purged samples:
+  - `AttackerName`/`InflictorName`/`ModifierAbility` describe the debuff
+    being removed and who originally cast it, identical meaning to a
+    MODIFIER_ADD entry, i.e. irrelevant to who performed the dispel.
+  - `ModifierPurgeNpc` is who cast the dispelling ability (e.g. self-cast
+    Manta Style, Black King Bar, Eul's Cyclone, Shadow Shaman's Fowl Play).
+    In all 15 samples this equalled `TargetName` (self-dispel), but Guardian
+    Greaves/Oracle Purification-style ally dispels exist in the game even
+    though none appeared in this particular match, so `TargetName` is kept
+    as a separate field rather than assumed equal.
+  - `ModifierPurgeAbility` is the dispelling ability itself.
+  - `ModifierAbility` is more specific than `InflictorName` for naming what
+    got purged: one real sample had `InflictorName` = the generic
+    `modifier_stunned` wrapper while `ModifierAbility` carried the actual
+    stunning ability (`earth_spirit_rolling_boulder`). `ModifierAbility` is
+    preferred, `InflictorName` kept only as a fallback.
+  Wired up as `handleDispel` (combatlog_dispels.go) into a new
+  `DispelsLog`/`dispels_log`.
+
 ## CDOTA_PlayerResource field paths
 **Correction to this section's premise:** gold, last hits, denies, and net
 worth are **not** fields on `CDOTA_PlayerResource` in this game version.

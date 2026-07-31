@@ -16,14 +16,14 @@ import { formatClock, humanizeAbilityOrItem } from './match_time'
 
 /* Log tab: one unified, filterable timeline of everything that happened in
    the match: kills, objectives (towers, Roshan, aegis, couriers), rune
-   activations, buybacks, and ward placements. */
+   activations, buybacks, ward placements, and dispels. */
 
 const C = {
   panel: 'rgba(16,19,22,0.72)',
   panelDark: 'rgba(8,10,12,0.7)',
 }
 
-type Category = 'kills' | 'objectives' | 'runes' | 'buybacks' | 'wards'
+type Category = 'kills' | 'objectives' | 'runes' | 'buybacks' | 'wards' | 'dispels'
 
 const CATEGORY_LABELS: Record<Category, string> = {
   kills: 'Kills',
@@ -31,6 +31,7 @@ const CATEGORY_LABELS: Record<Category, string> = {
   runes: 'Runes',
   buybacks: 'Buybacks',
   wards: 'Wards',
+  dispels: 'Dispels',
 }
 
 type LogEvent = {
@@ -111,6 +112,19 @@ function buildEvents(
         category: 'wards',
         icon: '◉',
         text: `${heroName} placed a Sentry ward`,
+        team,
+        heroId: p.hero_id,
+      })
+    }
+    for (const d of p.dispels_log ?? []) {
+      const target = heroByName.get(d.target)
+      const targetName = target?.localized_name ?? d.target.replace('npc_dota_hero_', '')
+      const onSelf = d.target === hero?.name
+      events.push({
+        time: d.time,
+        category: 'dispels',
+        icon: '✦',
+        text: `${heroName} dispelled ${humanizeAbilityOrItem(d.modifier, abilityConst, itemConst)} off ${onSelf ? 'themself' : targetName} with ${humanizeAbilityOrItem(d.purge_ability, abilityConst, itemConst)}`,
         team,
         heroId: p.hero_id,
       })
@@ -214,7 +228,7 @@ export function MatchLog({
   const present = useMemo(() => new Set(all.map((e) => e.category)), [all])
 
   const [categories, setCategories] = useState<Set<Category>>(
-    () => new Set<Category>(['kills', 'objectives', 'runes', 'buybacks', 'wards']),
+    () => new Set<Category>(['kills', 'objectives', 'runes', 'buybacks', 'wards', 'dispels']),
   )
   const [teamFilter, setTeamFilter] = useState<'all' | 'radiant' | 'dire'>('all')
 
