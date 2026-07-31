@@ -41,7 +41,7 @@ func TestParsedMatch_JSONContract(t *testing.T) {
 		"stuns", "teamfight_participation", "camps_stacked", "rune_pickups", "buyback_count", "total_gold", "runes_log",
 		"buyback_log", "lane_pos", "ability_uses", "item_uses", "hero_hits", "multi_kills",
 		"kill_streaks", "towers_killed", "roshans_killed", "observer_kills", "sentry_kills", "dispels_log", "firstblood_claimed", "modifiers",
-		"damage_mitigated",
+		"damage_mitigated", "healing_dealt", "healing_received",
 	}
 	for _, key := range wantPlayerKeys {
 		if _, ok := samplePlayer[key]; !ok {

@@ -137,6 +137,22 @@ already-shipped Armor/Speed/AttackSpeed tracking, not something introduced
 by the mitigation feature, just first exposed by a consumer that does
 arithmetic with the value instead of only displaying it.
 
+## Healing breakdown by source (from the same patch)
+Straightforward, confirmed against the same real match. HEAL combat log
+entries: `AttackerName` is the healer, `TargetName` is the recipient
+(Necrolyte's Death Pulse consistently had attacker=Necrolyte whether the
+target was himself or an ally, both self-heals and ally-heals observed).
+Named-ability/item heals keep their own inflictor as the key, same
+convention as `DamageInflictor`. Passive HP regen and lifesteal both carry
+an empty or `dota_unknown` inflictor (no ability cast them), so they're
+identified instead by the entry's own `HealFromRegen`/`HealFromLifesteal`
+boolean flags and bucketed under synthetic `"regen"`/`"lifesteal"` keys.
+Wired up as `handleHeal` (combatlog_healing.go) into new
+`HealingDealt`/`HealingReceived` maps, both keyed the same way (one
+player's dealt total and another's received total for the same HEAL entry
+are always equal, except for self-heals where both land on the same
+player).
+
 ## CDOTA_PlayerResource field paths
 **Correction to this section's premise:** gold, last hits, denies, and net
 worth are **not** fields on `CDOTA_PlayerResource` in this game version.

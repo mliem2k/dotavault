@@ -246,6 +246,9 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 					}
 				}
 			}
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_HEAL:
+			handleHeal(players, heroNameToSlot, clName(m.GetAttackerName()), clName(m.GetTargetName()), clName(m.GetInflictorName()),
+				m.GetHealFromRegen(), m.GetHealFromLifesteal(), int32(m.GetValue()))
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_GOLD:
 			handleGoldReason(players, heroNameToSlot, clName(m.GetTargetName()), m.GetGoldReason(), int32(m.GetValue()))
 			// Reason 1 = death loss; the value is a wrapped negative. This

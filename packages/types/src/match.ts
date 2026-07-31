@@ -291,6 +291,12 @@ export type MatchPlayer = {
   // combatlog_mitigation.go). Magical and pure damage are never reduced by
   // armor and are not included.
   damage_mitigated?: Record<string, number> | null
+  // Keyed like damage_inflictor by ability/item name, plus two synthetic
+  // buckets neither the combat log nor any real inflictor name covers:
+  // "regen" (passive HP regen) and "lifesteal" (see apps/replay-parser's
+  // handleHeal doc comment).
+  healing_dealt?: Record<string, number> | null
+  healing_received?: Record<string, number> | null
   towers_killed?: number | null
   roshans_killed?: number | null
   observer_kills?: number | null

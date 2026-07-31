@@ -9,12 +9,22 @@ const IDENTITY_W = 236
 const HERO_COL_W = 76
 const TOTAL_W = 84
 
-type Mode = 'dealt' | 'taken' | 'sources' | 'abilities'
+type Mode = 'dealt' | 'taken' | 'sources' | 'abilities' | 'healing'
 const MODE_LABELS: Record<Mode, string> = {
   dealt: 'Damage Dealt',
   taken: 'Damage Taken',
   sources: 'Damage Sources',
   abilities: 'By Ability',
+  healing: 'Healing',
+}
+
+// Healing sources are keyed by ability/item name like damage_inflictor, plus
+// two synthetic buckets the parser adds since neither has a real inflictor
+// name in the combat log: passive HP regen, and lifesteal procs.
+const HEAL_SOURCE_LABELS: Record<string, string> = {
+  regen: 'HP Regen',
+  lifesteal: 'Lifesteal',
+  unknown: 'Unknown',
 }
 
 function fmtK(v: number): string {
@@ -140,6 +150,83 @@ function SourcesRow({
           value,
           key,
         )
+      })}
+    </div>
+  )
+}
+
+/* ---- Healing given, broken down by ability/item/regen/lifesteal ---- */
+function HealingRow({
+  player,
+  abilities,
+  itemConst,
+}: {
+  player: MatchPlayer
+  abilities: Record<string, AbilityConst>
+  itemConst: Record<string, ItemConst>
+}) {
+  const sources = Object.entries(player.healing_dealt ?? {})
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+  const total = Object.values(player.healing_dealt ?? {}).reduce((s, v) => s + v, 0)
+
+  if (total === 0) {
+    return (
+      <div
+        className="flex items-center px-3 text-[12px] font-dota text-slate-muted"
+        style={{ height: ROW_H }}
+      >
+        No healing dealt.
+      </div>
+    )
+  }
+
+  const chip = (icon: React.ReactNode, value: number, key: string) => (
+    <div key={key} className="flex items-center gap-1 shrink-0">
+      {icon}
+      <span className="text-[12px] tabular-nums font-dota" style={{ color: '#8fd6a8' }}>
+        {fmtK(value)}
+      </span>
+      <span className="text-[10px] tabular-nums font-dota text-slate-muted">
+        {Math.round((value / total) * 100)}%
+      </span>
+    </div>
+  )
+
+  const badge = (label: string) => (
+    <div
+      className="shrink-0 rounded-sm flex items-center justify-center border-slate-bg px-1"
+      style={{
+        height: 26,
+        background: '#15181b',
+        borderWidth: 1,
+        borderStyle: 'solid',
+        color: '#8fd6a8',
+        fontSize: 10,
+      }}
+      title={label}
+    >
+      {label}
+    </div>
+  )
+
+  return (
+    <div className="flex items-center gap-3 px-3" style={{ height: ROW_H, minWidth: 640 }}>
+      {sources.map(([key, value]) => {
+        if (HEAL_SOURCE_LABELS[key]) return chip(badge(HEAL_SOURCE_LABELS[key]), value, key)
+        if (abilities[key])
+          return chip(
+            <AbilityIcon name={key} meta={abilities[key]} isTalent={false} level={0} />,
+            value,
+            key,
+          )
+        if (itemConst[key])
+          return chip(
+            <ItemIcon name={key} meta={itemConst[key]} width={26} height={26} />,
+            value,
+            key,
+          )
+        return chip(badge(key), value, key)
       })}
     </div>
   )
@@ -326,11 +413,13 @@ export function MatchDamage({
             )}
           </div>
 
-          {mode === 'sources' || mode === 'abilities' ? (
+          {mode === 'sources' || mode === 'abilities' || mode === 'healing' ? (
             <div className="flex items-center px-3 text-[10px] font-bold uppercase tracking-wider font-dota text-slate-muted">
               {mode === 'sources'
                 ? 'Top damage sources (share of total)'
-                : 'Damage per ability, per enemy hero'}
+                : mode === 'abilities'
+                  ? 'Damage per ability, per enemy hero'
+                  : 'Healing dealt, by source (share of total)'}
             </div>
           ) : (
             <>
@@ -385,6 +474,8 @@ export function MatchDamage({
                   abilities={abilities}
                   itemConst={itemConst}
                 />
+              ) : mode === 'healing' ? (
+                <HealingRow player={p} abilities={abilities} itemConst={itemConst} />
               ) : (
                 <>
                   {cells.map((v, i) => (

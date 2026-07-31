@@ -29,6 +29,13 @@ type PlayerParsed struct {
 	// target-armor-at-time-of-hit approximation this relies on). Magical
 	// and pure damage are never reduced by armor and are not included.
 	DamageMitigated map[string]int32 `json:"damage_mitigated"`
+	// HealingDealt/HealingReceived: keyed like DamageInflictor by ability/
+	// item name, plus two synthetic buckets neither the combat log nor any
+	// real inflictor name covers: "regen" (passive HP regen) and
+	// "lifesteal", both identified by the HEAL entry's own boolean flags
+	// rather than a name (see handleHeal's doc comment).
+	HealingDealt    map[string]int32            `json:"healing_dealt"`
+	HealingReceived map[string]int32            `json:"healing_received"`
 	Killed                 map[string]int32            `json:"killed"`
 	GoldReasons            map[string]int32            `json:"gold_reasons"`
 	XpReasons              map[string]int32            `json:"xp_reasons"`
