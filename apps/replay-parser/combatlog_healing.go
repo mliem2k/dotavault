@@ -26,12 +26,26 @@ func handleHeal(
 		key = "lifesteal"
 	}
 
+	_, targetIsHero := heroNameToSlot[targetHero]
+
 	if hSlot, ok := heroNameToSlot[healerHero]; ok {
 		p := players[fmtSlot(hSlot)]
 		if p.HealingDealt == nil {
 			p.HealingDealt = map[string]int32{}
 		}
 		p.HealingDealt[key] += amount
+		// Per-recipient split, hero recipients only (a heal landing on a
+		// creep or courier still counts toward HealingDealt above, it just
+		// doesn't get a column in the healing matrix).
+		if targetIsHero {
+			if p.HealingTargets == nil {
+				p.HealingTargets = map[string]map[string]int32{}
+			}
+			if p.HealingTargets[key] == nil {
+				p.HealingTargets[key] = map[string]int32{}
+			}
+			p.HealingTargets[key][targetHero] += amount
+		}
 	}
 	if tSlot, ok := heroNameToSlot[targetHero]; ok {
 		p := players[fmtSlot(tSlot)]

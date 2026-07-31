@@ -65,3 +65,43 @@ func TestHandleHeal(t *testing.T) {
 		}
 	})
 }
+
+// HealingTargets is the healing counterpart of DamageTargets: source ->
+// recipient hero -> amount, on the HEALER. It's what lets the Healing
+// matrix show one column per recipient instead of a single flat total.
+func TestHandleHeal_Targets(t *testing.T) {
+	heroNameToSlot := map[string]int{
+		"npc_dota_hero_necrolyte": 0,
+		"npc_dota_hero_lina":      1,
+	}
+
+	t.Run("splits one source across the recipients it healed", func(t *testing.T) {
+		players := map[string]*PlayerParsed{"0": {}, "1": {}}
+		handleHeal(players, heroNameToSlot, "npc_dota_hero_necrolyte", "npc_dota_hero_lina", "necrolyte_death_pulse", false, false, 70)
+		handleHeal(players, heroNameToSlot, "npc_dota_hero_necrolyte", "npc_dota_hero_necrolyte", "necrolyte_death_pulse", false, false, 27)
+
+		got := players["0"].HealingTargets["necrolyte_death_pulse"]
+		if got["npc_dota_hero_lina"] != 70 {
+			t.Errorf("HealingTargets[death_pulse][lina] = %d, want 70", got["npc_dota_hero_lina"])
+		}
+		if got["npc_dota_hero_necrolyte"] != 27 {
+			t.Errorf("HealingTargets[death_pulse][necrolyte] = %d, want 27 (self-heal)", got["npc_dota_hero_necrolyte"])
+		}
+	})
+
+	t.Run("uses the same synthetic bucket keys as HealingDealt", func(t *testing.T) {
+		players := map[string]*PlayerParsed{"0": {}}
+		handleHeal(players, heroNameToSlot, "npc_dota_hero_necrolyte", "npc_dota_hero_necrolyte", "dota_unknown", true, false, 34)
+		if got := players["0"].HealingTargets["regen"]["npc_dota_hero_necrolyte"]; got != 34 {
+			t.Errorf("HealingTargets[regen][necrolyte] = %d, want 34", got)
+		}
+	})
+
+	t.Run("a non-hero recipient is not given a column", func(t *testing.T) {
+		players := map[string]*PlayerParsed{"0": {}}
+		handleHeal(players, heroNameToSlot, "npc_dota_hero_necrolyte", "npc_dota_creep_goodguys_melee", "necrolyte_death_pulse", false, false, 20)
+		if _, ok := players["0"].HealingTargets["necrolyte_death_pulse"]["npc_dota_creep_goodguys_melee"]; ok {
+			t.Error("HealingTargets should only carry hero recipients, matching DamageTargets")
+		}
+	})
+}

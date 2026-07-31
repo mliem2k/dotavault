@@ -289,6 +289,9 @@ export type MatchPlayer = {
   // handleHeal doc comment).
   healing_dealt?: Record<string, number> | null
   healing_received?: Record<string, number> | null
+  // Healing counterpart of damage_targets: source -> recipient hero ->
+  // amount, recorded on the healer. Drives the Healing matrix's columns.
+  healing_targets?: Record<string, Record<string, number>> | null
   // ESTIMATE, not a precise causal number: total physical damage allies
   // dealt to a target while this player's own armor debuff was active on
   // it, keyed by the debuff ability's name. See apps/replay-parser's

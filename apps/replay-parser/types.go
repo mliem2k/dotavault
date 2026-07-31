@@ -28,6 +28,10 @@ type PlayerParsed struct {
 	// rather than a name (see handleHeal's doc comment).
 	HealingDealt    map[string]int32 `json:"healing_dealt"`
 	HealingReceived map[string]int32 `json:"healing_received"`
+	// HealingTargets is the healing counterpart of DamageTargets: source ->
+	// recipient hero -> amount, recorded on the healer. Only hero
+	// recipients are kept, same as DamageTargets.
+	HealingTargets map[string]map[string]int32 `json:"healing_targets"`
 	// AllyDamageContribution: a PROXY, not a precise causal estimate. Total
 	// physical damage ALLIES dealt to a target while this player's own
 	// armor debuff was active on it (never the player's own damage), keyed
