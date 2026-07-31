@@ -352,6 +352,33 @@ export function MatchBreakdown({
   const columnTotals = columns.map((h) => rows.reduce((s, r) => s + (r.targets[h.name] ?? 0), 0))
   const grandTotal = columnTotals.reduce((s, v) => s + v, 0)
 
+  const selfHeroName = heroMap.get(player.hero_id)?.name
+
+  /* Healing splits into two very different things and the totals are
+     dominated by the less interesting one. Passive and fountain HP regen
+     runs 16k to 23k a match for everyone, which buries the few thousand
+     points of healing actually given to allies: on this match a hero who
+     healed nobody still totals ~21,900. Valve's own post-game keeps a
+     regen row too, but its headline hero_healing stat counts allies only,
+     which is also what the scoreboard's Healing column shows. Surfacing
+     both numbers stops the two views looking like they disagree.
+
+     Verified against Valve's own figure on a real match: ally-only totals
+     matched hero_healing exactly for every player (194, 1,356, 391, and
+     four zeroes), and to within 3 on the one big healer. */
+  const healingSplit = useMemo(() => {
+    if (kind !== 'healing') return null
+    let ally = 0
+    let own = 0
+    for (const r of rows) {
+      for (const [hero, v] of Object.entries(r.targets)) {
+        if (hero === selfHeroName) own += v
+        else ally += v
+      }
+    }
+    return { ally, own }
+  }, [kind, rows, selfHeroName])
+
   if (!isParsed) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -435,6 +462,47 @@ export function MatchBreakdown({
         ))}
       </div>
 
+      {healingSplit && (healingSplit.ally > 0 || healingSplit.own > 0) && (
+        <div
+          className="flex flex-wrap items-center gap-x-6 gap-y-1"
+          style={{
+            background: C.panelDark,
+            border: `1px solid ${C.border}`,
+            padding: '8px 12px',
+          }}
+        >
+          <span className="flex items-baseline gap-2">
+            <span
+              className="text-[10px] font-bold uppercase font-dota"
+              style={{ letterSpacing: '1.5px', color: C.muted }}
+            >
+              Given to allies
+            </span>
+            <span
+              className="text-[15px] font-bold tabular-nums font-dota"
+              style={{ color: C.healing }}
+            >
+              {fmt(healingSplit.ally)}
+            </span>
+          </span>
+          <span className="flex items-baseline gap-2">
+            <span
+              className="text-[10px] font-bold uppercase font-dota"
+              style={{ letterSpacing: '1.5px', color: C.muted }}
+            >
+              Self sustain
+            </span>
+            <span className="text-[15px] tabular-nums font-dota" style={{ color: C.muted }}>
+              {fmt(healingSplit.own)}
+            </span>
+          </span>
+          <span className="text-[10px] font-dota" style={{ color: C.mutedDim }}>
+            The scoreboard's Healing column counts allies only. Self sustain is mostly passive and
+            fountain regen.
+          </span>
+        </div>
+      )}
+
       <div style={{ background: C.panel, border: `1px solid ${C.border}` }}>
         <div className="overflow-x-auto">
           <div style={{ minWidth: SOURCE_W + columns.length * COL_W + TOTAL_W }}>
@@ -455,15 +523,29 @@ export function MatchBreakdown({
                   {kind}
                 </span>
               </div>
-              {columns.map((h) => (
-                <div
-                  key={h.id}
-                  className="flex shrink-0 items-center justify-center"
-                  style={{ width: COL_W, height: HEADER_H }}
-                >
-                  <HeroPortrait hero={h} size={30} />
-                </div>
-              ))}
+              {columns.map((h) => {
+                // On the healing side the player is one of their own
+                // columns, and that column is usually the largest by far,
+                // so it gets marked rather than passing as an ally.
+                const isSelf = h.name === selfHeroName
+                return (
+                  <div
+                    key={h.id}
+                    className="flex shrink-0 flex-col items-center justify-center gap-0.5"
+                    style={{ width: COL_W, height: HEADER_H }}
+                  >
+                    <HeroPortrait hero={h} size={isSelf ? 26 : 30} />
+                    {isSelf && (
+                      <span
+                        className="text-[8px] font-bold uppercase font-dota"
+                        style={{ letterSpacing: '1px', color: C.gold }}
+                      >
+                        Self
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
               <div
                 className="flex shrink-0 items-center justify-center text-[10px] font-bold uppercase font-dota"
                 style={{ width: TOTAL_W, height: HEADER_H, letterSpacing: '1px', color: C.muted }}
