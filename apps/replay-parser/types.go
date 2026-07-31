@@ -21,6 +21,14 @@ type PlayerParsed struct {
 	DamageTaken            map[string]int32            `json:"damage_taken"`
 	DamageInflictor        map[string]int32            `json:"damage_inflictor"`
 	DamageTargets          map[string]map[string]int32 `json:"damage_targets"`
+	// DamageMitigated: an ESTIMATE of physical damage this player's attacks
+	// had blocked by targets' armor, keyed the same as DamageInflictor.
+	// Estimated because the combat log's own DAMAGE entries are already
+	// post-armor with no separate raw value to compare against (see
+	// combatlog_mitigation.go's doc comments for the formula and the
+	// target-armor-at-time-of-hit approximation this relies on). Magical
+	// and pure damage are never reduced by armor and are not included.
+	DamageMitigated map[string]int32 `json:"damage_mitigated"`
 	Killed                 map[string]int32            `json:"killed"`
 	GoldReasons            map[string]int32            `json:"gold_reasons"`
 	XpReasons              map[string]int32            `json:"xp_reasons"`

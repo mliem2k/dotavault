@@ -77,6 +77,66 @@ Both confirmed via the same real-match probe as the deward section above
   Wired up as `handleDispel` (combatlog_dispels.go) into a new
   `DispelsLog`/`dispels_log`.
 
+## Damage type is a bitmask, not sequential 0/1/2
+`CMsgDOTACombatLogEntry.DamageType` matches Dota's documented VScript/Lua
+modding API: `DAMAGE_TYPES_PHYSICAL=1`, `DAMAGE_TYPES_MAGICAL=2`,
+`DAMAGE_TYPES_PURE=4`. This was NOT obvious from a different message's enum
+(`CMsgGameMatchSignOut_..._HeroDamageType`, which uses sequential 0/1/2 for
+the same three concepts) and genuinely could have been gotten backwards.
+Confirmed by widening a real match's sample: every `damage_type=1` entry
+was a plain autoattack (`dota_unknown` inflictor, physical by definition),
+every `damage_type=2` entry had a named magical-spell inflictor (Shackles,
+Death Pulse, Boulder Smash), and `damage_type=4` entries were both
+damage-over-time sources (Doom's ultimate, Blood Grenade's bleed, both pure
+in Dota). `damage_type=0` appeared only on Reaper's Scythe and a couple of
+odd self-damage entries, evidently a "bypasses the normal type tag" case
+rather than a 4th real type. `damageTypePhysical` (combatlog_mitigation.go)
+gates on bit 0, not equality, in case a future entry has multiple type bits
+set.
+
+## Physical damage mitigation (from Valve's "Upgraded Post-Game Breakdowns"
+patch)
+No dedicated combat log signal for this exists in practice: `SPELL_ABSORB`
+and `PHYSICAL_DAMAGE_PREVENTED` are real types in the schema but never
+appeared even once across 3 full real-match histograms, including a match
+with both a Linken's Sphere owner and a Butterfly (evasion) owner in final
+inventories, and zero `ATTACK_EVADE` entries either. Whatever mechanism
+Valve uses to compute mitigation for the actual Dota Plus feature isn't
+exposed in the replay's combat log stream via this manta version (v1.5.0,
+the latest release).
+
+Built instead as an estimate: DAMAGE combat log entries are already final,
+post-armor values (same assumption every third-party Dota stats tool
+makes; there's no separate pre-mitigation number in the combat log to
+compare against). For physical-only entries (see damage-type section
+above), the target's live armor (`PositionPoint.Armor`, already tracked at
+~1Hz by the position sampler, base plus every active item/ability bonus)
+is used to back-calculate the pre-armor damage via Dota's current
+(post-7.20) formula, cross-checked via dotabuff.com/blog/2018-11-30-understanding-720-armor-changes:
+`reduction_pct = (0.052 * armor) / (0.9 + 0.048 * |armor|)`. Physical hits
+are buffered by raw demo-clock second during the main combat log pass
+(`rawPhysicalHits`) and resolved against the target's Positions only after
+Positions are fully built and pregame-shifted (mirrors the rawKills/
+rawModifierEvents "buffer now, convert after" pattern), since armor is only
+sampled once a second, not on every hit.
+
+**A real bug turned up while verifying this against a live match:** one
+player's tracked armor spiked from single digits to 1449 for about 5
+seconds, which the mitigation formula amplified into wildly wrong negative
+totals (as much as -190,000 on one player). Traced to a cosmetic VFX
+modifier, `modifier_dark_carnival_balloon_thinker` (a Halloween/Diretide
+"balloon" effect), firing dozens of rapid add/remove cycles at that exact
+moment and carrying a garbage value in the same protobuf field
+`trackModifiers` (modifiers.go) reads as a real armor bonus. Fixed at the
+source with `sanitizeStatBonus`, bounding any single modifier's
+armor/speed/attack-speed contribution against realistic real-game ranges
+(no known legitimate Dota modifier swings any of these by anywhere near
+this much), since there's no reliable way to enumerate every cosmetic
+effect that might exhibit the same pattern. This was a pre-existing bug in
+already-shipped Armor/Speed/AttackSpeed tracking, not something introduced
+by the mitigation feature, just first exposed by a consumer that does
+arithmetic with the value instead of only displaying it.
+
 ## CDOTA_PlayerResource field paths
 **Correction to this section's premise:** gold, last hits, denies, and net
 worth are **not** fields on `CDOTA_PlayerResource` in this game version.

@@ -63,9 +63,18 @@ function SourcesRow({
     .slice(0, 8)
   const attacks = player.damage_inflictor?.null ?? 0
   const total = Object.values(player.damage_inflictor ?? {}).reduce((s, v) => s + v, 0) || 1
+  const mitigated = player.damage_mitigated ?? {}
 
   const chip = (icon: React.ReactNode, value: number, key: string) => (
-    <div key={key} className="flex items-center gap-1 shrink-0">
+    <div
+      key={key}
+      className="flex items-center gap-1 shrink-0"
+      title={
+        mitigated[key]
+          ? `~${fmtK(mitigated[key])} more physical damage blocked by armor (estimate)`
+          : undefined
+      }
+    >
       {icon}
       <span className="text-[12px] tabular-nums font-dota" style={{ color: '#e8c0a0' }}>
         {fmtK(value)}
@@ -73,6 +82,11 @@ function SourcesRow({
       <span className="text-[10px] tabular-nums font-dota text-slate-muted">
         {Math.round((value / total) * 100)}%
       </span>
+      {mitigated[key] > 0 && (
+        <span className="text-[10px] tabular-nums font-dota" style={{ color: '#7d8b95' }}>
+          (+{fmtK(mitigated[key])} blocked)
+        </span>
+      )}
     </div>
   )
 

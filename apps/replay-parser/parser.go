@@ -206,6 +206,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 	goldLost := map[string]int32{} // "ts|victim" -> death gold loss
 	var objectives []ObjectiveEvent
 	var chat []ChatMessage
+	var rawPhysicalHits []rawPhysicalHit
 
 	clName := func(idx uint32) string {
 		s, _ := p.LookupStringByIndex("CombatLogNames", int32(idx))
@@ -233,7 +234,18 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 				assistPlayerIDs: m.GetAssistPlayers(),
 			})
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DAMAGE:
-			handleDamage(players, heroNameToSlot, clName(m.GetAttackerName()), clName(m.GetTargetName()), clName(m.GetInflictorName()), int32(m.GetValue()))
+			attackerHero, targetHero, inflictor := clName(m.GetAttackerName()), clName(m.GetTargetName()), clName(m.GetInflictorName())
+			handleDamage(players, heroNameToSlot, attackerHero, targetHero, inflictor, int32(m.GetValue()))
+			if m.GetDamageType()&damageTypePhysical != 0 {
+				if aSlot, ok := heroNameToSlot[attackerHero]; ok {
+					if tSlot, ok := heroNameToSlot[targetHero]; ok {
+						rawPhysicalHits = append(rawPhysicalHits, rawPhysicalHit{
+							rawT: float64(m.GetTimestamp()), attackerSlot: aSlot, targetSlot: tSlot,
+							inflictor: inflictor, value: int32(m.GetValue()),
+						})
+					}
+				}
+			}
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_GOLD:
 			handleGoldReason(players, heroNameToSlot, clName(m.GetTargetName()), m.GetGoldReason(), int32(m.GetValue()))
 			// Reason 1 = death loss; the value is a wrapped negative. This
@@ -680,6 +692,11 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 				})
 			}
 		}
+
+		// Positions are fully built and pregame-shifted as of this point, so
+		// each buffered physical hit's target-armor-at-time-of-hit lookup can
+		// finally run (see combatlog_mitigation.go).
+		applyPhysicalMitigation(players, rawPhysicalHits, gameStartTime)
 	}
 
 	duration := gameEndTime - gameStartTime
