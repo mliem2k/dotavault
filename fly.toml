@@ -1,5 +1,5 @@
 app = 'dotavault-api'
-primary_region = 'sin'
+primary_region = 'nrt'
 
 [build]
   # Single image: Bun/Elysia API (public, port 3000) + the Go replay-parser
