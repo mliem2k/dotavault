@@ -355,11 +355,40 @@ that `CombatLogNames` resolves attacker/target names to — same mechanism as
 the existing `clName` helper, different table name. Verified against all 10
 heroes in this fixture: every resolved name matched its combat log
 counterpart exactly. Use
-`p.LookupStringByIndex("EntityNames", int32(e.Get("m_pEntity.m_nameStringTableIndex").(int32)))`
+`p.LookupStringByIndex("EntityNames", <the name index>)`
 instead of any class-name string transform whenever a later task needs to
 resolve an entity's real internal name (this will matter again for
 `ability_uses`/`item_uses`/`hero_hits`/`multi_kills`/`kill_streaks`, which
 also need combat-log-name-to-slot attribution).
+
+**The name-index field is spelled differently across game builds, and reading
+the wrong spelling fails silently.** This fixture spells it
+`m_pEntity.m_nameStringTableIndex`. Match 8699897894 (a February 2026 league
+replay, `replay273`) spells it `m_pEntity.m_nameStringableIndex`, with no
+`Table`. A replay carries one or the other, never both, and manta takes the
+name straight from the replay's own send tables, so nothing in the library
+normalises them. Read only one spelling and every replay carrying the other
+resolves **zero** hero names.
+
+That failure produces no error and no partial output that looks wrong. The
+parse still finishes, and everything keyed off the player slot this parser
+derives independently keeps working: `positions`, `gold_t`/`xp_t`/`lh_t`,
+`obs_log`/`sen_log`, `lane_pos`, plus top-level `kills` (that one keys off
+combat-log names, which never needed the mapping). What silently empties is
+every per-player field routed through `heroNameToSlot`: `purchase`,
+`purchase_log`, `damage`, `damage_taken`, `damage_inflictor`,
+`damage_targets`, `kills_log`, `killed`, `healing_dealt`/`healing_received`/
+`healing_targets`, `gold_reasons`, `xp_reasons`, `runes_log`, `ability_uses`,
+`item_uses`, `hero_hits`, `multi_kills`, `kill_streaks`, `stuns`,
+`dispels_log`, `observer_kills`/`sentry_kills`. On 8699897894 that read as a
+match with 28 kills, 1530 position samples and not one purchase.
+
+`heroname.go` handles this: it tries the known spellings, caches whichever
+one the replay uses (so the lookup stays O(1) across ~200k hero entity
+updates), and if a future build renames the field again it finds it by shape,
+any `int32` under `m_pEntity` whose name reads as a name index. The scope
+matters: a hero also carries `m_iUnitNameIndex`, which indexes a different
+table and resolves to the wrong string through `EntityNames`.
 
 Caveat: `heroNameToSlot` only gets populated once `ExtractMatch`'s existing
 `gameStartSet` gate opens (the hero `OnEntity` callback returns early before

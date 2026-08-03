@@ -100,6 +100,51 @@ describe('mergeParsedMatch', () => {
     expect(merged.players[1].personaname).toBe('PublicPlayer')
   })
 
+  // The Go parser emits every PlayerParsed field unconditionally, so a field
+  // it could not populate arrives as an explicit null rather than being
+  // absent. Spreading that over OpenDota's own parse deletes real data: a
+  // parse that resolved no hero names still returns 10 players' worth of
+  // nulls for every combat-log field, which is exactly how a silently
+  // degraded parse used to blank the scoreboard's Support Items column.
+  it('does not let a null parsed field overwrite populated OpenDota data', () => {
+    const basic = basicMatch()
+    basic.players[0].purchase_log = [{ key: 'item_tango', time: 5 }]
+    basic.players[0].damage = { npc_dota_hero_axe: 100 }
+    basic.players[0].hero_healing = 250
+    const parsed: ParsedMatch = {
+      match_id: 1,
+      duration: 1800,
+      players: {
+        '0': {
+          purchase_log: null,
+          damage: null,
+          positions: [{ t: 1 } as NonNullable<ParsedMatch['players'][string]['positions']>[number]],
+        },
+      },
+    }
+    const merged = mergeParsedMatch(basic, parsed)
+    expect(merged.players[0].purchase_log).toEqual([{ key: 'item_tango', time: 5 }])
+    expect(merged.players[0].damage).toEqual({ npc_dota_hero_axe: 100 })
+    expect(merged.players[0].hero_healing).toBe(250)
+    expect(merged.players[0].positions).toEqual([{ t: 1 } as never])
+  })
+
+  // A zero or an empty array is a real parsed answer, not a missing one, so
+  // it must still win over whatever OpenDota reported.
+  it('lets a zero or empty parsed value overwrite OpenDota data', () => {
+    const basic = basicMatch()
+    basic.players[0].purchase_log = [{ key: 'item_tango', time: 5 }]
+    basic.players[0].observer_kills = 4
+    const parsed: ParsedMatch = {
+      match_id: 1,
+      duration: 1800,
+      players: { '0': { purchase_log: [], observer_kills: 0 } },
+    }
+    const merged = mergeParsedMatch(basic, parsed)
+    expect(merged.players[0].purchase_log).toEqual([])
+    expect(merged.players[0].observer_kills).toBe(0)
+  })
+
   it('leaves a player unmerged if its slot has no counterpart in parsed data', () => {
     const basic = basicMatch()
     const parsed: ParsedMatch = {

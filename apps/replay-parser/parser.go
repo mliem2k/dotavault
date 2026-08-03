@@ -91,6 +91,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		players[fmtSlot(slot)] = &PlayerParsed{}
 	}
 	heroNameToSlot := map[string]int{}
+	heroNameIdx := newHeroNameIndexReader()
 
 	// playerIDToTeam maps CDOTA_PlayerResource's global 0-9 player index to
 	// team (2 Radiant, 3 Dire), confirmed via -inspect against this fixture:
@@ -386,12 +387,13 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		// npc_dota_hero_arc_warden, CDOTA_Unit_Hero_MonkeyKing's is
 		// npc_dota_hero_monkey_king, CDOTA_Unit_Hero_LoneDruid's is
 		// npc_dota_hero_lone_druid — no simple string transform derives
-		// these correctly from the class name alone). The entity's
-		// m_pEntity.m_nameStringTableIndex, resolved through the
-		// "EntityNames" string table, is the same ground-truth internal
-		// name manta already resolves combat log attacker/target names
-		// against, so use that directly instead of reconstructing it.
-		if idx, ok := e.Get("m_pEntity.m_nameStringTableIndex").(int32); ok {
+		// these correctly from the class name alone). The entity's own index
+		// into the "EntityNames" string table resolves to the same
+		// ground-truth internal name manta already resolves combat log
+		// attacker/target names against, so use that directly instead of
+		// reconstructing it. The field's spelling varies by game build,
+		// hence heroNameIndexReader rather than a literal key here.
+		if idx, ok := heroNameIdx.read(e.Get, e.Map); ok {
 			if realName, ok := p.LookupStringByIndex("EntityNames", idx); ok {
 				heroNameToSlot[realName] = slot
 			}

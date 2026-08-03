@@ -20,6 +20,32 @@ export type ParsedMatch = {
   radiant_xp_adv?: number[]
 }
 
+// Drops null/undefined values so a spread of this can only add or replace
+// fields the parser actually resolved.
+//
+// This matters because the Go parser emits every PlayerParsed field
+// unconditionally: a nil map or slice marshals to JSON null rather than
+// being omitted, so "the parser could not produce this" and "the parser
+// produced nothing" are indistinguishable on the wire, and both arrive as
+// an explicit null for all 10 players. Spreading those over OpenDota's own
+// parse deletes real data.
+//
+// The failure this guards against is quiet by construction. A parse that
+// resolves no hero names still succeeds, still returns positions and the
+// gold/xp/last-hit series (those key off the player slot directly), and
+// still returns the kill list (that one keys off names, not slots). Only
+// the combat-log-derived per-player fields come back null, so the response
+// looks structurally complete while the scoreboard silently loses columns
+// OpenDota could have filled. Falling back per field bounds the damage: the
+// worst such a parse can do is leave the page exactly as good as OpenDota
+// alone. See apps/replay-parser/heroname.go for the case that motivated it.
+//
+// Zero and empty-array are left alone deliberately: those are real parsed
+// answers and must still win over OpenDota's value.
+function definedOnly<T extends object>(o: T): Partial<T> {
+  return Object.fromEntries(Object.entries(o).filter(([, v]) => v != null)) as Partial<T>
+}
+
 // Merges our own parsed-match data onto OpenDota's basic Match object.
 // Per-player fields join by player_slot (Go's Players map is keyed by the
 // same slot convention as MatchPlayer.player_slot, just as a string). A
@@ -32,7 +58,7 @@ export function mergeParsedMatch(basic: Match, parsed: ParsedMatch | null): Matc
   const players: MatchPlayer[] = basic.players.map((p) => {
     const parsedPlayer = parsed.players[String(p.player_slot)]
     if (!parsedPlayer) return p
-    const merged = { ...p, ...parsedPlayer }
+    const merged = { ...p, ...definedOnly(parsedPlayer) }
     // account_id/personaname: our own parse can resolve an identity from
     // the replay's own player info that OpenDota's API redacted (see
     // PlayerParsed.AccountID's doc comment in the Go parser's types.go) —
