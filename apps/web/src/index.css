@@ -152,6 +152,71 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Scrollbars. Without these every scrollable pane falls back to the OS bar,
+   a pale rounded slab that reads as a foreign element against the dark
+   panels. Worst on the scoreboard's stats pane, where it lands directly
+   under the last player row. Square (--radius is 0 everywhere else) and
+   drawn from the slate family so it sits in the panel chrome instead of on
+   top of it.
+
+   Styling ::-webkit-scrollbar also opts Chrome out of macOS overlay
+   scrollbars, so these become always-visible and reserve their own track.
+   That is deliberate: `overflow-x-auto` panes like the scoreboard table cut
+   off mid-column with no other hint that more columns exist to the right,
+   and an overlay bar only appears once you already scrolled. Only panes
+   whose content actually overflows get one, since every pane here is
+   `auto`, never `scroll`. */
+
+/* Firefox only. Chrome supports scrollbar-width/scrollbar-color too, but
+   when both they and the ::-webkit-scrollbar rules below are present the
+   standard properties win and every ::-webkit- rule is silently ignored,
+   leaving Chrome with the stock rounded overlay bar in a new colour rather
+   than the square one below. Gating on the pseudo-element keeps the two
+   sets from colliding. */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-slate-border) rgba(0, 0, 0, 0.35);
+  }
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* Separates the bar from the table rows it sits directly beneath, matching
+   the 1px row divider the scoreboard already uses. */
+*::-webkit-scrollbar-track:horizontal {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Transparent border + padding-box clip insets the thumb inside the track
+   rather than filling it edge to edge. */
+*::-webkit-scrollbar-thumb {
+  background: var(--color-slate-border);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-slate-muted-light);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: var(--color-gold);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 :root {
   /* --radius, --background, --foreground, --primary, --primary-foreground,
      --muted, --muted-foreground, --accent, --accent-foreground, --destructive,
