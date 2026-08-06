@@ -66,15 +66,29 @@ function setJob(matchId: number, phase: JobPhase, error?: string) {
 export function currentJobStatus(matchId: number): Job | null {
   const job = jobs.get(matchId)
   if (!job) return null
-  // Let failed/gone states expire so a later retry can start fresh.
-  if (
-    (job.phase === 'failed' || job.phase === 'gone') &&
-    Date.now() - job.updatedAt > FAILED_RETENTION_MS
-  ) {
+  // 'failed' expires so a later retry can start fresh; 'gone' deliberately
+  // does not. A 404 from Valve's CDN is permanent, so expiring it would let
+  // the client's next poll start the whole 25-minute orchestration again,
+  // over and over, for a replay that is never coming back.
+  if (job.phase === 'failed' && Date.now() - job.updatedAt > FAILED_RETENTION_MS) {
     jobs.delete(matchId)
     return null
   }
   return job
+}
+
+/* Valve serves replays for a couple of weeks after the match, so for
+   anything older there is no point spending an OpenDota parse request and a
+   25-minute salt poll to arrive at a 404. Checked before any network call.
+   The window is deliberately generous: being wrong in this direction only
+   costs one wasted download, while being wrong the other way would make a
+   still-parseable replay permanently unavailable. */
+const REPLAY_RETENTION_DAYS = 21
+
+export function replayExpired(startTime?: number, duration?: number): boolean {
+  if (!startTime) return false // unknown age, let the parse itself decide
+  const endedAt = (startTime + (duration ?? 0)) * 1000
+  return Date.now() - endedAt > REPLAY_RETENTION_DAYS * 24 * 60 * 60 * 1000
 }
 
 async function runParser(

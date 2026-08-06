@@ -552,6 +552,9 @@ export function ReplayViewer({
   const heroMap = useMemo(() => new Map(heroStats.map((h) => [h.id, h])), [heroStats])
   const heroByName = useMemo(() => new Map(heroStats.map((h) => [h.name, h])), [heroStats])
   const sparseWaypoints = useMemo(() => buildWaypoints(match), [match])
+  // Terminal state from the API: our parse can never land for this match, so
+  // the "still parsing, check back" copy would be a lie that never resolves.
+  const replayUnavailable = match.replay_status === 'unavailable'
   // Once our own Go parser has landed, every player carries a `positions`
   // array (see the file-level comment above); until then this stays null
   // and the sparse/ghost fallback below is used instead.
@@ -909,7 +912,9 @@ export function ReplayViewer({
             </span>
           ) : (
             <span className="text-[12px] text-slate-muted">
-              Parsing full playback… check back shortly
+              {replayUnavailable
+                ? 'Full playback unavailable for this match'
+                : 'Parsing full playback… check back shortly'}
             </span>
           )}
         </div>
@@ -926,7 +931,9 @@ export function ReplayViewer({
                 className="px-4 py-3 text-center text-[13px] text-slate-foreground border border-slate-card"
                 style={{ background: 'rgba(8,10,12,0.85)' }}
               >
-                Full playback isn't ready yet for this match — still parsing, check back shortly.
+                {replayUnavailable
+                  ? "Valve only keeps replay files for about two weeks, so full playback can't be generated for this match. The timeline below still works from the sparse event data OpenDota provides."
+                  : "Full playback isn't ready yet for this match, still parsing. Check back shortly."}
               </p>
             </div>
           )}

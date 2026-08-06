@@ -365,6 +365,11 @@ export type Match = {
   patch: number | null
   replay_url?: string | null
   replay_salt?: number | null
+  /* Added by our own API, never by OpenDota: how our replay parse stands.
+     'unavailable' is terminal (Valve's CDN has expired the replay, or the
+     parse failed permanently) and tells the client to stop polling. Absent
+     means the parse has already landed. */
+  replay_status?: 'parsing' | 'unavailable'
   series_id: number | null
   series_type: number | null
   chat: ChatMessage[] | null

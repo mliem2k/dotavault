@@ -46,3 +46,20 @@ export async function fetchMatch(matchId: string): Promise<Match> {
 export function isFullyParsed(match: Match): boolean {
   return match.kills != null
 }
+
+// Valve only keeps replays for a short window, so for older matches our own
+// parse can never land. The API says so explicitly rather than leaving the
+// client to poll a match that will never change.
+export function isReplayUnavailable(match: Match): boolean {
+  return match.replay_status === 'unavailable'
+}
+
+// Polling exists only to pick up our own parse when it finishes. Anything
+// terminal (parsed, or a replay that can't be fetched at all) must stop it,
+// otherwise a match that will never parse is re-requested every 15s for as
+// long as the tab stays open, and each request past the server's job
+// retention restarts the whole parse orchestration.
+export function shouldPollForParse(match: Match | undefined): boolean {
+  if (!match) return false
+  return !isFullyParsed(match) && !isReplayUnavailable(match)
+}
