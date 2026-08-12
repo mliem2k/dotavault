@@ -77,11 +77,14 @@ export function RecentGames({
   })
 
   return (
-    <div className="font-dota" style={{ background: 'rgba(16,19,22,0.72)' }}>
+    <div
+      className="font-dota max-h-[70vh] overflow-y-auto"
+      style={{ background: 'rgba(16,19,22,0.72)' }}
+    >
       {/* header */}
       <div
-        className="flex items-center px-3 py-2.5 text-[12px] uppercase text-slate-muted-light"
-        style={{ letterSpacing: '1px', background: 'rgba(8,10,12,0.7)' }}
+        className="sticky top-0 z-10 flex items-center px-3 py-2.5 text-[12px] uppercase text-slate-muted-light"
+        style={{ letterSpacing: '1px', background: 'rgba(8,10,12,0.9)' }}
       >
         <div className="hidden sm:flex w-[150px] shrink-0">
           <SortHeader
@@ -137,7 +140,7 @@ export function RecentGames({
         return (
           <div
             key={m.match_id}
-            className="relative flex items-center px-3 hover:bg-white/[0.05] transition-colors"
+            className={`relative flex items-center px-3 hover:bg-white/[0.05] transition-colors ${i === 0 ? '' : 'border-t border-hairline'}`}
             style={{ height: 46, background: i % 2 ? 'rgba(255,255,255,0.02)' : 'transparent' }}
           >
             {/* Stretched link: whole row is a real, ctrl+click/middle-click openable

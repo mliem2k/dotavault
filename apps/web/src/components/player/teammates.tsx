@@ -8,7 +8,7 @@ const C = {
   dim: '#8a8474',
   green: '#8fbf3f',
   panel: 'rgba(16,19,22,0.72)',
-  panelDark: 'rgba(8,10,12,0.7)',
+  panelDark: 'rgba(8,10,12,0.9)',
 }
 
 type SortKey = 'player' | 'games' | 'wins' | 'winrate' | 'last'
@@ -72,10 +72,10 @@ export function Teammates({ peers }: { peers: Peer[] }) {
   }
 
   return (
-    <div className="font-dota" style={{ background: C.panel }}>
+    <div className="font-dota max-h-[70vh] overflow-y-auto" style={{ background: C.panel }}>
       {/* header */}
       <div
-        className="flex items-center px-3 py-2.5 text-[12px] uppercase text-slate-muted-light"
+        className="sticky top-0 z-10 flex items-center px-3 py-2.5 text-[12px] uppercase text-slate-muted-light"
         style={{ letterSpacing: '1px', background: C.panelDark }}
       >
         <SortHeader
@@ -132,7 +132,7 @@ export function Teammates({ peers }: { peers: Peer[] }) {
           <a
             key={peer.account_id}
             href={`/player/${peer.account_id}`}
-            className="flex items-center px-3 hover:bg-white/[0.05] transition-colors"
+            className={`flex items-center px-3 hover:bg-white/[0.05] transition-colors ${i === 0 ? '' : 'border-t border-hairline'}`}
             style={{ height: 52, background: i % 2 ? 'rgba(255,255,255,0.02)' : 'transparent' }}
           >
             <div className="flex-1 min-w-0 flex items-center gap-3">

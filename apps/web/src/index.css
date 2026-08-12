@@ -125,6 +125,10 @@
   --color-slate-muted-light: #8a97a0;
   --color-slate-foreground: #cfd4d8;
   --color-slate-foreground-light: #e8ecef;
+
+  /* Table row divider (DESIGN.md "Tables / Data Rows"), distinct from the
+     panel border token, finer hairline used only between data rows. */
+  --color-hairline: #1c1810;
 }
 
 * {
