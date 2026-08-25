@@ -7,6 +7,7 @@ import { RUNE_SPOTS } from '@/lib/runes'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { CANVAS_COLOR, sampleAt, type WardLife } from './replay_viewer'
 import {
+  BUILDING_MODEL_URL,
   buildInstance,
   CREEP_MODEL_URL,
   createGltfLoader,
@@ -167,6 +168,60 @@ export function Replay3DView({
     const render = () => renderer.render(scene, camera)
     controls.addEventListener('change', render)
 
+    // Edge-pan camera, same idea as Dota's own default camera: moving the
+    // cursor to a screen edge scrolls the view across the map (translating
+    // camera + orbit target together, not rotating), independent of the
+    // playback clock, so it needs its own rAF loop rather than piggybacking
+    // on update(t) below.
+    const EDGE_PAN_MARGIN = 36
+    const EDGE_PAN_SPEED = 46 // world units/sec at full edge proximity
+    const PAN_BOUND = WORLD_SIZE * 0.75 // a bit past the map edge, not infinite
+    let pointerX = -1
+    let pointerY = -1
+    let pointerInside = false
+    const onPointerMove = (e: PointerEvent) => {
+      const rect = renderer.domElement.getBoundingClientRect()
+      pointerX = e.clientX - rect.left
+      pointerY = e.clientY - rect.top
+      pointerInside = true
+    }
+    const onPointerLeave = () => {
+      pointerInside = false
+    }
+    renderer.domElement.addEventListener('pointermove', onPointerMove)
+    renderer.domElement.addEventListener('pointerleave', onPointerLeave)
+
+    let lastPanT = performance.now()
+    let panRaf = requestAnimationFrame(function panTick(now) {
+      const dt = (now - lastPanT) / 1000
+      lastPanT = now
+      if (pointerInside) {
+        const w = renderer.domElement.clientWidth || 1
+        const h = renderer.domElement.clientHeight || 1
+        const edgeFactor = (pos: number, extent: number) =>
+          pos < EDGE_PAN_MARGIN
+            ? -(1 - pos / EDGE_PAN_MARGIN)
+            : pos > extent - EDGE_PAN_MARGIN
+              ? 1 - (extent - pos) / EDGE_PAN_MARGIN
+              : 0
+        const panX = edgeFactor(pointerX, w)
+        const panZ = edgeFactor(pointerY, h)
+        if (panX !== 0 || panZ !== 0) {
+          const dx = panX * EDGE_PAN_SPEED * dt
+          const dz = panZ * EDGE_PAN_SPEED * dt
+          const nx = THREE.MathUtils.clamp(controls.target.x + dx, -PAN_BOUND, PAN_BOUND)
+          const nz = THREE.MathUtils.clamp(controls.target.z + dz, -PAN_BOUND, PAN_BOUND)
+          camera.position.x += nx - controls.target.x
+          camera.position.z += nz - controls.target.z
+          controls.target.x = nx
+          controls.target.z = nz
+          controls.update()
+          render()
+        }
+      }
+      panRaf = requestAnimationFrame(panTick)
+    })
+
     // Lighting: one angled key light for soft shadows, one sky/ground fill
     // light so unlit sides of characters don't go pure black.
     const hemiLight = new THREE.HemisphereLight(0xbfd9ff, 0x1a1410, 0.9)
@@ -256,26 +311,18 @@ export function Replay3DView({
         // Missing/broken heightmap just leaves the ground flat, not fatal.
       })
 
-    // Buildings: box for tower/rax, cone for the fort, hidden once destroyed.
+    // Buildings: each is a Group, positioned/toggled exactly like the old
+    // box/cone primitives so groundedMarkers/visibility logic doesn't need
+    // to change; the real model is added as a child once its kind's glTF
+    // loads (shared once per kind, cloned per building, see the gltfLoader
+    // section further down where decalGeom/decalMaterial/makeDecal exist).
     const buildingMeshes = BUILDINGS.map((b) => {
       const { x, z } = toScene(b.x, b.y)
-      const color = b.team === 'radiant' ? CANVAS_COLOR.green : CANVAS_COLOR.red
-      const mesh =
-        b.kind === 'fort'
-          ? new THREE.Mesh(
-              new THREE.ConeGeometry(2.4, 4.4, 8),
-              new THREE.MeshBasicMaterial({ color }),
-            )
-          : new THREE.Mesh(
-              new THREE.BoxGeometry(1.6, b.kind === 'tower' ? 3 : 2, 1.6),
-              new THREE.MeshBasicMaterial({ color }),
-            )
-      const baseY = mesh.geometry.parameters.height / 2
-      mesh.position.set(x, baseY + groundHeightAt(x, z), z)
-      mesh.castShadow = true
-      scene.add(mesh)
-      groundedMarkers.push({ mesh, x, z, baseY })
-      return mesh
+      const group = new THREE.Group()
+      group.position.set(x, groundHeightAt(x, z), z)
+      scene.add(group)
+      groundedMarkers.push({ mesh: group, x, z, baseY: 0 })
+      return group
     })
 
     // Observer wards: fixed position, only visibility changes over time.
@@ -335,6 +382,44 @@ export function Replay3DView({
     // Every clone's AnimationMixer lives here so update(t) can drive them
     // all from one game-time delta, see the lastT tracking below.
     const mixers: THREE.AnimationMixer[] = []
+
+    // Real static building models (no animation), one glTF loaded once per
+    // kind and cloned into each matching building's Group (see buildingMeshes
+    // above). A team-colored ground decal substitutes for tinting the
+    // model's own stone/wood textures, same convention as heroes/creeps.
+    const BUILDING_TARGET_HEIGHT: Record<(typeof BUILDINGS)[number]['kind'], number> = {
+      tower: 3,
+      rax: 2.6,
+      fort: 4.4,
+    }
+    for (const kind of Object.keys(BUILDING_MODEL_URL) as (keyof typeof BUILDING_MODEL_URL)[]) {
+      gltfLoader.load(BUILDING_MODEL_URL[kind]).then((gltf) => {
+        if (disposed) return
+        BUILDINGS.forEach((b, i) => {
+          if (b.kind !== kind) return
+          const model = gltf.scene.clone()
+          fitHeight(model, BUILDING_TARGET_HEIGHT[kind])
+          model.traverse((node) => {
+            if (node instanceof THREE.Mesh) node.castShadow = true
+          })
+          // Rest the model's own base on the group's local origin (the
+          // ground), whatever its authored pivot point was.
+          const box = new THREE.Box3().setFromObject(model)
+          model.position.y -= box.min.y
+          buildingMeshes[i].add(model)
+          // Not makeDecal(): that adds straight to the scene at world
+          // position, this decal needs to be a child of the building's
+          // Group instead, positioned in its local space.
+          const decalColor = b.team === 'radiant' ? CANVAS_COLOR.green : CANVAS_COLOR.red
+          const decal = new THREE.Mesh(decalGeom, decalMaterial(decalColor))
+          decal.rotation.x = -Math.PI / 2
+          decal.scale.setScalar(2.2)
+          decal.position.y = 0.02
+          buildingMeshes[i].add(decal)
+        })
+        render()
+      })
+    }
 
     // Heroes: an archetype character model plus a billboarded portrait
     // sprite above it (still useful since several heroes can share a model).
@@ -518,14 +603,16 @@ export function Replay3DView({
       ro.disconnect()
       controls.removeEventListener('change', render)
       controls.dispose()
+      cancelAnimationFrame(panRaf)
+      renderer.domElement.removeEventListener('pointermove', onPointerMove)
+      renderer.domElement.removeEventListener('pointerleave', onPointerLeave)
 
       groundMat.map?.dispose()
       groundGeom.dispose()
       groundMat.dispose()
-      for (const mesh of buildingMeshes) {
-        mesh.geometry.dispose()
-        mesh.material.dispose()
-      }
+      // buildingMeshes are Groups whose children (models, decals) share
+      // geometry/material with decalGeom/decalMatCache and the cached glTFs
+      // below, both disposed once globally further down, not per-building.
       for (const mesh of wardMeshes) {
         mesh.geometry.dispose()
         mesh.material.dispose()

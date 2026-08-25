@@ -24,6 +24,12 @@ export const CREEP_MODEL_URL = {
   human: '/models/creeps/human.glb',
 } as const
 
+export const BUILDING_MODEL_URL = {
+  tower: '/models/buildings/tower.glb',
+  rax: '/models/buildings/barracks.glb',
+  fort: '/models/buildings/ancient.glb',
+} as const
+
 // HeroStat.attack_type/primary_attr come straight from OpenDota's /heroStats
 // response ('Melee'|'Ranged', 'str'|'agi'|'int'|'all'), confirmed against
 // this repo's own comparisons in meta_view.tsx, lane_roles.ts and
