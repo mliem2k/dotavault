@@ -24,6 +24,12 @@ import {
 // Scene units are arbitrary, the ground plane just needs to span this size
 // so building/hero/creep positions line up with it.
 const WORLD_SIZE = 100
+// Ground subdivision for terrain displacement, matches the heightmap's own
+// grid resolution (see generate-terrain-heightmap.ts).
+const GROUND_SEGMENTS = 64
+const TERRAIN_HEIGHTMAP_URL = '/models/terrain_heightmap.json'
+// Subtle relief, not a mountain range: a few percent of WORLD_SIZE.
+const MAX_TERRAIN_HEIGHT = WORLD_SIZE * 0.04
 const NEUTRAL_COLOR = '#8a7fa8'
 const ROSHAN_COLOR = '#ff7a1a'
 const TORMENTOR_COLOR = '#8a5cff'
@@ -141,8 +147,11 @@ export function Replay3DView({
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x0a1a0a)
     scene.fog = new THREE.Fog(0x0a1a0a, 60, 150)
-    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000)
-    camera.position.set(0, 70, 70)
+    // Flatter, more zoomed-out oblique angle than a steep close-in view:
+    // horizontal distance grows more than height (lower elevation angle),
+    // and a narrower fov reads as a flatter, more compressed look.
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 1000)
+    camera.position.set(0, 62, 128)
     camera.lookAt(0, 0, 0)
 
     const w = container.clientWidth || 560
@@ -173,10 +182,16 @@ export function Replay3DView({
     dirLight.shadow.camera.far = 150
     scene.add(dirLight)
 
-    // Ground: one flat plane, textured with the same minimap image the 2D
-    // view uses, no elevation mesh. MeshStandardMaterial (not Basic) so the
+    // Ground: textured with the same minimap image the 2D view uses, plus an
+    // approximate heightmap displacement (see generate-terrain-heightmap.ts)
+    // for subtle cliff/rock relief. MeshStandardMaterial (not Basic) so the
     // lighting/shadows above actually show up on it.
-    const groundGeom = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE)
+    const groundGeom = new THREE.PlaneGeometry(
+      WORLD_SIZE,
+      WORLD_SIZE,
+      GROUND_SEGMENTS,
+      GROUND_SEGMENTS,
+    )
     const groundMat = new THREE.MeshStandardMaterial({ color: 0x0a1a0a, roughness: 1 })
     const ground = new THREE.Mesh(groundGeom, groundMat)
     ground.rotation.x = -Math.PI / 2
@@ -193,6 +208,54 @@ export function Replay3DView({
       render()
     })
 
+    // Terrain height lookup, shared by the ground displacement below and by
+    // marker placement further down so buildings/heroes/creeps sit on the
+    // surface instead of floating above or sinking into raised ground.
+    // Defaults to flat (0) until the heightmap asset arrives.
+    let heightGrid: { size: number; data: number[] } | null = null
+    function groundHeightAt(worldX: number, worldZ: number): number {
+      if (!heightGrid) return 0
+      // Inverse of the ground's rotation.x = -PI/2 (world x = local x,
+      // world z = -local y), then into the same 0..1 grid space the
+      // heightmap script sampled the source image with.
+      const u = worldX / WORLD_SIZE + 0.5
+      const v = -worldZ / WORLD_SIZE + 0.5
+      const { size, data } = heightGrid
+      const gx = Math.min(size - 1, Math.max(0, Math.floor(u * size)))
+      const gy = Math.min(size - 1, Math.max(0, Math.floor((1 - v) * size)))
+      return (data[gy * size + gx] ?? 0) * MAX_TERRAIN_HEIGHT
+    }
+
+    // Static markers (buildings/wards/runes) are placed once, before the
+    // heightmap fetch below can possibly resolve, so their positions are
+    // recomputed once it lands. Heroes/creeps reposition every frame in
+    // update(t) already, so they pick up real heights automatically.
+    const groundedMarkers: { mesh: THREE.Object3D; x: number; z: number; baseY: number }[] = []
+    function applyGroundHeights() {
+      for (const { mesh, x, z, baseY } of groundedMarkers) {
+        mesh.position.y = baseY + groundHeightAt(x, z)
+      }
+    }
+    fetch(TERRAIN_HEIGHTMAP_URL)
+      .then((res) => res.json())
+      .then((json: { size: number; heights: number[] }) => {
+        if (disposed) return
+        heightGrid = { size: json.size, data: json.heights }
+        const pos = groundGeom.attributes.position as THREE.BufferAttribute
+        for (let i = 0; i < pos.count; i++) {
+          // Displacing local Z (before the -90deg X rotation) is what ends
+          // up as world-up Y afterward, verified against the rotation math.
+          pos.setZ(i, groundHeightAt(pos.getX(i), -pos.getY(i)))
+        }
+        pos.needsUpdate = true
+        groundGeom.computeVertexNormals()
+        applyGroundHeights()
+        render()
+      })
+      .catch(() => {
+        // Missing/broken heightmap just leaves the ground flat, not fatal.
+      })
+
     // Buildings: box for tower/rax, cone for the fort, hidden once destroyed.
     const buildingMeshes = BUILDINGS.map((b) => {
       const { x, z } = toScene(b.x, b.y)
@@ -207,9 +270,11 @@ export function Replay3DView({
               new THREE.BoxGeometry(1.6, b.kind === 'tower' ? 3 : 2, 1.6),
               new THREE.MeshBasicMaterial({ color }),
             )
-      mesh.position.set(x, mesh.geometry.parameters.height / 2, z)
+      const baseY = mesh.geometry.parameters.height / 2
+      mesh.position.set(x, baseY + groundHeightAt(x, z), z)
       mesh.castShadow = true
       scene.add(mesh)
+      groundedMarkers.push({ mesh, x, z, baseY })
       return mesh
     })
 
@@ -220,9 +285,10 @@ export function Replay3DView({
         new THREE.SphereGeometry(0.9, 8, 8),
         new THREE.MeshBasicMaterial({ color: '#f2c94c' }),
       )
-      mesh.position.set(x, 0.9, z)
+      mesh.position.set(x, 0.9 + groundHeightAt(x, z), z)
       mesh.visible = false
       scene.add(mesh)
+      groundedMarkers.push({ mesh, x, z, baseY: 0.9 })
       return mesh
     })
 
@@ -234,8 +300,9 @@ export function Replay3DView({
         new THREE.SphereGeometry(0.7, 8, 8),
         new THREE.MeshBasicMaterial({ color: r.kind === 'bounty' ? '#c8961e' : '#5aaadc' }),
       )
-      mesh.position.set(x, 0.7, z)
+      mesh.position.set(x, 0.7 + groundHeightAt(x, z), z)
       scene.add(mesh)
+      groundedMarkers.push({ mesh, x, z, baseY: 0.7 })
       return mesh
     })
 
@@ -360,10 +427,11 @@ export function Replay3DView({
         if (entry.model) entry.model.root.visible = !dead
         if (!dead && sample) {
           const { x, z } = toScene(sample.x, sample.y)
-          entry.sprite.position.set(x, 3.6, z)
-          entry.decal.position.set(x, 0.03, z)
+          const g = groundHeightAt(x, z)
+          entry.sprite.position.set(x, 3.6 + g, z)
+          entry.decal.position.set(x, 0.03 + g, z)
           if (entry.model) {
-            entry.model.root.position.set(x, 0, z)
+            entry.model.root.position.set(x, g, z)
             const prev = sampleAt(points, sample.t - 0.5)
             const dist =
               prev && prev !== sample ? Math.hypot(sample.x - prev.x, sample.y - prev.y) : 0
@@ -403,11 +471,12 @@ export function Replay3DView({
           })
         }
         const { x, z } = toScene(sample.x, sample.y)
+        const g = groundHeightAt(x, z)
         entry.decal.visible = true
-        entry.decal.position.set(x, 0.03, z)
+        entry.decal.position.set(x, 0.03 + g, z)
         if (entry.model) {
           entry.model.root.visible = true
-          entry.model.root.position.set(x, 0, z)
+          entry.model.root.position.set(x, g, z)
           const prev = sampleAt(creep.positions, sample.t - 0.5)
           const dist =
             prev && prev !== sample ? Math.hypot(sample.x - prev.x, sample.y - prev.y) : 0
