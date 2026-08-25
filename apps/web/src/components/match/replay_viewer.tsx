@@ -11,6 +11,7 @@ import type {
   PositionPoint,
 } from 'types'
 import { BUILDINGS, buildingDeathTimes, MAP_MAX, MAP_MIN } from '@/lib/buildings'
+import { RUNE_SPOTS } from '@/lib/runes'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { ItemIcon } from './item_icon'
 import { extractObjectiveEvents, type ObjectiveEvent } from './match_objectives'
@@ -719,6 +720,22 @@ export function ReplayViewer({
         }
         ctx.restore()
       })
+
+      // Rune spawn spots: static landmarks (see runes.ts), not simulated
+      // spawn/despawn, so always shown regardless of time or fog.
+      for (const r of RUNE_SPOTS) {
+        const cx = toCanvas(r.x, size)
+        const cy = size - toCanvas(r.y, size)
+        ctx.save()
+        ctx.beginPath()
+        ctx.arc(cx, cy, 3.5, 0, Math.PI * 2)
+        ctx.fillStyle = r.kind === 'bounty' ? 'rgba(200,150,30,0.85)' : 'rgba(90,170,220,0.85)'
+        ctx.fill()
+        ctx.lineWidth = 1
+        ctx.strokeStyle = '#0d1012'
+        ctx.stroke()
+        ctx.restore()
+      }
 
       /* Fog of war, same emulation as the Vision tab: darken the map, then
          punch out the fog team's vision sources (living observer wards,

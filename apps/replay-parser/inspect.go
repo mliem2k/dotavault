@@ -89,6 +89,8 @@ func runInspect(path string) {
 	// hardcoded probe each time.
 	exactClass := os.Getenv("EXACT_CLASS")
 	dumpedExact := false
+	allPosClass := os.Getenv("ALL_POSITIONS")
+	seenPositionIdx := map[int32]bool{}
 	p.OnEntity(func(e *manta.Entity, op manta.EntityOp) error {
 		cn := e.GetClassName()
 		if op.Flag(manta.EntityOpCreated) && !seenClasses[cn] {
@@ -107,6 +109,26 @@ func runInspect(path string) {
 			for k, v := range e.Map() {
 				fmt.Printf("  %s = %v\n", k, v)
 			}
+		}
+		// ALL_POSITIONS dumps the cell position of every distinct entity index
+		// of one exact class, not just the first, for classes with multiple
+		// fixed static instances (e.g. one bounty rune spawner per spot).
+		if allPosClass != "" && cn == allPosClass && op.Flag(manta.EntityOpCreated) && !seenPositionIdx[e.GetIndex()] {
+			x, xok := cellPosition(e, "CBodyComponent.m_cellX", "CBodyComponent.m_vecX")
+			y, yok := cellPosition(e, "CBodyComponent.m_cellY", "CBodyComponent.m_vecY")
+			if xok && yok {
+				seenPositionIdx[e.GetIndex()] = true
+				fmt.Printf("position idx=%d x=%.2f y=%.2f\n", e.GetIndex(), x, y)
+			}
+		}
+		// RUNE_TIMES logs every creation of one exact class with its demo
+		// clock time and position, unthrottled, to work out real spawn
+		// timing/pattern (e.g. do both river spots spawn together, or
+		// alternate) instead of trusting memory of the current rules.
+		if os.Getenv("RUNE_TIMES") == cn && op.Flag(manta.EntityOpCreated) {
+			x, _ := cellPosition(e, "CBodyComponent.m_cellX", "CBodyComponent.m_vecX")
+			y, _ := cellPosition(e, "CBodyComponent.m_cellY", "CBodyComponent.m_vecY")
+			fmt.Printf("rune spawn t=%.1f idx=%d x=%.2f y=%.2f\n", float64(p.NetTick)/30.0, e.GetIndex(), x, y)
 		}
 		// Economy fields (gold/last hits/denies/net worth) turned out NOT to
 		// live on CDOTA_PlayerResource in this game version — see

@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import type { CreepInstance, HeroStat, Match, PositionPoint } from 'types'
 import { BUILDINGS, MAP_MAX, MAP_MIN } from '@/lib/buildings'
+import { RUNE_SPOTS } from '@/lib/runes'
 import { heroIconFromPath, heroIconUrl } from '@/lib/utils'
 import { CANVAS_COLOR, sampleAt, type WardLife } from './replay_viewer'
 import {
@@ -221,6 +222,19 @@ export function Replay3DView({
       )
       mesh.position.set(x, 0.9, z)
       mesh.visible = false
+      scene.add(mesh)
+      return mesh
+    })
+
+    // Rune spawn spots: static landmarks (see runes.ts), always visible,
+    // not a simulated spawn/despawn timer.
+    const runeMeshes = RUNE_SPOTS.map((r) => {
+      const { x, z } = toScene(r.x, r.y)
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.7, 8, 8),
+        new THREE.MeshBasicMaterial({ color: r.kind === 'bounty' ? '#c8961e' : '#5aaadc' }),
+      )
+      mesh.position.set(x, 0.7, z)
       scene.add(mesh)
       return mesh
     })
@@ -444,6 +458,10 @@ export function Replay3DView({
         mesh.material.dispose()
       }
       for (const mesh of wardMeshes) {
+        mesh.geometry.dispose()
+        mesh.material.dispose()
+      }
+      for (const mesh of runeMeshes) {
         mesh.geometry.dispose()
         mesh.material.dispose()
       }
