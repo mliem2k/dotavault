@@ -65,6 +65,7 @@ describe('mergeParsedMatch', () => {
       chat: [],
       radiant_gold_adv: [50],
       radiant_xp_adv: [20],
+      creeps: [{ kind: 'lane', team: 2, positions: [{ t: 1, x: 100, y: 100, hp: 300 }] }],
     }
     const merged = mergeParsedMatch(basic, parsed)
     expect(merged.players[0].purchase_log).toEqual([{ key: 'item_tango', time: 5 }])
@@ -72,6 +73,7 @@ describe('mergeParsedMatch', () => {
     expect(merged.kills).toEqual(parsed.kills)
     expect(merged.radiant_gold_adv).toEqual([50])
     expect(merged.radiant_xp_adv).toEqual([20])
+    expect(merged.creeps).toEqual(parsed.creeps)
   })
 
   it('fills account_id/personaname from the replay only when OpenDota has none', () => {

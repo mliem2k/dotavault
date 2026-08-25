@@ -5,6 +5,8 @@ export type {
   AghsDesc,
   Benchmark,
   ChatMessage,
+  CreepInstance,
+  CreepPositionPoint,
   HeroBenchmarks,
   ItemAttrib,
   ItemConst,

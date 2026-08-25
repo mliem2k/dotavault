@@ -160,6 +160,28 @@ export type PositionPoint = {
   dmg_max: number
 }
 
+// One sampled non-hero unit snapshot from apps/replay-parser
+// (CreepPositionPoint in apps/replay-parser/creeps.go). Same world-grid
+// scale as PositionPoint, 1Hz, no hero-only fields.
+export type CreepPositionPoint = {
+  t: number
+  x: number
+  y: number
+  hp: number
+}
+
+// One non-hero unit's full lifetime in the replay (CreepInstance in
+// apps/replay-parser/creeps.go): a lane/siege creep wave spawn, a neutral
+// camp creep, Roshan, or Tormentor. team is 2 (radiant) / 3 (dire) for
+// lane/siege creeps, or 4 (neutral) for camp creeps, Roshan, and
+// Tormentor. There's no explicit end-of-life sample: a creep is gone once
+// its last position falls meaningfully behind the current playback time.
+export type CreepInstance = {
+  kind: 'lane' | 'siege' | 'neutral' | 'roshan' | 'tormentor'
+  team: number
+  positions: CreepPositionPoint[]
+}
+
 // One hero death from apps/replay-parser's combat log (KillEvent in
 // apps/replay-parser/parser.go).
 export type ParsedKillEvent = {
@@ -374,6 +396,10 @@ export type Match = {
   series_type: number | null
   chat: ChatMessage[] | null
   players: MatchPlayer[]
+  // Parsed-only: every lane/siege/neutral creep, Roshan, and Tormentor
+  // sampled by apps/replay-parser (see CreepInstance's doc comment above).
+  // Absent/null until our own parse lands, same convention as positions.
+  creeps?: CreepInstance[] | null
   league?: {
     leagueid: number
     ticket: string | null

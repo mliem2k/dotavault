@@ -213,6 +213,7 @@ type ParsedMatch struct {
 	Chat           []ChatMessage            `json:"chat,omitempty"`
 	RadiantGoldAdv []int32                  `json:"radiant_gold_adv"`
 	RadiantXpAdv   []int32                  `json:"radiant_xp_adv"`
+	Creeps         []CreepInstance          `json:"creeps,omitempty"`
 }
 
 type ChatMessage struct {

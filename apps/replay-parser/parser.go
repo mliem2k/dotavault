@@ -172,6 +172,13 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		return float64(p.NetTick) / tickRate
 	})
 
+	getCreeps := trackCreeps(p, func() (float64, bool) {
+		if !gameStartSet || gameEndSet {
+			return 0, false
+		}
+		return float64(p.NetTick)/tickRate - gameStartTime, true
+	})
+
 	// Pregame position samples (state 4) arrive before gameStartTime is
 	// known (that's only set once state reaches 5), so they're buffered
 	// with the raw demo-clock second — same "buffer now, convert after"
@@ -759,6 +766,7 @@ func ExtractMatch(matchID int64, dem io.Reader) (*ParsedMatch, error) {
 		Kills:      kills,
 		Objectives: objectives,
 		Chat:       chat,
+		Creeps:     getCreeps(),
 	}
 	if slot, ok := firstBloodSlot(pm.Kills, heroNameToSlot); ok {
 		pm.Players[fmtSlot(slot)].FirstbloodClaimed = 1

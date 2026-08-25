@@ -1,4 +1,4 @@
-import type { ChatMessage, Match, MatchPlayer, Objective, Teamfight } from 'types'
+import type { ChatMessage, CreepInstance, Match, MatchPlayer, Objective, Teamfight } from 'types'
 
 // Mirrors apps/replay-parser's ParsedMatch/PlayerParsed JSON output
 // (types.go) — field names must match exactly (locked down on the Go side
@@ -18,6 +18,7 @@ export type ParsedMatch = {
   chat?: ChatMessage[]
   radiant_gold_adv?: number[]
   radiant_xp_adv?: number[]
+  creeps?: CreepInstance[]
 }
 
 // Drops null/undefined values so a spread of this can only add or replace
@@ -77,5 +78,6 @@ export function mergeParsedMatch(basic: Match, parsed: ParsedMatch | null): Matc
     chat: parsed.chat ?? basic.chat,
     radiant_gold_adv: parsed.radiant_gold_adv ?? basic.radiant_gold_adv,
     radiant_xp_adv: parsed.radiant_xp_adv ?? basic.radiant_xp_adv,
+    creeps: parsed.creeps ?? basic.creeps,
   }
 }

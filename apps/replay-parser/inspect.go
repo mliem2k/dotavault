@@ -73,12 +73,39 @@ func runInspect(path string) {
 	p.Callbacks.OnCDOTAUserMsg_ChatWheel(func(*dota.CDOTAUserMsg_ChatWheel) error { chatWheelCount++; return nil })
 	p.Callbacks.OnCDOTAUserMsg_ChatMessage(func(*dota.CDOTAUserMsg_ChatMessage) error { chatMsgCount++; return nil })
 
+	// CLASS_FILTER (comma-separated substrings, case-insensitive) widens the
+	// unconditional "ward" print below to whatever's being investigated,
+	// e.g. CLASS_FILTER=creep,neutral,rosh,torment. Defaults to "ward" alone
+	// so existing usage is unaffected.
+	var classFilters []string
+	if v := os.Getenv("CLASS_FILTER"); v != "" {
+		classFilters = strings.Split(strings.ToLower(v), ",")
+	} else {
+		classFilters = []string{"ward"}
+	}
+	// EXACT_CLASS dumps every field of the first EntityOpUpdated snapshot for
+	// one exact class name, so a "guess the field path" question about a
+	// class found via CLASS_FILTER can be answered without re-running with a
+	// hardcoded probe each time.
+	exactClass := os.Getenv("EXACT_CLASS")
+	dumpedExact := false
 	p.OnEntity(func(e *manta.Entity, op manta.EntityOp) error {
 		cn := e.GetClassName()
 		if op.Flag(manta.EntityOpCreated) && !seenClasses[cn] {
 			seenClasses[cn] = true
-			if strings.Contains(strings.ToLower(cn), "ward") {
-				fmt.Println("ward class:", cn)
+			lower := strings.ToLower(cn)
+			for _, f := range classFilters {
+				if strings.Contains(lower, f) {
+					fmt.Println("class:", cn)
+					break
+				}
+			}
+		}
+		if exactClass != "" && cn == exactClass && op.Flag(manta.EntityOpUpdated) && !dumpedExact {
+			dumpedExact = true
+			fmt.Printf("--- %s field dump ---\n", cn)
+			for k, v := range e.Map() {
+				fmt.Printf("  %s = %v\n", k, v)
 			}
 		}
 		// Economy fields (gold/last hits/denies/net worth) turned out NOT to
