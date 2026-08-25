@@ -24,6 +24,7 @@ import {
   type TimelineMarker,
   teamScoreAtTime,
 } from './match_time'
+import { Replay3DView } from './replay_viewer_3d'
 
 /* Replay / playback tab, laid out like Stratz's playback page: team panels
    flanking a live minimap (buildings, wards, heroes), a score+clock header,
@@ -45,7 +46,8 @@ import {
 
 // Canvas 2D draw calls need real color strings (not classNames), so these two
 // stay as raw hex for ctx.fillStyle/strokeStyle call sites specifically.
-const CANVAS_COLOR = {
+// Exported so the 3D view can reuse the same team colors.
+export const CANVAS_COLOR = {
   green: '#9fbf3f',
   red: '#c94a38',
 }
@@ -59,7 +61,13 @@ const C = {
 /* Wards                                                               */
 /* ------------------------------------------------------------------ */
 
-type WardLife = { x: number; y: number; start: number; end: number; team: 'radiant' | 'dire' }
+export type WardLife = {
+  x: number
+  y: number
+  start: number
+  end: number
+  team: 'radiant' | 'dire'
+}
 
 const OBS_LIFETIME = 360
 
@@ -145,8 +153,9 @@ function interpolate(points: Waypoint[], t: number): Interpolated | null {
   return null
 }
 
-/* Nearest dense sample at or before t (samples are 1Hz and time-sorted). */
-function sampleAt(points: PositionPoint[] | undefined, t: number): PositionPoint | null {
+/* Nearest dense sample at or before t (samples are 1Hz and time-sorted).
+   Generic over any {t: number}[] so the 3D view can reuse it for creeps too. */
+export function sampleAt<T extends { t: number }>(points: T[] | undefined, t: number): T | null {
   if (!points?.length) return null
   let lo = 0
   let hi = points.length - 1
@@ -548,6 +557,7 @@ export function ReplayViewer({
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
   const [fogTeam, setFogTeam] = useState<'off' | 'radiant' | 'dire'>('off')
+  const [view3d, setView3d] = useState(false)
 
   const heroMap = useMemo(() => new Map(heroStats.map((h) => [h.id, h])), [heroStats])
   const heroByName = useMemo(() => new Map(heroStats.map((h) => [h.name, h])), [heroStats])
@@ -919,12 +929,27 @@ export function ReplayViewer({
           )}
         </div>
         <div className="relative flex justify-center px-4">
-          <canvas
-            ref={canvasRef}
-            width={560}
-            height={560}
-            className="w-full max-w-[560px] border border-slate-bg"
-          />
+          {view3d ? (
+            denseBySlot ? (
+              <Replay3DView
+                match={match}
+                heroMap={heroMap}
+                denseBySlot={denseBySlot}
+                wardLives={wardLives}
+                buildingDeaths={buildingDeaths}
+                time={time}
+              />
+            ) : (
+              <div className="w-full max-w-[560px] aspect-square border border-slate-bg" />
+            )
+          ) : (
+            <canvas
+              ref={canvasRef}
+              width={560}
+              height={560}
+              className="w-full max-w-[560px] border border-slate-bg"
+            />
+          )}
           {!denseBySlot && (
             <div className="absolute inset-0 flex items-center justify-center px-8">
               <p
@@ -987,6 +1012,24 @@ export function ReplayViewer({
                 className={`px-2.5 py-1.5 text-[12px] cursor-pointer disabled:cursor-default disabled:opacity-30 ${speed === s ? 'bg-slate-card text-white' : 'text-slate-muted'}`}
               >
                 {s}x
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center shrink-0 border border-slate-card" title="Map view">
+            <span
+              className="px-2 text-[11px] uppercase text-slate-muted"
+              style={{ letterSpacing: '1px' }}
+            >
+              View
+            </span>
+            {(['2d', '3d'] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setView3d(v === '3d')}
+                className={`px-2 py-1.5 text-[12px] uppercase cursor-pointer ${(v === '3d') === view3d ? 'bg-slate-card text-white' : 'text-slate-muted'}`}
+              >
+                {v}
               </button>
             ))}
           </div>
