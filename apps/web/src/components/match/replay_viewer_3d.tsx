@@ -96,6 +96,7 @@ export function Replay3DView({
   wardLives,
   buildingDeaths,
   time,
+  className,
 }: {
   match: Match
   heroMap: Map<number, HeroStat>
@@ -103,6 +104,11 @@ export function Replay3DView({
   wardLives: WardLife[]
   buildingDeaths: number[]
   time: number
+  // Overrides the default square, 560px-capped sizing, e.g. for a fullscreen
+  // container. Non-square is fine here (unlike the 2D canvas): the
+  // perspective camera's aspect ratio already tracks the container via the
+  // existing ResizeObserver below.
+  className?: string
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<{ update: (t: number) => void } | null>(null)
@@ -477,6 +483,9 @@ export function Replay3DView({
   }, [time])
 
   return (
-    <div ref={containerRef} className="w-full max-w-[560px] aspect-square border border-slate-bg" />
+    <div
+      ref={containerRef}
+      className={className ?? 'w-full max-w-[560px] aspect-square border border-slate-bg'}
+    />
   )
 }

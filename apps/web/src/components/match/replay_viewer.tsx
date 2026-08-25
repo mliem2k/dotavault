@@ -1,4 +1,4 @@
-import { Pause, Play, SkipBack, SkipForward } from 'lucide-react'
+import { Maximize2, Minimize2, Pause, Play, SkipBack, SkipForward } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type {
@@ -557,6 +557,37 @@ export function ReplayViewer({
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
   const [fogTeam, setFogTeam] = useState<'off' | 'radiant' | 'dire'>('off')
+  const [fullscreen, setFullscreen] = useState(false)
+  const fullscreenRef = useRef<HTMLDivElement>(null)
+
+  // Escape as a fallback for browsers/contexts where requestFullscreen is
+  // unavailable or denied (native fullscreen already handles Escape itself).
+  useEffect(() => {
+    if (!fullscreen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFullscreen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [fullscreen])
+
+  useEffect(() => {
+    if (fullscreen) {
+      fullscreenRef.current?.requestFullscreen?.().catch(() => {})
+    } else if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {})
+    }
+  }, [fullscreen])
+
+  // Keeps state in sync when the browser exits native fullscreen on its own
+  // (Escape, F11, swiping away on mobile), not just when our own button does.
+  useEffect(() => {
+    const onChange = () => {
+      if (!document.fullscreenElement) setFullscreen(false)
+    }
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [])
   const [view3d, setView3d] = useState(false)
 
   const heroMap = useMemo(() => new Map(heroStats.map((h) => [h.id, h])), [heroStats])
@@ -885,6 +916,222 @@ export function ReplayViewer({
   const scoreRadiant = teamScoreAtTime(match, true, time)
   const scoreDire = teamScoreAtTime(match, false, time)
 
+  // Fullscreen mode reuses this exact JSX (same time/playing/speed state),
+  // just portaled to document.body and sized to fill the viewport instead of
+  // sitting inline between the team panels.
+  const panel = (
+    <div
+      ref={fullscreen ? fullscreenRef : undefined}
+      className={
+        fullscreen
+          ? 'fixed inset-0 z-50 flex flex-col bg-slate-bg'
+          : 'min-w-[420px] flex-1 space-y-3'
+      }
+      style={fullscreen ? undefined : { background: C.panel }}
+    >
+      <div
+        className="flex items-center justify-between px-4 py-2"
+        style={{ background: C.panelDark }}
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-[26px] leading-none tabular-nums text-radiant">{scoreRadiant}</span>
+          <span
+            className="px-2 py-0.5 text-[16px] tabular-nums text-white border border-slate-card"
+            style={{ background: 'rgba(0,0,0,0.5)' }}
+          >
+            {formatClock(time)}
+          </span>
+          <span className="text-[26px] leading-none tabular-nums text-dire">{scoreDire}</span>
+        </div>
+        {denseBySlot ? (
+          <span className="text-[12px] uppercase text-radiant" style={{ letterSpacing: '1px' }}>
+            ✓ Full playback
+          </span>
+        ) : (
+          <span className="text-[12px] text-slate-muted">
+            {replayUnavailable
+              ? 'Full playback unavailable for this match'
+              : 'Parsing full playback… check back shortly'}
+          </span>
+        )}
+      </div>
+      <div
+        className={
+          fullscreen
+            ? 'relative flex flex-1 items-center justify-center overflow-hidden px-4'
+            : 'relative flex justify-center px-4'
+        }
+      >
+        {view3d ? (
+          denseBySlot ? (
+            <Replay3DView
+              match={match}
+              heroMap={heroMap}
+              denseBySlot={denseBySlot}
+              wardLives={wardLives}
+              buildingDeaths={buildingDeaths}
+              time={time}
+              className={fullscreen ? 'h-full w-full border border-slate-bg' : undefined}
+            />
+          ) : (
+            <div
+              className={
+                fullscreen
+                  ? 'h-full w-full border border-slate-bg'
+                  : 'w-full max-w-[560px] aspect-square border border-slate-bg'
+              }
+            />
+          )
+        ) : (
+          <canvas
+            ref={canvasRef}
+            width={fullscreen ? 1400 : 560}
+            height={fullscreen ? 1400 : 560}
+            className={
+              fullscreen
+                ? 'max-h-full max-w-full border border-slate-bg'
+                : 'w-full max-w-[560px] border border-slate-bg'
+            }
+          />
+        )}
+        {!denseBySlot && (
+          <div className="absolute inset-0 flex items-center justify-center px-8">
+            <p
+              className="px-4 py-3 text-center text-[13px] text-slate-foreground border border-slate-card"
+              style={{ background: 'rgba(8,10,12,0.85)' }}
+            >
+              {replayUnavailable
+                ? "Valve only keeps replay files for about two weeks, so full playback can't be generated for this match. The timeline below still works from the sparse event data OpenDota provides."
+                : "Full playback isn't ready yet for this match, still parsing. Check back shortly."}
+            </p>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
+        <button
+          type="button"
+          onClick={() => {
+            setPlaying(false)
+            const prev = [...events].reverse().find((e) => e.time < time - 0.5)
+            if (prev) setTime(Math.max(minTime, prev.time))
+          }}
+          disabled={!events.some((e) => e.time < time - 0.5)}
+          className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-30 text-slate-foreground border border-slate-card"
+          style={{ background: '#1a2024' }}
+          title="Previous event"
+        >
+          <SkipBack className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setPlaying((p) => !p)}
+          disabled={!denseBySlot}
+          title={denseBySlot ? undefined : "Full playback isn't ready yet"}
+          className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-30 text-slate-foreground border border-slate-card"
+          style={{ background: '#1a2024' }}
+        >
+          {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setPlaying(false)
+            const next = events.find((e) => e.time > time + 0.5)
+            if (next) setTime(Math.min(duration, next.time))
+          }}
+          disabled={!events.some((e) => e.time > time + 0.5)}
+          className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-30 text-slate-foreground border border-slate-card"
+          style={{ background: '#1a2024' }}
+          title="Next event"
+        >
+          <SkipForward className="h-4 w-4" />
+        </button>
+        <div className="flex items-center shrink-0 border border-slate-card">
+          {SPEEDS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSpeed(s)}
+              disabled={!denseBySlot}
+              className={`px-2.5 py-1.5 text-[12px] cursor-pointer disabled:cursor-default disabled:opacity-30 ${speed === s ? 'bg-slate-card text-white' : 'text-slate-muted'}`}
+            >
+              {s}x
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center shrink-0 border border-slate-card" title="Map view">
+          <span
+            className="px-2 text-[11px] uppercase text-slate-muted"
+            style={{ letterSpacing: '1px' }}
+          >
+            View
+          </span>
+          {(['2d', '3d'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView3d(v === '3d')}
+              className={`px-2 py-1.5 text-[12px] uppercase cursor-pointer ${(v === '3d') === view3d ? 'bg-slate-card text-white' : 'text-slate-muted'}`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+        <div
+          className="flex items-center shrink-0 border border-slate-card"
+          title={
+            denseBySlot
+              ? 'Fog of war: show only what this team can see'
+              : "Full playback isn't ready yet"
+          }
+        >
+          <span
+            className="px-2 text-[11px] uppercase text-slate-muted"
+            style={{ letterSpacing: '1px' }}
+          >
+            Fog
+          </span>
+          {(['off', 'radiant', 'dire'] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFogTeam(f)}
+              disabled={!denseBySlot}
+              className={`px-2 py-1.5 text-[12px] uppercase cursor-pointer disabled:cursor-default disabled:opacity-30 ${fogTeam === f ? 'bg-slate-card' : ''} ${fogTeam === f ? (f === 'radiant' ? 'text-radiant' : f === 'dire' ? 'text-dire' : 'text-white') : 'text-slate-muted'}`}
+            >
+              {f === 'off' ? 'Off' : f === 'radiant' ? 'Rad' : 'Dire'}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setFullscreen((f) => !f)}
+          className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 text-slate-foreground border border-slate-card"
+          style={{ background: '#1a2024' }}
+          title={fullscreen ? 'Exit fullscreen' : 'Fullscreen, just like a real spectator client'}
+        >
+          {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        </button>
+        <GameTimeSlider
+          timeSec={time}
+          duration={duration}
+          minTime={minTime}
+          onChange={(t) => {
+            setPlaying(false)
+            setTime(t)
+          }}
+          markers={timelineMarkers}
+          fullWidth
+        />
+      </div>
+      {activeTeamfight && (
+        <p className="text-center text-[13px] pb-3 text-gold">
+          {`⚔ Teamfight ${formatClock(activeTeamfight.start)}–${formatClock(activeTeamfight.end)} · ${activeTeamfight.deaths} deaths`}
+        </p>
+      )}
+    </div>
+  )
+
   return (
     <div className="flex flex-wrap gap-3 font-dota">
       <TeamPanel
@@ -899,185 +1146,7 @@ export function ReplayViewer({
       />
 
       {/* Map + controls */}
-      <div className="min-w-[420px] flex-1 space-y-3" style={{ background: C.panel }}>
-        <div
-          className="flex items-center justify-between px-4 py-2"
-          style={{ background: C.panelDark }}
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-[26px] leading-none tabular-nums text-radiant">
-              {scoreRadiant}
-            </span>
-            <span
-              className="px-2 py-0.5 text-[16px] tabular-nums text-white border border-slate-card"
-              style={{ background: 'rgba(0,0,0,0.5)' }}
-            >
-              {formatClock(time)}
-            </span>
-            <span className="text-[26px] leading-none tabular-nums text-dire">{scoreDire}</span>
-          </div>
-          {denseBySlot ? (
-            <span className="text-[12px] uppercase text-radiant" style={{ letterSpacing: '1px' }}>
-              ✓ Full playback
-            </span>
-          ) : (
-            <span className="text-[12px] text-slate-muted">
-              {replayUnavailable
-                ? 'Full playback unavailable for this match'
-                : 'Parsing full playback… check back shortly'}
-            </span>
-          )}
-        </div>
-        <div className="relative flex justify-center px-4">
-          {view3d ? (
-            denseBySlot ? (
-              <Replay3DView
-                match={match}
-                heroMap={heroMap}
-                denseBySlot={denseBySlot}
-                wardLives={wardLives}
-                buildingDeaths={buildingDeaths}
-                time={time}
-              />
-            ) : (
-              <div className="w-full max-w-[560px] aspect-square border border-slate-bg" />
-            )
-          ) : (
-            <canvas
-              ref={canvasRef}
-              width={560}
-              height={560}
-              className="w-full max-w-[560px] border border-slate-bg"
-            />
-          )}
-          {!denseBySlot && (
-            <div className="absolute inset-0 flex items-center justify-center px-8">
-              <p
-                className="px-4 py-3 text-center text-[13px] text-slate-foreground border border-slate-card"
-                style={{ background: 'rgba(8,10,12,0.85)' }}
-              >
-                {replayUnavailable
-                  ? "Valve only keeps replay files for about two weeks, so full playback can't be generated for this match. The timeline below still works from the sparse event data OpenDota provides."
-                  : "Full playback isn't ready yet for this match, still parsing. Check back shortly."}
-              </p>
-            </div>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
-          <button
-            type="button"
-            onClick={() => {
-              setPlaying(false)
-              const prev = [...events].reverse().find((e) => e.time < time - 0.5)
-              if (prev) setTime(Math.max(minTime, prev.time))
-            }}
-            disabled={!events.some((e) => e.time < time - 0.5)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-30 text-slate-foreground border border-slate-card"
-            style={{ background: '#1a2024' }}
-            title="Previous event"
-          >
-            <SkipBack className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setPlaying((p) => !p)}
-            disabled={!denseBySlot}
-            title={denseBySlot ? undefined : "Full playback isn't ready yet"}
-            className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-30 text-slate-foreground border border-slate-card"
-            style={{ background: '#1a2024' }}
-          >
-            {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setPlaying(false)
-              const next = events.find((e) => e.time > time + 0.5)
-              if (next) setTime(Math.min(duration, next.time))
-            }}
-            disabled={!events.some((e) => e.time > time + 0.5)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center cursor-pointer hover:brightness-125 disabled:cursor-default disabled:opacity-30 text-slate-foreground border border-slate-card"
-            style={{ background: '#1a2024' }}
-            title="Next event"
-          >
-            <SkipForward className="h-4 w-4" />
-          </button>
-          <div className="flex items-center shrink-0 border border-slate-card">
-            {SPEEDS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setSpeed(s)}
-                disabled={!denseBySlot}
-                className={`px-2.5 py-1.5 text-[12px] cursor-pointer disabled:cursor-default disabled:opacity-30 ${speed === s ? 'bg-slate-card text-white' : 'text-slate-muted'}`}
-              >
-                {s}x
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center shrink-0 border border-slate-card" title="Map view">
-            <span
-              className="px-2 text-[11px] uppercase text-slate-muted"
-              style={{ letterSpacing: '1px' }}
-            >
-              View
-            </span>
-            {(['2d', '3d'] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => setView3d(v === '3d')}
-                className={`px-2 py-1.5 text-[12px] uppercase cursor-pointer ${(v === '3d') === view3d ? 'bg-slate-card text-white' : 'text-slate-muted'}`}
-              >
-                {v}
-              </button>
-            ))}
-          </div>
-          <div
-            className="flex items-center shrink-0 border border-slate-card"
-            title={
-              denseBySlot
-                ? 'Fog of war: show only what this team can see'
-                : "Full playback isn't ready yet"
-            }
-          >
-            <span
-              className="px-2 text-[11px] uppercase text-slate-muted"
-              style={{ letterSpacing: '1px' }}
-            >
-              Fog
-            </span>
-            {(['off', 'radiant', 'dire'] as const).map((f) => (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setFogTeam(f)}
-                disabled={!denseBySlot}
-                className={`px-2 py-1.5 text-[12px] uppercase cursor-pointer disabled:cursor-default disabled:opacity-30 ${fogTeam === f ? 'bg-slate-card' : ''} ${fogTeam === f ? (f === 'radiant' ? 'text-radiant' : f === 'dire' ? 'text-dire' : 'text-white') : 'text-slate-muted'}`}
-              >
-                {f === 'off' ? 'Off' : f === 'radiant' ? 'Rad' : 'Dire'}
-              </button>
-            ))}
-          </div>
-          <GameTimeSlider
-            timeSec={time}
-            duration={duration}
-            minTime={minTime}
-            onChange={(t) => {
-              setPlaying(false)
-              setTime(t)
-            }}
-            markers={timelineMarkers}
-            fullWidth
-          />
-        </div>
-        {activeTeamfight && (
-          <p className="text-center text-[13px] pb-3 text-gold">
-            ⚔ Teamfight {formatClock(activeTeamfight.start)}–{formatClock(activeTeamfight.end)} ·{' '}
-            {activeTeamfight.deaths} deaths
-          </p>
-        )}
-      </div>
+      {fullscreen ? createPortal(panel, document.body) : panel}
 
       <TeamPanel
         side="dire"
