@@ -161,7 +161,11 @@ export function Replay3DView({
     camera.aspect = w / h
     camera.updateProjectionMatrix()
 
+    // Dota's own camera locks the viewing angle, only pan and zoom are
+    // player-controllable, so rotate is disabled here too rather than left
+    // as free-look orbiting.
     const controls = new OrbitControls(camera, renderer.domElement)
+    controls.enableRotate = false
     controls.minDistance = 20
     controls.maxDistance = 200
     controls.update()
