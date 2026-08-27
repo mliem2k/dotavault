@@ -7,7 +7,7 @@ RUN go mod download
 COPY apps/replay-parser/ .
 RUN CGO_ENABLED=0 go build -o /replay-parser .
 
-FROM oven/bun:1.3.14-alpine
+FROM oven/bun:1.4.0-alpine
 WORKDIR /app
 
 COPY package.json bun.lock ./
