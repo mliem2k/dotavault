@@ -1,15 +1,17 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../db'
 import { parsedMatches } from '../db/schema'
+import { enforceSizeBudget } from './cache'
 import { env } from './env'
 import { fetchReplayInfo, requestOpendotaParse } from './opendota'
 
 /* Self-parsed replay data. The heavy lifting is a Go binary
    (apps/replay-parser) invoked as a subprocess: it downloads the .dem from
    Valve's CDN, parses it with manta, and prints the result as JSON on
-   stdout. Results are cached in the parsed_matches table (Turso/libsql)
-   forever (replay files are immutable), so each match is parsed at most
-   once.
+   stdout. Results are cached in the parsed_matches table (Turso/libsql).
+   Replay files are immutable so there is no TTL, but the oldest rows are
+   dropped by enforceSizeBudget to keep the database under 1 GB, so a very
+   old match may be parsed again.
 
    When the replay salt isn't known yet (OpenDota hasn't parsed the match),
    startParseJob orchestrates the whole pipeline server-side: request an
@@ -123,6 +125,7 @@ async function parseAndStore(matchId: number, cluster: number, salt: number): Pr
   while (running >= MAX_CONCURRENT_PARSES) await sleep(5000)
   const result = await runParser(matchId, cluster, salt)
   await db.insert(parsedMatches).values({ matchId, data: result }).onConflictDoNothing()
+  await enforceSizeBudget()
   jobs.delete(matchId)
 }
 

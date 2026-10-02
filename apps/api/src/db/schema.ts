@@ -9,8 +9,9 @@ export const apiCache = sqliteTable('api_cache', {
 })
 
 // Self-parsed match data (from apps/replay-parser's ParsedMatch output). A
-// replay file never changes after the match ends, so entries never expire:
-// each match is parsed at most once, ever. Replaces the older
+// replay file never changes after the match ends, so entries have no TTL and a
+// match is parsed once. They are only dropped oldest first by
+// enforceSizeBudget (lib/cache.ts) when the database nears 1 GB. Replaces the older
 // positions-only replay_positions table now that apps/replay-parser
 // produces the full parsed-match blob, not just positions.
 export const parsedMatches = sqliteTable('parsed_matches', {

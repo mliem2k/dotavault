@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { db } from '../db'
-import { apiCache } from '../db/schema'
-import { cacheGet, cacheGetStale, cacheSet, deleteExpired } from './cache'
+import { apiCache, parsedMatches } from '../db/schema'
+import {
+  cacheGet,
+  cacheGetStale,
+  cacheSet,
+  deleteExpired,
+  enforceSizeBudget,
+  liveBytes,
+} from './cache'
 
 beforeEach(async () => {
   await db.delete(apiCache)
@@ -49,5 +56,54 @@ describe('deleteExpired', () => {
     await deleteExpired()
     expect(await cacheGet('live')).toEqual({ ok: true })
     expect(await cacheGet('dead')).toBeNull()
+  })
+})
+
+describe('enforceSizeBudget', () => {
+  const blob = { pad: 'x'.repeat(20_000) }
+  const rows = 120
+
+  beforeEach(async () => {
+    await db.delete(parsedMatches)
+    await db.delete(apiCache)
+  })
+
+  it('leaves everything alone while under budget', async () => {
+    await db.insert(parsedMatches).values({ matchId: 1, data: blob })
+    await enforceSizeBudget((await liveBytes()) + 10_000_000)
+    expect(await db.select().from(parsedMatches)).toHaveLength(1)
+  })
+
+  it('drops the oldest parsed matches first until the database fits', async () => {
+    for (let id = 1; id <= rows; id++) {
+      await db
+        .insert(parsedMatches)
+        .values({ matchId: id, data: blob, createdAt: new Date(id * 1000) })
+    }
+    const budget = (await liveBytes()) - 400_000
+    await enforceSizeBudget(budget)
+    expect(await liveBytes()).toBeLessThanOrEqual(budget)
+    const left = (await db.select({ id: parsedMatches.matchId }).from(parsedMatches)).map(
+      (r) => r.id,
+    )
+    expect(left).toContain(rows)
+    expect(left).not.toContain(1)
+    expect(left.length).toBeGreaterThan(rows / 2)
+  })
+
+  it('falls back to the oldest cache rows once no parsed matches are left', async () => {
+    for (let i = 1; i <= rows; i++) {
+      await db.insert(apiCache).values({
+        key: `k${i}`,
+        data: blob,
+        expiresAt: new Date(Date.now() + 3600_000),
+        createdAt: new Date(i * 1000),
+      })
+    }
+    const budget = (await liveBytes()) - 400_000
+    await enforceSizeBudget(budget)
+    expect(await liveBytes()).toBeLessThanOrEqual(budget)
+    expect(await cacheGet(`k${rows}`)).not.toBeNull()
+    expect(await cacheGet('k1')).toBeNull()
   })
 })
