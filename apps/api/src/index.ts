@@ -19,6 +19,7 @@ import { searchPlugin } from './routes/search'
 // per-user quota, just abuse mitigation.
 const GENERAL_RATE_LIMIT = 240
 const GENERAL_RATE_WINDOW_MS = 60_000
+const CRAWLER_UA = /bot|crawl|spider|slurp|headless/i
 
 const app = new Elysia()
   .use(
@@ -45,6 +46,14 @@ const app = new Elysia()
     set.headers['X-Frame-Options'] = 'DENY'
     set.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     set.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+  })
+  .onRequest(({ request, set }) => {
+    // Crawlers render every match page, and each render costs an OpenDota fetch
+    // and keeps the machine from ever scaling to zero.
+    if (CRAWLER_UA.test(request.headers.get('user-agent') ?? '')) {
+      set.status = 403
+      return { error: 'Crawlers not allowed' }
+    }
   })
   .onRequest(({ request }) => {
     // Excludes /health: Fly pings it every 30s regardless of real usage,
