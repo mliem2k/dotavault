@@ -75,11 +75,13 @@ describe('enforceSizeBudget', () => {
   })
 
   it('drops the oldest parsed matches first until the database fits', async () => {
-    for (let id = 1; id <= rows; id++) {
-      await db
-        .insert(parsedMatches)
-        .values({ matchId: id, data: blob, createdAt: new Date(id * 1000) })
-    }
+    await db.insert(parsedMatches).values(
+      Array.from({ length: rows }, (_, i) => ({
+        matchId: i + 1,
+        data: blob,
+        createdAt: new Date((i + 1) * 1000),
+      })),
+    )
     const budget = (await liveBytes()) - 400_000
     await enforceSizeBudget(budget)
     expect(await liveBytes()).toBeLessThanOrEqual(budget)
@@ -92,14 +94,14 @@ describe('enforceSizeBudget', () => {
   })
 
   it('falls back to the oldest cache rows once no parsed matches are left', async () => {
-    for (let i = 1; i <= rows; i++) {
-      await db.insert(apiCache).values({
-        key: `k${i}`,
+    await db.insert(apiCache).values(
+      Array.from({ length: rows }, (_, i) => ({
+        key: `k${i + 1}`,
         data: blob,
         expiresAt: new Date(Date.now() + 3600_000),
-        createdAt: new Date(i * 1000),
-      })
-    }
+        createdAt: new Date((i + 1) * 1000),
+      })),
+    )
     const budget = (await liveBytes()) - 400_000
     await enforceSizeBudget(budget)
     expect(await liveBytes()).toBeLessThanOrEqual(budget)
