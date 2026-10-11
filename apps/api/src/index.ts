@@ -60,6 +60,9 @@ const app = new Elysia()
     // which would otherwise act as a fake cron and defeat scale-to-zero.
     const { pathname } = new URL(request.url)
     if (pathname === '/health') return
+    console.log(
+      `req ${request.method} ${pathname} ip=${clientIp(request)} ua=${request.headers.get('user-agent') ?? '-'} origin=${request.headers.get('origin') ?? '-'} referer=${request.headers.get('referer') ?? '-'}`,
+    )
     maybeRunProMetaTick()
     maybeRunProDraftPairsTick()
   })
