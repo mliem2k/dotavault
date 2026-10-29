@@ -285,7 +285,7 @@ export function MatchVision({
   return (
     <div className="flex gap-4 flex-wrap items-start font-dota">
       {/* Ward map */}
-      <div style={{ background: C.panel }}>
+      <div className="min-w-0 max-w-full" style={{ background: C.panel }}>
         <div
           className="text-[15px] uppercase px-4 py-3 text-white"
           style={{ letterSpacing: '2px', background: C.panelDark }}
@@ -458,7 +458,7 @@ export function MatchVision({
       </div>
 
       {/* Legend + per-player counts */}
-      <div className="flex-1 min-w-[320px] max-w-[520px]" style={{ background: C.panel }}>
+      <div className="flex-1 min-w-[min(320px,100%)] max-w-[520px]" style={{ background: C.panel }}>
         <div
           className="text-[15px] uppercase px-4 py-3 text-white"
           style={{ letterSpacing: '2px', background: C.panelDark }}

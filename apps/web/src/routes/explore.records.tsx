@@ -107,7 +107,7 @@ function RecordsPage() {
                         <td className="px-2 py-1.5">
                           <a
                             href={`/match/${r.match_id}`}
-                            className="flex items-center gap-2 hover:underline"
+                            className="flex min-h-11 items-center gap-2 hover:underline"
                           >
                             {hero && (
                               <img

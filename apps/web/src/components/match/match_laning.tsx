@@ -209,7 +209,7 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
 
   return (
     <div className="flex flex-wrap gap-4 font-dota">
-      <div className="min-w-[420px] flex-1" style={{ background: C.panel }}>
+      <div className="min-w-[min(420px,100%)] flex-1" style={{ background: C.panel }}>
         <div
           className="flex flex-wrap items-center gap-2 px-4 py-2.5"
           style={{ background: C.panelDark }}
@@ -263,7 +263,7 @@ export function MatchLaning({ match, heroStats }: { match: Match; heroStats: Her
         </p>
       </div>
 
-      <div className="w-[430px] shrink-0 self-start" style={{ background: C.panel }}>
+      <div className="w-full lg:w-[430px] lg:shrink-0 self-start" style={{ background: C.panel }}>
         <div
           className="px-4 py-3 text-[15px] uppercase text-white"
           style={{ letterSpacing: '2px', background: C.panelDark }}

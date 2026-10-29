@@ -206,9 +206,11 @@ export function MatchFarm({ match, heroStats }: { match: Match; heroStats: HeroS
 
   return (
     <div className="space-y-3">
-      <div style={{ background: C.panel }}>
-        {section(radiantSorted, true)}
-        {section(direSorted, false)}
+      <div className="overflow-x-auto">
+        <div style={{ background: C.panel, minWidth: 660 }}>
+          {section(radiantSorted, true)}
+          {section(direSorted, false)}
+        </div>
       </div>
       {/* legend */}
       <div className="flex items-center gap-5 flex-wrap px-1 pt-1">

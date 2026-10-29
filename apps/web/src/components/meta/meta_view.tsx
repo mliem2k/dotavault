@@ -452,14 +452,17 @@ function HeroTable({
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search hero..."
           aria-label="Search heroes"
-          className="px-3 py-1.5 text-[13px] border border-border text-foreground font-dota focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
+          className="w-full sm:w-[200px] px-3 py-1.5 text-[13px] border border-border text-foreground font-dota focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
           style={{
             background: 'rgba(8,10,12,0.7)',
-            width: 200,
           }}
         />
-        <Tabs value={attr} onValueChange={(v) => setAttr(v as (typeof ATTRS)[number]['key'])}>
-          <TabsList className="group-data-[orientation=horizontal]/tabs:h-11 rounded-none border border-border bg-transparent p-0">
+        <Tabs
+          className="max-w-full"
+          value={attr}
+          onValueChange={(v) => setAttr(v as (typeof ATTRS)[number]['key'])}
+        >
+          <TabsList className="max-w-full overflow-x-auto group-data-[orientation=horizontal]/tabs:h-11 rounded-none border border-border bg-transparent p-0">
             {ATTRS.map((a) => (
               <TabsTrigger
                 key={a.key}

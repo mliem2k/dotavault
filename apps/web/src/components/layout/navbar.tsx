@@ -78,9 +78,9 @@ export function Navbar() {
           dotavault
         </Link>
 
-        {/* Full link row: hidden below md, where it's replaced by the menu below */}
+        {/* Full link row: hidden below xl, where it's replaced by the menu below */}
         <div
-          className="hidden md:flex items-center gap-8 uppercase text-white text-[18px] tracking-[3px] flex-1 font-display"
+          className="hidden xl:flex min-w-0 items-center gap-8 uppercase text-white text-[18px] tracking-[3px] flex-1 font-display"
           style={{ fontWeight: 600 }}
         >
           {NAV_LINKS.map((l) => (
@@ -90,7 +90,7 @@ export function Navbar() {
           ))}
         </div>
 
-        <div className="hidden md:flex items-center gap-4 sm:gap-8">
+        <div className="hidden xl:flex shrink-0 ml-auto items-center gap-4 sm:gap-8">
           <PlayButton />
           <GitHubIcon />
         </div>
@@ -101,7 +101,7 @@ export function Navbar() {
           onClick={() => setOpen((v) => !v)}
           aria-label={open ? 'Close menu' : 'Open menu'}
           aria-expanded={open}
-          className="ml-auto flex md:hidden h-11 w-11 shrink-0 items-center justify-center text-white"
+          className="ml-auto flex xl:hidden h-11 w-11 shrink-0 items-center justify-center text-white"
         >
           <svg
             viewBox="0 0 24 24"
@@ -120,7 +120,7 @@ export function Navbar() {
 
       {open && (
         <div
-          className="md:hidden px-4 pb-5 pt-1 flex flex-col gap-1"
+          className="absolute inset-x-0 top-full xl:hidden px-4 pb-5 pt-1 flex flex-col gap-1"
           style={{
             background: 'rgba(8,10,12,0.97)',
             borderTop: '1px solid rgba(255,255,255,0.08)',

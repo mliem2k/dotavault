@@ -502,7 +502,7 @@ function TeamPanel({
   denseBySlot: Map<number, PositionPoint[]> | null
 }) {
   return (
-    <div className="w-[240px] shrink-0 self-start" style={{ background: C.panel }}>
+    <div className="w-full sm:w-[240px] sm:shrink-0 self-start" style={{ background: C.panel }}>
       <div
         className={`px-3 py-2 text-[13px] uppercase ${side === 'radiant' ? 'text-radiant' : 'text-dire'}`}
         style={{ letterSpacing: '2px', background: C.panelDark }}
@@ -942,7 +942,7 @@ export function ReplayViewer({
       className={
         fullscreen
           ? 'fixed inset-0 z-50 flex flex-col bg-slate-bg'
-          : 'min-w-[420px] flex-1 space-y-3'
+          : 'min-w-[min(420px,100%)] flex-1 space-y-3'
       }
       style={fullscreen ? undefined : { background: C.panel }}
     >
@@ -1177,7 +1177,7 @@ export function ReplayViewer({
       />
 
       {/* Synced event feed */}
-      <div className="w-[300px] shrink-0" style={{ background: C.panel }}>
+      <div className="w-full sm:w-[300px] sm:shrink-0" style={{ background: C.panel }}>
         <div
           className="text-[15px] uppercase px-4 py-3 text-white"
           style={{ letterSpacing: '2px', background: C.panelDark }}

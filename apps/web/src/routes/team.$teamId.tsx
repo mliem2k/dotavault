@@ -308,100 +308,102 @@ function TeamPage() {
               <Spinner />
             </div>
           ) : (
-            <table className="w-full">
-              <thead>
-                <tr>
-                  <th className="pb-2 text-[11px] font-bold uppercase tracking-widest text-left">
-                    <SortHeader
-                      label="Player"
-                      sortKey="player"
-                      active={sortKey === 'player'}
-                      dir={sortDir}
-                      onClick={onSort}
-                      className="font-dota"
-                      style={{ color: 'var(--color-muted)' }}
-                    />
-                  </th>
-                  <th className="pb-2 text-[11px] font-bold uppercase tracking-widest text-left">
-                    <SortHeader
-                      label="Role"
-                      sortKey="role"
-                      active={sortKey === 'role'}
-                      dir={sortDir}
-                      onClick={onSort}
-                      className="font-dota"
-                      style={{ color: 'var(--color-muted)' }}
-                    />
-                  </th>
-                  <th className="pb-2 text-[11px] font-bold uppercase tracking-widest text-right">
-                    <SortHeader
-                      label="Games"
-                      sortKey="games"
-                      active={sortKey === 'games'}
-                      dir={sortDir}
-                      onClick={onSort}
-                      className="justify-end font-dota"
-                      style={{ color: 'var(--color-muted)' }}
-                    />
-                  </th>
-                  <th className="pb-2 text-[11px] font-bold uppercase tracking-widest text-right">
-                    <SortHeader
-                      label="Win%"
-                      sortKey="winrate"
-                      active={sortKey === 'winrate'}
-                      dir={sortDir}
-                      onClick={onSort}
-                      className="justify-end font-dota"
-                      style={{ color: 'var(--color-muted)' }}
-                    />
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedRoster.map((p, i) => {
-                  const pwr =
-                    p.games_played > 0 ? ((p.wins / p.games_played) * 100).toFixed(1) : null
-                  return (
-                    <tr key={p.account_id} className={i === 0 ? '' : 'border-t border-border'}>
-                      <td className="py-1.5 pr-4">
-                        <a
-                          href={`/player/${p.account_id}`}
-                          className="text-[14px] hover:text-white text-foreground font-dota"
-                        >
-                          {p.name ?? `Player ${p.account_id}`}
-                        </a>
-                      </td>
-                      <td className="py-1.5 text-[12px] text-muted font-dota">
-                        {roleLabelFor(p)}
-                        {isStandIn(p) && (
-                          <Badge
-                            variant="default"
-                            className="ml-1.5"
-                            title="Far fewer games than this role's regular starter, likely a stand-in"
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <th className="pb-2 text-[11px] font-bold uppercase tracking-widest text-left">
+                      <SortHeader
+                        label="Player"
+                        sortKey="player"
+                        active={sortKey === 'player'}
+                        dir={sortDir}
+                        onClick={onSort}
+                        className="font-dota"
+                        style={{ color: 'var(--color-muted)' }}
+                      />
+                    </th>
+                    <th className="pb-2 text-[11px] font-bold uppercase tracking-widest text-left">
+                      <SortHeader
+                        label="Role"
+                        sortKey="role"
+                        active={sortKey === 'role'}
+                        dir={sortDir}
+                        onClick={onSort}
+                        className="font-dota"
+                        style={{ color: 'var(--color-muted)' }}
+                      />
+                    </th>
+                    <th className="pb-2 text-[11px] font-bold uppercase tracking-widest text-right">
+                      <SortHeader
+                        label="Games"
+                        sortKey="games"
+                        active={sortKey === 'games'}
+                        dir={sortDir}
+                        onClick={onSort}
+                        className="justify-end font-dota"
+                        style={{ color: 'var(--color-muted)' }}
+                      />
+                    </th>
+                    <th className="pb-2 text-[11px] font-bold uppercase tracking-widest text-right">
+                      <SortHeader
+                        label="Win%"
+                        sortKey="winrate"
+                        active={sortKey === 'winrate'}
+                        dir={sortDir}
+                        onClick={onSort}
+                        className="justify-end font-dota"
+                        style={{ color: 'var(--color-muted)' }}
+                      />
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedRoster.map((p, i) => {
+                    const pwr =
+                      p.games_played > 0 ? ((p.wins / p.games_played) * 100).toFixed(1) : null
+                    return (
+                      <tr key={p.account_id} className={i === 0 ? '' : 'border-t border-border'}>
+                        <td className="py-1.5 pr-4">
+                          <a
+                            href={`/player/${p.account_id}`}
+                            className="text-[14px] hover:text-white text-foreground font-dota"
                           >
-                            Stand-in
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="py-1.5 text-right text-[13px] tabular-nums text-muted font-dota">
-                        {p.games_played}
-                      </td>
-                      <td
-                        className={`py-1.5 text-right text-[13px] font-semibold tabular-nums font-dota ${
-                          pwr == null
-                            ? 'text-muted'
-                            : Number(pwr) >= 50
-                              ? 'text-radiant'
-                              : 'text-dire'
-                        }`}
-                      >
-                        {pwr != null ? `${pwr}%` : 'n/a'}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                            {p.name ?? `Player ${p.account_id}`}
+                          </a>
+                        </td>
+                        <td className="py-1.5 text-[12px] text-muted font-dota">
+                          {roleLabelFor(p)}
+                          {isStandIn(p) && (
+                            <Badge
+                              variant="default"
+                              className="ml-1.5"
+                              title="Far fewer games than this role's regular starter, likely a stand-in"
+                            >
+                              Stand-in
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="py-1.5 text-right text-[13px] tabular-nums text-muted font-dota">
+                          {p.games_played}
+                        </td>
+                        <td
+                          className={`py-1.5 text-right text-[13px] font-semibold tabular-nums font-dota ${
+                            pwr == null
+                              ? 'text-muted'
+                              : Number(pwr) >= 50
+                                ? 'text-radiant'
+                                : 'text-dire'
+                          }`}
+                        >
+                          {pwr != null ? `${pwr}%` : 'n/a'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </Panel>
 

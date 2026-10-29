@@ -240,7 +240,7 @@ function TopTeams() {
             active={sortKey === 'wins'}
             dir={sortDir}
             onClick={onSort}
-            className="w-10 shrink-0 justify-end"
+            className="hidden sm:inline-flex w-10 shrink-0 justify-end"
           />
           <SortHeader
             label="L"
@@ -248,7 +248,7 @@ function TopTeams() {
             active={sortKey === 'losses'}
             dir={sortDir}
             onClick={onSort}
-            className="w-10 shrink-0 justify-end"
+            className="hidden sm:inline-flex w-10 shrink-0 justify-end"
           />
           <SortHeader
             label="Win%"
@@ -256,7 +256,7 @@ function TopTeams() {
             active={sortKey === 'winrate'}
             dir={sortDir}
             onClick={onSort}
-            className="w-14 shrink-0 justify-end"
+            className="hidden sm:inline-flex w-14 shrink-0 justify-end"
           />
           <SortHeader
             label="Rating"
@@ -318,9 +318,11 @@ function TopTeams() {
                 )}
               </div>
               <div className="text-[13px] tabular-nums text-muted font-dota">
-                {t.wins}W · {t.losses}L
+                <span className="sm:hidden">
+                  {t.wins}W · {t.losses}L
+                </span>
                 <span
-                  className="ml-2"
+                  className="ml-2 sm:hidden"
                   style={{
                     color:
                       wr >= 55
@@ -333,13 +335,33 @@ function TopTeams() {
                   {wr.toFixed(0)}%
                 </span>
                 {t.last_match_time && (
-                  <span className="ml-2 text-muted">
-                    · Last played {formatTimeAgo(t.last_match_time)}
+                  <span className="text-muted ml-2 sm:ml-0">
+                    <span className="sm:hidden">· </span>Last played{' '}
+                    {formatTimeAgo(t.last_match_time)}
                   </span>
                 )}
               </div>
             </div>
-            <span className="shrink-0 text-[15px] tabular-nums text-gold font-dota">
+            <span className="hidden w-10 shrink-0 text-right text-[13px] tabular-nums text-muted font-dota sm:block">
+              {t.wins}
+            </span>
+            <span className="hidden w-10 shrink-0 text-right text-[13px] tabular-nums text-muted font-dota sm:block">
+              {t.losses}
+            </span>
+            <span
+              className="hidden w-14 shrink-0 text-right text-[13px] tabular-nums font-dota sm:block"
+              style={{
+                color:
+                  wr >= 55
+                    ? 'var(--color-radiant)'
+                    : wr < 45
+                      ? 'var(--color-dire)'
+                      : 'var(--color-muted)',
+              }}
+            >
+              {wr.toFixed(0)}%
+            </span>
+            <span className="w-16 shrink-0 text-right text-[15px] tabular-nums text-gold font-dota">
               {Math.round(t.rating)}
             </span>
           </a>

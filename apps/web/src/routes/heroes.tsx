@@ -123,11 +123,11 @@ function HeroCard({
         <img
           src={attr.symbol}
           alt={attr.label}
-          className="h-[42px] w-[42px]"
+          className="h-8 w-8 sm:h-[42px] sm:w-[42px]"
           style={{ filter: 'drop-shadow(0 0 4px #000)' }}
         />
         <span
-          className="truncate py-2 pr-2 text-[18px] font-semibold tracking-[1px] text-white uppercase font-display"
+          className="truncate py-2 pr-2 text-[13px] sm:text-[18px] font-semibold tracking-[1px] text-white uppercase font-display"
           style={{ textShadow: '0 0 4px #000' }}
         >
           {hero.name_loc}
@@ -179,9 +179,9 @@ function HeroesPage() {
   return (
     <div className="mx-auto max-w-[1200px]">
       {/* Title */}
-      <div className="pt-16 text-center">
+      <div className="px-4 pt-8 text-center sm:pt-16">
         <h1
-          className="text-[54px] leading-[1.12] font-bold tracking-[3px] text-white uppercase font-display"
+          className="text-[32px] sm:text-[54px] leading-[1.12] font-bold tracking-[3px] text-white uppercase font-display"
           style={{ marginBottom: 10 }}
         >
           Choose Your Hero
@@ -189,7 +189,7 @@ function HeroesPage() {
         {/* #ddd is not in the Token Mapping Reference (close to but distinct from
             #dcd6c8 text-foreground) — left as-is per task instructions. */}
         <p
-          className="mx-auto max-w-[1000px] text-[26px] leading-[1.4] text-[#ddd]"
+          className="mx-auto max-w-[1000px] text-[16px] sm:text-[26px] leading-[1.4] text-[#ddd]"
           style={{ marginBottom: 30 }}
         >
           From magical tacticians to fierce brutes and cunning rogues, Dota 2's hero pool is massive
@@ -207,7 +207,7 @@ function HeroesPage() {
           Filter Heroes
         </div>
 
-        <div className="ml-5 flex items-center flex-wrap gap-y-2">
+        <div className="ml-0 sm:ml-5 flex items-center flex-wrap gap-y-2">
           {/* #808fa6 is not in the Token Mapping Reference — left as-is per task instructions. */}
           <div className="mr-5 text-[17px] tracking-[2px] text-[#808fa6] uppercase">Attribute</div>
           {ATTRS.map((a, i) => (
@@ -221,7 +221,7 @@ function HeroesPage() {
           ))}
         </div>
 
-        <div className="ml-5 flex items-center flex-wrap gap-y-2">
+        <div className="ml-0 sm:ml-5 flex items-center flex-wrap gap-y-2">
           {/* #808fa6 is not in the Token Mapping Reference — left as-is per task instructions. */}
           <div className="mr-5 text-[17px] tracking-[2px] text-[#808fa6] uppercase">Complexity</div>
           {[1, 2, 3].map((lvl) => (

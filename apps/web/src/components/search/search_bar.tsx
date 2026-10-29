@@ -264,7 +264,7 @@ export function SearchBar() {
   return (
     <div className="relative w-full max-w-3xl">
       <div
-        className="flex items-center gap-3 px-5 border border-border transition-colors focus-within:border-gold"
+        className="flex items-center gap-3 px-3 sm:px-5 border border-border transition-colors focus-within:border-gold"
         style={{
           background: 'rgba(12,11,14,0.72)',
           boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.6)',
@@ -283,7 +283,7 @@ export function SearchBar() {
           aria-controls="search-results-listbox"
           aria-autocomplete="list"
           aria-activedescendant={activeOptionId}
-          className="w-full bg-transparent outline-none text-foreground"
+          className="min-w-0 flex-1 bg-transparent outline-none text-foreground"
           style={{
             fontFamily: 'Radiance, "Noto Sans", sans-serif',
             fontSize: 17,
@@ -297,7 +297,7 @@ export function SearchBar() {
           />
         ) : (
           <kbd
-            className="text-muted"
+            className="hidden text-muted sm:inline-block"
             style={{
               fontFamily: 'inherit',
               fontSize: 11,
@@ -316,8 +316,8 @@ export function SearchBar() {
         <div
           id="search-results-listbox"
           role="listbox"
-          className="absolute top-full z-50 mt-1 w-full py-1 border border-border"
-          style={{ background: 'rgba(12,11,14,0.72)', boxShadow: '0 16px 48px rgba(0,0,0,0.8)' }}
+          className="absolute top-full z-50 mt-1 max-h-80 w-full overflow-y-auto py-1 border border-border"
+          style={{ background: 'rgba(12,11,14,0.98)', boxShadow: '0 16px 48px rgba(0,0,0,0.8)' }}
         >
           {/* Options are real Links (not buttons) so ctrl/cmd/middle-click can
               open a result in a new tab, same as any other link on the site;
@@ -345,7 +345,7 @@ export function SearchBar() {
               ) : (
                 <User className="h-4 w-4 flex-shrink-0 text-gold" />
               )}
-              <div>
+              <div className="min-w-0">
                 <div
                   className="text-foreground"
                   style={{ fontSize: 14, fontFamily: 'Radiance, "Noto Sans", sans-serif' }}
@@ -376,14 +376,17 @@ export function SearchBar() {
               }}
             >
               <User className="h-4 w-4 flex-shrink-0 text-gold" />
-              <div>
+              <div className="min-w-0">
                 <div
                   className="text-foreground"
                   style={{ fontSize: 14, fontFamily: 'Radiance, "Noto Sans", sans-serif' }}
                 >
                   Steam Profile
                 </div>
-                <div className="font-mono text-muted" style={{ fontSize: 12, marginTop: 1 }}>
+                <div
+                  className="truncate font-mono text-muted"
+                  style={{ fontSize: 12, marginTop: 1 }}
+                >
                   #{vanityResult} · {parsed.url}
                 </div>
               </div>
@@ -410,7 +413,7 @@ export function SearchBar() {
                   className="h-8 w-8 rounded-full object-cover flex-shrink-0"
                 />
                 <span
-                  className="text-foreground"
+                  className="min-w-0 flex-1 truncate text-foreground"
                   style={{ fontSize: 15, fontFamily: 'Radiance, "Noto Sans", sans-serif' }}
                 >
                   {r.personaname}

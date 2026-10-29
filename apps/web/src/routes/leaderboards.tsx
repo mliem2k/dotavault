@@ -86,7 +86,7 @@ function LeaderboardsPage() {
       </div>
 
       {/* Region tabs */}
-      <div className="flex items-center justify-center gap-2 py-1" role="tablist">
+      <div className="flex flex-wrap items-center justify-center gap-2 py-1" role="tablist">
         {DIVISIONS.map((d) => (
           <Link
             key={d.id}
@@ -97,7 +97,7 @@ function LeaderboardsPage() {
               setPage(0)
             }}
             role="tab"
-            className="min-h-11 inline-flex items-center justify-center px-5 py-2 text-[14px] uppercase cursor-pointer transition-colors font-display"
+            className="min-h-11 inline-flex items-center justify-center px-3 sm:px-5 py-2 text-[14px] uppercase cursor-pointer transition-colors font-display"
             activeOptions={{ exact: true }}
             style={{
               letterSpacing: '1px',

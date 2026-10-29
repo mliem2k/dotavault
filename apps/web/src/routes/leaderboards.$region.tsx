@@ -96,7 +96,7 @@ function RegionPage() {
             return (
               <div
                 key={r.rank}
-                className={`relative flex w-full items-center gap-4 px-4 py-2.5 text-left ${i === 0 ? '' : 'border-t border-border'}`}
+                className={`relative flex w-full items-center gap-2 sm:gap-4 px-4 py-2.5 text-left ${i === 0 ? '' : 'border-t border-border'}`}
               >
                 {/* Stretched link (only when a pro profile was actually matched): the
                   whole row becomes a real, ctrl+click/middle-click openable link,
@@ -133,7 +133,9 @@ function RegionPage() {
                       </span>
                     )
                   ) : null}
-                  <span className="text-[14px] truncate text-foreground font-dota">{r.name}</span>
+                  <span title={r.name} className="text-[14px] truncate text-foreground font-dota">
+                    {r.name}
+                  </span>
                   {pro && (
                     <>
                       <span

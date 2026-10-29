@@ -170,7 +170,7 @@ export function MatchCasts({
 }) {
   const heroMap = new Map(heroStats.map((h) => [h.id, h]))
   const section = (players: MatchPlayer[], team: 'radiant' | 'dire') => (
-    <div className="min-w-[480px] flex-1" style={{ background: C.panel }}>
+    <div className="min-w-[min(480px,100%)] flex-1" style={{ background: C.panel }}>
       <div
         className={`px-4 py-3 text-[15px] uppercase ${team === 'radiant' ? 'text-radiant' : 'text-dire'}`}
         style={{ letterSpacing: '2px', background: C.panelDark }}

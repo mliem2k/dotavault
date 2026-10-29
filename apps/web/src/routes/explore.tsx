@@ -21,7 +21,7 @@ function ExploreLayout() {
   const isRecords = pathname === '/explore' || pathname.startsWith('/explore/records')
 
   return (
-    <div className="flex flex-col gap-0 font-dota">
+    <div className="font-dota">
       <div
         className="flex items-center gap-1 flex-wrap mt-3 mb-3 px-3 py-2.5"
         style={{ background: 'rgba(8,10,12,0.55)' }}

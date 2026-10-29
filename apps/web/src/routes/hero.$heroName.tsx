@@ -1184,7 +1184,7 @@ function HeroDetailPage() {
           <img src={attrIconUrl(hero.primary_attr)} alt="" style={{ width: 28, height: 28 }} />
         </div>
         {/* top-right prev / all / next navigation */}
-        <div className="absolute z-[4] flex items-center gap-2" style={{ top: 160, right: 30 }}>
+        <div className="absolute z-[4] flex items-center gap-2 top-[88px] right-4 lg:top-40 lg:right-[30px]">
           {prevHero && (
             <a
               href={`/hero/${heroSlug(prevHero.localized_name)}`}
@@ -1359,10 +1359,7 @@ function HeroDetailPage() {
         {/* ABILITIES — anchored bottom-center-right of the banner, matching dota2.com layout.
             Innate (hidden-behavior) abilities shown as circular icons first, regular as square. */}
         {(abilityList.length > 0 || innateList.length > 0) && abilities.data && (
-          <div
-            className="absolute z-[2] flex flex-col items-start"
-            style={{ bottom: 40, right: 'min(140px, 7.8vw)' }}
-          >
+          <div className="relative z-[2] flex flex-col items-start px-[9.4%] pb-10 lg:absolute lg:bottom-10 lg:right-[min(140px,7.8vw)] lg:px-0 lg:pb-0">
             <div
               className="text-[18px] font-bold uppercase mb-1.5 text-white font-dota"
               style={{ letterSpacing: '2px' }}
@@ -1380,11 +1377,9 @@ function HeroDetailPage() {
                   {/* Talent tree tooltip on hover, or on keyboard focus of the
                       trigger above, styled like dota2.com */}
                   <div
-                    className="absolute bottom-full mb-2 hidden group-hover:block group-focus-within:block z-50 pointer-events-none"
+                    className="absolute bottom-full mb-2 hidden group-hover:block group-focus-within:block z-50 pointer-events-none left-0 sm:left-1/2 sm:-translate-x-1/2"
                     style={{
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      width: 500,
+                      width: 'min(500px, calc(100vw - 32px))',
                       background: 'linear-gradient(150deg, rgb(104,114,124), rgb(20,23,26))',
                       padding: '16px 16px 28px',
                       boxShadow: '0 4px 24px rgba(0,0,0,0.8)',
@@ -1485,11 +1480,9 @@ function HeroDetailPage() {
                       }}
                     />
                     <div
-                      className="absolute bottom-full mb-2 hidden group-hover:block group-focus-within:block z-50 pointer-events-none border border-border"
+                      className="absolute bottom-full mb-2 hidden group-hover:block group-focus-within:block z-50 pointer-events-none border border-border left-0 sm:left-1/2 sm:-translate-x-[20%]"
                       style={{
-                        left: '50%',
-                        transform: 'translateX(-20%)',
-                        width: 280,
+                        width: 'min(280px, calc(100vw - 32px))',
                         background: 'rgba(10,9,12,0.97)',
                         padding: '10px 14px',
                       }}

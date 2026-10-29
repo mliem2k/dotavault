@@ -975,7 +975,7 @@ function DetailPanel({
   return (
     <div className="flex flex-wrap gap-5 min-w-0">
       {/* Info column */}
-      <div className="flex-1 min-w-[300px] space-y-3" style={{ maxWidth: 360 }}>
+      <div className="flex-1 min-w-[min(300px,100%)] space-y-3" style={{ maxWidth: 360 }}>
         {/* Name panel — player avatar + profile link */}
         <div
           className="flex items-center gap-3 px-3 py-2.5"

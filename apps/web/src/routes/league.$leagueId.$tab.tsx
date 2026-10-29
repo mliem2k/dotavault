@@ -74,114 +74,116 @@ function DraftPanel({
           No draft data for this league yet.
         </div>
       )}
-      <table className="w-full border-collapse font-dota">
-        <thead>
-          <tr className="text-[12px] font-bold uppercase tracking-widest text-muted">
-            <th className="pb-2 text-left">
-              <SortHeader
-                label="Hero"
-                sortKey="hero"
-                active={sortKey === 'hero'}
-                dir={sortDir}
-                onClick={onSort}
-              />
-            </th>
-            <th className="pb-2 px-2 text-right">
-              <SortHeader
-                label="Picks"
-                sortKey="picks"
-                active={sortKey === 'picks'}
-                dir={sortDir}
-                onClick={onSort}
-                className="justify-end"
-              />
-            </th>
-            <th className="pb-2 px-2 text-right">
-              <SortHeader
-                label="Win Rate"
-                sortKey="winrate"
-                active={sortKey === 'winrate'}
-                dir={sortDir}
-                onClick={onSort}
-                className="justify-end"
-              />
-            </th>
-            <th className="pb-2 px-2 text-right">
-              <SortHeader
-                label="Bans"
-                sortKey="bans"
-                active={sortKey === 'bans'}
-                dir={sortDir}
-                onClick={onSort}
-                className="justify-end"
-              />
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {topPicks.map((h) => {
-            const hero = heroMap.get(h.hero_id)
-            const wr = h.picks > 0 ? (h.wins / h.picks) * 100 : 0
-            const bans = banByHero.get(h.hero_id) ?? 0
-            return (
-              <tr key={h.hero_id} className="border-t border-border">
-                <td className="py-1.5">
-                  {hero ? (
-                    <a
-                      href={`/hero/${heroSlug(hero.localized_name)}`}
-                      className="flex items-center gap-2 hover:underline"
-                    >
-                      <img
-                        src={heroIconUrl(hero.name)}
-                        alt=""
-                        loading="lazy"
-                        className="h-6 w-6 rounded-sm"
-                      />
-                      <span className="truncate text-[14px] text-foreground">
-                        {hero.localized_name}
-                      </span>
-                    </a>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <span className="truncate text-[14px] text-foreground">
-                        {`Hero ${h.hero_id}`}
-                      </span>
-                    </div>
-                  )}
-                </td>
-                <td className="px-2 text-right text-[13px] tabular-nums text-foreground">
-                  <div className="flex items-center justify-end gap-2">
-                    <div
-                      className="h-[6px]"
-                      style={{ width: 60, background: 'rgba(255,255,255,0.06)' }}
-                    >
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse font-dota">
+          <thead>
+            <tr className="text-[12px] font-bold uppercase tracking-widest text-muted">
+              <th className="pb-2 text-left">
+                <SortHeader
+                  label="Hero"
+                  sortKey="hero"
+                  active={sortKey === 'hero'}
+                  dir={sortDir}
+                  onClick={onSort}
+                />
+              </th>
+              <th className="pb-2 px-2 text-right">
+                <SortHeader
+                  label="Picks"
+                  sortKey="picks"
+                  active={sortKey === 'picks'}
+                  dir={sortDir}
+                  onClick={onSort}
+                  className="justify-end"
+                />
+              </th>
+              <th className="pb-2 px-2 text-right">
+                <SortHeader
+                  label="Win Rate"
+                  sortKey="winrate"
+                  active={sortKey === 'winrate'}
+                  dir={sortDir}
+                  onClick={onSort}
+                  className="justify-end"
+                />
+              </th>
+              <th className="pb-2 px-2 text-right">
+                <SortHeader
+                  label="Bans"
+                  sortKey="bans"
+                  active={sortKey === 'bans'}
+                  dir={sortDir}
+                  onClick={onSort}
+                  className="justify-end"
+                />
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {topPicks.map((h) => {
+              const hero = heroMap.get(h.hero_id)
+              const wr = h.picks > 0 ? (h.wins / h.picks) * 100 : 0
+              const bans = banByHero.get(h.hero_id) ?? 0
+              return (
+                <tr key={h.hero_id} className="border-t border-border">
+                  <td className="py-1.5">
+                    {hero ? (
+                      <a
+                        href={`/hero/${heroSlug(hero.localized_name)}`}
+                        className="flex items-center gap-2 hover:underline"
+                      >
+                        <img
+                          src={heroIconUrl(hero.name)}
+                          alt=""
+                          loading="lazy"
+                          className="h-6 w-6 rounded-sm"
+                        />
+                        <span className="truncate text-[14px] text-foreground">
+                          {hero.localized_name}
+                        </span>
+                      </a>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-[14px] text-foreground">
+                          {`Hero ${h.hero_id}`}
+                        </span>
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-2 text-right text-[13px] tabular-nums text-foreground">
+                    <div className="flex items-center justify-end gap-2">
                       <div
-                        className="bg-gold"
-                        style={{ width: `${(h.picks / maxPick) * 100}%`, height: '100%' }}
-                      />
+                        className="h-[6px]"
+                        style={{ width: 60, background: 'rgba(255,255,255,0.06)' }}
+                      >
+                        <div
+                          className="bg-gold"
+                          style={{ width: `${(h.picks / maxPick) * 100}%`, height: '100%' }}
+                        />
+                      </div>
+                      {h.picks}
                     </div>
-                    {h.picks}
-                  </div>
-                </td>
-                <td
-                  className="px-2 text-right text-[13px] font-semibold tabular-nums"
-                  style={{ color: winRateColor(wr) }}
-                >
-                  {wr.toFixed(1)}%
-                </td>
-                {/* #c73f2d is not in the Token Mapping Reference (close to but distinct
+                  </td>
+                  <td
+                    className="px-2 text-right text-[13px] font-semibold tabular-nums"
+                    style={{ color: winRateColor(wr) }}
+                  >
+                    {wr.toFixed(1)}%
+                  </td>
+                  {/* #c73f2d is not in the Token Mapping Reference (close to but distinct
                     from #d14a38/#c94a38 text-dire) — left as-is per task instructions. */}
-                <td
-                  className="px-2 text-right text-[13px] tabular-nums"
-                  style={{ color: '#c73f2d' }}
-                >
-                  {bans || '-'}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+                  <td
+                    className="px-2 text-right text-[13px] tabular-nums"
+                    style={{ color: '#c73f2d' }}
+                  >
+                    {bans || '-'}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </Panel>
   )
 }
@@ -234,114 +236,116 @@ function StandingsPanel({ leagueId }: { leagueId: number }) {
         </div>
       )}
       {standings.data && standings.data.length > 0 && (
-        <table className="w-full border-collapse font-dota">
-          <thead>
-            <tr className="text-[12px] font-bold uppercase tracking-widest text-muted">
-              <th className="pb-2 pr-2 text-right w-8">#</th>
-              <th className="pb-2 text-left">
-                <SortHeader
-                  label="Team"
-                  sortKey="team"
-                  active={sortKey === 'team'}
-                  dir={sortDir}
-                  onClick={onSort}
-                />
-              </th>
-              <th className="pb-2 px-3 text-right">
-                <SortHeader
-                  label="W"
-                  sortKey="wins"
-                  active={sortKey === 'wins'}
-                  dir={sortDir}
-                  onClick={onSort}
-                  className="justify-end"
-                />
-              </th>
-              <th className="pb-2 px-3 text-right">
-                <SortHeader
-                  label="L"
-                  sortKey="losses"
-                  active={sortKey === 'losses'}
-                  dir={sortDir}
-                  onClick={onSort}
-                  className="justify-end"
-                />
-              </th>
-              <th className="pb-2 pl-3 text-right">
-                <SortHeader
-                  label="Win Rate"
-                  sortKey="winrate"
-                  active={sortKey === 'winrate'}
-                  dir={sortDir}
-                  onClick={onSort}
-                  className="justify-end"
-                />
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedStandings.map((s, i) => {
-              const team = teamMap.get(s.team_id)
-              const games = s.wins + s.losses
-              const wr = games > 0 ? (s.wins / games) * 100 : 0
-              return (
-                <Link
-                  key={s.team_id}
-                  to="/team/$teamId"
-                  params={{ teamId: String(s.team_id) }}
-                  className="table-row cursor-pointer hover:bg-white/[0.03] border-t border-border"
-                >
-                  <td className="py-2 pr-2 text-right text-[13px] tabular-nums text-muted">
-                    {i + 1}
-                  </td>
-                  <td className="py-2">
-                    {/* Separate anchor (with stopPropagation) so this cell's link target
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse font-dota">
+            <thead>
+              <tr className="text-[12px] font-bold uppercase tracking-widest text-muted">
+                <th className="pb-2 pr-2 text-right w-8">#</th>
+                <th className="pb-2 text-left">
+                  <SortHeader
+                    label="Team"
+                    sortKey="team"
+                    active={sortKey === 'team'}
+                    dir={sortDir}
+                    onClick={onSort}
+                  />
+                </th>
+                <th className="pb-2 px-3 text-right">
+                  <SortHeader
+                    label="W"
+                    sortKey="wins"
+                    active={sortKey === 'wins'}
+                    dir={sortDir}
+                    onClick={onSort}
+                    className="justify-end"
+                  />
+                </th>
+                <th className="pb-2 px-3 text-right">
+                  <SortHeader
+                    label="L"
+                    sortKey="losses"
+                    active={sortKey === 'losses'}
+                    dir={sortDir}
+                    onClick={onSort}
+                    className="justify-end"
+                  />
+                </th>
+                <th className="pb-2 pl-3 text-right">
+                  <SortHeader
+                    label="Win Rate"
+                    sortKey="winrate"
+                    active={sortKey === 'winrate'}
+                    dir={sortDir}
+                    onClick={onSort}
+                    className="justify-end"
+                  />
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedStandings.map((s, i) => {
+                const team = teamMap.get(s.team_id)
+                const games = s.wins + s.losses
+                const wr = games > 0 ? (s.wins / games) * 100 : 0
+                return (
+                  <Link
+                    key={s.team_id}
+                    to="/team/$teamId"
+                    params={{ teamId: String(s.team_id) }}
+                    className="table-row cursor-pointer hover:bg-white/[0.03] border-t border-border"
+                  >
+                    <td className="py-2 pr-2 text-right text-[13px] tabular-nums text-muted">
+                      {i + 1}
+                    </td>
+                    <td className="py-2">
+                      {/* Separate anchor (with stopPropagation) so this cell's link target
                         (the team) can differ in principle from the row's own link target,
                         and so ctrl+click/middle-click on it doesn't also trigger the row link. */}
-                    <a
-                      href={`/team/${s.team_id}`}
-                      className="flex items-center gap-2.5"
-                      onClick={(e) => e.stopPropagation()}
+                      <a
+                        href={`/team/${s.team_id}`}
+                        className="flex items-center gap-2.5"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {team?.logo_url ? (
+                          <img
+                            src={team.logo_url}
+                            alt=""
+                            loading="lazy"
+                            className="h-7 w-7 shrink-0 object-contain"
+                            onError={(e) => {
+                              e.currentTarget.style.visibility = 'hidden'
+                            }}
+                          />
+                        ) : (
+                          <span className="h-7 w-7 shrink-0" />
+                        )}
+                        <span className="truncate text-[15px] hover:underline text-foreground">
+                          {team?.name ?? `Team ${s.team_id}`}
+                        </span>
+                      </a>
+                    </td>
+                    <td className="px-3 text-right text-[14px] tabular-nums text-radiant">
+                      {s.wins}
+                    </td>
+                    {/* #c73f2d is not in the Token Mapping Reference — left as-is per task instructions. */}
+                    <td
+                      className="px-3 text-right text-[14px] tabular-nums"
+                      style={{ color: '#c73f2d' }}
                     >
-                      {team?.logo_url ? (
-                        <img
-                          src={team.logo_url}
-                          alt=""
-                          loading="lazy"
-                          className="h-7 w-7 shrink-0 object-contain"
-                          onError={(e) => {
-                            e.currentTarget.style.visibility = 'hidden'
-                          }}
-                        />
-                      ) : (
-                        <span className="h-7 w-7 shrink-0" />
-                      )}
-                      <span className="truncate text-[15px] hover:underline text-foreground">
-                        {team?.name ?? `Team ${s.team_id}`}
-                      </span>
-                    </a>
-                  </td>
-                  <td className="px-3 text-right text-[14px] tabular-nums text-radiant">
-                    {s.wins}
-                  </td>
-                  {/* #c73f2d is not in the Token Mapping Reference — left as-is per task instructions. */}
-                  <td
-                    className="px-3 text-right text-[14px] tabular-nums"
-                    style={{ color: '#c73f2d' }}
-                  >
-                    {s.losses}
-                  </td>
-                  <td
-                    className="pl-3 text-right text-[14px] font-semibold tabular-nums"
-                    style={{ color: winRateColor(wr) }}
-                  >
-                    {wr.toFixed(0)}%
-                  </td>
-                </Link>
-              )
-            })}
-          </tbody>
-        </table>
+                      {s.losses}
+                    </td>
+                    <td
+                      className="pl-3 text-right text-[14px] font-semibold tabular-nums"
+                      style={{ color: winRateColor(wr) }}
+                    >
+                      {wr.toFixed(0)}%
+                    </td>
+                  </Link>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </Panel>
   )

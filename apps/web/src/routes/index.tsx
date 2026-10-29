@@ -57,7 +57,7 @@ function HomePage() {
 
   return (
     <div className="space-y-12">
-      <div className="flex flex-col items-center gap-8 py-24 text-center">
+      <div className="flex flex-col items-center gap-8 py-12 text-center md:py-24">
         <h1
           className="font-display font-bold uppercase text-foreground break-words"
           style={{
@@ -71,8 +71,8 @@ function HomePage() {
         </h1>
         <div className="h-px w-20 bg-border" />
         <p
-          className="text-base uppercase text-white"
-          style={{ letterSpacing: '0.15em', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}
+          className="text-base uppercase text-white tracking-[0.08em] sm:tracking-[0.15em]"
+          style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}
         >
           Dota 2 stats, match analysis, and replay viewer
         </p>
@@ -89,12 +89,12 @@ function HomePage() {
                   key={m.match_id}
                   to="/match/$matchId"
                   params={{ matchId: String(m.match_id) }}
-                  className={`flex items-center justify-between py-2.5 hover:bg-white/[0.03] ${i === 0 ? '' : 'border-t border-border'}`}
+                  className={`flex items-center justify-between gap-3 py-2.5 hover:bg-white/[0.03] ${i === 0 ? '' : 'border-t border-border'}`}
                 >
-                  <span className="text-[17px] text-foreground font-dota">
+                  <span className="min-w-0 truncate text-[17px] text-foreground font-dota">
                     {m.radiant_name ?? 'Radiant'} vs {m.dire_name ?? 'Dire'}
                   </span>
-                  <span className="text-[14px] tabular-nums text-muted font-dota">
+                  <span className="shrink-0 text-[14px] tabular-nums text-muted font-dota">
                     {formatTimeAgo(m.start_time)}
                   </span>
                 </Link>
