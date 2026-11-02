@@ -40,6 +40,10 @@ export function checkRateLimit(
 }
 
 export function clientIp(request: Request): string {
-  const forwarded = request.headers.get('fly-client-ip') ?? request.headers.get('x-forwarded-for')
+  // Behind Cloudflare, fly-client-ip is the edge address, so prefer the real client.
+  const forwarded =
+    request.headers.get('cf-connecting-ip') ??
+    request.headers.get('fly-client-ip') ??
+    request.headers.get('x-forwarded-for')
   return forwarded?.split(',')[0]?.trim() ?? 'unknown'
 }
