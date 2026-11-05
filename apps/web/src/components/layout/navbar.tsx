@@ -18,9 +18,9 @@ function PlayButton({ compact }: { compact?: boolean }) {
       href="https://store.steampowered.com/app/570/Dota_2/"
       target="_blank"
       rel="noopener noreferrer"
-      className={`text-white uppercase transition-colors hover:border-white ${compact ? 'text-[13px] tracking-[1px]' : 'shrink-0 text-[13px] sm:text-[18px] tracking-[1px] sm:tracking-[3px]'} font-display`}
+      className={`text-white uppercase transition-colors hover:border-white ${compact ? 'text-[13px] tracking-[1px]' : 'shrink-0 whitespace-nowrap text-[13px] tracking-[1px] min-[1760px]:text-[18px] min-[1760px]:tracking-[3px]'} font-display`}
       style={{
-        margin: compact ? 0 : '10px 0 10px 20px',
+        margin: 0,
         border: '3px solid rgba(255,255,255,0.314)',
         borderRadius: 0,
         transitionDuration: '0.2s',
@@ -38,8 +38,11 @@ function PlayButton({ compact }: { compact?: boolean }) {
           alignItems: 'center',
           justifyContent: compact ? 'center' : undefined,
           gap: 10,
-          padding: compact ? '12px 20px' : '15px 25px',
+          padding: compact ? '12px 20px' : undefined,
         }}
+        className={
+          compact ? undefined : 'px-4 py-2.5 min-[1760px]:px-[25px] min-[1760px]:py-[15px]'
+        }
       >
         <img src="/steam_icon.svg" alt="" width="20" height="20" aria-hidden="true" />
         <span>Play for Free</span>
@@ -78,19 +81,23 @@ export function Navbar() {
           dotavault
         </Link>
 
-        {/* Full link row: hidden below xl, where it's replaced by the menu below */}
+        {/* Full link row: hidden below xl, where it's replaced by the menu below. It only fits at full size from 1760px up, so it runs tighter in between. */}
         <div
-          className="hidden xl:flex min-w-0 items-center gap-8 uppercase text-white text-[18px] tracking-[3px] flex-1 font-display"
+          className="hidden xl:flex min-w-0 items-center gap-5 min-[1760px]:gap-8 uppercase text-white text-[14px] tracking-[1.5px] min-[1760px]:text-[18px] min-[1760px]:tracking-[3px] flex-1 font-display"
           style={{ fontWeight: 600 }}
         >
           {NAV_LINKS.map((l) => (
-            <Link key={l.to} to={l.to} className="text-white transition-colors hover:text-gold">
+            <Link
+              key={l.to}
+              to={l.to}
+              className="whitespace-nowrap text-white transition-colors hover:text-gold"
+            >
               {l.label}
             </Link>
           ))}
         </div>
 
-        <div className="hidden xl:flex shrink-0 ml-auto items-center gap-4 sm:gap-8">
+        <div className="hidden xl:flex shrink-0 ml-auto items-center gap-4 min-[1760px]:gap-8">
           <PlayButton />
           <GitHubIcon />
         </div>
