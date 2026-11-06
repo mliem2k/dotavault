@@ -1,10 +1,6 @@
-import { type ClassValue, clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
 import type { HeroStat } from 'types'
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
+export { cn } from '@mliem2k/kit/web/cn'
 
 export function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)

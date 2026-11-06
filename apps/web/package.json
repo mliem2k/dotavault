@@ -27,7 +27,8 @@
     "recharts": "^3.9.2",
     "tailwind-merge": "^3.6.0",
     "three": "^0.185.1",
-    "types": "workspace:*"
+    "types": "workspace:*",
+    "@mliem2k/kit": "https://github.com/mliem2k/kit/archive/refs/tags/v0.7.0.tar.gz"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",

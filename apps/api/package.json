@@ -22,7 +22,8 @@
     "drizzle-orm": "^0.45.2",
     "elysia": "^1.4.29",
     "types": "workspace:*",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@mliem2k/kit": "https://github.com/mliem2k/kit/archive/refs/tags/v0.7.0.tar.gz"
   },
   "devDependencies": {
     "bun-types": "latest",
