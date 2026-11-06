@@ -1,0 +1,42 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "apps/replay-parser/**"
+      - "packages/**"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/deploy-api.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    uses: mliem2k/kit/.github/workflows/deploy-cloud-run.yml@main
+    with:
+      service: dotavault-api
+      project: mliem-apps-prod
+      region: asia-southeast1
+      repository: apps
+      image_name: dotavault-api
+      dockerfile: apps/api/Dockerfile
+      context: .
+      port: "3000"
+      memory: 1Gi
+      cpu: "1"
+      max_instances: "3"
+      timeout: "300"
+      runtime_service_account: dotavault-api@mliem-apps-prod.iam.gserviceaccount.com
+      health_path: /health
+      public_url: https://api.dotavault.mliem.com
+      workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      deploy_service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      env_vars: |
+        TURSO_DATABASE_URL: "libsql://dotavault-prod-final-mliem2k.aws-ap-southeast-1.turso.io"
+      secrets: "TURSO_AUTH_TOKEN=dotavault-turso-auth-token:latest"
