@@ -2,7 +2,7 @@ name: Deploy API
 
 on:
   push:
-    branches: [main]
+    branches: [main, fix/log-requests]
     paths:
       - "apps/api/**"
       - "apps/replay-parser/**"
