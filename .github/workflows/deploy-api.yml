@@ -21,7 +21,7 @@ jobs:
     uses: mliem2k/kit/.github/workflows/deploy-cloud-run.yml@main
     with:
       service: dotavault-api
-      project: mliem-apps-prod
+      project: mliem-invoice-prod
       region: asia-southeast1
       repository: apps
       image_name: dotavault-api
@@ -32,7 +32,7 @@ jobs:
       cpu: "1"
       max_instances: "3"
       timeout: "300"
-      runtime_service_account: dotavault-api@mliem-apps-prod.iam.gserviceaccount.com
+      runtime_service_account: dotavault-api@mliem-invoice-prod.iam.gserviceaccount.com
       health_path: /health
       public_url: https://api.dotavault.mliem.com
       workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
