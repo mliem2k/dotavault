@@ -34,7 +34,7 @@ jobs:
       timeout: "300"
       runtime_service_account: dotavault-api@mliem-invoice-prod.iam.gserviceaccount.com
       health_path: /health
-      public_url: https://api.dotavault.mliem.com
+      public_url: https://dotavault-api.mliem.com
       workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       deploy_service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
       env_vars: |
